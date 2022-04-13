@@ -15,7 +15,7 @@
     "@material-ui/core": "1.1.0",
     "@material-ui/icons": "1.1.0",
     "@sendgrid/mail": "7.1.0",
-    "async": "2.6.1",
+    "async": "3.2.2",
     "bcrypt-nodejs": "0.0.3",
     "bcryptjs": "2.4.3",
     "body-parser": "1.18.3",
