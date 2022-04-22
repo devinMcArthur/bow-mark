@@ -6,6 +6,7 @@ import DailyReportListCard from "../../../Common/DailyReport/DailyReportListCard
 import JobsiteMonthlyReportList from "../../../Common/JobsiteMonthlyReport/List";
 import JobsiteYearlyReportList from "../../../Common/JobsiteYearReport/List";
 import Loading from "../../../Common/Loading";
+import Map from "../../../Common/Map";
 import Permission from "../../../Common/Permission";
 import ExpenseInvoices from "./views/ExpenseInvoices";
 import JobsiteMaterialsCosting from "./views/JobsiteMaterials";
@@ -51,6 +52,7 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
               </Text>
             )}
           </Card>
+          <Map pinText={jobsite.jobcode} />
           <Permission minRole={UserRoles.ProjectManager}>
             <SimpleGrid columns={[1, 1, 1, 2]} spacingX={4} spacingY={2}>
               <JobsiteMaterialsCosting jobsite={jobsite} />

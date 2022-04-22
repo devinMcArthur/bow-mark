@@ -11,7 +11,7 @@ import { post, prop, Ref } from "@typegoose/typegoose";
 import isUrl from "@validation/isUrl";
 import { Types } from "mongoose";
 import { Field, ID, ObjectType } from "type-graphql";
-import { TruckingTypeRateClass } from "./subDocuments";
+import { LocationClass, TruckingTypeRateClass } from "./subDocuments";
 
 export * from "./subDocuments";
 
@@ -80,6 +80,10 @@ export class JobsiteSchema {
   @Field(() => [CrewClass])
   @prop({ ref: () => CrewClass, default: [] })
   public crews!: Ref<CrewClass>[];
+
+  @Field(() => LocationClass, { nullable: true })
+  @prop({ type: () => LocationClass })
+  public location?: LocationClass;
 
   @Field()
   @prop({ required: true, default: SchemaVersions.Jobsite })

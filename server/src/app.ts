@@ -44,6 +44,8 @@ import VehicleResolver from "@graphql/resolvers/vehicle";
 import VehicleReportResolver from "@graphql/resolvers/vehicleReport";
 import VehicleWorkResolver from "@graphql/resolvers/vehicleWork";
 
+import MapResolver from "@graphql/resolvers/map";
+
 import SearchResolver from "@graphql/resolvers/search";
 
 import { User, UserDocument } from "@models";
@@ -92,6 +94,7 @@ const createApp = async () => {
       VehicleResolver,
       VehicleReportResolver,
       VehicleWorkResolver,
+      MapResolver,
     ],
     authChecker,
     pubSub: pubsub,

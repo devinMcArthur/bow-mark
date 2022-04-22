@@ -1,7 +1,7 @@
 import { prop } from "@typegoose/typegoose";
 import { TruckingRateTypes } from "@typescript/jobsite";
 import { DefaultRateClass, RateClass } from "@typescript/models";
-import { Field, ObjectType } from "type-graphql";
+import { Field, Float, ObjectType } from "type-graphql";
 
 @ObjectType()
 export class TruckingRateClass extends RateClass {
@@ -27,4 +27,15 @@ export class TruckingTypeRateClass extends DefaultRateClass {
     },
   })
   public rates!: TruckingRateClass[];
+}
+
+@ObjectType()
+export class LocationClass {
+  @Field(() => Float, { nullable: false })
+  @prop({ required: true })
+  public latitude!: number;
+
+  @Field(() => Float, { nullable: false })
+  @prop({ required: true })
+  public longitude!: number;
 }
