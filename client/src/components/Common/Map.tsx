@@ -44,7 +44,7 @@ const Map = ({ pinText, selectedLocation }: IMap) => {
           lng: -113.9544752,
         }}
         defaultZoom={11}
-        bootstrapURLKeys={{ key: "AIzaSyCEjnNgpYxg6b5PsuD09mwZmW8CIno6PkA" }}
+        bootstrapURLKeys={{ key: "<API_KEY>>" }}
         onClick={(e) => {
           if (selectedLocation) selectedLocation({ lat: e.lat, lng: e.lng });
           setPin({ lat: e.lat, lng: e.lng });

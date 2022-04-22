@@ -13,7 +13,7 @@ const address = (location: LatLng) => {
       const response = await googleMapsClient.nearestRoads({
         params: {
           points: [JSON.parse(JSON.stringify(location))],
-          key: "AIzaSyCEjnNgpYxg6b5PsuD09mwZmW8CIno6PkA",
+          key: "<API_KEY>",
         },
       });
 
