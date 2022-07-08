@@ -24,10 +24,3 @@ spec:
               memory: "2000Mi"
           ports:
             - containerPort: 3000
-          env:
-            - name: SSR_API_URL
-              value: https://paving.bowmark.ca/graphql
-            - name: NEXT_PUBLIC_API_URL
-              value: https://paving.bowmark.ca/graphql
-            - name: NEXT_PUBLIC_APP_NAME
-              value: Paving

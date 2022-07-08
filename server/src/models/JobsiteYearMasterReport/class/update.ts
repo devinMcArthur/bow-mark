@@ -11,6 +11,8 @@ const document = async (
 
   await jobsiteYearMasterReport.save();
 
+  await jobsiteYearMasterReport.generateExcel();
+
   return;
 };
 

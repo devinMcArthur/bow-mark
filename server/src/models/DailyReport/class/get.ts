@@ -267,6 +267,7 @@ const materialShipments = async (
 ): Promise<MaterialShipmentDocument[]> => {
   const materialShipments = await MaterialShipment.find({
     _id: { $in: dailyReport.materialShipment },
+    archivedAt: null,
   });
 
   return materialShipments;

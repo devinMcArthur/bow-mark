@@ -12,13 +12,14 @@ import { FiPlus, FiX } from "react-icons/fi";
 import {
   JobsiteFullSnippetFragment,
   useJobsitesMaterialsQuery,
+  useJobsitesNonCostedMaterialsQuery,
 } from "../../../../../generated/graphql";
 import Card from "../../../../Common/Card";
 import ShowMore from "../../../../Common/ShowMore";
 import Warning from "../../../../Common/Warning";
 import JobsiteMaterialCreate from "../../../../Forms/JobsiteMaterial/JobsiteMaterialCreate";
 import MaterialShipmentCard from "../../../../Common/MaterialShipment/MaterialShipmentCard";
-import JobsiteMaterialCard from "./JobsiteMaterialCard";
+import JobsiteMaterialCard from "../../../../Common/JobsiteMaterial/JobsiteMaterialCard";
 import Permission from "../../../../Common/Permission";
 import FormContainer from "../../../../Common/FormContainer";
 import Loading from "../../../../Common/Loading";
@@ -41,6 +42,13 @@ const JobsiteMaterialsCosting = ({
       id: propJobsite._id,
     },
   });
+
+  const { data: nonCostedData, loading: nonCostedLoading } =
+    useJobsitesNonCostedMaterialsQuery({
+      variables: {
+        id: propJobsite._id,
+      },
+    });
 
   const [addForm, setAddForm] = React.useState(false);
 
@@ -73,16 +81,40 @@ const JobsiteMaterialsCosting = ({
    * ----- Rendering -----
    */
 
+  const jobsiteNonCostedMaterialContent = React.useMemo(() => {
+    if (nonCostedData?.jobsite && !nonCostedLoading) {
+      if (nonCostedData.jobsite.nonCostedMaterialShipments.length > 0) {
+        return (
+          <Warning
+            description={`${nonCostedData.jobsite.nonCostedMaterialShipments.length} non-costed`}
+            onClick={() => setNonCostedList(!nonCostedList)}
+          />
+        );
+      } else return null;
+    } else if (nonCostedLoading) return <Loading />;
+    else return null;
+  }, [nonCostedData?.jobsite, nonCostedList, nonCostedLoading]);
+
+  const nonCostedMaterialList = React.useMemo(() => {
+    if (nonCostedData?.jobsite && !nonCostedLoading) {
+      return nonCostedData.jobsite.nonCostedMaterialShipments.map(
+        (materialShipment) => (
+          <MaterialShipmentCard
+            backgroundColor="white"
+            key={materialShipment._id}
+            materialShipment={materialShipment}
+            dailyReport={materialShipment.dailyReport}
+          />
+        )
+      );
+    } else return null;
+  }, [nonCostedData?.jobsite, nonCostedLoading]);
+
   const jobsiteMaterialContent = React.useMemo(() => {
     if (jobsite) {
       return (
         <HStack spacing={2}>
-          {jobsite.nonCostedMaterialShipments.length > 0 && (
-            <Warning
-              description={`${jobsite.nonCostedMaterialShipments.length} non-costed`}
-              onClick={() => setNonCostedList(!nonCostedList)}
-            />
-          )}
+          {jobsiteNonCostedMaterialContent}
           <Permission>
             <IconButton
               icon={addForm ? <FiX /> : <FiPlus />}
@@ -94,7 +126,7 @@ const JobsiteMaterialsCosting = ({
         </HStack>
       );
     } else return null;
-  }, [addForm, jobsite, nonCostedList]);
+  }, [addForm, jobsite, jobsiteNonCostedMaterialContent]);
 
   const otherContent = React.useMemo(() => {
     if (jobsite) {
@@ -110,14 +142,7 @@ const JobsiteMaterialsCosting = ({
           )}
           {nonCostedList && (
             <Box p={4} borderRadius={6} backgroundColor="red.100">
-              {jobsite.nonCostedMaterialShipments.map((materialShipment) => (
-                <MaterialShipmentCard
-                  backgroundColor="white"
-                  key={materialShipment._id}
-                  materialShipment={materialShipment}
-                  dailyReport={materialShipment.dailyReport}
-                />
-              ))}
+              {nonCostedMaterialList}
             </Box>
           )}
           <Flex w="100%" flexDir="column" px={4} py={2}>
@@ -138,7 +163,14 @@ const JobsiteMaterialsCosting = ({
         </>
       );
     } else return <Loading />;
-  }, [addForm, jobsite, materialsList, nonCostedList, selectedJobsiteMaterial]);
+  }, [
+    addForm,
+    jobsite,
+    materialsList,
+    nonCostedList,
+    nonCostedMaterialList,
+    selectedJobsiteMaterial,
+  ]);
 
   return (
     <Card h="fit-content">

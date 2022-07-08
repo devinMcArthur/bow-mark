@@ -60,6 +60,7 @@ describe("Invoice Resolver", () => {
             internal: true,
             invoiceNumber: "56789",
             description: "new description",
+            accrual: false,
           };
 
           const res = await request(app)
@@ -73,8 +74,6 @@ describe("Invoice Resolver", () => {
               },
             })
             .set("Authorization", token);
-
-          console.log(res.body);
 
           expect(res.status).toBe(200);
 

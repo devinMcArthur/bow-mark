@@ -3,6 +3,7 @@ import {
   Invoice,
   InvoiceDocument,
   Jobsite,
+  JobsiteMaterial,
   JobsiteMonthReport,
 } from "@models";
 import { Id } from "@typescript/models";
@@ -27,6 +28,9 @@ export class InvoiceData {
 
   @Field({ nullable: false })
   public internal!: boolean;
+
+  @Field({ nullable: false })
+  public accrual!: boolean;
 }
 
 const updateForJobsite = async (
@@ -60,6 +64,47 @@ const updateForJobsite = async (
   return invoice;
 };
 
+const updateForJobsiteMaterial = async (
+  invoiceId: string,
+  jobsiteMaterialId: Id,
+  data: InvoiceData
+): Promise<InvoiceDocument> => {
+  const invoice = await Invoice.getById(invoiceId, { throwError: true });
+  if (!invoice) throw new Error("Unable to find invoice");
+
+  const jobsiteMaterial = await JobsiteMaterial.getById(jobsiteMaterialId, {
+    throwError: true,
+  });
+  if (!jobsiteMaterial) throw new Error("Unable to find jobsite material");
+
+  const company = await Company.getById(data.companyId, {
+    throwError: true,
+  });
+  if (!company) throw new Error("Unable to find company");
+
+  await invoice.updateDocument({
+    ...data,
+    company,
+  });
+
+  await invoice.save();
+
+  await jobsiteMaterial.requestReportUpdate();
+
+  return invoice;
+};
+
+const remove = async (invoiceId: Id): Promise<true> => {
+  const invoice = await Invoice.getById(invoiceId, { throwError: true });
+  if (!invoice) throw new Error("Unable to find invoice");
+
+  await invoice.removeDocument();
+
+  return true;
+};
+
 export default {
   updateForJobsite,
+  updateForJobsiteMaterial,
+  remove,
 };

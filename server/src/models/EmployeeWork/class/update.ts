@@ -34,7 +34,12 @@ const date = async (employeeWork: EmployeeWorkDocument, date: Date) => {
   return;
 };
 
+const archive = (employeeWork: EmployeeWorkDocument) => {
+  employeeWork.archivedAt = new Date();
+};
+
 export default {
   document,
   date,
+  archive,
 };

@@ -51,4 +51,8 @@ export class VehicleWorkSchema {
   @Field({ nullable: true })
   @prop({ required: false })
   public endTime?: Date;
+
+  @Field(() => Date, { nullable: true })
+  @prop({ required: false })
+  public archivedAt!: Date;
 }

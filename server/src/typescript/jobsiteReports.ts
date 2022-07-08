@@ -36,11 +36,19 @@ export class RangeSummaryReportClass {
 
   @Field(() => Float, { nullable: false })
   @prop({ required: true, default: 0 })
+  public accrualExpenseInvoiceValue!: number;
+
+  @Field(() => Float, { nullable: false })
+  @prop({ required: true, default: 0 })
   public externalRevenueInvoiceValue!: number;
 
   @Field(() => Float, { nullable: false })
   @prop({ required: true, default: 0 })
   public internalRevenueInvoiceValue!: number;
+
+  @Field(() => Float, { nullable: false })
+  @prop({ required: true, default: 0 })
+  public accrualRevenueInvoiceValue!: number;
 }
 
 @ObjectType()

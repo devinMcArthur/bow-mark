@@ -31,6 +31,7 @@ import { IJobsiteSearchObject } from "@typescript/jobsite";
 import ElasticsearchClient from "@elasticsearch/client";
 import ElasticSearchIndices from "@constants/ElasticSearchIndices";
 import { IHit } from "@typescript/elasticsearch";
+import dayjs from "dayjs";
 
 /**
  * ----- Static Methods -----
@@ -195,21 +196,28 @@ const revenueInvoices = async (
 };
 
 const nonCostedMaterialShipments = async (
-  jobsite: JobsiteDocument
+  jobsite: JobsiteDocument,
+  dateRange?: { startTime: Date; endTime: Date }
 ): Promise<MaterialShipmentDocument[]> => {
   const dailyReports = await jobsite.getDailyReports();
 
   let materialShipmentIds: Id[] = [];
   for (let i = 0; i < dailyReports.length; i++) {
-    materialShipmentIds = [
-      ...materialShipmentIds,
-      ...dailyReports[i].materialShipment.map((id) => id?.toString() || ""),
-    ];
+    if (
+      !dateRange ||
+      (dayjs(dailyReports[i].date).isAfter(dateRange.startTime) &&
+        dayjs(dailyReports[i].date).isBefore(dateRange.endTime))
+    )
+      materialShipmentIds = [
+        ...materialShipmentIds,
+        ...dailyReports[i].materialShipment.map((id) => id?.toString() || ""),
+      ];
   }
 
   const materialShipments = await MaterialShipment.find({
     _id: { $in: materialShipmentIds },
     noJobsiteMaterial: true,
+    archivedAt: null,
   });
 
   return materialShipments;

@@ -27,6 +27,8 @@ spec:
           env:
             - name: NODE_ENV
               value: production
+            - name: APP_NAME
+              value: Concrete
             - name: ELASTICSEARCH_GROUP
               value: bow-mark-concrete
             - name: MONGO_URI

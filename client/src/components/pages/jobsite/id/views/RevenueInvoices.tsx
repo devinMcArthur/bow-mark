@@ -21,6 +21,14 @@ const RevenueInvoices = ({ jobsite }: IRevenueInvoices) => {
   const [addForm, setAddForm] = React.useState(false);
 
   /**
+   * ----- Variables -----
+   */
+
+  const sortedInvoices = [...jobsite.revenueInvoices].sort((a, b) =>
+    a.company.name.localeCompare(b.company.name)
+  );
+
+  /**
    * ----- Rendering -----
    */
 
@@ -50,7 +58,7 @@ const RevenueInvoices = ({ jobsite }: IRevenueInvoices) => {
       <Flex w="100%" flexDir="column" px={4} py={2}>
         {jobsite.revenueInvoices.length > 0 ? (
           <ShowMore
-            list={jobsite.revenueInvoices.map((invoice) => (
+            list={sortedInvoices.map((invoice) => (
               <InvoiceCardForJobsite
                 invoice={invoice}
                 key={invoice._id}

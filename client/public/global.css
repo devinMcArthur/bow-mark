@@ -1,0 +1,14 @@
+#jobsite-report-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: #e2e8f0;
+}
+
+/* Extra space under table in div being caused by 'sticky' jobsite name */
+
+#jobsite-report-table th[scope="row"] {
+  left: 0;
+  z-index: 3;
+  background-color: #e2e8f0;
+}

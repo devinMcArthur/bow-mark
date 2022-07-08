@@ -31,6 +31,7 @@ const expenseInvoiceReports = async (
         invoice: expenseInvoice._id,
         value: expenseInvoice.cost,
         internal: expenseInvoice.internal,
+        accrual: expenseInvoice.accrual,
       };
 
       invoices.push(invoice);
@@ -63,6 +64,7 @@ const revenueInvoiceReports = async (
         invoice: revenueInvoice._id,
         value: revenueInvoice.cost,
         internal: revenueInvoice.internal,
+        accrual: revenueInvoice.accrual,
       };
 
       invoices.push(invoice);
@@ -76,9 +78,12 @@ const revenueInvoiceReports = async (
 
 const summary = async (jobsiteYearReport: JobsiteYearReportDocument) => {
   let externalExpenseInvoiceValue = 0,
-    internalExpenseInvoiceValue = 0;
+    internalExpenseInvoiceValue = 0,
+    accrualExpenseInvoiceValue = 0;
   for (let i = 0; i < jobsiteYearReport.expenseInvoices.length; i++) {
-    if (jobsiteYearReport.expenseInvoices[i].internal) {
+    if (jobsiteYearReport.expenseInvoices[i].accrual) {
+      accrualExpenseInvoiceValue += jobsiteYearReport.expenseInvoices[i].value;
+    } else if (jobsiteYearReport.expenseInvoices[i].internal) {
       internalExpenseInvoiceValue += jobsiteYearReport.expenseInvoices[i].value;
     } else {
       externalExpenseInvoiceValue += jobsiteYearReport.expenseInvoices[i].value;
@@ -86,9 +91,12 @@ const summary = async (jobsiteYearReport: JobsiteYearReportDocument) => {
   }
 
   let externalRevenueInvoiceValue = 0,
-    internalRevenueInvoiceValue = 0;
+    internalRevenueInvoiceValue = 0,
+    accrualRevenueInvoiceValue = 0;
   for (let i = 0; i < jobsiteYearReport.revenueInvoices.length; i++) {
-    if (jobsiteYearReport.revenueInvoices[i].internal) {
+    if (jobsiteYearReport.revenueInvoices[i].accrual) {
+      accrualRevenueInvoiceValue += jobsiteYearReport.revenueInvoices[i].value;
+    } else if (jobsiteYearReport.revenueInvoices[i].internal) {
       internalRevenueInvoiceValue += jobsiteYearReport.revenueInvoices[i].value;
     } else {
       externalRevenueInvoiceValue += jobsiteYearReport.revenueInvoices[i].value;
@@ -98,8 +106,10 @@ const summary = async (jobsiteYearReport: JobsiteYearReportDocument) => {
   const summary: RangeSummaryReportClass = {
     externalExpenseInvoiceValue,
     internalExpenseInvoiceValue,
+    accrualExpenseInvoiceValue,
     externalRevenueInvoiceValue,
     internalRevenueInvoiceValue,
+    accrualRevenueInvoiceValue,
   };
 
   jobsiteYearReport.summary = summary;
@@ -113,7 +123,11 @@ const issues = async (jobsiteYearReport: JobsiteYearReportDocument) => {
   jobsiteYearReport.issues = [
     ...dayReportIssueGeneration(dayReports),
     ...(await jobsiteReportIssueGenerator(
-      await jobsiteYearReport.getJobsite()
+      await jobsiteYearReport.getJobsite(),
+      {
+        startTime: jobsiteYearReport.startOfYear,
+        endTime: dayjs(jobsiteYearReport.startOfYear).endOf("year").toDate(),
+      }
     )),
   ];
 };

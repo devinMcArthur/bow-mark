@@ -33,9 +33,12 @@ const byId = async (
 const buffer = async (file: FileDocument): Promise<string> => {
   const retreivedFile = await getFile(file._id.toString());
 
-  if (!retreivedFile) throw new Error("unable to retreive file from storage");
+  if (!retreivedFile || !retreivedFile.Body)
+    throw new Error("unable to retreive file from storage");
 
-  return `data:${file.mimetype};base64,${retreivedFile.toString("base64")}`;
+  return `data:${file.mimetype};base64,${retreivedFile.Body.toString(
+    "base64"
+  )}`;
 };
 
 export default {

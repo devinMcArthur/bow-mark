@@ -77,6 +77,10 @@ export class MaterialShipmentSchema {
   @prop({ type: () => VehicleObjectClass })
   public vehicleObject?: VehicleObjectClass;
 
+  @Field(() => Date, { nullable: true })
+  @prop({ required: false })
+  public archivedAt!: Date;
+
   @Field()
   @prop({ required: true, default: SchemaVersions.MaterialShipment })
   public schemaVersion!: number;

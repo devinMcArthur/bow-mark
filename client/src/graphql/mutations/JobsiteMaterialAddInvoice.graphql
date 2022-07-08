@@ -1,0 +1,5 @@
+mutation JobsiteMaterialAddInvoice($id: ID!, $data: InvoiceData!) {
+  jobsiteMaterialAddInvoice(jobsiteMaterialId: $id, data: $data) {
+    ...JobsiteMaterialCardSnippet
+  }
+}

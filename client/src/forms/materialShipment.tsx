@@ -10,6 +10,7 @@ import {
 import * as yup from "yup";
 import {
   JobsiteMaterialCardSnippetFragment,
+  JobsiteMaterialCostType,
   MaterialShipmentUpdateData,
 } from "../generated/graphql";
 
@@ -21,6 +22,7 @@ import Unit, { IUnit } from "../components/Common/forms/Unit";
 import NumberForm, { INumber } from "../components/Common/forms/Number";
 import CompanySearch from "../components/Search/CompanySearch";
 import ContactOffice from "../components/Common/ContactOffice";
+import jobsiteMaterialName from "../utils/jobsiteMaterialName";
 
 const MaterialShipmentUpdate = yup
   .object()
@@ -105,7 +107,7 @@ export const useMaterialShipmentUpdateForm = (options?: UseFormProps) => {
                 {...field}
                 options={jobsiteMaterials.map((material) => {
                   return {
-                    title: `${material.material.name} - ${material.supplier.name}`,
+                    title: jobsiteMaterialName(material),
                     value: material._id,
                   };
                 })}

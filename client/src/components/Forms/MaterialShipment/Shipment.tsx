@@ -3,10 +3,12 @@ import React from "react";
 import { FiX } from "react-icons/fi";
 import {
   JobsiteMaterialCardSnippetFragment,
+  JobsiteMaterialCostType,
   MaterialShipmentShipmentData,
 } from "../../../generated/graphql";
 import convertHourToDate from "../../../utils/convertHourToDate";
 import isEmpty from "../../../utils/isEmpty";
+import jobsiteMaterialName from "../../../utils/jobsiteMaterialName";
 import NumberForm from "../../Common/forms/Number";
 import Select, { ISelect } from "../../Common/forms/Select";
 import TextField from "../../Common/forms/TextField";
@@ -60,15 +62,17 @@ const MaterialShipmentShipmentForm = ({
   const jobsiteMaterialOptions: ISelect["options"] = React.useMemo(() => {
     return jobsiteMaterials
       .filter((material) => {
-        if (!deliveredMaterial && index > 0 && material.delivered === true)
+        if (
+          !deliveredMaterial &&
+          index > 0 &&
+          material.costType === JobsiteMaterialCostType.DeliveredRate
+        )
           return false;
         return true;
       })
       .map((jobsiteMaterial) => {
         return {
-          title: `${jobsiteMaterial.material.name} - ${
-            jobsiteMaterial.supplier.name
-          }${jobsiteMaterial.delivered ? " (Delivered)" : ""}`,
+          title: jobsiteMaterialName(jobsiteMaterial),
           value: jobsiteMaterial._id,
         };
       });

@@ -3,7 +3,4 @@ fragment JobsiteMaterialsSnippet on JobsiteClass {
   materials {
     ...JobsiteMaterialCardSnippet
   }
-  nonCostedMaterialShipments {
-    ...MaterialShipmentNonCostedSnippet
-  }
 }

@@ -51,7 +51,7 @@ const JobsiteReportNonCostedMaterialReports = ({
               .map((nonCostedMaterials) => nonCostedMaterials.crewType)
               .includes(crewType)
         )
-        .sort((a, b) => a.date - b.date);
+        .sort((a, b) => b.date - a.date);
     }, [crewType, dayReports]);
 
   /**

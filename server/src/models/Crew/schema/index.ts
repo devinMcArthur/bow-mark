@@ -39,7 +39,7 @@ export class CrewSchema {
   @prop({ required: true, default: SchemaVersions.Crew })
   public schemaVersion!: number;
 
-  @Field(() => Date)
+  @Field(() => Date, { nullable: true })
   @prop({ required: false })
   public archivedAt!: Date;
 

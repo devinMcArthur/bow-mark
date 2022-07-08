@@ -4,6 +4,7 @@ import { FiPlus, FiX } from "react-icons/fi";
 import { MaterialShipmentVehicleTypes } from "../../../constants/select";
 import {
   JobsiteMaterialCardSnippetFragment,
+  JobsiteMaterialCostType,
   MaterialShipmentCreateData,
   MaterialShipmentShipmentData,
   MaterialShipmentVehicleObjectData,
@@ -88,7 +89,11 @@ const MaterialShipmentDataForm = ({
         const material = jobsiteMaterials.find(
           (material) => material._id === shipment.jobsiteMaterialId
         );
-        if (material && material.delivered) deliveredMaterial = material;
+        if (
+          material &&
+          material.costType === JobsiteMaterialCostType.DeliveredRate
+        )
+          deliveredMaterial = material;
       }
 
       return deliveredMaterial;

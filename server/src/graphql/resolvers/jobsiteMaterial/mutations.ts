@@ -1,7 +1,14 @@
 import { DefaultRateData, RatesData } from "@graphql/types/mutation";
-import { Company, JobsiteMaterial, JobsiteMaterialDocument } from "@models";
+import {
+  Company,
+  Invoice,
+  JobsiteMaterial,
+  JobsiteMaterialDocument,
+} from "@models";
+import { JobsiteMaterialCostType } from "@typescript/jobsiteMaterial";
 import { Id } from "@typescript/models";
 import { Field, Float, ID, InputType } from "type-graphql";
+import { InvoiceData } from "../invoice/mutations";
 
 @InputType()
 export class JobsiteMaterialRateData extends RatesData {
@@ -38,11 +45,14 @@ export class JobsiteMaterialCreateData {
   @Field(() => [JobsiteMaterialRateData], { nullable: true })
   public rates!: JobsiteMaterialRateData[];
 
-  @Field(() => Boolean, { nullable: false })
-  public delivered!: boolean;
+  @Field(() => JobsiteMaterialCostType, { nullable: false })
+  public costType!: JobsiteMaterialCostType;
 
   @Field(() => [JobsiteMaterialDeliveredRateData], { nullable: true })
   public deliveredRates!: JobsiteMaterialDeliveredRateData[];
+
+  @Field(() => Boolean, { nullable: true })
+  public delivered?: boolean;
 }
 
 @InputType()
@@ -59,11 +69,14 @@ export class JobsiteMaterialUpdateData {
   @Field(() => [JobsiteMaterialRateData], { nullable: false })
   public rates!: JobsiteMaterialRateData[];
 
-  @Field(() => Boolean, { nullable: false })
-  public delivered!: boolean;
+  @Field(() => JobsiteMaterialCostType, { nullable: false })
+  public costType!: JobsiteMaterialCostType;
 
   @Field(() => [JobsiteMaterialDeliveredRateData], { nullable: true })
   public deliveredRates!: JobsiteMaterialDeliveredRateData[];
+
+  @Field(() => Boolean, { nullable: true })
+  public delivered?: boolean;
 }
 
 const update = async (
@@ -99,7 +112,33 @@ const remove = async (id: Id) => {
   return true;
 };
 
+const addInvoice = async (jobsiteMaterialId: Id, data: InvoiceData) => {
+  const jobsiteMaterial = await JobsiteMaterial.getById(jobsiteMaterialId);
+  if (!jobsiteMaterial) throw new Error("Unable to find jobsite material");
+  if (jobsiteMaterial.costType !== JobsiteMaterialCostType.invoice)
+    throw new Error("Cannot add an invoice to this material");
+
+  const company = await Company.getById(data.companyId, {
+    throwError: true,
+  });
+  if (!company) throw new Error("Unable to find company");
+
+  const invoice = await Invoice.createDocument({
+    ...data,
+    company,
+  });
+
+  await jobsiteMaterial.addInvoice(invoice);
+
+  await invoice.save();
+
+  await jobsiteMaterial.save();
+
+  return jobsiteMaterial;
+};
+
 export default {
   update,
   remove,
+  addInvoice,
 };

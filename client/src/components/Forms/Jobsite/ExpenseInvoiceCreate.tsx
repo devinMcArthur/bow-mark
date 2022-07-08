@@ -1,11 +1,10 @@
 import React from "react";
-import { SimpleGrid, useToast } from "@chakra-ui/react";
+import { useToast } from "@chakra-ui/react";
 import {
   InvoiceData,
   useJobsiteAddExpenseInvoiceMutation,
 } from "../../../generated/graphql";
-import { useInvoiceForm } from "../../../forms/invoice";
-import SubmitButton from "../../Common/forms/SubmitButton";
+import InvoiceForm from "../Invoice/Form";
 
 interface IJobsiteExpenseInvoiceCreate {
   jobsiteId: string;
@@ -21,8 +20,6 @@ const JobsiteExpenseInvoiceCreate = ({
    */
 
   const toast = useToast();
-
-  const { FormComponents } = useInvoiceForm();
 
   const [create, { loading }] = useJobsiteAddExpenseInvoiceMutation();
 
@@ -66,22 +63,7 @@ const JobsiteExpenseInvoiceCreate = ({
    * ----- Rendering -----
    */
 
-  return (
-    <FormComponents.Form submitHandler={handleSubmit}>
-      <FormComponents.Company isLoading={loading} />
-
-      <SimpleGrid spacing={2} columns={[1, 1, 3]}>
-        <FormComponents.Cost isLoading={loading} />
-        <FormComponents.InvoiceNumber isLoading={loading} />
-        <FormComponents.Date isLoading={loading} />
-      </SimpleGrid>
-
-      <FormComponents.Description isLoading={loading} />
-      <FormComponents.Internal isLoading={loading} />
-
-      <SubmitButton isLoading={loading} />
-    </FormComponents.Form>
-  );
+  return <InvoiceForm submitHandler={handleSubmit} isLoading={loading} />;
 };
 
 export default JobsiteExpenseInvoiceCreate;

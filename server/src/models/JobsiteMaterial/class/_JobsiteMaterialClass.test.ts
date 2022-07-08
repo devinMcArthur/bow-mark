@@ -3,7 +3,10 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 import { disconnectAndStopServer, prepareDatabase } from "@testing/jestDB";
 import { Jobsite, JobsiteMaterial } from "@models";
-import { IJobsiteMaterialCreate } from "@typescript/jobsiteMaterial";
+import {
+  IJobsiteMaterialCreate,
+  JobsiteMaterialCostType,
+} from "@typescript/jobsiteMaterial";
 
 let documents: SeededDatabase, mongoServer: MongoMemoryServer;
 const setupDatabase = async () => {
@@ -36,6 +39,28 @@ describe("Jobsite Material Class", () => {
         });
       });
     });
+
+    describe("getInvoiceMonthRate", () => {
+      describe("success", () => {
+        test("should successfully generate a monthly rate for this material", async () => {
+          const jobsiteMaterial =
+            documents.jobsiteMaterials.jobsite_2_material_2;
+
+          // First month
+          const firstRate = await jobsiteMaterial.getInvoiceMonthRate(
+            documents.dailyReports.jobsite_2_base_1_1.date
+          );
+
+          expect(firstRate).toBe(10);
+
+          const secondRate = await jobsiteMaterial.getInvoiceMonthRate(
+            documents.dailyReports.jobsite_2_base_1_2.date
+          );
+
+          expect(secondRate).toBe(100);
+        });
+      });
+    });
   });
 
   describe("CREATE", () => {
@@ -55,8 +80,8 @@ describe("Jobsite Material Class", () => {
               },
             ],
             unit: "tonnes",
-            delivered: false,
             deliveredRates: [],
+            costType: JobsiteMaterialCostType.rate,
           };
 
           const jobsiteMaterial = await JobsiteMaterial.createDocument(data);
@@ -82,7 +107,6 @@ describe("Jobsite Material Class", () => {
             quantity: 1000,
             rates: [],
             unit: "tonnes",
-            delivered: true,
             deliveredRates: [
               {
                 title: "Tandem",
@@ -95,6 +119,7 @@ describe("Jobsite Material Class", () => {
                 ],
               },
             ],
+            costType: JobsiteMaterialCostType.deliveredRate,
           };
 
           const jobsiteMaterial = await JobsiteMaterial.createDocument(data);
@@ -126,8 +151,8 @@ describe("Jobsite Material Class", () => {
             quantity: 1000,
             rates: [],
             unit: "tonnes",
-            delivered: false,
             deliveredRates: [],
+            costType: JobsiteMaterialCostType.rate,
           };
 
           try {
@@ -147,7 +172,7 @@ describe("Jobsite Material Class", () => {
             quantity: 1000,
             rates: [],
             unit: "tonnes",
-            delivered: true,
+            costType: JobsiteMaterialCostType.deliveredRate,
             deliveredRates: [],
           };
 

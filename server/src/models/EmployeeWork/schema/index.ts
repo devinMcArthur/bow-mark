@@ -40,6 +40,10 @@ export class EmployeeWorkSchema {
   @prop({ ref: () => EmployeeClass, required: true })
   public employee!: Ref<EmployeeClass>;
 
+  @Field(() => Date, { nullable: true })
+  @prop({ required: false })
+  public archivedAt!: Date;
+
   @Field()
   @prop({ required: true, default: SchemaVersions.EmployeeWork })
   public schemaVersion!: number;

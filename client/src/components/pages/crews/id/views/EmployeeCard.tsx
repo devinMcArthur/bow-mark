@@ -3,17 +3,29 @@ import { FiTrash } from "react-icons/fi";
 import {
   CrewFullSnippetFragment,
   EmployeeCardSnippetFragment,
+  Scalars,
   useCrewRemoveEmployeeMutation,
 } from "../../../../../generated/graphql";
 import createLink from "../../../../../utils/createLink";
+import EmployeeHours from "../../../../Common/Employee/Hours";
 import TextLink from "../../../../Common/TextLink";
 
 interface IEmployeeCard {
   employee: EmployeeCardSnippetFragment;
   crew: CrewFullSnippetFragment;
+  showHours?: boolean;
+  hoursTimeRange?: {
+    startTime: Scalars["DateTime"];
+    endTime: Scalars["DateTime"];
+  };
 }
 
-const EmployeeCard = ({ employee, crew }: IEmployeeCard) => {
+const EmployeeCard = ({
+  employee,
+  crew,
+  hoursTimeRange,
+  showHours = false,
+}: IEmployeeCard) => {
   const [remove, { loading: removeLoading }] = useCrewRemoveEmployeeMutation({
     variables: {
       crewId: crew._id,
@@ -38,6 +50,13 @@ const EmployeeCard = ({ employee, crew }: IEmployeeCard) => {
           icon={<FiTrash />}
         />
       </Flex>
+      {showHours && (
+        <EmployeeHours
+          startTime={hoursTimeRange?.startTime}
+          endTime={hoursTimeRange?.endTime}
+          employeeId={employee._id}
+        />
+      )}
     </Box>
   );
 };

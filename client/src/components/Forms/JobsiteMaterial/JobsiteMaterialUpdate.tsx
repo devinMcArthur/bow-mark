@@ -1,12 +1,14 @@
 import React from "react";
-import { SimpleGrid, useToast } from "@chakra-ui/react";
+import { Center, SimpleGrid, Text, Tooltip, useToast } from "@chakra-ui/react";
 import { useJobsiteMaterialUpdateForm } from "../../../forms/jobsiteMaterial";
 import {
   JobsiteMaterialCardSnippetFragment,
+  JobsiteMaterialCostType,
   JobsiteMaterialUpdateData,
   useJobsiteMaterialUpdateMutation,
 } from "../../../generated/graphql";
 import SubmitButton from "../../Common/forms/SubmitButton";
+import InfoTooltip from "../../Common/Info";
 
 interface IJobsiteMaterialUpdate {
   jobsiteMaterial: JobsiteMaterialCardSnippetFragment;
@@ -25,14 +27,15 @@ const JobsiteMaterialUpdate = ({
 
   const [update, { loading }] = useJobsiteMaterialUpdateMutation();
 
-  const { FormComponents, delivered } = useJobsiteMaterialUpdateForm({
+  const { FormComponents, costType } = useJobsiteMaterialUpdateForm({
     defaultValues: {
       supplierId: jobsiteMaterial.supplier._id,
       quantity: jobsiteMaterial.quantity,
       unit: jobsiteMaterial.unit,
       rates: jobsiteMaterial.rates,
-      delivered: jobsiteMaterial.delivered,
+      costType: jobsiteMaterial.costType,
       deliveredRates: jobsiteMaterial.deliveredRates,
+      delivered: jobsiteMaterial.delivered,
     },
   });
 
@@ -76,6 +79,21 @@ const JobsiteMaterialUpdate = ({
    * ----- Rendering -----
    */
 
+  const costTypeForm = React.useMemo(() => {
+    if (costType === JobsiteMaterialCostType.Rate) {
+      return <FormComponents.Rates isLoading={loading} />;
+    } else if (costType === JobsiteMaterialCostType.DeliveredRate) {
+      return <FormComponents.DeliveredRates isLoading={loading} />;
+    } else
+      return (
+        <Center mt={2}>
+          <Text fontWeight="bold" color="gray.600">
+            Invoices can be added after Update
+          </Text>
+        </Center>
+      );
+  }, [FormComponents, costType, loading]);
+
   return (
     <FormComponents.Form submitHandler={handleSubmit}>
       <FormComponents.Supplier isLoading={loading} />
@@ -83,12 +101,15 @@ const JobsiteMaterialUpdate = ({
         <FormComponents.Quantity isLoading={loading} />
         <FormComponents.Unit isLoading={loading} />
       </SimpleGrid>
+      <FormComponents.CostType isLoading={loading} />
       <FormComponents.Delivered isLoading={loading} />
-      {delivered ? (
-        <FormComponents.DeliveredRates isLoading={loading} />
-      ) : (
-        <FormComponents.Rates isLoading={loading} />
+      {costType === JobsiteMaterialCostType.Invoice && (
+        <InfoTooltip
+          mx={1}
+          description="If delivered, it will be assumed that trucking is included in the invoice and it will not be reported separately."
+        />
       )}
+      {costTypeForm}
       <SubmitButton isLoading={loading} />
     </FormComponents.Form>
   );

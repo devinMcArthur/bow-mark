@@ -5,6 +5,7 @@ import { useMaterialShipmentUpdateForm } from "../../../forms/materialShipment";
 import {
   DailyReportForMaterialShipmentSnippetFragment,
   JobsiteMaterialCardSnippetFragment,
+  JobsiteMaterialCostType,
   MaterialShipmentCardSnippetFragment,
   MaterialShipmentUpdateData,
   useMaterialShipmentUpdateMutation,
@@ -66,7 +67,11 @@ const MaterialShipmentUpdate = ({
         const material = dailyReport.jobsite.materials.find(
           (material) => material._id === jobsiteMaterialId
         );
-        if (material && material.delivered) deliveredMaterial = material;
+        if (
+          material &&
+          material.costType === JobsiteMaterialCostType.DeliveredRate
+        )
+          deliveredMaterial = material;
       }
 
       return deliveredMaterial;

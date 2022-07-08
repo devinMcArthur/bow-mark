@@ -56,6 +56,14 @@ export class EmployeeClass extends EmployeeSchema {
     return get.rateForTime(this, date);
   }
 
+  public async getHourReports(
+    this: EmployeeDocument,
+    startTime: Date,
+    endTime: Date
+  ) {
+    return get.employeeHourReports(this, startTime, endTime);
+  }
+
   /**
    * ----- Create -----
    */

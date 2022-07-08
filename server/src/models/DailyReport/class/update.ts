@@ -155,12 +155,36 @@ const addTemporaryEmployee = async (
   return;
 };
 
-const archive = async (dailyReport: DailyReportDocument) => {
+const archive = async (
+  dailyReport: DailyReportDocument
+): Promise<{
+  employeeWork: EmployeeWorkDocument[];
+  materialShipments: MaterialShipmentDocument[];
+  vehicleWork: VehicleWorkDocument[];
+}> => {
   dailyReport.archived = true;
 
   dailyReport.approved = false;
 
-  return;
+  // Archive all employee work
+  const employeeWork = await dailyReport.getEmployeeWork();
+  for (let i = 0; i < employeeWork.length; i++) {
+    await employeeWork[i].archive();
+  }
+
+  // Archive all vehicle work
+  const vehicleWork = await dailyReport.getVehicleWork();
+  for (let i = 0; i < vehicleWork.length; i++) {
+    await vehicleWork[i].archive();
+  }
+
+  // Archive all material shipments
+  const materialShipments = await dailyReport.getMaterialShipments();
+  for (let i = 0; i < materialShipments.length; i++) {
+    await materialShipments[i].archive();
+  }
+
+  return { employeeWork, materialShipments, vehicleWork };
 };
 
 const addTemporaryVehicle = async (

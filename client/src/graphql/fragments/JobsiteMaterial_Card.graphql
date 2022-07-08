@@ -9,12 +9,16 @@ fragment JobsiteMaterialCardSnippet on JobsiteMaterialClass {
   quantity
   completedQuantity
   unit
+  costType
+  delivered
   rates {
     ...JobsiteMaterialRateSnippet
   }
-  delivered
   deliveredRates {
     ...JobsiteMaterialDeliveredRateSnippet
+  }
+  invoices {
+    ...InvoiceCardSnippet
   }
   canRemove
 }

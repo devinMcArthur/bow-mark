@@ -70,6 +70,10 @@ export class EmployeeWorkClass extends EmployeeWorkSchema {
     return update.date(this, date);
   }
 
+  public async archive(this: EmployeeWorkDocument) {
+    return update.archive(this);
+  }
+
   /**
    * ----- Remove -----
    */

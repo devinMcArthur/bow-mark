@@ -1,0 +1,12 @@
+query EmployeeHourReports(
+  $id: ID!
+  $startTime: DateTime!
+  $endTime: DateTime!
+) {
+  employeeHourReports(id: $id, startTime: $startTime, endTime: $endTime) {
+    days {
+      date
+      hours
+    }
+  }
+}

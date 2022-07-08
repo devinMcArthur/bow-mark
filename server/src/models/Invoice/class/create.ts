@@ -12,6 +12,7 @@ const document = async (
     date: data.date,
     description: data.description,
     internal: data.internal,
+    accrual: data.accrual,
   });
 
   return invoice;

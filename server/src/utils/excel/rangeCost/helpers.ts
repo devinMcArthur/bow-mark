@@ -610,3 +610,7 @@ export const getStartRowCell = (
     return worksheet.getRow(2).getCell(1);
   }
 };
+
+export const safeCrewTableName = (name: string) => {
+  return name.replace(/\s+|\/+/g, "");
+};

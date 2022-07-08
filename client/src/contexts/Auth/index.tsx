@@ -1,3 +1,4 @@
+import { useToast } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import React from "react";
 
@@ -97,6 +98,8 @@ const AuthProvider = ({ children }: IAuthProvider) => {
 
   const router = useRouter();
 
+  const toast = useToast();
+
   const [
     currentUser,
     {
@@ -165,7 +168,20 @@ const AuthProvider = ({ children }: IAuthProvider) => {
     if (currentUserData?.currentUser && !currentUserLoading)
       authorizeSession(currentUserData.currentUser);
     else if (currentUserLoading) sessionLoading();
-    else if (!currentUserLoading && currentUserError) deauthorizeSession();
+    else if (!currentUserLoading && currentUserError) {
+      if (currentUserError.message !== "Failed to fetch") {
+        deauthorizeSession();
+      } else {
+        toast({
+          title: "Error",
+          description:
+            "Unable to connect to the server. If the problem persists, please contact support.",
+          status: "error",
+          isClosable: true,
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     currentUserData,
     currentUserLoading,

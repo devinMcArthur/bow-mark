@@ -1,26 +1,26 @@
-// import { MongoMemoryServer } from "mongodb-memory-server";
+import { MongoMemoryServer } from "mongodb-memory-server";
 
-// import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
-// import { disconnectAndStopServer, prepareDatabase } from "@testing/jestDB";
+import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
+import { disconnectAndStopServer, prepareDatabase } from "@testing/jestDB";
 import dayjs from "dayjs";
 
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 
-// let documents: SeededDatabase, mongoServer: MongoMemoryServer;
-// const setupDatabase = async () => {
-//   // documents = await seedDatabase();
+let documents: SeededDatabase, mongoServer: MongoMemoryServer;
+const setupDatabase = async () => {
+  documents = await seedDatabase();
 
-//   return;
-// };
+  return;
+};
 
 beforeAll(async () => {
-  // mongoServer = await prepareDatabase();
-  // await setupDatabase();
+  mongoServer = await prepareDatabase();
+  await setupDatabase();
 });
 
 afterAll(async () => {
-  // await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer(mongoServer);
 });
 
 describe("PLAYGROUND", () => {

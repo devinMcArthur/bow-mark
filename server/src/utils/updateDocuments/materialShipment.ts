@@ -87,10 +87,42 @@ const updateToV2 = async () => {
   return;
 };
 
+const updateToV3 = async () => {
+  const materialShipments = await MaterialShipment.find({
+    schemaVersion: 2,
+  });
+
+  if (materialShipments.length > 0) {
+    console.log(
+      `Updating ${materialShipments.length} MaterialShipment document(s) to Schema Version 3...`
+    );
+
+    for (let i = 0; i < materialShipments.length; i++) {
+      // Mark as archived if it's daily report is archived
+      const materialShipment = materialShipments[i];
+      const dailyReport = await materialShipment.getDailyReport();
+
+      if (dailyReport && dailyReport.archived) {
+        materialShipment.archivedAt = new Date();
+      }
+
+      materialShipment.schemaVersion = 3;
+
+      await materialShipment.save();
+    }
+
+    console.log(
+      `...successfully updated ${materialShipments.length} MaterialShipment document(s) to Schema Version 3.`
+    );
+  }
+};
+
 const updateMaterialShipment = async () => {
   await updateToV1();
 
   await updateToV2();
+
+  await updateToV3();
 
   return;
 };

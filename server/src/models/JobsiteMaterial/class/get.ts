@@ -1,6 +1,9 @@
 import {
   Company,
   CompanyDocument,
+  DailyReport,
+  Invoice,
+  InvoiceDocument,
   Jobsite,
   JobsiteDocument,
   JobsiteMaterialDocument,
@@ -10,9 +13,11 @@ import {
   MaterialShipment,
   MaterialShipmentDocument,
 } from "@models";
+import { JobsiteMaterialCostType } from "@typescript/jobsiteMaterial";
 import { GetByIDOptions, Id } from "@typescript/models";
 import getRateForTime from "@utils/getRateForTime";
 import populateOptions from "@utils/populateOptions";
+import dayjs from "dayjs";
 
 /**
  * ----- Static Methods -----
@@ -94,6 +99,15 @@ const materialShipments = async (
   return MaterialShipment.find({
     jobsiteMaterial: jobsiteMaterial._id,
     noJobsiteMaterial: false,
+    archivedAt: null,
+  });
+};
+
+const invoices = async (
+  jobsiteMaterial: JobsiteMaterialDocument
+): Promise<InvoiceDocument[]> => {
+  return Invoice.find({
+    _id: { $in: jobsiteMaterial.invoices },
   });
 };
 
@@ -104,9 +118,7 @@ const completedQuantity = async (
 
   let quantity = 0;
   for (let i = 0; i < materialShipments.length; i++) {
-    const dailyReport = await materialShipments[i].getDailyReport();
-    if (dailyReport && dailyReport.archived !== true)
-      quantity += materialShipments[i].quantity;
+    quantity += materialShipments[i].quantity;
   }
 
   return quantity;
@@ -119,6 +131,51 @@ const rateForTime = async (
   return getRateForTime(jobsiteMaterial.rates, date);
 };
 
+const invoiceMonthRate = async (
+  jobsiteMaterial: JobsiteMaterialDocument,
+  dayInMonth: Date
+): Promise<number | undefined> => {
+  if (jobsiteMaterial.costType !== JobsiteMaterialCostType.invoice)
+    return undefined;
+
+  if (!jobsiteMaterial.invoices || jobsiteMaterial.invoices.length === 0)
+    return 0;
+
+  const monthsDailyReports = await DailyReport.find({
+    date: {
+      $gte: dayjs(dayInMonth).startOf("month").toDate(),
+      $lt: dayjs(dayInMonth).endOf("month").toDate(),
+    },
+  });
+
+  let quantity = 0;
+  for (let i = 0; i < monthsDailyReports.length; i++) {
+    const reportShipments = await monthsDailyReports[i].getMaterialShipments();
+
+    for (let j = 0; j < reportShipments.length; j++) {
+      if (
+        reportShipments[j].noJobsiteMaterial === false &&
+        reportShipments[j].jobsiteMaterial?.toString() ===
+          jobsiteMaterial._id.toString()
+      ) {
+        quantity += reportShipments[j].quantity;
+      }
+    }
+  }
+
+  let cost = 0;
+  const invoices = (await jobsiteMaterial.getInvoices()).filter((invoice) =>
+    dayjs(invoice.date).isSame(dayInMonth, "month")
+  );
+  for (let i = 0; i < invoices.length; i++) {
+    cost += invoices[i].cost;
+  }
+
+  if (quantity === 0) return 0;
+
+  return cost / quantity;
+};
+
 export default {
   byId,
   byMaterial,
@@ -128,4 +185,6 @@ export default {
   materialShipments,
   completedQuantity,
   rateForTime,
+  invoices,
+  invoiceMonthRate,
 };

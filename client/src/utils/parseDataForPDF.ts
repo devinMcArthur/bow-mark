@@ -137,8 +137,6 @@ const materialShipments = (
     )
   );
 
-  console.log(allMaterials);
-
   for (let i = 0; i < allMaterials.length; i++) {
     const material = JSON.parse(allMaterials[i]);
 

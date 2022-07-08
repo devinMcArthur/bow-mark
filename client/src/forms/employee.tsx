@@ -8,9 +8,14 @@ import {
   UseFormProps,
 } from "react-hook-form";
 import * as yup from "yup";
-import { EmployeeCreateData, EmployeeUpdateData } from "../generated/graphql";
+import {
+  EmployeeCreateData,
+  EmployeeUpdateData,
+  Scalars,
+} from "../generated/graphql";
 import { IFormProps } from "../typescript/forms";
 import TextField, { ITextField } from "../components/Common/forms/TextField";
+import dayjs from "dayjs";
 
 const EmployeeCreate = yup
   .object()
@@ -143,6 +148,90 @@ export const useEmployeeUpdateForm = (options?: UseFormProps) => {
           />
         ),
         [isLoading, props]
+      ),
+  };
+
+  return {
+    FormComponents,
+    ...form,
+  };
+};
+
+const EmployeeHourDateSchema = yup.object().shape({
+  startTime: yup.date().required().typeError("please provide a valid date"),
+  endTime: yup.date().required().typeError("please provide a valid date"),
+});
+
+export const useEmployeeHourDateForm = (options?: UseFormProps) => {
+  const form = useForm({
+    resolver: yupResolver(EmployeeHourDateSchema),
+    ...options,
+  });
+
+  const { handleSubmit, control } = form;
+
+  const FormComponents = {
+    Form: ({
+      children,
+      submitHandler,
+    }: {
+      children: React.ReactNode;
+      submitHandler: SubmitHandler<{
+        startTime: Scalars["DateTime"];
+        endTime: Scalars["DateTime"];
+      }>;
+    }) => <form onSubmit={handleSubmit(submitHandler)}>{children}</form>,
+    StartTime: ({
+      isLoading,
+      defaultValue = dayjs().startOf("year").toISOString(),
+    }: {
+      isLoading?: boolean;
+      defaultValue?: string;
+    }) =>
+      React.useMemo(
+        () => (
+          <Controller
+            control={control}
+            name="startTime"
+            defaultValue={defaultValue}
+            render={({ field, fieldState }) => (
+              <TextField
+                {...field}
+                type="date"
+                label="Start Time"
+                errorMessage={fieldState.error?.message}
+                isDisabled={isLoading}
+              />
+            )}
+          />
+        ),
+        [defaultValue, isLoading]
+      ),
+    EndTime: ({
+      isLoading,
+      defaultValue = new Date().toISOString(),
+    }: {
+      isLoading?: boolean;
+      defaultValue?: string;
+    }) =>
+      React.useMemo(
+        () => (
+          <Controller
+            control={control}
+            name="endTime"
+            defaultValue={defaultValue}
+            render={({ field, fieldState }) => (
+              <TextField
+                {...field}
+                type="date"
+                label="End Time"
+                errorMessage={fieldState.error?.message}
+                isDisabled={isLoading}
+              />
+            )}
+          />
+        ),
+        [defaultValue, isLoading]
       ),
   };
 

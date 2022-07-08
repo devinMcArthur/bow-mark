@@ -6,17 +6,18 @@ import {
   EmployeeWorkDocument,
   JobsiteDayReportDocument,
   JobsiteMaterial,
+  JobsiteMaterialDocument,
   MaterialShipmentDocument,
   Vehicle,
   VehicleWorkDocument,
 } from "@models";
 import { CrewTypes } from "@typescript/crew";
+import { JobsiteMaterialCostType } from "@typescript/jobsiteMaterial";
 import {
   CrewTypeOnSiteSummaryClass,
   OnSiteSummaryReportClass,
 } from "@typescript/jobsiteReports";
 import { Id } from "@typescript/models";
-import errorHandler from "@utils/errorHandler";
 import getRateObjectForTime from "@utils/getRateObjectForTime";
 import getTruckingRateForTime from "@utils/getTruckingRateForTime";
 import dayjs from "dayjs";
@@ -93,7 +94,7 @@ const employeeReports = async (
     try {
       crewType = (await dailyReports[i].getCrew()).type;
     } catch (e) {
-      logger.error("employeeReports: unable to find crew");
+      logger.info("employeeReports: unable to find crew");
     }
 
     const employeeWork = await dailyReports[i].getEmployeeWork();
@@ -170,8 +171,10 @@ const employeeReports = async (
       };
 
       employeeReports.push(employeeReport);
-    } catch (error) {
-      errorHandler("Unable to create employee report", error);
+    } catch (error: unknown) {
+      logger.info(
+        `Unable to create employee report: ${(error as Error).message}`
+      );
     }
   }
 
@@ -199,7 +202,7 @@ const vehicleReports = async (
     try {
       crewType = (await dailyReports[i].getCrew()).type;
     } catch (e) {
-      logger.error("vehicleReports: unable to find crew");
+      logger.info("vehicleReports: unable to find crew");
     }
 
     const vehicleWork = await dailyReports[i].getVehicleWork();
@@ -273,7 +276,9 @@ const vehicleReports = async (
 
       vehicleReports.push(vehicleReport);
     } catch (error) {
-      errorHandler("Unable to create vehicle report", error);
+      logger.info(
+        `Unable to create vehicle report: ${(error as Error).message}`
+      );
     }
   }
 
@@ -301,7 +306,7 @@ const materialReports = async (
     try {
       crewType = (await dailyReports[i].getCrew()).type;
     } catch (e) {
-      logger.error("materialReports: unable to find crew");
+      logger.info("materialReports: unable to find crew");
     }
 
     const materialShipments = await dailyReports[i].getMaterialShipments();
@@ -322,8 +327,9 @@ const materialReports = async (
 
   // Catalog all jobsiteMaterials and their shipments
   const jobsiteMaterialObjects: {
-    jobsiteMaterial: Id;
+    jobsiteMaterial: JobsiteMaterialDocument;
     deliveredRateId?: Id;
+    invoiceRate?: number;
     materialShipments: MaterialShipmentDocument[];
     crewType: CrewTypes;
   }[] = [];
@@ -331,32 +337,39 @@ const materialReports = async (
     let matchedIndex = -1;
     for (let j = 0; j < jobsiteMaterialObjects.length; j++) {
       if (
-        jobsiteMaterialObjects[j].jobsiteMaterial.toString() ===
+        jobsiteMaterialObjects[j].jobsiteMaterial._id.toString() ===
           materialShipmentObjects[
             i
           ].materialShipment.jobsiteMaterial?.toString() &&
         jobsiteMaterialObjects[j].crewType ===
           materialShipmentObjects[i].crewType &&
-        jobsiteMaterialObjects[j].deliveredRateId?.toString() ===
-          materialShipmentObjects[
-            i
-          ].materialShipment.vehicleObject?.deliveredRateId?.toString()
+        (jobsiteMaterialObjects[j].jobsiteMaterial.costType !==
+          JobsiteMaterialCostType.deliveredRate ||
+          jobsiteMaterialObjects[j].deliveredRateId?.toString() ===
+            materialShipmentObjects[
+              i
+            ].materialShipment.vehicleObject?.deliveredRateId?.toString())
       )
         matchedIndex = j;
     }
 
     if (matchedIndex === -1) {
-      jobsiteMaterialObjects.push({
-        jobsiteMaterial:
-          materialShipmentObjects[
-            i
-          ].materialShipment.jobsiteMaterial?.toString() || "",
-        materialShipments: [materialShipmentObjects[i].materialShipment],
-        crewType: materialShipmentObjects[i].crewType,
-        deliveredRateId:
-          materialShipmentObjects[i].materialShipment.vehicleObject
-            ?.deliveredRateId,
-      });
+      const jobsiteMaterial = await JobsiteMaterial.getById(
+        materialShipmentObjects[
+          i
+        ].materialShipment.jobsiteMaterial?.toString() || ""
+      );
+
+      if (jobsiteMaterial) {
+        jobsiteMaterialObjects.push({
+          jobsiteMaterial: jobsiteMaterial,
+          materialShipments: [materialShipmentObjects[i].materialShipment],
+          crewType: materialShipmentObjects[i].crewType,
+          deliveredRateId:
+            materialShipmentObjects[i].materialShipment.vehicleObject
+              ?.deliveredRateId,
+        });
+      }
     } else {
       jobsiteMaterialObjects[matchedIndex].materialShipments.push(
         materialShipmentObjects[i].materialShipment
@@ -378,39 +391,68 @@ const materialReports = async (
 
     // Create and push report
     try {
-      const jobsiteMaterial = await JobsiteMaterial.getById(
-        jobsiteMaterialObject.jobsiteMaterial,
-        {
-          throwError: true,
+      const { jobsiteMaterial } = jobsiteMaterialObject;
+
+      switch (jobsiteMaterial.costType) {
+        case JobsiteMaterialCostType.deliveredRate: {
+          if (jobsiteMaterialObject.deliveredRateId) {
+            const deliveredRate = jobsiteMaterial.deliveredRates.find(
+              (rate) =>
+                rate._id?.toString() ===
+                jobsiteMaterialObject.deliveredRateId?.toString()
+            );
+
+            if (deliveredRate) {
+              const rate = getRateObjectForTime(
+                deliveredRate.rates,
+                jobsiteDayReport.date
+              );
+
+              if (rate) {
+                const materialReport: MaterialReportClass = {
+                  jobsiteMaterial: jobsiteMaterial._id,
+                  deliveredRateId: deliveredRate._id,
+                  materialShipments: jobsiteMaterialObject.materialShipments
+                    .filter(
+                      (shipment) =>
+                        shipment.vehicleObject?.deliveredRateId?.toString() ===
+                        deliveredRate._id?.toString()
+                    )
+                    .map((object) => object._id),
+                  crewType: jobsiteMaterialObject.crewType,
+                  quantity,
+                  rate: rate.rate,
+                  estimated: rate.estimated,
+                };
+
+                materialReports.push(materialReport);
+              } else {
+                logger.info("Unable to find delivered rate");
+              }
+            } else {
+              logger.info(
+                "Invalid jobsite material, does not include a delivered rate"
+              );
+            }
+          } else {
+            logger.info("Could not find delivered rate");
+          }
+
+          break;
         }
-      );
-
-      if (!jobsiteMaterial) throw new Error("Could not find jobsite material");
-
-      if (jobsiteMaterialObject.deliveredRateId) {
-        const deliveredRate = jobsiteMaterial.deliveredRates.find(
-          (rate) =>
-            rate._id?.toString() ===
-            jobsiteMaterialObject.deliveredRateId?.toString()
-        );
-
-        if (deliveredRate) {
+        case JobsiteMaterialCostType.rate: {
+          // Normal Rate Handling
           const rate = getRateObjectForTime(
-            deliveredRate.rates,
+            jobsiteMaterial.rates,
             jobsiteDayReport.date
           );
 
           if (rate) {
             const materialReport: MaterialReportClass = {
               jobsiteMaterial: jobsiteMaterial._id,
-              deliveredRateId: deliveredRate._id,
-              materialShipments: jobsiteMaterialObject.materialShipments
-                .filter(
-                  (shipment) =>
-                    shipment.vehicleObject?.deliveredRateId?.toString() ===
-                    deliveredRate._id?.toString()
-                )
-                .map((object) => object._id),
+              materialShipments: jobsiteMaterialObject.materialShipments.map(
+                (object) => object._id
+              ),
               crewType: jobsiteMaterialObject.crewType,
               quantity,
               rate: rate.rate,
@@ -419,34 +461,44 @@ const materialReports = async (
 
             materialReports.push(materialReport);
           } else {
-            logger.error("Unable to find delivered rate");
+            logger.info("Unable to find rate");
           }
+
+          break;
         }
-      } else {
-        const rate = getRateObjectForTime(
-          jobsiteMaterial.rates,
-          jobsiteDayReport.date
-        );
+        case JobsiteMaterialCostType.invoice: {
+          const rate = await jobsiteMaterial.getInvoiceMonthRate(
+            jobsiteDayReport.date
+          );
 
-        if (rate) {
-          const materialReport: MaterialReportClass = {
-            jobsiteMaterial: jobsiteMaterial._id,
-            materialShipments: jobsiteMaterialObject.materialShipments.map(
-              (object) => object._id
-            ),
-            crewType: jobsiteMaterialObject.crewType,
-            quantity,
-            rate: rate.rate,
-            estimated: rate.estimated,
-          };
+          // Invoice Rate Handling
+          if (rate !== undefined) {
+            const materialReport: MaterialReportClass = {
+              jobsiteMaterial: jobsiteMaterial._id,
+              materialShipments: jobsiteMaterialObject.materialShipments.map(
+                (object) => object._id
+              ),
+              crewType: jobsiteMaterialObject.crewType,
+              quantity,
+              rate,
+              estimated: false,
+            };
+            materialReports.push(materialReport);
+          } else {
+            logger.info("Unable to find material invoice rate");
+          }
 
-          materialReports.push(materialReport);
-        } else {
-          logger.error("Unable to find rate");
+          break;
+        }
+        default: {
+          logger.info("Invalid jobsiteMaterial Cost Type");
+          break;
         }
       }
     } catch (error) {
-      errorHandler("Unable to create material report", error);
+      logger.info(
+        `Unable to create material report: ${(error as Error).message}`
+      );
     }
   }
 
@@ -474,7 +526,7 @@ const nonCostedMaterialReports = async (
     try {
       crewType = (await dailyReports[i].getCrew()).type;
     } catch (e) {
-      logger.error("nonCostedMaterials: unable to find crew");
+      logger.info("nonCostedMaterials: unable to find crew");
     }
 
     const materialShipments = await dailyReports[i].getMaterialShipments();
@@ -556,7 +608,9 @@ const nonCostedMaterialReports = async (
 
       nonCostedMaterialReports.push(materialReport);
     } catch (error) {
-      errorHandler("Unable to create material report", error);
+      logger.info(
+        `Unable to create material report: ${(error as Error).message}`
+      );
     }
   }
 
@@ -569,11 +623,12 @@ const truckingReports = async (
   jobsiteDayReport: JobsiteDayReportDocument,
   dailyReports?: DailyReportDocument[]
 ) => {
+  // Get all relevant Daily Reports if not provided
   if (!dailyReports || dailyReports.length === 0) {
     dailyReports = await DailyReport.getByJobsiteDayReport(jobsiteDayReport);
   }
 
-  // Get all relevant material shipments
+  // Get all relevant trucking shipments
   interface ShipmentObject {
     materialShipment: MaterialShipmentDocument;
     crewType: CrewTypes;
@@ -584,7 +639,7 @@ const truckingReports = async (
     try {
       crewType = (await dailyReports[i].getCrew()).type;
     } catch (e) {
-      logger.error("truckingReports: unable to find crew");
+      logger.info("truckingReports: unable to find crew");
     }
 
     const materialShipments = await dailyReports[i].getMaterialShipments();
@@ -605,6 +660,9 @@ const truckingReports = async (
     ];
   }
 
+  // Catalog all jobsite materials
+  const jobsiteMaterials: Record<string, JobsiteMaterialDocument> = {};
+
   // Catalog all trucks and their shipments
   const uniqueTruckingObjects: {
     truckingRateId: Id;
@@ -613,6 +671,29 @@ const truckingReports = async (
   }[] = [];
   for (let i = 0; i < materialShipmentObjects.length; i++) {
     let matchedIndex = -1;
+
+    // Catalog jobsiteMaterials
+    const jobsiteMaterialId =
+      materialShipmentObjects[i].materialShipment.jobsiteMaterial?.toString();
+    if (jobsiteMaterialId !== undefined) {
+      if (!jobsiteMaterials[jobsiteMaterialId]) {
+        const jobsiteMaterial = await JobsiteMaterial.getById(
+          jobsiteMaterialId
+        );
+        if (jobsiteMaterial)
+          jobsiteMaterials[jobsiteMaterialId] = jobsiteMaterial;
+      }
+
+      if (
+        jobsiteMaterials[jobsiteMaterialId].costType ===
+          JobsiteMaterialCostType.invoice &&
+        jobsiteMaterials[jobsiteMaterialId].delivered === true
+      ) {
+        // If the shipments material is a delivered invoice, continue this for loop
+        continue;
+      }
+    }
+
     for (let j = 0; j < uniqueTruckingObjects.length; j++) {
       if (
         materialShipmentObjects[i].materialShipment.vehicleObject
@@ -692,7 +773,9 @@ const truckingReports = async (
 
       truckingReports.push(truckingReport);
     } catch (error) {
-      errorHandler("Unable to create material report", error);
+      logger.info(
+        `Unable to create material report: ${(error as Error).message}`
+      );
     }
   }
 

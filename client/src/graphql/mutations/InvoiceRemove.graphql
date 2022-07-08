@@ -1,0 +1,3 @@
+mutation InvoiceRemove($id: ID!) {
+  invoiceRemove(id: $id)
+}

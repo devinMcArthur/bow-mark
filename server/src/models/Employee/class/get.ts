@@ -5,6 +5,8 @@ import {
   CrewDocument,
   EmployeeDocument,
   EmployeeModel,
+  JobsiteDayReport,
+  JobsiteDayReportDocument,
   Signup,
   SignupDocument,
   User,
@@ -14,7 +16,10 @@ import { GetByIDOptions, ISearchOptions } from "@typescript/models";
 import populateOptions from "@utils/populateOptions";
 import ElasticsearchClient from "@elasticsearch/client";
 import ElasticSearchIndices from "@constants/ElasticSearchIndices";
-import { IEmployeeSearchObject } from "@typescript/employee";
+import {
+  EmployeeHoursReport,
+  IEmployeeSearchObject,
+} from "@typescript/employee";
 import getRateForTime from "@utils/getRateForTime";
 import { IHit } from "@typescript/elasticsearch";
 
@@ -139,6 +144,42 @@ const rateForTime = async (
   return getRateForTime(employee.rates, date);
 };
 
+const employeeHourReports = async (
+  employee: EmployeeDocument,
+  startTime: Date,
+  endTime: Date
+): Promise<EmployeeHoursReport> => {
+  const report: EmployeeHoursReport = {
+    days: [],
+  };
+
+  const jobsiteDayReports: JobsiteDayReportDocument[] =
+    await JobsiteDayReport.find({
+      date: {
+        $gte: startTime,
+        $lte: endTime,
+      },
+      "employees.employee": employee._id,
+    });
+
+  // Catalog hours for each day
+  for (let i = 0; i < jobsiteDayReports.length; i++) {
+    const jobsiteDayReport = jobsiteDayReports[i];
+
+    const employeeReport = jobsiteDayReport.employees.find(
+      (employeeReport) =>
+        employeeReport.employee?.toString() === employee._id.toString()
+    );
+
+    report.days.push({
+      date: jobsiteDayReport.date,
+      hours: employeeReport?.hours || 0,
+    });
+  }
+
+  return report;
+};
+
 export default {
   byId,
   search,
@@ -148,4 +189,5 @@ export default {
   crews,
   signup,
   rateForTime,
+  employeeHourReports,
 };

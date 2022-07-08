@@ -84,8 +84,11 @@ export class JobsiteClass extends JobsiteSchema {
     return get.revenueInvoices(this);
   }
 
-  public async getNonCostedMaterialShipments(this: JobsiteDocument) {
-    return get.nonCostedMaterialShipments(this);
+  public async getNonCostedMaterialShipments(
+    this: JobsiteDocument,
+    dateRange?: { startTime: Date; endTime: Date }
+  ) {
+    return get.nonCostedMaterialShipments(this, dateRange);
   }
 
   public async getDayReports(this: JobsiteDocument) {

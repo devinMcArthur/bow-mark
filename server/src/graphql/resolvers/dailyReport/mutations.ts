@@ -236,9 +236,25 @@ const archive = async (id: Id) => {
   const dailyReport = await DailyReport.getById(id);
   if (!dailyReport) throw new Error("Unable to find Daily Report");
 
-  await dailyReport.archive();
+  const { employeeWork, vehicleWork, materialShipments } =
+    await dailyReport.archive();
 
   await dailyReport.save();
+
+  // save employee work
+  for (let i = 0; i < employeeWork.length; i++) {
+    employeeWork[i].save();
+  }
+
+  // save vehicle work
+  for (let i = 0; i < vehicleWork.length; i++) {
+    vehicleWork[i].save();
+  }
+
+  // save material shipments
+  for (let i = 0; i < materialShipments.length; i++) {
+    materialShipments[i].save();
+  }
 
   return dailyReport;
 };

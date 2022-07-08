@@ -1,6 +1,8 @@
+import { Center, Heading } from "@chakra-ui/react";
 import React from "react";
 
 import { useImmerReducer } from "use-immer";
+import MainPageContainer from "../../components/Common/MainPageContainer";
 import { SystemSnippetFragment, useSystemQuery } from "../../generated/graphql";
 
 /**

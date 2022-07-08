@@ -9,6 +9,7 @@ import { JobsiteMaterialUpdateData } from "@graphql/resolvers/jobsiteMaterial/mu
 import { JobsiteMaterial } from "@models";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
+import { JobsiteMaterialCostType } from "@typescript/jobsiteMaterial";
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 
@@ -78,7 +79,7 @@ describe("Jobsite Material Resolver", () => {
             ],
             supplierId: documents.companies.company_1._id.toString(),
             unit: "tonnes",
-            delivered: false,
+            costType: JobsiteMaterialCostType.rate,
             deliveredRates: [],
           };
 
@@ -121,7 +122,7 @@ describe("Jobsite Material Resolver", () => {
             rates: [],
             supplierId: documents.companies.company_1._id.toString(),
             unit: "tonnes",
-            delivered: true,
+            costType: JobsiteMaterialCostType.deliveredRate,
             deliveredRates: [
               {
                 title: "Tandem",

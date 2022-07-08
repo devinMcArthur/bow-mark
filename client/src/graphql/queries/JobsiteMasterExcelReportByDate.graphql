@@ -1,0 +1,6 @@
+query JobsiteMasterExcelReportByDate(
+  $startTime: DateTime!
+  $endTime: DateTime!
+) {
+  jobsiteMasterExcelReportByDate(startTime: $startTime, endTime: $endTime)
+}

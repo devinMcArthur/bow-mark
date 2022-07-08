@@ -6,6 +6,8 @@ import Navbar from "../components/Navbar";
 import MainPageContainer from "../components/Common/MainPageContainer";
 import Head from "next/head";
 
+import "../../public/global.css";
+
 export default function App({ Component, pageProps }: AppProps) {
   return (
     <Provider>

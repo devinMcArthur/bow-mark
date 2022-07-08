@@ -1,0 +1,5 @@
+query JobsitesNonCostedMaterials($id: String!) {
+  jobsite(id: $id) {
+    ...JobsiteNonCostedMaterialsSnippet
+  }
+}

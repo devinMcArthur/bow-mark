@@ -35,4 +35,20 @@ export default class InvoiceResolver {
   ) {
     return mutations.updateForJobsite(id, jobsiteId, data);
   }
+
+  @Authorized(["ADMIN"])
+  @Mutation(() => InvoiceClass)
+  async invoiceUpdateForJobsiteMaterial(
+    @Arg("id") id: string,
+    @Arg("jobsiteMaterialId", () => ID) jobsiteMaterialId: Id,
+    @Arg("data") data: InvoiceData
+  ) {
+    return mutations.updateForJobsiteMaterial(id, jobsiteMaterialId, data);
+  }
+
+  @Authorized(["ADMIN"])
+  @Mutation(() => Boolean)
+  async invoiceRemove(@Arg("id", () => ID) id: Id) {
+    return mutations.remove(id);
+  }
 }

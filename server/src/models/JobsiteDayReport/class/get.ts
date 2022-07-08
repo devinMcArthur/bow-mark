@@ -68,6 +68,21 @@ const byJobsiteAndDay = async (
   return report;
 };
 
+const byDateRange = async (
+  JobsiteDayReport: JobsiteDayReportModel,
+  startTime: Date,
+  endTime: Date
+): Promise<JobsiteDayReportDocument[]> => {
+  const reports = await JobsiteDayReport.find({
+    date: {
+      $gte: startTime,
+      $lte: endTime,
+    },
+  });
+
+  return reports;
+};
+
 const byEmployee = async (
   JobsiteDayReport: JobsiteDayReportModel,
   employee: EmployeeDocument
@@ -128,6 +143,7 @@ export default {
   byJobsiteAndYear,
   byJobsiteAndMonth,
   byJobsiteAndDay,
+  byDateRange,
   byEmployee,
   byVehicle,
   byUpdateRequested,

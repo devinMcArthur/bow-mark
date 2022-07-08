@@ -1,12 +1,11 @@
 import React from "react";
-import { SimpleGrid, useToast } from "@chakra-ui/react";
+import { useToast } from "@chakra-ui/react";
 import {
   InvoiceCardSnippetFragment,
   InvoiceData,
   useInvoiceUpdateForJobsiteMutation,
 } from "../../../generated/graphql";
-import { useInvoiceForm } from "../../../forms/invoice";
-import SubmitButton from "../../Common/forms/SubmitButton";
+import InvoiceForm from "./Form";
 
 interface IInvoiceUpdateForJobsite {
   invoice: InvoiceCardSnippetFragment;
@@ -24,17 +23,6 @@ const InvoiceUpdateForJobsite = ({
    */
 
   const toast = useToast();
-
-  const { FormComponents } = useInvoiceForm({
-    defaultValues: {
-      companyId: invoice.company._id,
-      invoiceNumber: invoice.invoiceNumber,
-      cost: invoice.cost,
-      date: invoice.date,
-      description: invoice.description,
-      internal: invoice.internal,
-    },
-  });
 
   const [update, { loading }] = useInvoiceUpdateForJobsiteMutation();
 
@@ -80,20 +68,21 @@ const InvoiceUpdateForJobsite = ({
    */
 
   return (
-    <FormComponents.Form submitHandler={handleSubmit}>
-      <FormComponents.Company isLoading={loading} />
-
-      <SimpleGrid spacing={2} columns={[1, 1, 3]}>
-        <FormComponents.Cost isLoading={loading} />
-        <FormComponents.InvoiceNumber isLoading={loading} />
-        <FormComponents.Date isLoading={loading} />
-      </SimpleGrid>
-
-      <FormComponents.Description isLoading={loading} />
-      <FormComponents.Internal isLoading={loading} />
-
-      <SubmitButton isLoading={loading} />
-    </FormComponents.Form>
+    <InvoiceForm
+      formOptions={{
+        defaultValues: {
+          companyId: invoice.company._id,
+          invoiceNumber: invoice.invoiceNumber,
+          cost: invoice.cost,
+          date: invoice.date,
+          description: invoice.description,
+          internal: invoice.internal,
+          accrual: invoice.accrual,
+        },
+      }}
+      submitHandler={handleSubmit}
+      isLoading={loading}
+    />
   );
 };
 

@@ -39,6 +39,14 @@ export class JobsiteYearMasterReportClass extends JobsiteYearMasterReportSchema 
     return get.byUpdatePending(this);
   }
 
+  public async getExcelName(this: JobsiteYearMasterReportDocument) {
+    return get.excelName(this);
+  }
+
+  public async getExcelUrl(this: JobsiteYearMasterReportDocument) {
+    return get.excelUrl(this);
+  }
+
   /**
    * ----- Build -----
    */
@@ -64,5 +72,9 @@ export class JobsiteYearMasterReportClass extends JobsiteYearMasterReportSchema 
 
   public async generateFull(this: JobsiteYearMasterReportDocument) {
     return generate.full(this);
+  }
+
+  public async generateExcel(this: JobsiteYearMasterReportDocument) {
+    return generate.excel(this);
   }
 }

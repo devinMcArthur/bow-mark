@@ -22,25 +22,28 @@ const JobsiteReportInvoiceSummary = ({
    * ----- Variables -----
    */
 
-  const values: { internal: number; external: number } = React.useMemo(() => {
-    const values = {
-      internal: 0,
-      external: 0,
-    };
-    for (let i = 0; i < invoices.length; i++) {
-      if (invoices[i].internal) values.internal += invoices[i].value;
-      else values.external += invoices[i].value;
-    }
+  const values: { internal: number; external: number; accrual: number } =
+    React.useMemo(() => {
+      const values = {
+        internal: 0,
+        external: 0,
+        accrual: 0,
+      };
+      for (let i = 0; i < invoices.length; i++) {
+        if (invoices[i].accrual) values.accrual += invoices[i].value;
+        else if (invoices[i].internal) values.internal += invoices[i].value;
+        else values.external += invoices[i].value;
+      }
 
-    return values;
-  }, [invoices]);
+      return values;
+    }, [invoices]);
 
   /**
    * ----- Rendering -----
    */
 
   return (
-    <SimpleGrid columns={[2]} spacing={2}>
+    <SimpleGrid columns={3} spacing={2}>
       <Stat size={statSize} display="flex" justifyContent="center">
         <StatLabel>External</StatLabel>
         <StatNumber>${formatNumber(values.external)}</StatNumber>
@@ -48,6 +51,10 @@ const JobsiteReportInvoiceSummary = ({
       <Stat size={statSize} display="flex" justifyContent="center">
         <StatLabel>Internal</StatLabel>
         <StatNumber>${formatNumber(values.internal)}</StatNumber>
+      </Stat>
+      <Stat size={statSize} display="flex" justifyContent="center">
+        <StatLabel>Accrual</StatLabel>
+        <StatNumber>${formatNumber(values.accrual)}</StatNumber>
       </Stat>
     </SimpleGrid>
   );

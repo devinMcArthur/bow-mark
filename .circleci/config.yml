@@ -22,7 +22,7 @@ jobs:
             echo "SSR_API_URL=https://paving.bowmark.ca/graphql" | cat >> ./client/.env.local
             echo "NEXT_PUBLIC_APP_NAME=Paving" | cat >> ./client/.env.local
             echo "NEXT_PUBLIC_API_URL=https://paving.bowmark.ca/graphql" | cat >> ./client/.env.local
-            echo "NEXT_PUBLIC_WS_API_URL=ws://paving.bowmark.ca/graphql" | cat >> ./client/.env.local
+            echo "NEXT_PUBLIC_WS_API_URL=wss://paving.bowmark.ca/graphql" | cat >> ./client/.env.local
             echo "NEXT_PUBLIC_ANALYTICS_ID=G-ZJFP23D24Y" | cat >> ./client/.env.local
             rm ./client/public/manifest.json
             cp ./client/public/manifest-paving.json ./client/public/manifest.json
@@ -32,7 +32,7 @@ jobs:
             echo "SSR_API_URL=https://concrete.bowmark.ca/graphql" | cat >> ./client/.env.local
             echo "NEXT_PUBLIC_APP_NAME=Concrete" | cat >> ./client/.env.local
             echo "NEXT_PUBLIC_API_URL=https://concrete.bowmark.ca/graphql" | cat >> ./client/.env.local
-            echo "NEXT_PUBLIC_WS_API_URL=ws://concrete.bowmark.ca/graphql" | cat >> ./client/.env.local
+            echo "NEXT_PUBLIC_WS_API_URL=wss://concrete.bowmark.ca/graphql" | cat >> ./client/.env.local
             echo "NEXT_PUBLIC_ANALYTICS_ID=G-8798JH035P" | cat >> ./client/.env.local
             rm ./client/public/manifest.json
             cp ./client/public/manifest-concrete.json ./client/public/manifest.json

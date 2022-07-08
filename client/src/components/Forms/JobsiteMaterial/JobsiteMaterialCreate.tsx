@@ -1,12 +1,14 @@
-import { SimpleGrid, useToast } from "@chakra-ui/react";
+import { Center, SimpleGrid, Text, useToast } from "@chakra-ui/react";
 import React from "react";
 
 import { useJobsiteMaterialCreateForm } from "../../../forms/jobsiteMaterial";
 import {
+  JobsiteMaterialCostType,
   JobsiteMaterialCreateData,
   useJobsiteAddMaterialMutation,
 } from "../../../generated/graphql";
 import SubmitButton from "../../Common/forms/SubmitButton";
+import InfoTooltip from "../../Common/Info";
 
 interface IJobsiteMaterialCreate {
   jobsiteId: string;
@@ -23,7 +25,7 @@ const JobsiteMaterialCreate = ({
 
   const toast = useToast();
 
-  const { FormComponents, delivered } = useJobsiteMaterialCreateForm();
+  const { FormComponents, costType } = useJobsiteMaterialCreateForm();
 
   const [create, { loading }] = useJobsiteAddMaterialMutation();
 
@@ -67,6 +69,21 @@ const JobsiteMaterialCreate = ({
    * ----- Rendering -----
    */
 
+  const costTypeForm = React.useMemo(() => {
+    if (costType === JobsiteMaterialCostType.Rate) {
+      return <FormComponents.Rates isLoading={loading} />;
+    } else if (costType === JobsiteMaterialCostType.DeliveredRate) {
+      return <FormComponents.DeliveredRates isLoading={loading} />;
+    } else
+      return (
+        <Center mt={2}>
+          <Text fontWeight="bold" color="gray.600">
+            Invoices can be added after creation
+          </Text>
+        </Center>
+      );
+  }, [FormComponents, costType, loading]);
+
   return (
     <FormComponents.Form submitHandler={handleSubmit}>
       <SimpleGrid spacing={2} columns={[1, 1, 2]}>
@@ -77,12 +94,15 @@ const JobsiteMaterialCreate = ({
         <FormComponents.Quantity isLoading={loading} />
         <FormComponents.Unit isLoading={loading} />
       </SimpleGrid>
+      <FormComponents.CostType isLoading={loading} />
       <FormComponents.Delivered isLoading={loading} />
-      {delivered ? (
-        <FormComponents.DeliveredRates isLoading={loading} />
-      ) : (
-        <FormComponents.Rates isLoading={loading} />
+      {costType === JobsiteMaterialCostType.Invoice && (
+        <InfoTooltip
+          mx={1}
+          description="If delivered, it will be assumed that trucking is included in the invoice and it will not be reported separately."
+        />
       )}
+      {costTypeForm}
       <SubmitButton isLoading={loading} />
     </FormComponents.Form>
   );

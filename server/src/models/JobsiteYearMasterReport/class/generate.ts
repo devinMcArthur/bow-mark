@@ -5,6 +5,7 @@ import {
   JobsiteDocument,
 } from "@models";
 import { CrewTypes } from "@typescript/crew";
+import { SupportedMimeTypes } from "@typescript/file";
 import {
   CrewTypeOnSiteSummaryClass,
   OnSiteSummaryReportClass,
@@ -12,6 +13,9 @@ import {
 } from "@typescript/jobsiteReports";
 import { Id } from "@typescript/models";
 import errorHandler from "@utils/errorHandler";
+import { getWorkbookBuffer } from "@utils/excel";
+import { generateForMasterReport } from "@utils/excel";
+import { uploadFile } from "@utils/fileStorage";
 
 const full = async (
   jobsiteYearMasterReport: JobsiteYearMasterReportDocument
@@ -25,6 +29,8 @@ const full = async (
     externalRevenueInvoiceValue: 0,
     internalExpenseInvoiceValue: 0,
     internalRevenueInvoiceValue: 0,
+    accrualExpenseInvoiceValue: 0,
+    accrualRevenueInvoiceValue: 0,
   };
 
   const allCrewTypes: CrewTypes[] = [];
@@ -54,6 +60,10 @@ const full = async (
         jobsiteYearReport.summary.internalExpenseInvoiceValue;
       fullSummary.internalRevenueInvoiceValue +=
         jobsiteYearReport.summary.internalRevenueInvoiceValue;
+      fullSummary.accrualExpenseInvoiceValue +=
+        jobsiteYearReport.summary.accrualExpenseInvoiceValue;
+      fullSummary.accrualRevenueInvoiceValue +=
+        jobsiteYearReport.summary.accrualRevenueInvoiceValue;
 
       // Handle rest
 
@@ -212,6 +222,21 @@ const full = async (
   return;
 };
 
+const excel = async (
+  jobsiteYearMasterReport: JobsiteYearMasterReportDocument
+) => {
+  const workbook = await generateForMasterReport(jobsiteYearMasterReport);
+
+  const buffer = await getWorkbookBuffer(workbook);
+
+  await uploadFile(
+    await jobsiteYearMasterReport.getExcelName(),
+    buffer,
+    SupportedMimeTypes.XLSX
+  );
+};
+
 export default {
   full,
+  excel,
 };

@@ -10,6 +10,7 @@ export interface IInvoiceCreate {
   date: Date;
   description?: string;
   internal: boolean;
+  accrual: boolean;
 }
 
 export interface IInvoiceUpdate {
@@ -19,6 +20,7 @@ export interface IInvoiceUpdate {
   date: Date;
   description?: string;
   internal: boolean;
+  accrual: boolean;
 }
 
 @ObjectType()
@@ -37,6 +39,10 @@ export class InvoiceReportClass {
   @Field(() => Boolean, { nullable: false })
   @prop({ required: true })
   public internal!: boolean;
+
+  @Field(() => Boolean, { nullable: false })
+  @prop({ required: true, default: false })
+  public accrual!: boolean;
 }
 
 export type InvoiceReportDocument = DocumentType<InvoiceReportClass>;

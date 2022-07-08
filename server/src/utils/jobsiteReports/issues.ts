@@ -99,10 +99,15 @@ export const dayReportIssueGeneration = (
   return issues;
 };
 
-export const jobsiteReportIssueGenerator = async (jobsite: JobsiteDocument) => {
+export const jobsiteReportIssueGenerator = async (
+  jobsite: JobsiteDocument,
+  dateRange?: { startTime: Date; endTime: Date }
+) => {
   const issues: IssuesGenerationArray[] = [];
 
-  const nonCostedMaterials = await jobsite.getNonCostedMaterialShipments();
+  const nonCostedMaterials = await jobsite.getNonCostedMaterialShipments(
+    dateRange
+  );
   if (nonCostedMaterials.length > 0) {
     issues.push({
       type: ReportIssueTypes.NonCostedMaterials,

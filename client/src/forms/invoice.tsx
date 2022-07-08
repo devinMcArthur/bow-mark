@@ -31,6 +31,10 @@ const InvoiceSchema = yup
       .boolean()
       .required("please select whether internal invoice")
       .default(false),
+    accrual: yup
+      .boolean()
+      .required("please select whether accrual invoice")
+      .default(false),
   })
   .required();
 
@@ -41,6 +45,7 @@ export const useInvoiceForm = (options?: UseFormProps) => {
       cost: 0,
       internal: false,
       date: new Date(),
+      accrual: false,
       ...options?.defaultValues,
     },
     ...options,
@@ -165,8 +170,33 @@ export const useInvoiceForm = (options?: UseFormProps) => {
             control={control}
             name="internal"
             render={({ field }) => (
-              <Checkbox {...props} {...field} isDisabled={isLoading}>
+              <Checkbox
+                {...props}
+                {...field}
+                isDisabled={isLoading}
+                isChecked={field.value}
+              >
                 Internal Invoice
+              </Checkbox>
+            )}
+          />
+        ),
+        [isLoading, props]
+      ),
+    Accrual: ({ isLoading, ...props }: IFormProps<ICheckbox>) =>
+      React.useMemo(
+        () => (
+          <Controller
+            control={control}
+            name="accrual"
+            render={({ field }) => (
+              <Checkbox
+                {...props}
+                {...field}
+                isDisabled={isLoading}
+                isChecked={field.value}
+              >
+                Accrual
               </Checkbox>
             )}
           />

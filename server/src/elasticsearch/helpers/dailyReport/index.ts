@@ -4,7 +4,6 @@ import { logger } from "@logger";
 import { ES_ensureDailyReportSettings } from "./settings";
 import { ES_ensureDailyReportMapping } from "./mapping";
 import ElasticSearchIndices from "@constants/ElasticSearchIndices";
-import errorHandler from "@utils/errorHandler";
 
 export const ES_ensureDailyReportIndex = async () => {
   await ES_ensureDailyReportSettings();
@@ -25,8 +24,8 @@ export const ES_updateDailyReport = async (
       try {
         jobsite = await dailyReport.getJobsite();
         crew = await dailyReport.getCrew();
-      } catch (e) {
-        errorHandler("Daily Report ES update error", e);
+      } catch (e: unknown) {
+        logger.info(`Daily Report ES update error: ${(e as Error).message}`);
       }
 
       await ElasticsearchClient.update({

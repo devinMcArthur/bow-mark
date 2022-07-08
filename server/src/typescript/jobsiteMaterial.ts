@@ -1,6 +1,6 @@
 import { CompanyDocument, JobsiteDocument, MaterialDocument } from "@models";
 import { prop } from "@typegoose/typegoose";
-import { Field, ObjectType } from "type-graphql";
+import { Field, ObjectType, registerEnumType } from "type-graphql";
 import {
   DefaultRateClass,
   IDefaultRateData,
@@ -15,16 +15,18 @@ export interface IJobsiteMaterialCreate {
   quantity: number;
   unit: string;
   rates: IJobsiteMaterialRateData[];
-  delivered: boolean;
   deliveredRates: IJobsiteMaterialDeliveredRateData[];
+  delivered?: boolean;
+  costType: JobsiteMaterialCostType;
 }
 
 export interface IJobsiteMaterialUpdate {
   supplier: CompanyDocument;
   quantity: number;
   unit: string;
+  costType: JobsiteMaterialCostType;
   rates: IJobsiteMaterialRateData[];
-  delivered: boolean;
+  delivered?: boolean;
   deliveredRates: IJobsiteMaterialDeliveredRateData[];
 }
 
@@ -58,3 +60,12 @@ export class JobsiteMaterialDeliveredRateClass extends DefaultRateClass {
   })
   public rates!: JobsiteMaterialRateClass[];
 }
+
+export enum JobsiteMaterialCostType {
+  rate = "rate",
+  deliveredRate = "deliveredRate",
+  invoice = "invoice",
+}
+registerEnumType(JobsiteMaterialCostType, {
+  name: "JobsiteMaterialCostType",
+});

@@ -14,6 +14,8 @@ const document = async (invoice: InvoiceDocument, data: IInvoiceUpdate) => {
 
   invoice.internal = data.internal;
 
+  invoice.accrual = data.accrual;
+
   return;
 };
 

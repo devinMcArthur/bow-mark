@@ -8,6 +8,7 @@ import {
   SignupClass,
   UserClass,
 } from "@models";
+import { EmployeeHoursReport } from "@typescript/employee";
 import { Id } from "@typescript/models";
 import {
   Arg,
@@ -60,6 +61,18 @@ export default class EmployeeResolver {
     return (await Employee.search(searchString, options)).map(
       (object) => object.employee
     );
+  }
+
+  @Query(() => EmployeeHoursReport)
+  async employeeHourReports(
+    @Arg("id", () => ID) id: Id,
+    @Arg("startTime", () => Date) startTime: Date,
+    @Arg("endTime", () => Date) endTime: Date
+  ) {
+    const employee = await Employee.getById(id);
+    if (!employee) throw new Error("Could not find employee");
+
+    return employee.getHourReports(startTime, endTime);
   }
 
   /**

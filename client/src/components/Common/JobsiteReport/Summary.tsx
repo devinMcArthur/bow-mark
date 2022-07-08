@@ -55,11 +55,13 @@ const JobsiteReportSummary = ({ report }: IJobsiteReportSummary) => {
     return (
       internalExpenses * overheadRate +
       report.summary.externalExpenseInvoiceValue * 1.03 +
-      report.summary.internalExpenseInvoiceValue
+      report.summary.internalExpenseInvoiceValue +
+      report.summary.accrualExpenseInvoiceValue
     );
   }, [
     internalExpenses,
     overheadRate,
+    report.summary.accrualExpenseInvoiceValue,
     report.summary.externalExpenseInvoiceValue,
     report.summary.internalExpenseInvoiceValue,
   ]);
@@ -85,6 +87,7 @@ const JobsiteReportSummary = ({ report }: IJobsiteReportSummary) => {
       revenue={{
         internal: report.summary.internalRevenueInvoiceValue,
         external: report.summary.externalRevenueInvoiceValue,
+        accrual: report.summary.accrualRevenueInvoiceValue,
       }}
       revenueTooltip={
         <Flex flexDir="column">

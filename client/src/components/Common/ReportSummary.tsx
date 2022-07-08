@@ -27,6 +27,7 @@ interface IReportSummaryCard extends BoxProps {
   revenue: {
     internal: number;
     external: number;
+    accrual: number;
   };
   revenueTooltip?: React.ReactNode;
   internalExpenses: number;
@@ -34,15 +35,18 @@ interface IReportSummaryCard extends BoxProps {
   expenseInvoices?: {
     internal: number;
     external: number;
+    accrual: number;
   };
   totalExpenses: number;
   totalExpensesTooltip?: React.ReactNode;
   netIncome: number;
   netIncomeTooltip?: React.ReactNode;
   showRevenueBreakdown?: boolean;
+  showRevenueAccrual?: boolean;
   issues?: ReportIssueSnippetFragment[];
   excelDownloadUrl?: string | null;
   jobsiteId?: string;
+  extraButtons?: React.ReactNode[];
 }
 
 const ReportSummaryCard = ({
@@ -58,7 +62,9 @@ const ReportSummaryCard = ({
   issues,
   excelDownloadUrl,
   jobsiteId,
+  extraButtons,
   showRevenueBreakdown = true,
+  showRevenueAccrual = true,
   ...props
 }: IReportSummaryCard) => {
   /**
@@ -124,6 +130,7 @@ const ReportSummaryCard = ({
         <Flex flexDir="row" justifyContent="space-between">
           <Heading size="md">Summary</Heading>
           <Flex flexDir="row">
+            {extraButtons && extraButtons}
             {jobsiteId && (
               <Tooltip label="Refresh report">
                 <IconButton
@@ -155,14 +162,22 @@ const ReportSummaryCard = ({
       }
       {...props}
     >
-      <SimpleGrid spacing={2} columns={[4]}>
+      <SimpleGrid spacing={2} columns={[2, 2, 4]}>
         <Stat display="flex" justifyContent="center">
           <Tooltip placement="top" label={revenueTooltip}>
             <StatLabel>Total Revenue</StatLabel>
           </Tooltip>
           <StatNumber>
-            ${formatNumber(revenue.external + revenue.internal)}
+            $
+            {formatNumber(
+              revenue.external + revenue.internal + revenue.accrual
+            )}
           </StatNumber>
+          {showRevenueAccrual ? (
+            <StatHelpText mb={0}>
+              ${formatNumber(revenue.accrual)} accrual
+            </StatHelpText>
+          ) : null}
           {showRevenueBreakdown ? (
             <>
               <StatHelpText mb={0}>
@@ -182,9 +197,12 @@ const ReportSummaryCard = ({
           {expenseInvoices ? (
             <>
               <StatHelpText mb={0}>
+                ${formatNumber(expenseInvoices.accrual)} accrual
+              </StatHelpText>
+              <StatHelpText mb={0}>
                 ${formatNumber(expenseInvoices.external)} external
               </StatHelpText>
-              <StatHelpText>
+              <StatHelpText mb={0}>
                 ${formatNumber(expenseInvoices.internal)} internal
               </StatHelpText>
             </>

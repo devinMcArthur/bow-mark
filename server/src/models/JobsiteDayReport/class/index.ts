@@ -52,6 +52,14 @@ export class JobsiteDayReportClass extends JobsiteDayReportSchema {
     return get.byJobsiteAndDay(this, jobsiteId, day);
   }
 
+  public static async getByDateRange(
+    this: JobsiteDayReportModel,
+    startTime: Date,
+    endTime: Date
+  ) {
+    return get.byDateRange(this, startTime, endTime);
+  }
+
   public static async getByEmployee(
     this: JobsiteDayReportModel,
     employee: EmployeeDocument

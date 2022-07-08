@@ -1,10 +1,12 @@
 import {
+  Code,
   SimpleGrid,
   Stat,
   StatHelpText,
   StatLabel,
   StatNumber,
   StatProps,
+  Tooltip,
 } from "@chakra-ui/react";
 import React from "react";
 import {
@@ -219,6 +221,17 @@ const JobsiteReportOnJobSummary = ({
       <Stat size={statSize} display="flex" justifyContent="center">
         <StatLabel>Total</StatLabel>
         <StatNumber>${formatNumber(total)}</StatNumber>
+        <Tooltip
+          label={
+            <Code backgroundColor="transparent" color="white">
+              + 10%
+            </Code>
+          }
+        >
+          <StatHelpText fontSize={statSize} fontWeight="bold" mb={0}>
+            ${formatNumber(total * 1.1)}
+          </StatHelpText>
+        </Tooltip>
         {fullTotal !== null ? (
           <StatHelpText fontSize={statSize}>
             {handlePercent(total, fullTotal)}%

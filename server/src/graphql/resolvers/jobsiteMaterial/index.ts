@@ -1,5 +1,6 @@
 import {
   CompanyClass,
+  InvoiceClass,
   JobsiteClass,
   JobsiteMaterialClass,
   JobsiteMaterialDocument,
@@ -16,6 +17,7 @@ import {
   Resolver,
   Root,
 } from "type-graphql";
+import { InvoiceData } from "../invoice/mutations";
 import mutations, { JobsiteMaterialUpdateData } from "./mutations";
 
 @Resolver(() => JobsiteMaterialClass)
@@ -49,6 +51,11 @@ export default class JobsiteMaterialResolver {
     return jobsiteMaterial.canRemove();
   }
 
+  @FieldResolver(() => [InvoiceClass], { nullable: true })
+  async invoices(@Root() jobsiteMaterial: JobsiteMaterialDocument) {
+    return jobsiteMaterial.getInvoices();
+  }
+
   /**
    * ----- Mutations -----
    */
@@ -68,5 +75,14 @@ export default class JobsiteMaterialResolver {
     @Arg("id", () => ID, { nullable: false }) id: Id
   ) {
     return mutations.remove(id);
+  }
+
+  @Authorized(["ADMIN"])
+  @Mutation(() => JobsiteMaterialClass)
+  async jobsiteMaterialAddInvoice(
+    @Arg("jobsiteMaterialId", () => ID) jobsiteMaterialId: Id,
+    @Arg("data") data: InvoiceData
+  ) {
+    return mutations.addInvoice(jobsiteMaterialId, data);
   }
 }

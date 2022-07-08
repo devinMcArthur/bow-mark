@@ -5,6 +5,7 @@ import { ObjectType } from "type-graphql";
 import { InvoiceSchema } from "../schema";
 import create from "./create";
 import get from "./get";
+import remove from "./remove";
 import update from "./update";
 
 @ObjectType()
@@ -39,5 +40,13 @@ export class InvoiceClass extends InvoiceSchema {
 
   public async updateDocument(this: InvoiceDocument, data: IInvoiceUpdate) {
     return update.document(this, data);
+  }
+
+  /**
+   * ----- Remove -----
+   */
+
+  public async removeDocument(this: InvoiceDocument) {
+    return remove.document(this);
   }
 }

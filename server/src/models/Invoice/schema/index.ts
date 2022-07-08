@@ -30,6 +30,10 @@ export class InvoiceSchema {
   public internal!: boolean;
 
   @Field({ nullable: false })
+  @prop({ required: true, default: false })
+  public accrual!: boolean;
+
+  @Field({ nullable: false })
   @prop({ required: true, default: Date.now })
   public date!: Date;
 

@@ -25,6 +25,7 @@ import Permission from "../../Common/Permission";
 import UserUpdateRole from "../../Forms/User/Role";
 import { FiArchive } from "react-icons/fi";
 import { useRouter } from "next/router";
+import IndividualEmployeeHours from "../../Common/Employee/IndividualHours";
 
 interface IEmployeeClientContent {
   id: string;
@@ -131,6 +132,7 @@ const EmployeeClientContent = ({ id }: IEmployeeClientContent) => {
             </Flex>
             {userContent}
           </Card>
+          <IndividualEmployeeHours employeeId={id} />
           <Permission>
             <EmployeeRates employee={employee} />
           </Permission>
@@ -159,6 +161,7 @@ const EmployeeClientContent = ({ id }: IEmployeeClientContent) => {
     archiveLoading,
     createSignup,
     data?.employee,
+    id,
     router,
     signupLoading,
   ]);

@@ -64,6 +64,10 @@ export class VehicleWorkClass extends VehicleWorkSchema {
     return update.document(this, data);
   }
 
+  public async archive(this: VehicleWorkDocument) {
+    return update.archive(this);
+  }
+
   /**
    * ----- Remove -----
    */

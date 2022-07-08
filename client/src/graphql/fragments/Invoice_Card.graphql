@@ -8,4 +8,5 @@ fragment InvoiceCardSnippet on InvoiceClass {
   cost
   description
   internal
+  accrual
 }

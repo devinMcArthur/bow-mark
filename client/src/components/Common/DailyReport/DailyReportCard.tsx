@@ -1,10 +1,14 @@
-import { Box, Flex, Icon, Text, Tooltip } from "@chakra-ui/react";
+import { Box, Flex, HStack, Icon, Text, Tooltip } from "@chakra-ui/react";
 import dayjs from "dayjs";
 import React from "react";
-import { FiBook, FiDollarSign } from "react-icons/fi";
-import { DailyReportCardSnippetFragment } from "../../../generated/graphql";
+import { FiBook, FiDollarSign, FiDownload } from "react-icons/fi";
+import {
+  DailyReportCardSnippetFragment,
+  UserRoles,
+} from "../../../generated/graphql";
 import createLink from "../../../utils/createLink";
 import Card from "../Card";
+import Permission from "../Permission";
 import TextGrid from "../TextGrid";
 import TextLink from "../TextLink";
 
@@ -28,7 +32,20 @@ const DailyReportCard = ({ dailyReport }: IDailyReportCard) => {
               {dayjs(dailyReport.date).format("MMMM DD, YYYY")}
             </TextLink>
           </Box>
-          <Flex flexDir="row">
+          <HStack spacing={1}>
+            <Permission minRole={UserRoles.ProjectManager}>
+              <TextLink
+                link={createLink.dailyReportPDF(dailyReport._id)}
+                newTab
+                mx="auto"
+              >
+                <Icon
+                  cursor="pointer"
+                  as={FiDownload}
+                  backgroundColor="transparent"
+                />
+              </TextLink>
+            </Permission>
             {dailyReport.jobCostApproved && (
               <Tooltip label="Job costing approved">
                 <span>
@@ -43,7 +60,7 @@ const DailyReportCard = ({ dailyReport }: IDailyReportCard) => {
                 </span>
               </Tooltip>
             )}
-          </Flex>
+          </HStack>
         </Flex>
       }
     >

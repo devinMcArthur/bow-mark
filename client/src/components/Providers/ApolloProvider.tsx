@@ -30,7 +30,7 @@ export default function MyApolloProvider({
   const wsLink = process.browser
     ? new GraphQLWsLink(
         createClient({
-          url: "ws://localhost:8080/graphql",
+          url: process.env.NEXT_PUBLIC_WS_API_URL as string,
           connectionParams: {
             Authorization:
               localStorage.getItem(localStorageTokenKey) || token || "",

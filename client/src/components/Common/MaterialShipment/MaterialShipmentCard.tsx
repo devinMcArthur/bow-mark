@@ -22,6 +22,7 @@ import FormContainer from "../FormContainer";
 import dayjs from "dayjs";
 import hourString from "../../../utils/hourString";
 import formatNumber from "../../../utils/formatNumber";
+import jobsiteMaterialName from "../../../utils/jobsiteMaterialName";
 
 interface IMaterialShipmentCard extends BoxProps {
   materialShipment: MaterialShipmentCardSnippetFragment;
@@ -86,8 +87,9 @@ const MaterialShipmentCard = ({
       return (
         <Text>
           <Text as="span" fontWeight="bold">
-            {materialShipment.jobsiteMaterial?.supplier.name}{" "}
-            {materialShipment.jobsiteMaterial?.material.name}
+            {materialShipment.jobsiteMaterial
+              ? jobsiteMaterialName(materialShipment.jobsiteMaterial)
+              : "Unknown"}
           </Text>
           {" - "}
           {materialShipment.quantity} {materialShipment.jobsiteMaterial?.unit}{" "}

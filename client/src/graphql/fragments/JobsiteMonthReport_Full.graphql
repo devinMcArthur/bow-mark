@@ -13,8 +13,10 @@ fragment JobsiteMonthReportFullSnippet on JobsiteMonthReportClass {
   summary {
     externalExpenseInvoiceValue
     internalExpenseInvoiceValue
+    accrualExpenseInvoiceValue
     externalRevenueInvoiceValue
     internalRevenueInvoiceValue
+    accrualRevenueInvoiceValue
   }
   issues {
     ...ReportIssueSnippet

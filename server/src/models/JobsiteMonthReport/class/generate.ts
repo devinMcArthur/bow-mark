@@ -31,6 +31,7 @@ const expenseInvoiceReports = async (
         invoice: expenseInvoice._id,
         value: expenseInvoice.cost,
         internal: expenseInvoice.internal,
+        accrual: expenseInvoice.accrual,
       };
 
       invoices.push(invoice);
@@ -63,6 +64,7 @@ const revenueInvoiceReports = async (
         invoice: revenueInvoice._id,
         value: revenueInvoice.cost,
         internal: revenueInvoice.internal,
+        accrual: revenueInvoice.accrual,
       };
 
       invoices.push(invoice);
@@ -76,9 +78,12 @@ const revenueInvoiceReports = async (
 
 const summary = async (jobsiteMonthReport: JobsiteMonthReportDocument) => {
   let externalExpenseInvoiceValue = 0,
-    internalExpenseInvoiceValue = 0;
+    internalExpenseInvoiceValue = 0,
+    accrualExpenseInvoiceValue = 0;
   for (let i = 0; i < jobsiteMonthReport.expenseInvoices.length; i++) {
-    if (jobsiteMonthReport.expenseInvoices[i].internal) {
+    if (jobsiteMonthReport.expenseInvoices[i].accrual) {
+      accrualExpenseInvoiceValue += jobsiteMonthReport.expenseInvoices[i].value;
+    } else if (jobsiteMonthReport.expenseInvoices[i].internal) {
       internalExpenseInvoiceValue +=
         jobsiteMonthReport.expenseInvoices[i].value;
     } else {
@@ -88,9 +93,12 @@ const summary = async (jobsiteMonthReport: JobsiteMonthReportDocument) => {
   }
 
   let externalRevenueInvoiceValue = 0,
-    internalRevenueInvoiceValue = 0;
+    internalRevenueInvoiceValue = 0,
+    accrualRevenueInvoiceValue = 0;
   for (let i = 0; i < jobsiteMonthReport.revenueInvoices.length; i++) {
-    if (jobsiteMonthReport.revenueInvoices[i].internal) {
+    if (jobsiteMonthReport.revenueInvoices[i].accrual) {
+      accrualRevenueInvoiceValue += jobsiteMonthReport.revenueInvoices[i].value;
+    } else if (jobsiteMonthReport.revenueInvoices[i].internal) {
       internalRevenueInvoiceValue +=
         jobsiteMonthReport.revenueInvoices[i].value;
     } else {
@@ -102,8 +110,10 @@ const summary = async (jobsiteMonthReport: JobsiteMonthReportDocument) => {
   const summary: RangeSummaryReportClass = {
     externalExpenseInvoiceValue,
     internalExpenseInvoiceValue,
+    accrualExpenseInvoiceValue,
     externalRevenueInvoiceValue,
     internalRevenueInvoiceValue,
+    accrualRevenueInvoiceValue,
   };
 
   jobsiteMonthReport.summary = summary;
@@ -117,7 +127,11 @@ const issues = async (jobsiteMonthReport: JobsiteMonthReportDocument) => {
   jobsiteMonthReport.issues = [
     ...dayReportIssueGeneration(dayReports),
     ...(await jobsiteReportIssueGenerator(
-      await jobsiteMonthReport.getJobsite()
+      await jobsiteMonthReport.getJobsite(),
+      {
+        startTime: jobsiteMonthReport.startOfMonth,
+        endTime: dayjs(jobsiteMonthReport.startOfMonth).endOf("month").toDate(),
+      }
     )),
   ];
 };

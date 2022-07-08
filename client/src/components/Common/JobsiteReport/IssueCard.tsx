@@ -78,7 +78,6 @@ const JobsiteReportIssueCard = ({ issue }: IJobsiteReportIssueCard) => {
         else return null;
       }
       case ReportIssueTypes.MaterialEstimatedRate: {
-        console.log(issue);
         if (issue.jobsiteMaterial)
           return (
             <Link

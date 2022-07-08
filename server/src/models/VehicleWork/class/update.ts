@@ -12,6 +12,11 @@ const document = async (
   return;
 };
 
+const archive = (vehicleWork: VehicleWorkDocument) => {
+  vehicleWork.archivedAt = new Date();
+};
+
 export default {
   document,
+  archive,
 };

@@ -87,6 +87,10 @@ export class MaterialShipmentClass extends MaterialShipmentSchema {
     return update.shipment(this, shipment, dailyReport);
   }
 
+  public async archive(this: MaterialShipmentDocument) {
+    return update.archive(this);
+  }
+
   /**
    * ----- Validate -----
    */

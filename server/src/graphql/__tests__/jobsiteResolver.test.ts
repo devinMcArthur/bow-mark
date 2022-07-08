@@ -13,6 +13,7 @@ import { JobsiteCreateData } from "@graphql/resolvers/jobsite/mutations";
 import { TruckingRateTypes } from "@typescript/jobsite";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
+import { JobsiteMaterialCostType } from "@typescript/jobsiteMaterial";
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 
@@ -189,7 +190,7 @@ describe("Jobsite Resolver", () => {
               },
             ],
             unit: "tonnes",
-            delivered: false,
+            costType: JobsiteMaterialCostType.rate,
             deliveredRates: [],
           };
 
@@ -236,7 +237,7 @@ describe("Jobsite Resolver", () => {
             quantity: 1000,
             rates: [],
             unit: "tonnes",
-            delivered: true,
+            costType: JobsiteMaterialCostType.deliveredRate,
             deliveredRates: [
               {
                 title: "Tandem",
@@ -319,6 +320,7 @@ describe("Jobsite Resolver", () => {
             date: new Date(),
             invoiceNumber: "12345",
             description: "Description of invoice",
+            accrual: false,
           };
 
           const res = await request(app)

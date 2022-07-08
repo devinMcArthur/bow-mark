@@ -76,6 +76,8 @@ const seedDatabase = async () => {
 
   await System.validateSystem();
 
+  console.log("seeded");
+
   return {
     companies,
     crews,

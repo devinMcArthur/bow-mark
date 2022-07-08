@@ -49,6 +49,17 @@ const byJobsiteAndDate = async (
   return jobsiteMonthlyReport;
 };
 
+const byDate = async (
+  JobsiteMonthReport: JobsiteMonthReportModel,
+  date: Date
+): Promise<JobsiteMonthReportDocument[]> => {
+  const jobsiteMonthlyReport = await JobsiteMonthReport.find({
+    startOfMonth: dayjs(date).startOf("month").toDate(),
+  });
+
+  return jobsiteMonthlyReport;
+};
+
 const byUpdateRequested = async (
   JobsiteMonthReport: JobsiteMonthReportModel
 ): Promise<JobsiteMonthReportDocument[]> => {
@@ -113,6 +124,7 @@ export default {
   byJobsiteAndDate,
   byUpdateRequested,
   byUpdatePending,
+  byDate,
   dayReports,
   jobsite,
   excelName,

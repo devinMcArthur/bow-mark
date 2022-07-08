@@ -1,4 +1,8 @@
-import { JobsiteMaterialDocument, JobsiteMaterialModel } from "@models";
+import {
+  InvoiceDocument,
+  JobsiteMaterialDocument,
+  JobsiteMaterialModel,
+} from "@models";
 import {
   IJobsiteMaterialCreate,
   IJobsiteMaterialUpdate,
@@ -58,6 +62,17 @@ export class JobsiteMaterialClass extends JobsiteMaterialSchema {
     return get.rateForTime(this, date);
   }
 
+  public async getInvoices(this: JobsiteMaterialDocument) {
+    return get.invoices(this);
+  }
+
+  public async getInvoiceMonthRate(
+    this: JobsiteMaterialDocument,
+    dayInMonth: Date
+  ) {
+    return get.invoiceMonthRate(this, dayInMonth);
+  }
+
   /**
    * ----- Create -----
    */
@@ -78,6 +93,13 @@ export class JobsiteMaterialClass extends JobsiteMaterialSchema {
     data: IJobsiteMaterialUpdate
   ) {
     return update.document(this, data);
+  }
+
+  public async addInvoice(
+    this: JobsiteMaterialDocument,
+    invoice: InvoiceDocument
+  ) {
+    return update.addInvoice(this, invoice);
   }
 
   /**

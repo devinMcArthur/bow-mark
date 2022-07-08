@@ -30,6 +30,10 @@ export class JobsiteMonthReportClass extends JobsiteMonthReportSchema {
     return get.byJobsiteAndDate(this, jobsiteId, date);
   }
 
+  public static async getByDate(this: JobsiteMonthReportModel, date: Date) {
+    return get.byDate(this, date);
+  }
+
   public static async getByUpdateRequested(this: JobsiteMonthReportModel) {
     return get.byUpdateRequested(this);
   }

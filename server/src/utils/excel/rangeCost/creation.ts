@@ -20,6 +20,7 @@ import {
   getStartingColumnCell,
   getStartRowCell,
   IDocumentIndex,
+  safeCrewTableName,
 } from "./helpers";
 
 export type Report = JobsiteYearReportDocument | JobsiteMonthReportDocument;
@@ -150,7 +151,7 @@ const generateSummaryOutline = async (worksheet: ExcelJS.Worksheet) => {
     bold: true,
   };
 
-  const startFinish = [1, 10];
+  const startFinish = [1, 11];
   for (let i = startFinish[0]; i <= startFinish[1]; i++) {
     summaryRows[i].getCell(1).alignment = {
       horizontal: "right",
@@ -523,7 +524,7 @@ const generateWages = async (
 
   if (openCell && employeeCatalog.length > 0) {
     const tableObject = worksheet.addTable({
-      name: `Wages${crewType.replace(/\s+/g, "")}`,
+      name: `Wages${safeCrewTableName(crewType)}`,
       ref: openCell.$col$row,
       totalsRow: true,
       columns: [
@@ -582,7 +583,7 @@ const generateEquipment = async (
 
   if (openCell && equipmentCatalog.length > 0) {
     const tableObject = worksheet.addTable({
-      name: `Equipment${crewType.replace(/\s+/g, "")}`,
+      name: `Equipment${safeCrewTableName(crewType)}`,
       ref: openCell.$col$row,
       totalsRow: true,
       columns: [
@@ -641,7 +642,7 @@ const generateMaterial = async (
 
   if (openCell && materialCatalog.length > 0) {
     const tableObject = worksheet.addTable({
-      name: `Material${crewType.replace(/\s+/g, "")}`,
+      name: `Material${safeCrewTableName(crewType)}`,
       ref: openCell.$col$row,
       totalsRow: true,
       columns: [
@@ -704,7 +705,7 @@ const generateTrucking = async (
 
   if (openCell && truckingCatalog.length > 0) {
     const tableObject = worksheet.addTable({
-      name: `Trucking${crewType.replace(/\s+/g, "")}`,
+      name: `Trucking${safeCrewTableName(crewType)}`,
       ref: openCell.$col$row,
       totalsRow: true,
       columns: [
