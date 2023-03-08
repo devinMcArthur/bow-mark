@@ -41,7 +41,7 @@
     "ioredis": "4.19.4",
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.21",
-    "mongoose": "5.10.18",
+    "mongoose": "5.13.15",
     "reflect-metadata": "0.1.13",
     "request": "^2.88.2",
     "rimraf": "3.0.2",
