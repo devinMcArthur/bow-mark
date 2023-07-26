@@ -1,4 +1,5 @@
 import { Vehicle } from "@models";
+import getClientUrl from "@utils/getClientUrl";
 import ExcelJS from "exceljs";
 
 export const generateForVehicles = async () => {
@@ -9,12 +10,7 @@ export const generateForVehicles = async () => {
   // Get all vehicles
   const vehicles = await Vehicle.find();
 
-  let url = "";
-  if (process.env.APP_NAME === "Paving") {
-    url = "https://paving.bowmark.ca";
-  } else {
-    url = "https://concrete.bowmark.ca";
-  }
+  const url = getClientUrl();
 
   worksheet.addTable({
     name: "Vehicles",

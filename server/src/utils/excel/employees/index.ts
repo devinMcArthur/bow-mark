@@ -1,4 +1,5 @@
 import { Employee } from "@models";
+import getClientUrl from "@utils/getClientUrl";
 import getRateForTime from "@utils/getRateForTime";
 import ExcelJS from "exceljs";
 
@@ -10,12 +11,7 @@ export const generateForEmployees = async () => {
   // Get all employees
   const employees = await Employee.find();
 
-  let url = "";
-  if (process.env.APP_NAME === "Paving") {
-    url = "https://paving.bowmark.ca";
-  } else {
-    url = "https://concrete.bowmark.ca";
-  }
+  const url = getClientUrl();
 
   worksheet.addTable({
     name: "Employees",

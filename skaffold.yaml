@@ -10,7 +10,6 @@ build:
       context: client
       docker:
         dockerfile: Dockerfile.dev
-        # noCache: true
       sync:
         # Whenever these types of files are updated, inject into the pod (Mode 2)
         # If any other files are changed, will fall back to Mode 1
@@ -31,7 +30,6 @@ build:
       context: server
       docker:
         dockerfile: Dockerfile.dev
-        # noCache: true
       # Must be using nodemon
       # will not rebuild image if these files are changed
       sync:
@@ -45,11 +43,6 @@ deploy:
   kubeContext: minikube
   kubectl:
     manifests:
-      - k8s-dev/kube-devops.yaml
-      # - k8s-dev/es-master.yaml
-      # - k8s-dev/es-data.yaml
-      # - k8s-dev/es-client.yaml
-      # - k8s-dev/kibana.yaml
       - k8s-dev/meilisearch.yaml
       - k8s-dev/worker-deployment.yaml
       - k8s-dev/server-deployment.yaml
@@ -66,7 +59,3 @@ portForward:
     resourceName: client-cluster-ip-service
     namespace: default
     port: 3000
-  # - resourceType: Service
-  #   resourceName: kibana
-  #   namespace: kube-devops
-  #   port: 5601

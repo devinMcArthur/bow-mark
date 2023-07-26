@@ -41,12 +41,12 @@ const document = async (jobsiteMonthReport: JobsiteMonthReportDocument) => {
 
   await jobsiteMonthReport.save();
 
-  await jobsiteMonthReport.generateExcel();
-
   await JobsiteYearReport.requestBuild({
     jobsiteId: jobsiteMonthReport.jobsite,
     date: jobsiteMonthReport.startOfMonth,
   });
+
+  await jobsiteMonthReport.generateExcel();
 
   return;
 };

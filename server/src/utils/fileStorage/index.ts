@@ -23,7 +23,7 @@ const uploadFile = async (name: string, buffer: Buffer, mimetype: string) => {
         ContentType: mimetype,
       },
       (err, data) => {
-        if (err) reject(err.message);
+        if (err) reject(err);
         else resolve(data);
       }
     );
@@ -59,7 +59,7 @@ const removeFile = (name: string) => {
         Key: name,
       },
       (err, data) => {
-        if (err) reject(err.message);
+        if (err) reject(err);
         else resolve(data);
       }
     );
