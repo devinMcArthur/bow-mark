@@ -1,0 +1,7 @@
+fragment ReportNoteCardSnippet on ReportNoteClass {
+  _id
+  note
+  files {
+    ...FilePreloadSnippet
+  }
+}

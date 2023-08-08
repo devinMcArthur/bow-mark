@@ -66,6 +66,10 @@ export class JobsiteMonthReportClass extends JobsiteMonthReportSchema {
     return get.dayReports(this);
   }
 
+  public async getReportNotes(this: JobsiteMonthReportDocument) {
+    return get.reportNotes(this);
+  }
+
   public async getJobsite(this: JobsiteMonthReportDocument) {
     return get.jobsite(this);
   }

@@ -22,4 +22,7 @@ fragment JobsiteYearReportFullSnippet on JobsiteYearReportClass {
     ...ReportIssueSnippet
   }
   excelDownloadUrl
+  reportNotes {
+    ...ReportNoteFullSnippet
+  }
 }

@@ -1,15 +1,19 @@
 import {
+  DailyReportClass,
   Jobsite,
   JobsiteDayReport,
   JobsiteDayReportDocument,
   JobsiteDocument,
   JobsiteMonthReportDocument,
   JobsiteMonthReportModel,
+  ReportNoteDocument,
 } from "@models";
+import { isDocument } from "@typegoose/typegoose";
 import { GetByIDOptions, Id, UpdateStatus } from "@typescript/models";
 import { getFileSignedUrl } from "@utils/fileStorage";
 import populateOptions from "@utils/populateOptions";
 import dayjs from "dayjs";
+import { JobsiteDayReportClass } from "models/JobsiteDayReport";
 
 /**
  * ----- Static Methods -----
@@ -116,6 +120,38 @@ const dayReports = async (
   return reports;
 };
 
+const reportNotes = async (
+    jobsiteMonthReport: JobsiteMonthReportDocument
+): Promise<ReportNoteDocument[]> => {
+  const populatedMonthReport = await jobsiteMonthReport
+    .populate({
+      path: "dayReports",
+      populate: {
+        path: "dailyReports",
+        populate: {
+          path: "reportNote"
+        }
+      }
+    })
+    .execPopulate();
+  
+  const notes: ReportNoteDocument[] = [];
+  for (const dayReport of (populatedMonthReport as JobsiteMonthReportDocument).dayReports) {
+    // Typeguard the populated DayReports
+    if (dayReport && isDocument<JobsiteDayReportClass, Id>(dayReport)) {
+      for (const dailyReport of dayReport.dailyReports) {
+        // Typeguard the populated DailyReports
+        if (dailyReport && isDocument<DailyReportClass, Id>(dailyReport) && dailyReport.reportNote) {
+          notes.push(dailyReport.reportNote as ReportNoteDocument);
+        }
+      }
+    }
+  }
+
+  return notes;
+};
+
+
 const jobsite = async (
   jobsiteMonthReport: JobsiteMonthReportDocument
 ): Promise<JobsiteDocument> => {
@@ -150,6 +186,7 @@ export default {
   byDate,
   byJobsiteDayReport,
   dayReports,
+  reportNotes,
   jobsite,
   excelName,
   excelUrl,

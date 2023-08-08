@@ -22,7 +22,7 @@ fragment DailyReportFullSnippet on DailyReportClass {
     ...MaterialShipmentCardSnippet
   }
   reportNote {
-    ...ReportNoteFullSnippet
+    ...ReportNoteCardSnippet
   }
   temporaryEmployees {
     ...EmployeeCardSnippet

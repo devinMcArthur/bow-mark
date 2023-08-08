@@ -1,11 +1,16 @@
 import {
+    DailyReportClass,
   Jobsite,
   JobsiteDayReport,
+  JobsiteDayReportClass,
   JobsiteDayReportDocument,
   JobsiteDocument,
+  JobsiteMonthReportDocument,
   JobsiteYearReportDocument,
   JobsiteYearReportModel,
+  ReportNoteDocument,
 } from "@models";
+import { isDocument } from "@typegoose/typegoose";
 import { GetByIDOptions, Id, UpdateStatus } from "@typescript/models";
 import { getFileSignedUrl } from "@utils/fileStorage";
 import populateOptions from "@utils/populateOptions";
@@ -124,6 +129,37 @@ const lastDayReport = async (
   }).sort({ date: -1 });
 };
 
+const reportNotes = async (
+    jobsiteYearReport: JobsiteYearReportDocument
+): Promise<ReportNoteDocument[]> => {
+  const populatedMonthReport = await jobsiteYearReport
+    .populate({
+      path: "dayReports",
+      populate: {
+        path: "dailyReports",
+        populate: {
+          path: "reportNote"
+        }
+      }
+    })
+    .execPopulate();
+  
+  const notes: ReportNoteDocument[] = [];
+  for (const dayReport of (populatedMonthReport as JobsiteMonthReportDocument).dayReports) {
+    // Typeguard the populated DayReports
+    if (dayReport && isDocument<JobsiteDayReportClass, Id>(dayReport)) {
+      for (const dailyReport of dayReport.dailyReports) {
+        // Typeguard the populated DailyReports
+        if (dailyReport && isDocument<DailyReportClass, Id>(dailyReport) && dailyReport.reportNote) {
+          notes.push(dailyReport.reportNote as ReportNoteDocument);
+        }
+      }
+    }
+  }
+
+  return notes;
+};
+
 const jobsite = async (
   jobsiteYearReport: JobsiteYearReportDocument
 ): Promise<JobsiteDocument> => {
@@ -156,6 +192,7 @@ export default {
   byUpdatePending,
   dayReports,
   lastDayReport,
+  reportNotes,
   jobsite,
   excelName,
   excelUrl,

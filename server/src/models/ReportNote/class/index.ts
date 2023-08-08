@@ -22,6 +22,10 @@ export class ReportNoteClass extends ReportNoteSchema {
     return get.byId(this, id, options);
   }
 
+  public async getDailyReport(this: ReportNoteDocument) {
+    return get.dailyReport(this);
+  }
+
   public async getFiles(this: ReportNoteDocument) {
     return get.files(this);
   }

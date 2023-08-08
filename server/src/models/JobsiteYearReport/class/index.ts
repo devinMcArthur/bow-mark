@@ -70,6 +70,10 @@ export class JobsiteYearReportClass extends JobsiteYearReportSchema {
     return get.lastDayReport(this);
   }
 
+  public async getReportNotes(this: JobsiteYearReportDocument) {
+    return get.reportNotes(this);
+  }
+
   public async getJobsite(this: JobsiteYearReportDocument) {
     return get.jobsite(this);
   }

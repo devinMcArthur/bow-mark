@@ -1,3 +1,4 @@
+import React from "react";
 import { Heading, SimpleGrid, Stack } from "@chakra-ui/react";
 import {
   JobsiteMonthReportFullSnippetFragment,
@@ -9,6 +10,7 @@ import JobsiteReportExpenseInvoices from "./ExpenseInvoices";
 import JobsiteReportOnJobSummary from "./OnJobSummary";
 import JobsiteReportRevenueInvoices from "./RevenueInvoices";
 import JobsiteReportSummary from "./Summary";
+import JobsiteReportNotes from "./ReportNotes";
 
 interface IJobsiteReport {
   report:
@@ -17,6 +19,16 @@ interface IJobsiteReport {
 }
 
 const JobsiteReport = ({ report }: IJobsiteReport) => {
+  /**
+   * --- Hook Initialization ---
+   */
+
+  const [notesExpanded, setNotesExpanded] = React.useState(false);
+
+  /**
+   * --- Rendering ---
+   */
+    
   return (
     <Stack spacing={2}>
       <JobsiteReportSummary report={report} />
@@ -36,6 +48,18 @@ const JobsiteReport = ({ report }: IJobsiteReport) => {
 
       <Card heading={<Heading size="md">On Job Summary</Heading>}>
         <JobsiteReportOnJobSummary dayReports={report.dayReports} />
+      </Card>
+
+      <Card heading={
+        <Heading 
+          onClick={() => setNotesExpanded(!notesExpanded)} 
+          size="md"
+          cursor="pointer"
+        >
+          Notes
+        </Heading>}
+      >
+        {notesExpanded && <JobsiteReportNotes reportNotes={report.reportNotes} />}
       </Card>
     </Stack>
   );

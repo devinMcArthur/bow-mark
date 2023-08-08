@@ -4,6 +4,7 @@ import {
   JobsiteMonthReport,
   JobsiteMonthReportDocument,
   JobsiteMonthReportClass,
+  ReportNoteClass,
 } from "@models";
 import { Id } from "@typescript/models";
 import { PubSubTopics } from "@typescript/pubSub";
@@ -38,6 +39,13 @@ export default class JobsiteMonthReportResolver {
     @Root() jobsiteMonthReport: JobsiteMonthReportDocument
   ) {
     return jobsiteMonthReport.getExcelUrl();
+  }
+
+  @FieldResolver(() => [ReportNoteClass])
+  async reportNotes(
+      @Root() jobsiteMonthReport: JobsiteMonthReportDocument
+  ) {
+    return jobsiteMonthReport.getReportNotes();
   }
 
   /**
