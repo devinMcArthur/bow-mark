@@ -1,10 +1,11 @@
 import React from "react";
 import { ReportNoteFullSnippetFragment } from "../../../generated/graphql";
-import { Box, Text } from "@chakra-ui/react";
+import { Box, Divider, Flex, Heading, SimpleGrid, Text } from "@chakra-ui/react";
 import jobsiteName from "../../../utils/jobsiteName";
 import dayjs from "dayjs";
 import createLink from "../../../utils/createLink";
 import TextLink from "../TextLink";
+import FileDisplay from "../FileDisplay";
 
 interface IJobsiteReportNotes {
   reportNotes: ReportNoteFullSnippetFragment[];
@@ -36,7 +37,29 @@ const JobsiteReportNotes = ({
                   ({note.dailyReport.crew.name})
                 </TextLink>
             )}
-            <Text>{note.note}</Text>
+            <Text whiteSpace="pre-wrap">{note.note}</Text>
+          { /** Files */ }
+          {note.files.length > 0 ? (
+            <Box>
+              <Divider my={1} />
+              <Flex flexDir="row" justifyContent="space-between">
+                <Heading
+                  size="sm"
+                  w="100%"
+                >
+                  Files ({note.files.length || 0})
+                </Heading>
+              </Flex>
+              <SimpleGrid columns={[1, 1, 2]}>
+                {note.files.map((file) => (
+                  <FileDisplay
+                    key={file._id}
+                    file={file}
+                  />
+                ))}
+              </SimpleGrid>
+            </Box>
+          ) : null}
         </Box>
       ))}
     </Box>
