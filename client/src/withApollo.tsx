@@ -45,6 +45,7 @@ export const getApolloClient = (
   });
   const cache = new InMemoryCache().restore(initialState || {});
   return new ApolloClient({
+    // @ts-expect-error - type imcompatibilities between `apollo-upload-client` and `@apollo/client`
     link: httpLink,
     cache,
   });

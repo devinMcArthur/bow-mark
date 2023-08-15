@@ -27,7 +27,7 @@ export default function MyApolloProvider({
     uri: process.env.NEXT_PUBLIC_API_URL,
   });
 
-  const wsLink = process.browser
+  const wsLink = typeof window !== "undefined"
     ? new GraphQLWsLink(
         createClient({
           url: process.env.NEXT_PUBLIC_WS_API_URL as string,
@@ -49,7 +49,7 @@ export default function MyApolloProvider({
     };
   });
 
-  const splitLink = process.browser
+  const splitLink = typeof window !== "undefined"
     ? split(
         ({ query }) => {
           const definition = getMainDefinition(query);
@@ -59,11 +59,13 @@ export default function MyApolloProvider({
           );
         },
         wsLink!,
+        // @ts-expect-error - type imcompatibilities between `apollo-upload-client` and `@apollo/client`
         authLink.concat(httpLink)
       )
     : httpLink;
 
   const client = new ApolloClient({
+    // @ts-expect-error - type imcompatibilities between `apollo-upload-client` and `@apollo/client`
     link: splitLink,
     cache: new InMemoryCache({
       typePolicies: {
