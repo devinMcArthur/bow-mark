@@ -282,6 +282,27 @@ const remove = async (id: Id, transferJobsiteId?: Id) => {
   return true;
 };
 
+const archive = async (id: Id) => {
+  const jobsite = await Jobsite.getById(id);
+  if (!jobsite) throw new Error("Unable to find jobsite");
+
+  await jobsite.archive();
+
+  await jobsite.save();
+
+  return jobsite;
+};
+
+const unarchive = async (id: Id) => {
+  const jobsite = await Jobsite.getById(id);
+  if (!jobsite) throw new Error("Unable to find jobsite");
+
+  await jobsite.unarchive();
+  await jobsite.save();
+
+  return jobsite;
+};
+
 export default {
   create,
   update,
@@ -297,4 +318,6 @@ export default {
   removeFileObject,
   requestReportGeneration,
   remove,
+  archive,
+  unarchive,
 };

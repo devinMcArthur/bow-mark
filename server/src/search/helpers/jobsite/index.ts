@@ -16,11 +16,15 @@ JobsiteSearchIndex.primaryKey = "id";
 export const search_UpdateJobsite = async (jobsite: JobsiteDocument) => {
   if (process.env.NODE_ENV === "test") return;
 
-  await JobsiteSearchIndex.addDocuments([
-    {
-      id: jobsite._id.toString(),
-      name: jobsite.name,
-      jobcode: jobsite.jobcode,
-    },
-  ]);
+  if (!jobsite.archivedAt) {
+    await JobsiteSearchIndex.addDocuments([
+      {
+        id: jobsite._id.toString(),
+        name: jobsite.name,
+        jobcode: jobsite.jobcode,
+      },
+    ]);
+  } else {
+    await JobsiteSearchIndex.deleteDocument(jobsite._id.toString());
+  }
 };

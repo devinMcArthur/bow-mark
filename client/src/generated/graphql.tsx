@@ -366,6 +366,7 @@ export type JobsiteClass = {
   __typename?: 'JobsiteClass';
   _id: Scalars['ID'];
   active: Scalars['Boolean'];
+  archivedAt?: Maybe<Scalars['DateTime']>;
   contract?: Maybe<JobsiteContractClass>;
   createdAt: Scalars['DateTime'];
   crews: Array<CrewClass>;
@@ -705,6 +706,7 @@ export type Mutation = {
   jobsiteAddFileObject: JobsiteClass;
   jobsiteAddMaterial: JobsiteClass;
   jobsiteAddRevenueInvoice: JobsiteClass;
+  jobsiteArchive: JobsiteClass;
   jobsiteContract: JobsiteClass;
   jobsiteCreate: JobsiteClass;
   jobsiteGenerateDayReports: JobsiteClass;
@@ -716,6 +718,7 @@ export type Mutation = {
   jobsiteRequestReportGeneration: JobsiteClass;
   jobsiteSetAllEmptyTruckingRates: Array<JobsiteClass>;
   jobsiteSetTruckingRates: JobsiteClass;
+  jobsiteUnarchive: JobsiteClass;
   jobsiteUpdate: JobsiteClass;
   login: Scalars['String'];
   materialArchive: MaterialClass;
@@ -955,6 +958,11 @@ export type MutationJobsiteAddRevenueInvoiceArgs = {
 };
 
 
+export type MutationJobsiteArchiveArgs = {
+  id: Scalars['ID'];
+};
+
+
 export type MutationJobsiteContractArgs = {
   data: JobsiteContractData;
   id: Scalars['ID'];
@@ -1008,6 +1016,11 @@ export type MutationJobsiteRequestReportGenerationArgs = {
 export type MutationJobsiteSetTruckingRatesArgs = {
   data: Array<TruckingTypeRateData>;
   id: Scalars['String'];
+};
+
+
+export type MutationJobsiteUnarchiveArgs = {
+  id: Scalars['ID'];
 };
 
 
@@ -2007,7 +2020,7 @@ export type JobsiteCurrentYearSnippetFragment = { __typename?: 'JobsiteClass', y
 
 export type JobsiteForDailyReportSnippetFragment = { __typename?: 'JobsiteClass', _id: string, name: string, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }> };
 
-export type JobsiteFullSnippetFragment = { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> };
+export type JobsiteFullSnippetFragment = { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, archivedAt?: any | null, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> };
 
 export type JobsiteMaterialsSnippetFragment = { __typename?: 'JobsiteClass', _id: string, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null }> };
 
@@ -2315,7 +2328,7 @@ export type JobsiteAddExpenseInvoiceMutationVariables = Exact<{
 }>;
 
 
-export type JobsiteAddExpenseInvoiceMutation = { __typename?: 'Mutation', jobsiteAddExpenseInvoice: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+export type JobsiteAddExpenseInvoiceMutation = { __typename?: 'Mutation', jobsiteAddExpenseInvoice: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, archivedAt?: any | null, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
 
 export type JobsiteAddFileObjectMutationVariables = Exact<{
   id: Scalars['ID'];
@@ -2323,7 +2336,7 @@ export type JobsiteAddFileObjectMutationVariables = Exact<{
 }>;
 
 
-export type JobsiteAddFileObjectMutation = { __typename?: 'Mutation', jobsiteAddFileObject: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+export type JobsiteAddFileObjectMutation = { __typename?: 'Mutation', jobsiteAddFileObject: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, archivedAt?: any | null, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
 
 export type JobsiteAddMaterialMutationVariables = Exact<{
   jobsiteId: Scalars['String'];
@@ -2331,7 +2344,7 @@ export type JobsiteAddMaterialMutationVariables = Exact<{
 }>;
 
 
-export type JobsiteAddMaterialMutation = { __typename?: 'Mutation', jobsiteAddMaterial: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+export type JobsiteAddMaterialMutation = { __typename?: 'Mutation', jobsiteAddMaterial: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, archivedAt?: any | null, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
 
 export type JobsiteAddRevenueInvoiceMutationVariables = Exact<{
   jobsiteId: Scalars['String'];
@@ -2339,7 +2352,14 @@ export type JobsiteAddRevenueInvoiceMutationVariables = Exact<{
 }>;
 
 
-export type JobsiteAddRevenueInvoiceMutation = { __typename?: 'Mutation', jobsiteAddRevenueInvoice: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+export type JobsiteAddRevenueInvoiceMutation = { __typename?: 'Mutation', jobsiteAddRevenueInvoice: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, archivedAt?: any | null, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+
+export type JobsiteArchiveMutationVariables = Exact<{
+  id: Scalars['ID'];
+}>;
+
+
+export type JobsiteArchiveMutation = { __typename?: 'Mutation', jobsiteArchive: { __typename?: 'JobsiteClass', _id: string } };
 
 export type JobsiteUpdateContractMutationVariables = Exact<{
   id: Scalars['ID'];
@@ -2354,7 +2374,7 @@ export type JobsiteCreateMutationVariables = Exact<{
 }>;
 
 
-export type JobsiteCreateMutation = { __typename?: 'Mutation', jobsiteCreate: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+export type JobsiteCreateMutation = { __typename?: 'Mutation', jobsiteCreate: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, archivedAt?: any | null, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
 
 export type JobsiteMaterialAddInvoiceMutationVariables = Exact<{
   id: Scalars['ID'];
@@ -2393,7 +2413,7 @@ export type JobsiteRemoveFileObjectMutationVariables = Exact<{
 }>;
 
 
-export type JobsiteRemoveFileObjectMutation = { __typename?: 'Mutation', jobsiteRemoveFileObject: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+export type JobsiteRemoveFileObjectMutation = { __typename?: 'Mutation', jobsiteRemoveFileObject: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, archivedAt?: any | null, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
 
 export type JobsiteRequestReportGenerationMutationVariables = Exact<{
   id: Scalars['ID'];
@@ -2413,7 +2433,14 @@ export type JobsiteSetTruckingRatesMutationVariables = Exact<{
 }>;
 
 
-export type JobsiteSetTruckingRatesMutation = { __typename?: 'Mutation', jobsiteSetTruckingRates: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+export type JobsiteSetTruckingRatesMutation = { __typename?: 'Mutation', jobsiteSetTruckingRates: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, archivedAt?: any | null, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+
+export type JobsiteUnarchiveMutationVariables = Exact<{
+  id: Scalars['ID'];
+}>;
+
+
+export type JobsiteUnarchiveMutation = { __typename?: 'Mutation', jobsiteUnarchive: { __typename?: 'JobsiteClass', _id: string } };
 
 export type JobsiteUpdateMutationVariables = Exact<{
   id: Scalars['ID'];
@@ -2996,7 +3023,7 @@ export type JobsiteFullQueryVariables = Exact<{
 }>;
 
 
-export type JobsiteFullQuery = { __typename?: 'Query', jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+export type JobsiteFullQuery = { __typename?: 'Query', jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, archivedAt?: any | null, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
 
 export type JobsitesMaterialsQueryVariables = Exact<{
   id: Scalars['String'];
@@ -4035,6 +4062,7 @@ export const JobsiteFullSnippetFragmentDoc = gql`
   description
   location_url
   active
+  archivedAt
   crews {
     ...CrewCardSnippet
   }
@@ -5507,6 +5535,39 @@ export function useJobsiteAddRevenueInvoiceMutation(baseOptions?: Apollo.Mutatio
 export type JobsiteAddRevenueInvoiceMutationHookResult = ReturnType<typeof useJobsiteAddRevenueInvoiceMutation>;
 export type JobsiteAddRevenueInvoiceMutationResult = Apollo.MutationResult<JobsiteAddRevenueInvoiceMutation>;
 export type JobsiteAddRevenueInvoiceMutationOptions = Apollo.BaseMutationOptions<JobsiteAddRevenueInvoiceMutation, JobsiteAddRevenueInvoiceMutationVariables>;
+export const JobsiteArchiveDocument = gql`
+    mutation JobsiteArchive($id: ID!) {
+  jobsiteArchive(id: $id) {
+    _id
+  }
+}
+    `;
+export type JobsiteArchiveMutationFn = Apollo.MutationFunction<JobsiteArchiveMutation, JobsiteArchiveMutationVariables>;
+
+/**
+ * __useJobsiteArchiveMutation__
+ *
+ * To run a mutation, you first call `useJobsiteArchiveMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useJobsiteArchiveMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [jobsiteArchiveMutation, { data, loading, error }] = useJobsiteArchiveMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useJobsiteArchiveMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteArchiveMutation, JobsiteArchiveMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteArchiveMutation, JobsiteArchiveMutationVariables>(JobsiteArchiveDocument, options);
+      }
+export type JobsiteArchiveMutationHookResult = ReturnType<typeof useJobsiteArchiveMutation>;
+export type JobsiteArchiveMutationResult = Apollo.MutationResult<JobsiteArchiveMutation>;
+export type JobsiteArchiveMutationOptions = Apollo.BaseMutationOptions<JobsiteArchiveMutation, JobsiteArchiveMutationVariables>;
 export const JobsiteUpdateContractDocument = gql`
     mutation JobsiteUpdateContract($id: ID!, $data: JobsiteContractData!) {
   jobsiteContract(id: $id, data: $data) {
@@ -5841,6 +5902,39 @@ export function useJobsiteSetTruckingRatesMutation(baseOptions?: Apollo.Mutation
 export type JobsiteSetTruckingRatesMutationHookResult = ReturnType<typeof useJobsiteSetTruckingRatesMutation>;
 export type JobsiteSetTruckingRatesMutationResult = Apollo.MutationResult<JobsiteSetTruckingRatesMutation>;
 export type JobsiteSetTruckingRatesMutationOptions = Apollo.BaseMutationOptions<JobsiteSetTruckingRatesMutation, JobsiteSetTruckingRatesMutationVariables>;
+export const JobsiteUnarchiveDocument = gql`
+    mutation JobsiteUnarchive($id: ID!) {
+  jobsiteUnarchive(id: $id) {
+    _id
+  }
+}
+    `;
+export type JobsiteUnarchiveMutationFn = Apollo.MutationFunction<JobsiteUnarchiveMutation, JobsiteUnarchiveMutationVariables>;
+
+/**
+ * __useJobsiteUnarchiveMutation__
+ *
+ * To run a mutation, you first call `useJobsiteUnarchiveMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useJobsiteUnarchiveMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [jobsiteUnarchiveMutation, { data, loading, error }] = useJobsiteUnarchiveMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useJobsiteUnarchiveMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteUnarchiveMutation, JobsiteUnarchiveMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteUnarchiveMutation, JobsiteUnarchiveMutationVariables>(JobsiteUnarchiveDocument, options);
+      }
+export type JobsiteUnarchiveMutationHookResult = ReturnType<typeof useJobsiteUnarchiveMutation>;
+export type JobsiteUnarchiveMutationResult = Apollo.MutationResult<JobsiteUnarchiveMutation>;
+export type JobsiteUnarchiveMutationOptions = Apollo.BaseMutationOptions<JobsiteUnarchiveMutation, JobsiteUnarchiveMutationVariables>;
 export const JobsiteUpdateDocument = gql`
     mutation JobsiteUpdate($id: ID!, $data: JobsiteUpdateData!) {
   jobsiteUpdate(id: $id, data: $data) {

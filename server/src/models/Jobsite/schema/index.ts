@@ -103,6 +103,10 @@ export class JobsiteSchema {
   @prop({ required: true, default: SchemaVersions.Jobsite })
   public schemaVersion!: number;
 
+  @Field(() => Date, { nullable: true })
+  @prop({ required: false })
+  public archivedAt?: Date;
+
   @Field({ nullable: false })
   @prop({ required: true, default: Date.now })
   public createdAt!: Date;

@@ -275,4 +275,16 @@ export default class JobsiteResolver {
   ) {
     return mutations.remove(id, transferJobsiteId);
   }
+
+  @Authorized(["ADMIN"])
+  @Mutation(() => JobsiteClass)
+  async jobsiteArchive(@Arg("id", () => ID) id: Id) {
+    return mutations.archive(id);
+  }
+
+  @Authorized(["ADMIN"])
+  @Mutation(() => JobsiteClass)
+  async jobsiteUnarchive(@Arg("id", () => ID) id: Id) {
+    return mutations.unarchive(id);
+  }
 }

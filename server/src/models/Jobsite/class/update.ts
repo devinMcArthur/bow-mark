@@ -269,6 +269,16 @@ const addFileObject = async (
   return file;
 };
 
+const archive = async (
+  jobsite: JobsiteDocument
+): Promise<void> => {
+  jobsite.archivedAt = new Date();
+};
+
+const unarchive = async (jobsite: JobsiteDocument): Promise<void> => {
+  jobsite.archivedAt = undefined;
+};
+
 export default {
   document,
   addMaterial,
@@ -281,4 +291,6 @@ export default {
   addFileObject,
   contract,
   workOnHand,
+  archive,
+  unarchive
 };

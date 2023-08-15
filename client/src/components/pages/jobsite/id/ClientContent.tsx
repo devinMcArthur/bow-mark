@@ -10,15 +10,18 @@ import {
   ModalOverlay,
   SimpleGrid,
   Text,
+  Tooltip,
   useDisclosure,
 } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import React from "react";
-import { FiEdit, FiTrash } from "react-icons/fi";
+import { FiArchive, FiEdit, FiTrash, FiUnlock } from "react-icons/fi";
 import {
   useJobsiteAllDataLazyQuery,
+  useJobsiteArchiveMutation,
   useJobsiteCurrentYearLazyQuery,
   useJobsiteFullQuery,
+  useJobsiteUnarchiveMutation,
   UserRoles,
 } from "../../../../generated/graphql";
 import { JobsiteQueryKeys } from "../../../../utils/createLink";
@@ -61,6 +64,11 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
   const [allDataQuery, { data: allData }] = useJobsiteAllDataLazyQuery({
     variables: { id },
   });
+
+  const [archive, { loading: archiveLoading }] = useJobsiteArchiveMutation();
+
+  const [unarchive, { loading: unarchiveLoading }] =
+    useJobsiteUnarchiveMutation();
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const {
@@ -179,6 +187,45 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
                     backgroundColor="transparent"
                     onClick={() => onOpen()}
                   />
+                  {!jobsite.archivedAt ? (
+                    <Tooltip label="Archive">
+                      <IconButton
+                        icon={<FiArchive />}
+                        aria-label="archive"
+                        backgroundColor="transparent"
+                        isLoading={archiveLoading}
+                        onClick={() => {
+                          if (window.confirm("Are you sure?")) {
+                            archive({
+                              variables: {
+                                id: jobsite._id,
+                              },
+                            }).then(() => {
+                              router.back();
+                            });
+                          }
+                        }}
+                      />
+                    </Tooltip>
+                  ) : (
+                    <Tooltip label="Unarchive">
+                      <IconButton
+                        icon={<FiUnlock />}
+                        aria-label="unarchive"
+                        backgroundColor="transparent"
+                        isLoading={unarchiveLoading}
+                        onClick={() => {
+                          if (window.confirm("Are you sure?")) {
+                            unarchive({
+                              variables: {
+                                id: jobsite._id,
+                              },
+                            });
+                          }
+                        }}
+                      />
+                    </Tooltip>
+                  )}
                   <IconButton
                     onClick={onOpenRemove}
                     aria-label="remove"

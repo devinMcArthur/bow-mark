@@ -194,6 +194,14 @@ export class JobsiteClass extends JobsiteSchema {
     return update.addFileObject(this, fileObject);
   }
 
+  public async archive(this: JobsiteDocument) {
+    return update.archive(this);
+  }
+
+  public async unarchive(this: JobsiteDocument) {
+    return update.unarchive(this);
+  }
+
   /**
    * ----- Remove -----
    */

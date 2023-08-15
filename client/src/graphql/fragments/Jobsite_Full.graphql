@@ -5,6 +5,7 @@ fragment JobsiteFullSnippet on JobsiteClass {
   description
   location_url
   active
+  archivedAt
   crews {
     ...CrewCardSnippet
   }

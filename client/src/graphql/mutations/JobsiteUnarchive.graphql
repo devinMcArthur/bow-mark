@@ -1,0 +1,5 @@
+mutation JobsiteUnarchive($id: ID!) {
+  jobsiteUnarchive(id: $id) {
+    _id
+  }
+}
