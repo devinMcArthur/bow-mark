@@ -22,23 +22,23 @@ const JobsiteReportNotes = ({
     <Box>
       {reportNotes.map((note) => (
         <Box key={note._id} m="2" p="2" borderRadius="6" backgroundColor="gray.200">
-            {note.dailyReport && (
-                <TextLink
-                  link={createLink.dailyReport(note.dailyReport._id)}
-                  color="black"
-                  fontWeight="bold"
-                  fontSize="lg"
-                >
-                  {jobsiteName(
-                    note.dailyReport.jobsite.name,
-                    note.dailyReport.jobsite.jobcode
-                  )}{" "}
-                  - {dayjs(note.dailyReport.date).format("MMMM DD, YYYY")}{" "}
-                  ({note.dailyReport.crew.name})
-                </TextLink>
-            )}
-            <Text whiteSpace="pre-wrap">{note.note}</Text>
-          { /** Files */ }
+          {note.dailyReport && (
+            <TextLink
+              link={createLink.dailyReport(note.dailyReport._id)}
+              color="black"
+              fontWeight="bold"
+              fontSize="lg"
+            >
+              {jobsiteName(
+                note.dailyReport.jobsite.name,
+                note.dailyReport.jobsite.jobcode
+              )}{" "}
+              - {dayjs(note.dailyReport.date).format("MMMM DD, YYYY")}{" "}
+              ({note.dailyReport.crew.name})
+            </TextLink>
+          )}
+          <Text whiteSpace="pre-wrap">{note.note}</Text>
+          {/* Files */}
           {note.files.length > 0 ? (
             <Box>
               <Divider my={1} />
