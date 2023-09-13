@@ -22,18 +22,88 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
     */
 
   const leaksTemplate: Record<string, unknown> = {};
+  const leaksInput: Record<string, unknown> = {};
+
+  let leakStartY = 160;
   for (let i = 0; i < operatorDailyReport.leaks.length; i++) {
     const leak = operatorDailyReport.leaks[i];
-    leaksTemplate[`leakType-${i}`] = {
+    const typeIndex = `leakType-${i}`;
+    const locationIndex = `leakLocation=${i}`;
+
+    leaksTemplate[typeIndex] = {
       type: "text",
       position: {
-        x: 10,
-        y: 10,
+        x: 15,
+        y: leakStartY,
       },
-      width: 200,
-      height: 10,
-      fontSize: 20,
+      width: 60,
+      height: 5,
+      dynamicFontSize: {
+        min: 8,
+        max: 13
+      }
     };
+    leaksTemplate[locationIndex] = {
+      type: "text",
+      position: {
+        x: 15,
+        y: leakStartY + 6
+      },
+      width: 60,
+      height: 5,
+      dynamicFontSize: {
+        min: 8,
+        max: 13
+      }
+    };
+
+    leaksInput[typeIndex] = `Type: ${leak.type}`;
+    leaksInput[locationIndex] = `Location: ${leak.location}`;
+
+    leakStartY += 20;
+  }
+
+
+  const fluidsTemplate: Record<string, unknown> = {};
+  const fluidsInput: Record<string, unknown> = {};
+
+  let fluidStartY = 160;
+  for (let i = 0; i < operatorDailyReport.fluidsAdded.length; i++) {
+    const fluid = operatorDailyReport.fluidsAdded[i];
+    const typeIndex = `fluidType-${i}`;
+    const amountIndex = `fluidAmount=${i}`;
+
+    fluidsTemplate[typeIndex] = {
+      type: "text",
+      position: {
+        x: 80,
+        y: fluidStartY,
+      },
+      width: 60,
+      height: 5,
+      dynamicFontSize: {
+        min: 8,
+        max: 13
+      }
+    };
+    fluidsTemplate[amountIndex] = {
+      type: "text",
+      position: {
+        x: 80,
+        y: fluidStartY + 6
+      },
+      width: 60,
+      height: 5,
+      dynamicFontSize: {
+        min: 8,
+        max: 13
+      }
+    };
+
+    fluidsInput[typeIndex] = `Type: ${fluid.type}`;
+    fluidsInput[amountIndex] = `Amount: ${fluid.amount.toLocaleString("en-US")} Litres`;
+
+    fluidStartY += 20;
   }
 
   const template: Template = {
@@ -420,6 +490,7 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           height: 10,
           fontSize: 20
         },
+        ...fluidsTemplate,
         /**
          * Fluids Added
          */
@@ -432,7 +503,8 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           width: 100,
           height: 10,
           fontSize: 20
-        }
+        },
+        ...leaksTemplate
       },
     ]
   };
@@ -447,7 +519,7 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
       author: employee.name,
       generalTitle: "General",
       usageTitle: "Usage:",
-      usage: `${operatorDailyReport.equipmentUsage.usage} ${operatorDailyReport.equipmentUsage.unit}`,
+      usage: `${operatorDailyReport.equipmentUsage.usage.toLocaleString("en-US")} ${operatorDailyReport.equipmentUsage.unit}`,
       startTimeTitle: "Start Time:",
       startTime: dayjs(operatorDailyReport.startTime).format("hh:mm a"),
       checklistTitle: "Checklist",
@@ -476,7 +548,9 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
       malfunctionTitle: "Malfunction:",
       malfunction: operatorDailyReport.malfunction ? "Yes" : "No",
       leaksTitle: "Leaks",
-      fluidsAddedTitle: "Fluids Added"
+      ...leaksInput,
+      fluidsAddedTitle: "Fluids Added",
+      ...fluidsInput
     }
   ];
 
