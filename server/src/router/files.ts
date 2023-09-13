@@ -1,4 +1,4 @@
-import { Crew, DailyReport } from "@models";
+import { Crew, DailyReport, OperatorDailyReport } from "@models";
 import { SupportedMimeTypes } from "@typescript/file";
 import { generateForDailyReport, getWorkbookBuffer } from "@utils/excel";
 import dayjs from "dayjs";
@@ -89,6 +89,23 @@ router.get("/employees", async (_req, res) => {
   );
 
   return res.send(await getWorkbookBuffer(workbook));
+});
+
+router.get("/operator-daily-report/:operatorDailyReportId/pdf", async (req, res) => {
+  const operatorDailyReport = await OperatorDailyReport.getById(req.params.operatorDailyReportId);
+
+  if (!operatorDailyReport) return res.status(404);
+
+  const vehicle = await operatorDailyReport.getVehicle();
+
+  const pdf = await operatorDailyReport.generatePDF();
+  res.setHeader("Content-Type", SupportedMimeTypes.PDF);
+  res.setHeader(
+    "Content-Disposition",
+    `inline; filename=${vehicle.vehicleCode}-${dayjs(operatorDailyReport.createdAt).format("YYYY-MM-DD")}.pdf`
+  );
+
+  return res.send(Buffer.from(pdf));
 });
 
 export default router;

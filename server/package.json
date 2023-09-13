@@ -20,6 +20,8 @@
     "@aws-sdk/s3-request-presigner": "^3.94.0",
     "@elastic/elasticsearch": "^7.16.0",
     "@graphql-tools/schema": "^8.3.8",
+    "@pdfme/common": "^2.2.0",
+    "@pdfme/generator": "^2.2.0",
     "@typegoose/typegoose": "7.4.5",
     "apollo-server-core": "^3.6.7",
     "apollo-server-express": "^3.6.7",

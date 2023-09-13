@@ -10,6 +10,7 @@ import { Types } from "mongoose";
 import { ObjectType } from "type-graphql";
 import { OperatorDailyReportSchema } from "../schema";
 import create from "./create";
+import generate from "./generate";
 import get from "./get";
 import validate from "./validate";
 
@@ -57,6 +58,14 @@ export class OperatorDailyReportClass extends OperatorDailyReportSchema {
     data: IOperatorDailyReportCreate
   ) {
     return create.document(this, vehicle, author, data);
+  }
+
+  /**
+   * --- Generate ---
+   */
+
+  public async generatePDF(this: OperatorDailyReportDocument) {
+    return generate.pdf(this);
   }
 
   /**

@@ -136,15 +136,26 @@ const OperatorDailyReport: PageOperatorDailyReportFullComp = ({ data }) => {
         <Flex w="100%" justifyContent="space-between">
           <Box>{tags}</Box>
           {/* REPORT ISSUE */}
-          <Button
-            mx={2}
-            variant="outline"
-            colorScheme="red"
-            leftIcon={<FiAlertTriangle />}
-            onClick={() => setIssueForm(!issueForm)}
-          >
-            Report
-          </Button>
+          <Box>
+            <TextLink
+              link={createLink.server_operatorDailyReportDownloadPDF(
+                operatorDailyReport._id
+              )}
+              newTab
+              mx="3"
+            >
+              Download
+            </TextLink>
+            <Button
+              mx={2}
+              variant="outline"
+              colorScheme="red"
+              leftIcon={<FiAlertTriangle />}
+              onClick={() => setIssueForm(!issueForm)}
+            >
+              Report
+            </Button>
+          </Box>
         </Flex>
       </Card>
 
