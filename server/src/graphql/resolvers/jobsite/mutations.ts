@@ -7,7 +7,6 @@ import {
   JobsiteMaterial,
   Material,
 } from "@models";
-import { Readable } from "stream";
 import { TruckingRateTypes } from "@typescript/jobsite";
 import { Id } from "@typescript/models";
 import { UserRoles } from "@typescript/user";
@@ -237,7 +236,8 @@ const addFileObject = async (id: Id, data: JobsiteFileObjectData) => {
   const jobsite = await Jobsite.getById(id);
   if (!jobsite) throw new Error("Unable to find jobsite");
 
-  const { createReadStream, mimetype } = data.file.file;
+  // FileUpload is a promise, so we need to await it
+  const { createReadStream, mimetype } = await data.file.file;
 
   await jobsite.addFileObject({
     file: {

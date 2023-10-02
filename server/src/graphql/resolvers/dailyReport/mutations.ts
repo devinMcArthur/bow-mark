@@ -11,7 +11,6 @@ import {
 import { Id } from "@typescript/models";
 import { Field, ID, InputType } from "type-graphql";
 import { FileCreateData } from "../file/mutations";
-import { FileUpload } from "graphql-upload";
 
 @InputType()
 export class DailyReportUpdateData {
@@ -216,6 +215,7 @@ const addNoteFile = async (
     });
   }
 
+  // FileUpload is a promise, so we need to await it
   const fileStream = await data.file;
 
   const file = await File.createDocument({
