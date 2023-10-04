@@ -1,0 +1,9 @@
+mutation JobsiteUpdateLocation($id: ID!, $data: JobsiteLocationData!) {
+  jobsiteLocation(id: $id, data: $data) {
+    _id
+    location {
+      longitude
+      latitude
+    }
+  }
+}

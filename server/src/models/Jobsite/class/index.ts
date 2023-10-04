@@ -31,6 +31,7 @@ import get, {
 import interact from "./interact";
 import remove from "./remove";
 import update from "./update";
+import { ILocationData } from "@typescript/location";
 
 @ObjectType()
 export class JobsiteClass extends JobsiteSchema {
@@ -200,6 +201,10 @@ export class JobsiteClass extends JobsiteSchema {
 
   public async unarchive(this: JobsiteDocument) {
     return update.unarchive(this);
+  }
+
+  public async updateLocation(this: JobsiteDocument, location: ILocationData) {
+    return update.location(this, location);
   }
 
   /**

@@ -24,6 +24,7 @@ jobs:
             echo "NEXT_PUBLIC_API_URL=https://paving.bowmark.ca/graphql" | cat >> ./client/.env.local
             echo "NEXT_PUBLIC_WS_API_URL=wss://paving.bowmark.ca/graphql" | cat >> ./client/.env.local
             echo "NEXT_PUBLIC_ANALYTICS_ID=G-ZJFP23D24Y" | cat >> ./client/.env.local
+            echo "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyAQHGi8N0C03ZpAWz6XhVTZI1xtxg31ag8" | cat >> ./client/.env.local
             rm ./client/public/manifest.json
             cp ./client/public/manifest-paving.json ./client/public/manifest.json
             docker build -t $CLIENT_IMAGE_NAME:latest ./client
@@ -34,6 +35,7 @@ jobs:
             echo "NEXT_PUBLIC_API_URL=https://concrete.bowmark.ca/graphql" | cat >> ./client/.env.local
             echo "NEXT_PUBLIC_WS_API_URL=wss://concrete.bowmark.ca/graphql" | cat >> ./client/.env.local
             echo "NEXT_PUBLIC_ANALYTICS_ID=G-8798JH035P" | cat >> ./client/.env.local
+            echo "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyAQHGi8N0C03ZpAWz6XhVTZI1xtxg31ag8" | cat >> ./client/.env.local
             rm ./client/public/manifest.json
             cp ./client/public/manifest-concrete.json ./client/public/manifest.json
             docker build -t $CLIENT_CONCRETE_IMAGE_NAME:latest ./client

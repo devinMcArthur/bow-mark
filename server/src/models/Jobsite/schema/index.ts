@@ -8,6 +8,7 @@ import {
 } from "@models";
 import { search_UpdateJobsite } from "@search";
 import { post, prop, Ref } from "@typegoose/typegoose";
+import { LocationClass } from "@typescript/location";
 import isUrl from "@validation/isUrl";
 import { Types } from "mongoose";
 import { Field, ID, ObjectType } from "type-graphql";
@@ -87,6 +88,10 @@ export class JobsiteSchema {
   @Field(() => JobsiteContractClass, { nullable: true })
   @prop({ type: () => JobsiteContractClass, required: false })
   public contract?: JobsiteContractClass;
+
+  @Field(() => LocationClass, { nullable: true })
+  @prop({ type: () => LocationClass, required: false })
+  public location?: LocationClass;
 
   /**
    * @deprecated

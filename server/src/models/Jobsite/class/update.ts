@@ -16,6 +16,7 @@ import {
   ITruckingTypeRateData,
   TruckingRateTypes,
 } from "@typescript/jobsite";
+import { ILocationData } from "@typescript/location";
 import getRateForTime from "@utils/getRateForTime";
 import dayjs from "dayjs";
 
@@ -128,7 +129,7 @@ const workOnHand = async (jobsite: JobsiteDocument) => {
           dayReport.summary.truckingCost) *
         (1 +
           getRateForTime(system.internalExpenseOverheadRate, dayReport.date) /
-            100);
+          100);
     }
 
     expensesInSystem +=
@@ -202,7 +203,7 @@ const addTruckingRateToAll = async (
   if (
     system.materialShipmentVehicleTypeDefaults[systemItemIndex] &&
     system.materialShipmentVehicleTypeDefaults[systemItemIndex].rates[
-      systemRateIndex
+    systemRateIndex
     ]
   ) {
     const systemRateItem =
@@ -279,6 +280,13 @@ const unarchive = async (jobsite: JobsiteDocument): Promise<void> => {
   jobsite.archivedAt = undefined;
 };
 
+const location = async (
+  jobsite: JobsiteDocument,
+  location: ILocationData
+): Promise<void> => {
+  jobsite.location = location;
+};
+
 export default {
   document,
   addMaterial,
@@ -292,5 +300,6 @@ export default {
   contract,
   workOnHand,
   archive,
-  unarchive
+  unarchive,
+  location
 };

@@ -34,6 +34,7 @@ import mutations, {
   JobsiteContractData,
   JobsiteCreateData,
   JobsiteFileObjectData,
+  JobsiteLocationData,
   JobsiteUpdateData,
   TruckingTypeRateData,
 } from "./mutations";
@@ -183,6 +184,16 @@ export default class JobsiteResolver {
     data: JobsiteContractData
   ) {
     return mutations.updateContract(id, data);
+  }
+
+  @Authorized(["ADMIN"])
+  @Mutation(() => JobsiteClass)
+  async jobsiteLocation(
+    @Arg("id", () => ID, { nullable: false }) id: Id,
+    @Arg("data", () => JobsiteLocationData, { nullable: false })
+    data: JobsiteLocationData
+  ) {
+    return mutations.updateLocation(id, data);
   }
 
   @Authorized(["ADMIN"])

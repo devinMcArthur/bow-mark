@@ -16,6 +16,15 @@ import { InvoiceData } from "../invoice/mutations";
 import { JobsiteMaterialCreateData } from "../jobsiteMaterial/mutations";
 
 @InputType()
+export class JobsiteLocationData {
+  @Field(() => Float)
+  public longitude!: number;
+
+  @Field(() => Float)
+  public latitude!: number;
+}
+
+@InputType()
 export class JobsiteContractData {
   @Field(() => Float)
   public bidValue!: number;
@@ -93,6 +102,20 @@ const updateContract = async (
   if (!jobsite) throw new Error("Unable to find jobsite with that Id");
 
   await jobsite.updateContract(data);
+
+  await jobsite.save();
+
+  return jobsite;
+};
+
+const updateLocation = async (
+  id: Id,
+  data: JobsiteLocationData
+): Promise<JobsiteDocument> => {
+  const jobsite = await Jobsite.getById(id);
+  if (!jobsite) throw new Error("Unable to find jobsite with that Id");
+
+  await jobsite.updateLocation(data);
 
   await jobsite.save();
 
@@ -307,6 +330,7 @@ export default {
   create,
   update,
   updateContract,
+  updateLocation,
   addMaterial,
   addExpenseInvoice,
   addRevenueInvoice,

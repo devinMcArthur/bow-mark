@@ -31,4 +31,8 @@ fragment JobsiteFullSnippet on JobsiteClass {
       ...FilePreloadSnippet
     }
   }
+  location {
+    latitude
+    longitude
+  }
 }

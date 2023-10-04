@@ -15,7 +15,7 @@ import {
 } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import React from "react";
-import { FiArchive, FiEdit, FiTrash, FiUnlock } from "react-icons/fi";
+import { FiArchive, FiEdit, FiMap, FiTrash, FiUnlock } from "react-icons/fi";
 import {
   useJobsiteAllDataLazyQuery,
   useJobsiteArchiveMutation,
@@ -40,6 +40,7 @@ import RevenueInvoices from "./views/RevenueInvoices";
 import TruckingRates from "./views/TruckingRates";
 import JobsiteContract from "./views/Contract";
 import Switch from "../../../Common/forms/Switch";
+import JobsiteLocationModal from "./views/LocationModal";
 
 interface IJobsiteClientContent {
   id: string;
@@ -76,6 +77,7 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
     onOpen: onOpenRemove,
     onClose: onCloseRemove,
   } = useDisclosure();
+  const { isOpen: isOpenLocation, onOpen: onOpenLocation, onClose: onCloseLocation } = useDisclosure();
 
   const router = useRouter();
 
@@ -180,6 +182,12 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
                 />
               </Box>
               <Flex flexDir="row" spacing={2}>
+                <IconButton
+                  aria-label="location"
+                  icon={<FiMap />}
+                  backgroundColor="transparent"
+                  onClick={() => onOpenLocation()}
+                />
                 <Permission>
                   <IconButton
                     aria-label="edit"
@@ -298,6 +306,7 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
             isOpen={isOpenRemove}
             onClose={onCloseRemove}
           />
+          <JobsiteLocationModal jobsite={jobsite} isOpen={isOpenLocation} onClose={onCloseLocation} />
         </Box>
       );
     } else return <Loading />;
@@ -315,6 +324,13 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
     onOpen,
     onOpenRemove,
     router,
+    isOpenLocation,
+    onCloseLocation,
+    onOpenLocation,
+    archive,
+    archiveLoading,
+    unarchive,
+    unarchiveLoading
   ]);
 };
 
