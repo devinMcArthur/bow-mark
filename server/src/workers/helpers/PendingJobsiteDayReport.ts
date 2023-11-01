@@ -4,6 +4,8 @@ import errorHandler from "@utils/errorHandler";
 const pendingJobsiteDayReportUpdateHelper = async () => {
   const jobsiteDayReports = await JobsiteDayReport.getByUpdatePending();
 
+  console.log(`Fixing ${jobsiteDayReports.length} pending jobsite day reports`);
+
   // Update
   for (let i = 0; i < jobsiteDayReports.length; i++) {
     try {
