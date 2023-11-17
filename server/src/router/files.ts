@@ -1,4 +1,4 @@
-import { Crew, DailyReport, OperatorDailyReport } from "@models";
+import { Company, Crew, DailyReport, OperatorDailyReport } from "@models";
 import { SupportedMimeTypes } from "@typescript/file";
 import { generateForDailyReport, getWorkbookBuffer } from "@utils/excel";
 import dayjs from "dayjs";
@@ -6,6 +6,7 @@ import { Router } from "express";
 import archiver from "archiver";
 import { generateForVehicles } from "@utils/excel/vehicles";
 import { generateForEmployees } from "@utils/excel/employees";
+import generateCompanyMaterialReportExcel from "@utils/excel/companyMaterialReport";
 
 const router = Router();
 
@@ -106,6 +107,27 @@ router.get("/operator-daily-report/:operatorDailyReportId/pdf", async (req, res)
   );
 
   return res.send(Buffer.from(pdf));
+});
+
+router.get("/company/:companyId/material-report/:year", async (req, res) => {
+  const companyId = req.params.companyId;
+  const year = req.params.year;
+
+  const company = await Company.getById(companyId);
+  if (!company) return res.status(404).send("Could not find company");
+
+  if (!year) return res.status(400).send("Invalid year");
+
+  const materialReport = await company.getMaterialReports(parseInt(year, 10));
+  const workbook = await generateCompanyMaterialReportExcel(materialReport);
+
+  res.setHeader("Content-Type", SupportedMimeTypes.XLSX);
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename=${company.name}-${year}-Material-Report.xlsx`
+  );
+
+  return res.send(await getWorkbookBuffer(workbook));
 });
 
 export default router;

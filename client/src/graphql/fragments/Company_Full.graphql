@@ -1,9 +1,4 @@
 fragment CompanyFullSnippet on CompanyClass {
   ...CompanyCardSnippet
-  materialReports {
-    ...CompanyMaterialReportSnippet
-  }
-  invoices {
-    ...InvoiceFullSnippet
-  }
+  materialReportYears
 }

@@ -46,8 +46,12 @@ export class CompanyClass extends CompanySchema {
     return get.list(this, options);
   }
 
-  public async getMaterialReports(this: CompanyDocument) {
-    return get.materialReports(this);
+  public async getMaterialReports(this: CompanyDocument, year: number) {
+    return get.materialReports(this, year);
+  }
+
+  public async getMaterialReportYears(this: CompanyDocument) {
+    return get.materialReportYears(this);
   }
 
   public async getInvoices(this: CompanyDocument) {

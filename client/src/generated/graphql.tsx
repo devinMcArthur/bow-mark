@@ -34,6 +34,7 @@ export type CompanyClass = {
   isBowMarkConcrete: Scalars['Boolean'];
   isBowMarkPaving: Scalars['Boolean'];
   materialReports: Array<CompanyMaterialReport>;
+  materialReportYears: Array<Scalars['Float']>;
   name: Scalars['String'];
   schemaVersion: Scalars['Float'];
 };
@@ -1954,7 +1955,7 @@ export type CompanyMaterialReportJobDaySnippetFragment = { __typename?: 'Company
 
 export type CompanyCardSnippetFragment = { __typename?: 'CompanyClass', _id: string, name: string };
 
-export type CompanyFullSnippetFragment = { __typename?: 'CompanyClass', _id: string, name: string, materialReports: Array<{ __typename?: 'CompanyMaterialReport', material: { __typename?: 'MaterialClass', _id: string, name: string }, jobDays: Array<{ __typename?: 'CompanyMaterialReportJobDay', quantity: number, date: any, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }> }>, invoices: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, jobsite?: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } | null, company: { __typename?: 'CompanyClass', _id: string, name: string } }> };
+export type CompanyFullSnippetFragment = { __typename?: 'CompanyClass', materialReportYears: Array<number>, _id: string, name: string };
 
 export type CrewLocationSnippetFragment = { __typename?: 'CrewLocationClass', crew: { __typename?: 'CrewClass', _id: string, name: string }, days: Array<{ __typename?: 'CrewLocationDayClass', date: any, items: Array<{ __typename?: 'CrewLocationDayItemClass', jobsiteName: string, dailyReportId: string }> }> };
 
@@ -2810,7 +2811,7 @@ export type CompanyFullQueryVariables = Exact<{
 }>;
 
 
-export type CompanyFullQuery = { __typename?: 'Query', company: { __typename?: 'CompanyClass', _id: string, name: string, materialReports: Array<{ __typename?: 'CompanyMaterialReport', material: { __typename?: 'MaterialClass', _id: string, name: string }, jobDays: Array<{ __typename?: 'CompanyMaterialReportJobDay', quantity: number, date: any, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }> }>, invoices: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, jobsite?: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } | null, company: { __typename?: 'CompanyClass', _id: string, name: string } }> } };
+export type CompanyFullQuery = { __typename?: 'Query', company: { __typename?: 'CompanyClass', materialReportYears: Array<number>, _id: string, name: string } };
 
 export type CrewLocationsQueryVariables = Exact<{
   startTime?: InputMaybe<Scalars['DateTime']>;
@@ -3275,12 +3276,6 @@ export type JobsiteYearReportSubSubscriptionVariables = Exact<{
 
 export type JobsiteYearReportSubSubscription = { __typename?: 'Subscription', jobsiteYearReportSub?: { __typename?: 'JobsiteYearReportClass', crewTypes: Array<CrewTypes>, excelDownloadUrl?: string | null, _id: string, startOfYear: any, dayReports: Array<{ __typename?: 'JobsiteDayReportClass', _id: string, date: any, crewTypes: Array<CrewTypes>, employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, rate: number, hours: number, crewType: CrewTypes, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, employeeWork: Array<{ __typename?: 'EmployeeWorkClass', jobTitle: string }> }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, rate: number, hours: number, crewType: CrewTypes, vehicle: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }, vehicleWork: Array<{ __typename?: 'VehicleWorkClass', jobTitle?: string | null }> }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes, jobsiteMaterial: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } }>, nonCostedMaterials: Array<{ __typename?: 'NonCostedMaterialReportClass', _id: string, materialName: string, supplierName: string, quantity: number, crewType: CrewTypes }>, trucking: Array<{ __typename?: 'TruckingReportClass', _id: string, truckingType: string, quantity: number, hours?: number | null, type: TruckingRateTypes, rate: number, crewType: CrewTypes }>, summary: { __typename?: 'OnSiteSummaryReportClass', employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number, crewTypeSummaries: Array<{ __typename?: 'CrewTypeOnSiteSummaryClass', crewType: CrewTypes, employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number }> } }>, expenseInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, revenueInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, summary: { __typename?: 'RangeSummaryReportClass', externalExpenseInvoiceValue: number, internalExpenseInvoiceValue: number, accrualExpenseInvoiceValue: number, externalRevenueInvoiceValue: number, internalRevenueInvoiceValue: number, accrualRevenueInvoiceValue: number }, issues: Array<{ __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } | null }>, reportNotes: Array<{ __typename?: 'ReportNoteClass', _id: string, note: string, dailyReport?: { __typename?: 'DailyReportClass', _id: string, date: any, jobCostApproved: boolean, payrollComplete: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null }, crew: { __typename?: 'CrewClass', _id: string, name: string } } | null, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null }> }>, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } } | null };
 
-export const CompanyCardSnippetFragmentDoc = gql`
-    fragment CompanyCardSnippet on CompanyClass {
-  _id
-  name
-}
-    `;
 export const JobsiteCardSnippetFragmentDoc = gql`
     fragment JobsiteCardSnippet on JobsiteClass {
   _id
@@ -3308,20 +3303,33 @@ export const CompanyMaterialReportSnippetFragmentDoc = gql`
   }
 }
     ${CompanyMaterialReportJobDaySnippetFragmentDoc}`;
-export const InvoiceCardSnippetFragmentDoc = gql`
-    fragment InvoiceCardSnippet on InvoiceClass {
+export const CompanyCardSnippetFragmentDoc = gql`
+    fragment CompanyCardSnippet on CompanyClass {
   _id
-  company {
-    ...CompanyCardSnippet
-  }
-  date
-  invoiceNumber
-  cost
-  description
-  internal
-  accrual
+  name
+}
+    `;
+export const CompanyFullSnippetFragmentDoc = gql`
+    fragment CompanyFullSnippet on CompanyClass {
+  ...CompanyCardSnippet
+  materialReportYears
 }
     ${CompanyCardSnippetFragmentDoc}`;
+export const CrewLocationSnippetFragmentDoc = gql`
+    fragment CrewLocationSnippet on CrewLocationClass {
+  crew {
+    _id
+    name
+  }
+  days {
+    date
+    items {
+      jobsiteName
+      dailyReportId
+    }
+  }
+}
+    `;
 export const MaterialCardSnippetFragmentDoc = gql`
     fragment MaterialCardSnippet on MaterialClass {
   _id
@@ -3345,6 +3353,20 @@ export const JobsiteMaterialDeliveredRateSnippetFragmentDoc = gql`
   }
 }
     ${JobsiteMaterialRateSnippetFragmentDoc}`;
+export const InvoiceCardSnippetFragmentDoc = gql`
+    fragment InvoiceCardSnippet on InvoiceClass {
+  _id
+  company {
+    ...CompanyCardSnippet
+  }
+  date
+  invoiceNumber
+  cost
+  description
+  internal
+  accrual
+}
+    ${CompanyCardSnippetFragmentDoc}`;
 export const JobsiteMaterialCardSnippetFragmentDoc = gql`
     fragment JobsiteMaterialCardSnippet on JobsiteMaterialClass {
   _id
@@ -3378,47 +3400,6 @@ ${CompanyCardSnippetFragmentDoc}
 ${JobsiteMaterialRateSnippetFragmentDoc}
 ${JobsiteMaterialDeliveredRateSnippetFragmentDoc}
 ${InvoiceCardSnippetFragmentDoc}`;
-export const InvoiceFullSnippetFragmentDoc = gql`
-    fragment InvoiceFullSnippet on InvoiceClass {
-  ...InvoiceCardSnippet
-  jobsite {
-    ...JobsiteCardSnippet
-  }
-  jobsiteMaterial {
-    ...JobsiteMaterialCardSnippet
-  }
-}
-    ${InvoiceCardSnippetFragmentDoc}
-${JobsiteCardSnippetFragmentDoc}
-${JobsiteMaterialCardSnippetFragmentDoc}`;
-export const CompanyFullSnippetFragmentDoc = gql`
-    fragment CompanyFullSnippet on CompanyClass {
-  ...CompanyCardSnippet
-  materialReports {
-    ...CompanyMaterialReportSnippet
-  }
-  invoices {
-    ...InvoiceFullSnippet
-  }
-}
-    ${CompanyCardSnippetFragmentDoc}
-${CompanyMaterialReportSnippetFragmentDoc}
-${InvoiceFullSnippetFragmentDoc}`;
-export const CrewLocationSnippetFragmentDoc = gql`
-    fragment CrewLocationSnippet on CrewLocationClass {
-  crew {
-    _id
-    name
-  }
-  days {
-    date
-    items {
-      jobsiteName
-      dailyReportId
-    }
-  }
-}
-    `;
 export const TruckingRateSnippetFragmentDoc = gql`
     fragment TruckingRateSnippet on TruckingRateClass {
   rate
@@ -3734,6 +3715,19 @@ export const FileFullSnippetFragmentDoc = gql`
   downloadUrl
 }
     ${FilePreloadSnippetFragmentDoc}`;
+export const InvoiceFullSnippetFragmentDoc = gql`
+    fragment InvoiceFullSnippet on InvoiceClass {
+  ...InvoiceCardSnippet
+  jobsite {
+    ...JobsiteCardSnippet
+  }
+  jobsiteMaterial {
+    ...JobsiteMaterialCardSnippet
+  }
+}
+    ${InvoiceCardSnippetFragmentDoc}
+${JobsiteCardSnippetFragmentDoc}
+${JobsiteMaterialCardSnippetFragmentDoc}`;
 export const UpdateSnippetFragmentDoc = gql`
     fragment UpdateSnippet on UpdateClass {
   status

@@ -19,6 +19,7 @@ import {
 import populateOptions from "@utils/populateOptions";
 import { timezoneStartOfDayinUTC } from "@utils/time";
 import { CompanySearchIndex, searchIndex } from "@search";
+import dayjs from "dayjs";
 
 /**
  * ----- Static Methods -----
@@ -120,18 +121,41 @@ const list = async (
  * ----- Methods -----
  */
 
-const materialReports = async (
+const materialReportYears = async (
   company: CompanyDocument
-): Promise<CompanyMaterialReport[]> => {
+): Promise<number[]> => {
+  // Retreive all materials used in jobsites associated with this company
   const jobsiteMaterials = await JobsiteMaterial.getByCompany(company._id);
 
-  // Get unique list of all materials used
+  // Fetch all day reports that contain any of the materials to be used
+  // in the material reports
+  const jobsiteDayReports = await JobsiteDayReport.find({
+    "materials.jobsiteMaterial": {
+      $in: jobsiteMaterials.map((material) => material._id),
+    },
+  });
+
+  // Get all unique years from the day reports
+  const years = [...new Set(jobsiteDayReports.map((day) => day.date.getFullYear()))];
+
+  return years;
+};
+
+const materialReports = async (
+  company: CompanyDocument,
+  year: number
+): Promise<CompanyMaterialReport[]> => {
+  // Retreive all materials used in jobsites associated with this company
+  const jobsiteMaterials = await JobsiteMaterial.getByCompany(company._id);
+
+  // Get all unique material ids to be used as keys in the material reports
   const materialIdString: string[] = jobsiteMaterials
     .map((mat) => mat.material?.toString())
     .filter((mat): mat is string => mat !== undefined);
   const uniqueMaterials = [...new Set(materialIdString)];
 
-  // Create catalog of jobsiteMaterial and it's material
+  // Create a mappping of jobsite material ids to material ids
+  // to be used to populate the material reports
   const jobsiteMaterialCatalog: { [key: string]: string } = {};
   for (let i = 0; i < jobsiteMaterials.length; i++) {
     if (jobsiteMaterials[i].material)
@@ -139,7 +163,7 @@ const materialReports = async (
         jobsiteMaterials[i].material?.toString() || "";
   }
 
-  // Instantiate material reports array
+  // Initialize an array to hold the reports for each unique material
   const materialReports: CompanyMaterialReport[] = uniqueMaterials.map(
     (mat) => {
       return {
@@ -149,11 +173,17 @@ const materialReports = async (
     }
   );
 
-  // Get all relevant day reports
+  // Fetch all day reports that contain any of the materials to be used
+  // in the material reports
   const jobsiteDayReports = await JobsiteDayReport.find({
     "materials.jobsiteMaterial": {
       $in: jobsiteMaterials.map((material) => material._id),
     },
+    // Using `year` as a number will return all reports from that year
+    date: {
+      $gte: dayjs(`${year}-01-01`).startOf("year").toDate(),
+      $lte: dayjs(`${year}-12-31`).endOf("year").toDate(),
+    }
   });
 
   interface MaterialReportCatalog {
@@ -230,5 +260,6 @@ export default {
   search,
   list,
   materialReports,
+  materialReportYears,
   invoices,
 };

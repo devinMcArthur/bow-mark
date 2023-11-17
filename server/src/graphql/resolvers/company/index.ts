@@ -35,9 +35,9 @@ export default class CompanyResolver {
    * ----- Field Resolvers -----
    */
 
-  @FieldResolver(() => [CompanyMaterialReport])
-  async materialReports(@Root() company: CompanyDocument) {
-    return company.getMaterialReports();
+  @FieldResolver(() => [Number])
+  async materialReportYears(@Root() company: CompanyDocument) {
+    return company.getMaterialReportYears();
   }
 
   @FieldResolver(() => [InvoiceClass])

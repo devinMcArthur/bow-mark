@@ -1,11 +1,11 @@
-import { Box, Heading } from "@chakra-ui/react";
+import { Center, Stack, Text } from "@chakra-ui/react";
 import {
   CompanyCardSnippetFragment,
   useCompanyFullQuery,
 } from "../../../generated/graphql";
-import CompanyMaterialReports from "../../Common/Company/MaterialReport";
-import InvoiceFullCard from "../../Common/Invoice/CardFull";
 import Loading from "../../Common/Loading";
+import createLink from "../../../utils/createLink";
+import TextLink from "../../Common/TextLink";
 
 interface ICompanyClientContent {
   company: CompanyCardSnippetFragment;
@@ -29,19 +29,25 @@ const CompanyClientContent = ({ company }: ICompanyClientContent) => {
   if (data?.company && !loading) {
     return (
       <div>
-        <CompanyMaterialReports
-          materialReports={data.company.materialReports}
-        />
-        <Heading size="md">Invoices</Heading>
-        <Box borderRadius="6" p="2" backgroundColor="gray.200">
-          {data.company.invoices.map((invoice) => (
-            <InvoiceFullCard invoice={invoice} key={invoice._id} />
-          ))}
-        </Box>
+        <i>Keep in mind that this may take up to a few minutes to load</i>
+        <Stack spacing={2}>
+          {data.company.materialReportYears.map((year) => {
+            return (
+              <TextLink link={createLink.server_companyMaterialReportDownload(data.company._id, year)} newTab key={year}>
+                Material Report {year}
+              </TextLink>
+            );
+          })}
+        </Stack>
       </div>
     );
   } else {
-    return <Loading />;
+    return (
+      <Center flexDir="column" m="auto">
+        <Text>Generating reports, this may take a few minutes</Text>
+        <Loading />
+      </Center>
+    );
   }
 };
 
