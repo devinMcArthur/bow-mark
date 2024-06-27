@@ -81,7 +81,7 @@ export class MaterialReportClass {
   @Field(() => ID, { nullable: false })
   public _id?: Types.ObjectId;
 
-  @Field(() => JobsiteMaterialClass, { nullable: false })
+  @Field(() => JobsiteMaterialClass)
   @prop({ ref: () => JobsiteMaterialClass, required: true })
   public jobsiteMaterial!: Ref<JobsiteMaterialClass>;
 

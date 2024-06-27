@@ -7,7 +7,6 @@ import {
 import formatDate from "../../../utils/formatDate";
 import JobsiteReport from "../../Common/JobsiteReport";
 import Loading from "../../Common/Loading";
-import TextLink from "../../Common/TextLink";
 
 interface IJobsiteYearReportClientContent {
   id: string;
@@ -54,9 +53,9 @@ const JobsiteYearReportClientContent = ({
             {jobsiteYearReport.update.status} - Last Updated:{" "}
             {jobsiteYearReport.update.lastUpdatedAt
               ? formatDate(
-                  jobsiteYearReport.update.lastUpdatedAt,
-                  "MMMM D hh:mm a, YYYY"
-                )
+                jobsiteYearReport.update.lastUpdatedAt,
+                "MMMM D hh:mm a, YYYY"
+              )
               : "Never"}
           </Heading>
           <JobsiteReport report={jobsiteYearReport} />
