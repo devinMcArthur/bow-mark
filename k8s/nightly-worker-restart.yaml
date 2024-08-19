@@ -11,8 +11,7 @@ spec:
           containers:
           - name: worker-restart
             image: bitnami/kubectl
-            command: ["kubectl", "rollout", "restart", "deployment", "worker-deployment"]
-          - name: worker-concrete-restart
-            image: bitnami/kubectl
-            command: ["kubectl", "rollout", "restart", "deployment", "worker-concrete-deployment"]
+            command: ["/bin/sh", "-c"]
+            args:
+              - "kubectl rollout restart deployment worker-deployment && kubectl rollout restart deployment worker-concrete-deployment"
           restartPolicy: OnFailure
