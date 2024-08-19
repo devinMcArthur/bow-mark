@@ -9,10 +9,10 @@ spec:
       template:
         spec:
           containers:
-          - name: kubectl
+          - name: worker-restart
             image: bitnami/kubectl
             command: ["kubectl", "rollout", "restart", "deployment", "worker-deployment"]
-          - name: kubectl
+          - name: worker-concrete-restart
             image: bitnami/kubectl
             command: ["kubectl", "rollout", "restart", "deployment", "worker-concrete-deployment"]
           restartPolicy: OnFailure
