@@ -2,16 +2,16 @@ import { Code, Flex } from "@chakra-ui/react";
 import React from "react";
 import { useSystem } from "../../../contexts/System";
 import {
-  JobsiteMonthReportFullSnippetFragment,
-  JobsiteYearReportFullSnippetFragment,
+  JobsiteMonthReportNoFetchSnippetFragment,
+  JobsiteYearReportNoFetchSnippetFragment,
 } from "../../../generated/graphql";
 import getRateForTime from "../../../utils/getRateForTime";
 import ReportSummaryCard from "../ReportSummary";
 
 interface IJobsiteReportSummary {
   report:
-    | JobsiteMonthReportFullSnippetFragment
-    | JobsiteYearReportFullSnippetFragment;
+  | JobsiteMonthReportNoFetchSnippetFragment
+  | JobsiteYearReportNoFetchSnippetFragment;
 }
 
 const JobsiteReportSummary = ({ report }: IJobsiteReportSummary) => {
