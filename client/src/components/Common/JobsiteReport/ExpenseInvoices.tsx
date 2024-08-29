@@ -14,15 +14,15 @@ import formatNumber from "../../../utils/formatNumber";
 import Card from "../../Common/Card";
 
 import {
-  JobsiteMonthReportFullSnippetFragment,
-  JobsiteYearReportFullSnippetFragment,
+  JobsiteMonthReportNoFetchSnippetFragment,
+  JobsiteYearReportNoFetchSnippetFragment,
 } from "../../../generated/graphql";
 import JobsiteReportInvoiceSummary from "./InvoiceSummary";
 
 interface IJobsiteReportExpenseInvoices {
   report:
-    | JobsiteMonthReportFullSnippetFragment
-    | JobsiteYearReportFullSnippetFragment;
+  | JobsiteMonthReportNoFetchSnippetFragment
+  | JobsiteYearReportNoFetchSnippetFragment;
 }
 
 const JobsiteReportExpenseInvoices = ({
@@ -90,7 +90,7 @@ const JobsiteReportExpenseInvoices = ({
                   $
                   {formatNumber(
                     report.summary.externalExpenseInvoiceValue +
-                      report.summary.internalExpenseInvoiceValue
+                    report.summary.internalExpenseInvoiceValue
                   )}
                 </Th>
               </Tr>

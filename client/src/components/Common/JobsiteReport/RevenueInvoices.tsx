@@ -11,8 +11,8 @@ import {
 } from "@chakra-ui/react";
 import React from "react";
 import {
-  JobsiteMonthReportFullSnippetFragment,
-  JobsiteYearReportFullSnippetFragment,
+  JobsiteMonthReportNoFetchSnippetFragment,
+  JobsiteYearReportNoFetchSnippetFragment,
 } from "../../../generated/graphql";
 import formatNumber from "../../../utils/formatNumber";
 import Card from "../../Common/Card";
@@ -20,8 +20,8 @@ import JobsiteReportInvoiceSummary from "./InvoiceSummary";
 
 interface IJobsiteReportRevenueInvoices {
   report:
-    | JobsiteMonthReportFullSnippetFragment
-    | JobsiteYearReportFullSnippetFragment;
+  | JobsiteMonthReportNoFetchSnippetFragment
+  | JobsiteYearReportNoFetchSnippetFragment;
 }
 
 const JobsiteReportRevenueInvoices = ({
@@ -89,7 +89,7 @@ const JobsiteReportRevenueInvoices = ({
                   $
                   {formatNumber(
                     report.summary.externalRevenueInvoiceValue +
-                      report.summary.internalRevenueInvoiceValue
+                    report.summary.internalRevenueInvoiceValue
                   )}
                 </Th>
               </Tr>
