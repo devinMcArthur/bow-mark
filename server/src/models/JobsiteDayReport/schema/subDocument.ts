@@ -17,11 +17,11 @@ export class EmployeeReportClass {
   @Field(() => ID, { nullable: false })
   public _id?: Types.ObjectId;
 
-  @Field(() => EmployeeClass, { nullable: true })
+  @Field(() => ID, { nullable: true })
   @prop({ ref: () => EmployeeClass, required: true })
   public employee!: Ref<EmployeeClass>;
 
-  @Field(() => [EmployeeWorkClass], { nullable: false })
+  @Field(() => [ID], { nullable: false })
   @prop({
     ref: () => EmployeeWorkClass,
     default: [],
@@ -49,11 +49,11 @@ export class VehicleReportClass {
   @Field(() => ID, { nullable: false })
   public _id?: Types.ObjectId;
 
-  @Field(() => VehicleClass, { nullable: false })
+  @Field(() => ID, { nullable: false })
   @prop({ ref: () => VehicleClass, required: true })
   public vehicle!: Ref<VehicleClass>;
 
-  @Field(() => [VehicleWorkClass], { nullable: false })
+  @Field(() => [ID], { nullable: false })
   @prop({
     ref: () => VehicleWorkClass,
     default: [],
@@ -81,7 +81,7 @@ export class MaterialReportClass {
   @Field(() => ID, { nullable: false })
   public _id?: Types.ObjectId;
 
-  @Field(() => JobsiteMaterialClass, { nullable: true })
+  @Field(() => ID, { nullable: true })
   @prop({ ref: () => JobsiteMaterialClass, required: true })
   public jobsiteMaterial!: Ref<JobsiteMaterialClass>;
 

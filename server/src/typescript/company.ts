@@ -13,7 +13,7 @@ export interface ICompanySearchObject {
 
 @ObjectType()
 export class CompanyMaterialReportJobDay {
-  @Field()
+  @Field(() => Date)
   date!: Date;
 
   @Field(() => JobsiteClass)

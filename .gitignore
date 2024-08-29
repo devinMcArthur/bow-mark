@@ -34,3 +34,5 @@ yarn-error.log*
 
 # K8s
 /secrets
+
+/backups

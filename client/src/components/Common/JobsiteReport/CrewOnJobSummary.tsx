@@ -1,12 +1,12 @@
 import React from "react";
 import {
   CrewTypes,
-  JobsiteDayReportFullSnippetFragment,
+  JobsiteDayReportNoFetchSnippetFragment,
 } from "../../../generated/graphql";
 import JobsiteReportOnJobSummary from "./OnJobSummary";
 
 interface IJobsiteReportCrewOnJobSummary {
-  dayReports: JobsiteDayReportFullSnippetFragment[];
+  dayReports: JobsiteDayReportNoFetchSnippetFragment[];
   crewType: CrewTypes;
 }
 
@@ -21,7 +21,7 @@ const JobsiteReportCrewOnJobSummary = ({
   /**
    * @desc all reports w/ employee reports for the crew type
    */
-  const relevantReports: JobsiteDayReportFullSnippetFragment[] =
+  const relevantReports: JobsiteDayReportNoFetchSnippetFragment[] =
     React.useMemo(() => {
       return dayReports.filter((report) => report.crewTypes.includes(crewType));
     }, [crewType, dayReports]);

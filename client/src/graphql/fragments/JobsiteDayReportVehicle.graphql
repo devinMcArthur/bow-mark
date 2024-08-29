@@ -1,12 +1,9 @@
 fragment JobsiteDayReportVehicleSnippet on VehicleReportClass {
   _id
-  vehicle {
+  vehicleRecord {
     ...VehicleCardSnippet
   }
-  vehicleWork {
+  vehicleWorkRecord {
     jobTitle
   }
-  rate
-  hours
-  crewType
 }

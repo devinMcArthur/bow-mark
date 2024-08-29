@@ -1,0 +1,23 @@
+fragment JobsiteDayReportNoFetchSnippet on JobsiteDayReportClass {
+  _id
+  date
+  crewTypes
+  employees {
+    ...JobsiteDayReportEmployeeNoFetchSnippet
+  }
+  vehicles {
+    ...JobsiteDayReportVehicleNoFetchSnippet
+  }
+  materials {
+    ...JobsiteDayReportMaterialNoFetchSnippet
+  }
+  nonCostedMaterials {
+    ...JobsiteDayReportNonCostedMaterialSnippet
+  }
+  trucking {
+    ...JobsiteDayReportTruckingSnippet
+  }
+  summary {
+    ...OnSiteSummaryReportSnippet
+  }
+}

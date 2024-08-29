@@ -11,7 +11,7 @@ import {
 import React from "react";
 import {
   CrewTypes,
-  JobsiteDayReportFullSnippetFragment,
+  JobsiteDayReportNoFetchSnippetFragment,
   JobsiteDayReportTruckingSnippetFragment,
 } from "../../../generated/graphql";
 import formatDate from "../../../utils/formatDate";
@@ -26,7 +26,7 @@ interface ITrucking {
 }
 
 interface IJobsiteReportTruckingReports {
-  dayReports: JobsiteDayReportFullSnippetFragment[];
+  dayReports: JobsiteDayReportNoFetchSnippetFragment[];
   crewType: CrewTypes;
 }
 
@@ -42,7 +42,7 @@ const JobsiteReportTruckingReports = ({
    * @desc all reports w/ employee reports for the crew type
    */
 
-  const relevantReports: JobsiteDayReportFullSnippetFragment[] =
+  const relevantReports: JobsiteDayReportNoFetchSnippetFragment[] =
     React.useMemo(() => {
       return dayReports
         .filter(

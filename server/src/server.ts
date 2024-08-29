@@ -14,7 +14,7 @@ import { Company, System } from "@models";
 import mongoose from "mongoose";
 import createApp from "./app";
 import { bindEventEmitters } from "@events";
-import saveAll from "@testing/saveAll";
+// import saveAll from "@testing/saveAll";
 
 let workerEnabled = true,
   apiEnabled = true;

@@ -1,12 +1,9 @@
 fragment JobsiteDayReportEmployeeSnippet on EmployeeReportClass {
   _id
-  employee {
+  employeeRecord {
     ...EmployeeCardSnippet
   }
-  employeeWork {
+  employeeWorkRecord {
     jobTitle
   }
-  rate
-  hours
-  crewType
 }

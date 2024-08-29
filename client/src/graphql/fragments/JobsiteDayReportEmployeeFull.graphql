@@ -1,0 +1,4 @@
+fragment JobsiteDayReportEmployeeFullSnippet on EmployeeReportClass {
+  ...JobsiteDayReportEmployeeSnippet
+  ...JobsiteDayReportEmployeeNoFetchSnippet
+}

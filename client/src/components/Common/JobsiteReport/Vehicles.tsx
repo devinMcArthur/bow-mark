@@ -12,7 +12,7 @@ import React from "react";
 import {
   CrewTypes,
   JobsiteDayReportFullSnippetFragment,
-  JobsiteDayReportVehicleSnippetFragment,
+  JobsiteDayReportVehicleFullSnippetFragment,
   VehicleCardSnippetFragment,
 } from "../../../generated/graphql";
 import createLink from "../../../utils/createLink";
@@ -22,7 +22,7 @@ import TextLink from "../../Common/TextLink";
 
 interface IVehicle {
   vehicle: VehicleCardSnippetFragment;
-  reports: (JobsiteDayReportVehicleSnippetFragment | null)[];
+  reports: (JobsiteDayReportVehicleFullSnippetFragment | null)[];
   totalHours: number;
   totalCost: number;
 }
@@ -74,12 +74,12 @@ const JobsiteReportVehicleReports = ({
         // Only add if crewType matches
         if (vehicleReport.crewType === crewType) {
           const existingIndex = vehicles.findIndex(
-            (vehicle) => vehicle.vehicle._id === vehicleReport.vehicle?._id
+            (vehicle) => vehicle.vehicle._id === vehicleReport.vehicleRecord?._id
           );
 
           if (existingIndex === -1) {
             vehicles.push({
-              vehicle: vehicleReport.vehicle!,
+              vehicle: vehicleReport.vehicleRecord!,
               reports: [],
               totalCost: 0,
               totalHours: 0,
@@ -100,7 +100,7 @@ const JobsiteReportVehicleReports = ({
         // Only add if crewType matches
         if (vehicleReport.crewType === crewType) {
           const existingIndex = vehicles.findIndex(
-            (vehicle) => vehicle.vehicle._id === vehicleReport.vehicle?._id
+            (vehicle) => vehicle.vehicle._id === vehicleReport.vehicleRecord?._id
           );
 
           if (existingIndex !== -1) {

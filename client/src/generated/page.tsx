@@ -1004,6 +1004,41 @@ export const ssrFileFull = {
       withPage: withPageFileFull,
       usePage: useFileFull,
     }
+export async function getServerPageJobsiteDayReportsFetch
+    (options: Omit<Apollo.QueryOptions<Types.JobsiteDayReportsFetchQueryVariables>, 'query'>, ctx: ApolloClientContext ){
+        const apolloClient = getApolloClient(ctx);
+        
+        const data = await apolloClient.query<Types.JobsiteDayReportsFetchQuery>({ ...options, query: Operations.JobsiteDayReportsFetchDocument });
+        
+        const apolloState = apolloClient.cache.extract();
+
+        return {
+            props: {
+                apolloState: apolloState,
+                data: data?.data,
+                error: data?.error ?? data?.errors ?? null,
+            },
+        };
+      }
+export const useJobsiteDayReportsFetch = (
+  optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.JobsiteDayReportsFetchQuery, Types.JobsiteDayReportsFetchQueryVariables>) => {
+  const router = useRouter();
+  const options = optionsFunc ? optionsFunc(router) : {};
+  return useQuery(Operations.JobsiteDayReportsFetchDocument, options);
+};
+export type PageJobsiteDayReportsFetchComp = React.FC<{data?: Types.JobsiteDayReportsFetchQuery, error?: Apollo.ApolloError}>;
+export const withPageJobsiteDayReportsFetch = (optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.JobsiteDayReportsFetchQuery, Types.JobsiteDayReportsFetchQueryVariables>) => (WrappedComponent:PageJobsiteDayReportsFetchComp) : NextPage  => (props) => {
+                const router = useRouter()
+                const options = optionsFunc ? optionsFunc(router) : {};
+                const {data, error } = useQuery(Operations.JobsiteDayReportsFetchDocument, options)    
+                return <WrappedComponent {...props} data={data} error={error} /> ;
+                   
+            }; 
+export const ssrJobsiteDayReportsFetch = {
+      getServerPage: getServerPageJobsiteDayReportsFetch,
+      withPage: withPageJobsiteDayReportsFetch,
+      usePage: useJobsiteDayReportsFetch,
+    }
 export async function getServerPageJobsiteMasterExcelReportByDate
     (options: Omit<Apollo.QueryOptions<Types.JobsiteMasterExcelReportByDateQueryVariables>, 'query'>, ctx: ApolloClientContext ){
         const apolloClient = getApolloClient(ctx);

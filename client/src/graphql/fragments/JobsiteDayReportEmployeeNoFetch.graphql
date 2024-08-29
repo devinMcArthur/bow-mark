@@ -1,0 +1,8 @@
+fragment JobsiteDayReportEmployeeNoFetchSnippet on EmployeeReportClass {
+  _id
+  employee
+  employeeWork
+  rate
+  hours
+  crewType
+}

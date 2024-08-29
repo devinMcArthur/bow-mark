@@ -12,7 +12,7 @@ import React from "react";
 import {
   CrewTypes,
   JobsiteDayReportFullSnippetFragment,
-  JobsiteDayReportMaterialSnippetFragment,
+  JobsiteDayReportMaterialFullSnippetFragment,
   JobsiteMaterialCardSnippetFragment,
 } from "../../../generated/graphql";
 import formatDate from "../../../utils/formatDate";
@@ -21,7 +21,7 @@ import formatNumber from "../../../utils/formatNumber";
 interface IMaterial {
   jobsiteMaterial: JobsiteMaterialCardSnippetFragment;
   deliveredRateId?: string | null;
-  reports: (JobsiteDayReportMaterialSnippetFragment | null)[];
+  reports: (JobsiteDayReportMaterialFullSnippetFragment | null)[];
   totalQuantity: number;
   totalCost: number;
 }
@@ -75,13 +75,13 @@ const JobsiteReportMaterialReports = ({
           const existingIndex = materials.findIndex(
             (material) =>
               material.jobsiteMaterial._id ===
-                materialReport.jobsiteMaterial?._id &&
+              materialReport.jobsiteMaterial &&
               material.deliveredRateId === materialReport.deliveredRateId
           );
 
           if (existingIndex === -1) {
             materials.push({
-              jobsiteMaterial: materialReport.jobsiteMaterial!,
+              jobsiteMaterial: materialReport.jobsiteMaterialRecord!,
               reports: [],
               totalCost: 0,
               totalQuantity: 0,
@@ -105,7 +105,7 @@ const JobsiteReportMaterialReports = ({
           const existingIndex = materials.findIndex(
             (material) =>
               material.jobsiteMaterial._id ===
-                materialReport.jobsiteMaterial?._id &&
+              materialReport.jobsiteMaterial &&
               material.deliveredRateId === materialReport.deliveredRateId
           );
 

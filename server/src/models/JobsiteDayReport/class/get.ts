@@ -76,6 +76,19 @@ const byJobsiteAndDay = async (
   return reports[0];
 };
 
+const byIds = async (
+  JobsiteDayReport: JobsiteDayReportModel,
+  ids: Id[]
+): Promise<JobsiteDayReportDocument[]> => {
+  const reports = await JobsiteDayReport.find({
+    _id: {
+      $in: ids,
+    },
+  });
+
+  return reports;
+};
+
 const byDateRange = async (
   JobsiteDayReport: JobsiteDayReportModel,
   startTime: Date,
@@ -156,5 +169,6 @@ export default {
   byVehicle,
   byUpdateRequested,
   byUpdatePending,
+  byIds,
   jobsite,
 };

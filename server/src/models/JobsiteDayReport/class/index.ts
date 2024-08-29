@@ -75,6 +75,10 @@ export class JobsiteDayReportClass extends JobsiteDayReportSchema {
     return get.byVehicle(this, vehicle);
   }
 
+  public static async getByIds(this: JobsiteDayReportModel, ids: Id[]) {
+    return get.byIds(this, ids);
+  }
+
   public static async getByUpdateRequested(this: JobsiteDayReportModel) {
     return get.byUpdateRequested(this);
   }

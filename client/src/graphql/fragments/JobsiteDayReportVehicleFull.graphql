@@ -1,0 +1,4 @@
+fragment JobsiteDayReportVehicleFullSnippet on VehicleReportClass {
+  ...JobsiteDayReportVehicleSnippet
+  ...JobsiteDayReportVehicleNoFetchSnippet
+}

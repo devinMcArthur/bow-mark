@@ -33,7 +33,6 @@ export type CompanyClass = {
   invoices: Array<InvoiceClass>;
   isBowMarkConcrete: Scalars['Boolean'];
   isBowMarkPaving: Scalars['Boolean'];
-  materialReports: Array<CompanyMaterialReport>;
   materialReportYears: Array<Scalars['Float']>;
   name: Scalars['String'];
   schemaVersion: Scalars['Float'];
@@ -41,19 +40,6 @@ export type CompanyClass = {
 
 export type CompanyCreateData = {
   name: Scalars['String'];
-};
-
-export type CompanyMaterialReport = {
-  __typename?: 'CompanyMaterialReport';
-  jobDays: Array<CompanyMaterialReportJobDay>;
-  material: MaterialClass;
-};
-
-export type CompanyMaterialReportJobDay = {
-  __typename?: 'CompanyMaterialReportJobDay';
-  date: Scalars['DateTime'];
-  jobsite: JobsiteClass;
-  quantity: Scalars['Float'];
 };
 
 export type CrewClass = {
@@ -220,8 +206,10 @@ export type EmployeeReportClass = {
   __typename?: 'EmployeeReportClass';
   _id: Scalars['ID'];
   crewType: CrewTypes;
-  employee?: Maybe<EmployeeClass>;
-  employeeWork: Array<EmployeeWorkClass>;
+  employee?: Maybe<Scalars['ID']>;
+  employeeRecord?: Maybe<EmployeeClass>;
+  employeeWork: Array<Scalars['ID']>;
+  employeeWorkRecord: Array<EmployeeWorkClass>;
   hours: Scalars['Float'];
   rate: Scalars['Float'];
 };
@@ -620,7 +608,8 @@ export type MaterialReportClass = {
   crewType: CrewTypes;
   deliveredRateId?: Maybe<Scalars['ID']>;
   estimated: Scalars['Boolean'];
-  jobsiteMaterial?: Maybe<JobsiteMaterialClass>;
+  jobsiteMaterial?: Maybe<Scalars['ID']>;
+  jobsiteMaterialRecord: JobsiteMaterialClass;
   materialShipments: Array<MaterialShipmentClass>;
   quantity: Scalars['Float'];
   rate: Scalars['Float'];
@@ -1382,6 +1371,7 @@ export type Query = {
   employeeSearch: Array<EmployeeClass>;
   file: FileClass;
   jobsite: JobsiteClass;
+  jobsiteDayReports: Array<JobsiteDayReportClass>;
   jobsiteMasterExcelReportByDate: Scalars['String'];
   jobsiteMonthReport?: Maybe<JobsiteMonthReportClass>;
   jobsites: Array<JobsiteClass>;
@@ -1510,6 +1500,11 @@ export type QueryFileArgs = {
 
 export type QueryJobsiteArgs = {
   id: Scalars['String'];
+};
+
+
+export type QueryJobsiteDayReportsArgs = {
+  ids: Array<Scalars['ID']>;
 };
 
 
@@ -1905,8 +1900,10 @@ export type VehicleReportClass = {
   crewType: CrewTypes;
   hours: Scalars['Float'];
   rate: Scalars['Float'];
-  vehicle: VehicleClass;
-  vehicleWork: Array<VehicleWorkClass>;
+  vehicle: Scalars['ID'];
+  vehicleRecord?: Maybe<VehicleClass>;
+  vehicleWork: Array<Scalars['ID']>;
+  vehicleWorkRecord: Array<VehicleWorkClass>;
 };
 
 export type VehicleUpdateData = {
@@ -1948,10 +1945,6 @@ export type YearlyMaterialQuantity = {
   quantity: Scalars['Float'];
   year: Scalars['Float'];
 };
-
-export type CompanyMaterialReportSnippetFragment = { __typename?: 'CompanyMaterialReport', material: { __typename?: 'MaterialClass', _id: string, name: string }, jobDays: Array<{ __typename?: 'CompanyMaterialReportJobDay', quantity: number, date: any, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }> };
-
-export type CompanyMaterialReportJobDaySnippetFragment = { __typename?: 'CompanyMaterialReportJobDay', quantity: number, date: any, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } };
 
 export type CompanyCardSnippetFragment = { __typename?: 'CompanyClass', _id: string, name: string };
 
@@ -1995,19 +1988,35 @@ export type InvoiceCardSnippetFragment = { __typename?: 'InvoiceClass', _id: str
 
 export type InvoiceFullSnippetFragment = { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, jobsite?: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } | null, company: { __typename?: 'CompanyClass', _id: string, name: string } };
 
-export type JobsiteDayReportEmployeeSnippetFragment = { __typename?: 'EmployeeReportClass', _id: string, rate: number, hours: number, crewType: CrewTypes, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, employeeWork: Array<{ __typename?: 'EmployeeWorkClass', jobTitle: string }> };
+export type JobsiteDayReportEmployeeSnippetFragment = { __typename?: 'EmployeeReportClass', _id: string, employeeRecord?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, employeeWorkRecord: Array<{ __typename?: 'EmployeeWorkClass', jobTitle: string }> };
+
+export type JobsiteDayReportEmployeeFullSnippetFragment = { __typename?: 'EmployeeReportClass', _id: string, employee?: string | null, employeeWork: Array<string>, rate: number, hours: number, crewType: CrewTypes, employeeRecord?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, employeeWorkRecord: Array<{ __typename?: 'EmployeeWorkClass', jobTitle: string }> };
+
+export type JobsiteDayReportEmployeeNoFetchSnippetFragment = { __typename?: 'EmployeeReportClass', _id: string, employee?: string | null, employeeWork: Array<string>, rate: number, hours: number, crewType: CrewTypes };
 
 export type JobsiteDayReportInvoiceSnippetFragment = { __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } };
 
-export type JobsiteDayReportMaterialSnippetFragment = { __typename?: 'MaterialReportClass', _id: string, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes, jobsiteMaterial: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } };
+export type JobsiteDayReportMaterialSnippetFragment = { __typename?: 'MaterialReportClass', _id: string, jobsiteMaterialRecord: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } };
+
+export type JobsiteDayReportMaterialFullSnippetFragment = { __typename?: 'MaterialReportClass', _id: string, jobsiteMaterial?: string | null, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes, jobsiteMaterialRecord: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } };
+
+export type JobsiteDayReportMaterialNoFetchSnippetFragment = { __typename?: 'MaterialReportClass', _id: string, jobsiteMaterial?: string | null, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes };
 
 export type JobsiteDayReportNonCostedMaterialSnippetFragment = { __typename?: 'NonCostedMaterialReportClass', _id: string, materialName: string, supplierName: string, quantity: number, crewType: CrewTypes };
 
 export type JobsiteDayReportTruckingSnippetFragment = { __typename?: 'TruckingReportClass', _id: string, truckingType: string, quantity: number, hours?: number | null, type: TruckingRateTypes, rate: number, crewType: CrewTypes };
 
-export type JobsiteDayReportVehicleSnippetFragment = { __typename?: 'VehicleReportClass', _id: string, rate: number, hours: number, crewType: CrewTypes, vehicle: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }, vehicleWork: Array<{ __typename?: 'VehicleWorkClass', jobTitle?: string | null }> };
+export type JobsiteDayReportVehicleSnippetFragment = { __typename?: 'VehicleReportClass', _id: string, vehicleRecord?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicleWorkRecord: Array<{ __typename?: 'VehicleWorkClass', jobTitle?: string | null }> };
 
-export type JobsiteDayReportFullSnippetFragment = { __typename?: 'JobsiteDayReportClass', _id: string, date: any, crewTypes: Array<CrewTypes>, employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, rate: number, hours: number, crewType: CrewTypes, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, employeeWork: Array<{ __typename?: 'EmployeeWorkClass', jobTitle: string }> }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, rate: number, hours: number, crewType: CrewTypes, vehicle: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }, vehicleWork: Array<{ __typename?: 'VehicleWorkClass', jobTitle?: string | null }> }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes, jobsiteMaterial: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } }>, nonCostedMaterials: Array<{ __typename?: 'NonCostedMaterialReportClass', _id: string, materialName: string, supplierName: string, quantity: number, crewType: CrewTypes }>, trucking: Array<{ __typename?: 'TruckingReportClass', _id: string, truckingType: string, quantity: number, hours?: number | null, type: TruckingRateTypes, rate: number, crewType: CrewTypes }>, summary: { __typename?: 'OnSiteSummaryReportClass', employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number, crewTypeSummaries: Array<{ __typename?: 'CrewTypeOnSiteSummaryClass', crewType: CrewTypes, employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number }> } };
+export type JobsiteDayReportVehicleFullSnippetFragment = { __typename?: 'VehicleReportClass', _id: string, vehicle: string, vehicleWork: Array<string>, rate: number, hours: number, crewType: CrewTypes, vehicleRecord?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicleWorkRecord: Array<{ __typename?: 'VehicleWorkClass', jobTitle?: string | null }> };
+
+export type JobsiteDayReportVehicleNoFetchSnippetFragment = { __typename?: 'VehicleReportClass', _id: string, vehicle: string, vehicleWork: Array<string>, rate: number, hours: number, crewType: CrewTypes };
+
+export type JobsiteDayReportFetchSnippetFragment = { __typename?: 'JobsiteDayReportClass', employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, employeeRecord?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, employeeWorkRecord: Array<{ __typename?: 'EmployeeWorkClass', jobTitle: string }> }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, vehicleRecord?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicleWorkRecord: Array<{ __typename?: 'VehicleWorkClass', jobTitle?: string | null }> }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, jobsiteMaterialRecord: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } }> };
+
+export type JobsiteDayReportFullSnippetFragment = { __typename?: 'JobsiteDayReportClass', _id: string, date: any, crewTypes: Array<CrewTypes>, employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, employee?: string | null, employeeWork: Array<string>, rate: number, hours: number, crewType: CrewTypes, employeeRecord?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, employeeWorkRecord: Array<{ __typename?: 'EmployeeWorkClass', jobTitle: string }> }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, vehicle: string, vehicleWork: Array<string>, rate: number, hours: number, crewType: CrewTypes, vehicleRecord?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicleWorkRecord: Array<{ __typename?: 'VehicleWorkClass', jobTitle?: string | null }> }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, jobsiteMaterial?: string | null, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes, jobsiteMaterialRecord: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } }>, nonCostedMaterials: Array<{ __typename?: 'NonCostedMaterialReportClass', _id: string, materialName: string, supplierName: string, quantity: number, crewType: CrewTypes }>, trucking: Array<{ __typename?: 'TruckingReportClass', _id: string, truckingType: string, quantity: number, hours?: number | null, type: TruckingRateTypes, rate: number, crewType: CrewTypes }>, summary: { __typename?: 'OnSiteSummaryReportClass', employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number, crewTypeSummaries: Array<{ __typename?: 'CrewTypeOnSiteSummaryClass', crewType: CrewTypes, employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number }> } };
+
+export type JobsiteDayReportNoFetchSnippetFragment = { __typename?: 'JobsiteDayReportClass', _id: string, date: any, crewTypes: Array<CrewTypes>, employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, employee?: string | null, employeeWork: Array<string>, rate: number, hours: number, crewType: CrewTypes }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, vehicle: string, vehicleWork: Array<string>, rate: number, hours: number, crewType: CrewTypes }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, jobsiteMaterial?: string | null, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes }>, nonCostedMaterials: Array<{ __typename?: 'NonCostedMaterialReportClass', _id: string, materialName: string, supplierName: string, quantity: number, crewType: CrewTypes }>, trucking: Array<{ __typename?: 'TruckingReportClass', _id: string, truckingType: string, quantity: number, hours?: number | null, type: TruckingRateTypes, rate: number, crewType: CrewTypes }>, summary: { __typename?: 'OnSiteSummaryReportClass', employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number, crewTypeSummaries: Array<{ __typename?: 'CrewTypeOnSiteSummaryClass', crewType: CrewTypes, employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number }> } };
 
 export type JobsiteMaterialDeliveredRateSnippetFragment = { __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> };
 
@@ -2017,7 +2026,9 @@ export type JobsiteMaterialCardSnippetFragment = { __typename?: 'JobsiteMaterial
 
 export type JobsiteMonthReportCardSnippetFragment = { __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } };
 
-export type JobsiteMonthReportFullSnippetFragment = { __typename?: 'JobsiteMonthReportClass', crewTypes: Array<CrewTypes>, excelDownloadUrl?: string | null, _id: string, startOfMonth: any, dayReports: Array<{ __typename?: 'JobsiteDayReportClass', _id: string, date: any, crewTypes: Array<CrewTypes>, employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, rate: number, hours: number, crewType: CrewTypes, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, employeeWork: Array<{ __typename?: 'EmployeeWorkClass', jobTitle: string }> }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, rate: number, hours: number, crewType: CrewTypes, vehicle: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }, vehicleWork: Array<{ __typename?: 'VehicleWorkClass', jobTitle?: string | null }> }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes, jobsiteMaterial: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } }>, nonCostedMaterials: Array<{ __typename?: 'NonCostedMaterialReportClass', _id: string, materialName: string, supplierName: string, quantity: number, crewType: CrewTypes }>, trucking: Array<{ __typename?: 'TruckingReportClass', _id: string, truckingType: string, quantity: number, hours?: number | null, type: TruckingRateTypes, rate: number, crewType: CrewTypes }>, summary: { __typename?: 'OnSiteSummaryReportClass', employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number, crewTypeSummaries: Array<{ __typename?: 'CrewTypeOnSiteSummaryClass', crewType: CrewTypes, employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number }> } }>, expenseInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, revenueInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, summary: { __typename?: 'RangeSummaryReportClass', externalExpenseInvoiceValue: number, internalExpenseInvoiceValue: number, accrualExpenseInvoiceValue: number, externalRevenueInvoiceValue: number, internalRevenueInvoiceValue: number, accrualRevenueInvoiceValue: number }, issues: Array<{ __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } | null }>, reportNotes: Array<{ __typename?: 'ReportNoteClass', _id: string, note: string, dailyReport?: { __typename?: 'DailyReportClass', _id: string, date: any, jobCostApproved: boolean, payrollComplete: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null }, crew: { __typename?: 'CrewClass', _id: string, name: string } } | null, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null }> }>, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } };
+export type JobsiteMonthReportFetchSnippetFragment = { __typename?: 'JobsiteMonthReportClass', dayReports: Array<{ __typename?: 'JobsiteDayReportClass', employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, employeeRecord?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, employeeWorkRecord: Array<{ __typename?: 'EmployeeWorkClass', jobTitle: string }> }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, vehicleRecord?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicleWorkRecord: Array<{ __typename?: 'VehicleWorkClass', jobTitle?: string | null }> }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, jobsiteMaterialRecord: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } }> }> };
+
+export type JobsiteMonthReportNoFetchSnippetFragment = { __typename?: 'JobsiteMonthReportClass', crewTypes: Array<CrewTypes>, excelDownloadUrl?: string | null, _id: string, startOfMonth: any, dayReports: Array<{ __typename?: 'JobsiteDayReportClass', _id: string, date: any, crewTypes: Array<CrewTypes>, employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, employee?: string | null, employeeWork: Array<string>, rate: number, hours: number, crewType: CrewTypes }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, vehicle: string, vehicleWork: Array<string>, rate: number, hours: number, crewType: CrewTypes }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, jobsiteMaterial?: string | null, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes }>, nonCostedMaterials: Array<{ __typename?: 'NonCostedMaterialReportClass', _id: string, materialName: string, supplierName: string, quantity: number, crewType: CrewTypes }>, trucking: Array<{ __typename?: 'TruckingReportClass', _id: string, truckingType: string, quantity: number, hours?: number | null, type: TruckingRateTypes, rate: number, crewType: CrewTypes }>, summary: { __typename?: 'OnSiteSummaryReportClass', employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number, crewTypeSummaries: Array<{ __typename?: 'CrewTypeOnSiteSummaryClass', crewType: CrewTypes, employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number }> } }>, expenseInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, revenueInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, summary: { __typename?: 'RangeSummaryReportClass', externalExpenseInvoiceValue: number, internalExpenseInvoiceValue: number, accrualExpenseInvoiceValue: number, externalRevenueInvoiceValue: number, internalRevenueInvoiceValue: number, accrualRevenueInvoiceValue: number }, issues: Array<{ __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } | null }>, reportNotes: Array<{ __typename?: 'ReportNoteClass', _id: string, note: string, dailyReport?: { __typename?: 'DailyReportClass', _id: string, date: any, jobCostApproved: boolean, payrollComplete: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null }, crew: { __typename?: 'CrewClass', _id: string, name: string } } | null, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null }> }>, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } };
 
 export type JobsiteYearMasterReportItemSnippetFragment = { __typename?: 'JobsiteYearMasterReportItemClass', _id: string, report: { __typename?: 'JobsiteYearReportClass', _id: string }, summary: { __typename?: 'OnSiteSummaryReportClass', employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number, crewTypeSummaries: Array<{ __typename?: 'CrewTypeOnSiteSummaryClass', crewType: CrewTypes, employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number }> } };
 
@@ -2027,7 +2038,9 @@ export type JobsiteYearMasterReportFullSnippetFragment = { __typename?: 'Jobsite
 
 export type JobsiteYearReportCardSnippetFragment = { __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } };
 
-export type JobsiteYearReportFullSnippetFragment = { __typename?: 'JobsiteYearReportClass', crewTypes: Array<CrewTypes>, excelDownloadUrl?: string | null, _id: string, startOfYear: any, dayReports: Array<{ __typename?: 'JobsiteDayReportClass', _id: string, date: any, crewTypes: Array<CrewTypes>, employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, rate: number, hours: number, crewType: CrewTypes, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, employeeWork: Array<{ __typename?: 'EmployeeWorkClass', jobTitle: string }> }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, rate: number, hours: number, crewType: CrewTypes, vehicle: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }, vehicleWork: Array<{ __typename?: 'VehicleWorkClass', jobTitle?: string | null }> }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes, jobsiteMaterial: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } }>, nonCostedMaterials: Array<{ __typename?: 'NonCostedMaterialReportClass', _id: string, materialName: string, supplierName: string, quantity: number, crewType: CrewTypes }>, trucking: Array<{ __typename?: 'TruckingReportClass', _id: string, truckingType: string, quantity: number, hours?: number | null, type: TruckingRateTypes, rate: number, crewType: CrewTypes }>, summary: { __typename?: 'OnSiteSummaryReportClass', employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number, crewTypeSummaries: Array<{ __typename?: 'CrewTypeOnSiteSummaryClass', crewType: CrewTypes, employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number }> } }>, expenseInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, revenueInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, summary: { __typename?: 'RangeSummaryReportClass', externalExpenseInvoiceValue: number, internalExpenseInvoiceValue: number, accrualExpenseInvoiceValue: number, externalRevenueInvoiceValue: number, internalRevenueInvoiceValue: number, accrualRevenueInvoiceValue: number }, issues: Array<{ __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } | null }>, reportNotes: Array<{ __typename?: 'ReportNoteClass', _id: string, note: string, dailyReport?: { __typename?: 'DailyReportClass', _id: string, date: any, jobCostApproved: boolean, payrollComplete: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null }, crew: { __typename?: 'CrewClass', _id: string, name: string } } | null, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null }> }>, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } };
+export type JobsiteYearReportFetchSnippetFragment = { __typename?: 'JobsiteYearReportClass', dayReports: Array<{ __typename?: 'JobsiteDayReportClass', employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, employeeRecord?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, employeeWorkRecord: Array<{ __typename?: 'EmployeeWorkClass', jobTitle: string }> }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, vehicleRecord?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicleWorkRecord: Array<{ __typename?: 'VehicleWorkClass', jobTitle?: string | null }> }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, jobsiteMaterialRecord: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } }> }> };
+
+export type JobsiteYearReportNoFetchSnippetFragment = { __typename?: 'JobsiteYearReportClass', crewTypes: Array<CrewTypes>, excelDownloadUrl?: string | null, _id: string, startOfYear: any, dayReports: Array<{ __typename?: 'JobsiteDayReportClass', _id: string, date: any, crewTypes: Array<CrewTypes>, employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, employee?: string | null, employeeWork: Array<string>, rate: number, hours: number, crewType: CrewTypes }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, vehicle: string, vehicleWork: Array<string>, rate: number, hours: number, crewType: CrewTypes }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, jobsiteMaterial?: string | null, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes }>, nonCostedMaterials: Array<{ __typename?: 'NonCostedMaterialReportClass', _id: string, materialName: string, supplierName: string, quantity: number, crewType: CrewTypes }>, trucking: Array<{ __typename?: 'TruckingReportClass', _id: string, truckingType: string, quantity: number, hours?: number | null, type: TruckingRateTypes, rate: number, crewType: CrewTypes }>, summary: { __typename?: 'OnSiteSummaryReportClass', employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number, crewTypeSummaries: Array<{ __typename?: 'CrewTypeOnSiteSummaryClass', crewType: CrewTypes, employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number }> } }>, expenseInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, revenueInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, summary: { __typename?: 'RangeSummaryReportClass', externalExpenseInvoiceValue: number, internalExpenseInvoiceValue: number, accrualExpenseInvoiceValue: number, externalRevenueInvoiceValue: number, internalRevenueInvoiceValue: number, accrualRevenueInvoiceValue: number }, issues: Array<{ __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } | null }>, reportNotes: Array<{ __typename?: 'ReportNoteClass', _id: string, note: string, dailyReport?: { __typename?: 'DailyReportClass', _id: string, date: any, jobCostApproved: boolean, payrollComplete: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null }, crew: { __typename?: 'CrewClass', _id: string, name: string } } | null, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null }> }>, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } };
 
 export type JobsiteYearReportSummarySnippetFragment = { __typename?: 'JobsiteYearReportClass', crewTypes: Array<CrewTypes>, _id: string, startOfYear: any, summary: { __typename?: 'RangeSummaryReportClass', externalExpenseInvoiceValue: number, internalExpenseInvoiceValue: number, accrualExpenseInvoiceValue: number, externalRevenueInvoiceValue: number, internalRevenueInvoiceValue: number, accrualRevenueInvoiceValue: number }, issues: Array<{ __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } | null }>, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } };
 
@@ -2958,6 +2971,13 @@ export type FileFullQueryVariables = Exact<{
 
 export type FileFullQuery = { __typename?: 'Query', file: { __typename?: 'FileClass', buffer: string, downloadUrl: string, _id: string, mimetype: string, description?: string | null } };
 
+export type JobsiteDayReportsFetchQueryVariables = Exact<{
+  ids: Array<Scalars['ID']> | Scalars['ID'];
+}>;
+
+
+export type JobsiteDayReportsFetchQuery = { __typename?: 'Query', jobsiteDayReports: Array<{ __typename?: 'JobsiteDayReportClass', employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, employeeRecord?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, employeeWorkRecord: Array<{ __typename?: 'EmployeeWorkClass', jobTitle: string }> }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, vehicleRecord?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicleWorkRecord: Array<{ __typename?: 'VehicleWorkClass', jobTitle?: string | null }> }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, jobsiteMaterialRecord: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } }> }> };
+
 export type JobsiteMasterExcelReportByDateQueryVariables = Exact<{
   startTime: Scalars['DateTime'];
   endTime: Scalars['DateTime'];
@@ -2978,7 +2998,7 @@ export type JobsiteMonthReportFullQueryVariables = Exact<{
 }>;
 
 
-export type JobsiteMonthReportFullQuery = { __typename?: 'Query', jobsiteMonthReport?: { __typename?: 'JobsiteMonthReportClass', crewTypes: Array<CrewTypes>, excelDownloadUrl?: string | null, _id: string, startOfMonth: any, dayReports: Array<{ __typename?: 'JobsiteDayReportClass', _id: string, date: any, crewTypes: Array<CrewTypes>, employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, rate: number, hours: number, crewType: CrewTypes, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, employeeWork: Array<{ __typename?: 'EmployeeWorkClass', jobTitle: string }> }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, rate: number, hours: number, crewType: CrewTypes, vehicle: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }, vehicleWork: Array<{ __typename?: 'VehicleWorkClass', jobTitle?: string | null }> }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes, jobsiteMaterial: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } }>, nonCostedMaterials: Array<{ __typename?: 'NonCostedMaterialReportClass', _id: string, materialName: string, supplierName: string, quantity: number, crewType: CrewTypes }>, trucking: Array<{ __typename?: 'TruckingReportClass', _id: string, truckingType: string, quantity: number, hours?: number | null, type: TruckingRateTypes, rate: number, crewType: CrewTypes }>, summary: { __typename?: 'OnSiteSummaryReportClass', employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number, crewTypeSummaries: Array<{ __typename?: 'CrewTypeOnSiteSummaryClass', crewType: CrewTypes, employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number }> } }>, expenseInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, revenueInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, summary: { __typename?: 'RangeSummaryReportClass', externalExpenseInvoiceValue: number, internalExpenseInvoiceValue: number, accrualExpenseInvoiceValue: number, externalRevenueInvoiceValue: number, internalRevenueInvoiceValue: number, accrualRevenueInvoiceValue: number }, issues: Array<{ __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } | null }>, reportNotes: Array<{ __typename?: 'ReportNoteClass', _id: string, note: string, dailyReport?: { __typename?: 'DailyReportClass', _id: string, date: any, jobCostApproved: boolean, payrollComplete: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null }, crew: { __typename?: 'CrewClass', _id: string, name: string } } | null, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null }> }>, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } } | null };
+export type JobsiteMonthReportFullQuery = { __typename?: 'Query', jobsiteMonthReport?: { __typename?: 'JobsiteMonthReportClass', crewTypes: Array<CrewTypes>, excelDownloadUrl?: string | null, _id: string, startOfMonth: any, dayReports: Array<{ __typename?: 'JobsiteDayReportClass', _id: string, date: any, crewTypes: Array<CrewTypes>, employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, employee?: string | null, employeeWork: Array<string>, rate: number, hours: number, crewType: CrewTypes }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, vehicle: string, vehicleWork: Array<string>, rate: number, hours: number, crewType: CrewTypes }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, jobsiteMaterial?: string | null, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes }>, nonCostedMaterials: Array<{ __typename?: 'NonCostedMaterialReportClass', _id: string, materialName: string, supplierName: string, quantity: number, crewType: CrewTypes }>, trucking: Array<{ __typename?: 'TruckingReportClass', _id: string, truckingType: string, quantity: number, hours?: number | null, type: TruckingRateTypes, rate: number, crewType: CrewTypes }>, summary: { __typename?: 'OnSiteSummaryReportClass', employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number, crewTypeSummaries: Array<{ __typename?: 'CrewTypeOnSiteSummaryClass', crewType: CrewTypes, employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number }> } }>, expenseInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, revenueInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, summary: { __typename?: 'RangeSummaryReportClass', externalExpenseInvoiceValue: number, internalExpenseInvoiceValue: number, accrualExpenseInvoiceValue: number, externalRevenueInvoiceValue: number, internalRevenueInvoiceValue: number, accrualRevenueInvoiceValue: number }, issues: Array<{ __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } | null }>, reportNotes: Array<{ __typename?: 'ReportNoteClass', _id: string, note: string, dailyReport?: { __typename?: 'DailyReportClass', _id: string, date: any, jobCostApproved: boolean, payrollComplete: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null }, crew: { __typename?: 'CrewClass', _id: string, name: string } } | null, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null }> }>, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } } | null };
 
 export type JobsiteSearchQueryVariables = Exact<{
   searchString: Scalars['String'];
@@ -3024,7 +3044,7 @@ export type JobsiteYearReportFullQueryVariables = Exact<{
 }>;
 
 
-export type JobsiteYearReportFullQuery = { __typename?: 'Query', jobsiteYearReport?: { __typename?: 'JobsiteYearReportClass', crewTypes: Array<CrewTypes>, excelDownloadUrl?: string | null, _id: string, startOfYear: any, dayReports: Array<{ __typename?: 'JobsiteDayReportClass', _id: string, date: any, crewTypes: Array<CrewTypes>, employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, rate: number, hours: number, crewType: CrewTypes, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, employeeWork: Array<{ __typename?: 'EmployeeWorkClass', jobTitle: string }> }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, rate: number, hours: number, crewType: CrewTypes, vehicle: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }, vehicleWork: Array<{ __typename?: 'VehicleWorkClass', jobTitle?: string | null }> }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes, jobsiteMaterial: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } }>, nonCostedMaterials: Array<{ __typename?: 'NonCostedMaterialReportClass', _id: string, materialName: string, supplierName: string, quantity: number, crewType: CrewTypes }>, trucking: Array<{ __typename?: 'TruckingReportClass', _id: string, truckingType: string, quantity: number, hours?: number | null, type: TruckingRateTypes, rate: number, crewType: CrewTypes }>, summary: { __typename?: 'OnSiteSummaryReportClass', employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number, crewTypeSummaries: Array<{ __typename?: 'CrewTypeOnSiteSummaryClass', crewType: CrewTypes, employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number }> } }>, expenseInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, revenueInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, summary: { __typename?: 'RangeSummaryReportClass', externalExpenseInvoiceValue: number, internalExpenseInvoiceValue: number, accrualExpenseInvoiceValue: number, externalRevenueInvoiceValue: number, internalRevenueInvoiceValue: number, accrualRevenueInvoiceValue: number }, issues: Array<{ __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } | null }>, reportNotes: Array<{ __typename?: 'ReportNoteClass', _id: string, note: string, dailyReport?: { __typename?: 'DailyReportClass', _id: string, date: any, jobCostApproved: boolean, payrollComplete: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null }, crew: { __typename?: 'CrewClass', _id: string, name: string } } | null, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null }> }>, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } } | null };
+export type JobsiteYearReportFullQuery = { __typename?: 'Query', jobsiteYearReport?: { __typename?: 'JobsiteYearReportClass', crewTypes: Array<CrewTypes>, excelDownloadUrl?: string | null, _id: string, startOfYear: any, dayReports: Array<{ __typename?: 'JobsiteDayReportClass', _id: string, date: any, crewTypes: Array<CrewTypes>, employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, employee?: string | null, employeeWork: Array<string>, rate: number, hours: number, crewType: CrewTypes }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, vehicle: string, vehicleWork: Array<string>, rate: number, hours: number, crewType: CrewTypes }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, jobsiteMaterial?: string | null, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes }>, nonCostedMaterials: Array<{ __typename?: 'NonCostedMaterialReportClass', _id: string, materialName: string, supplierName: string, quantity: number, crewType: CrewTypes }>, trucking: Array<{ __typename?: 'TruckingReportClass', _id: string, truckingType: string, quantity: number, hours?: number | null, type: TruckingRateTypes, rate: number, crewType: CrewTypes }>, summary: { __typename?: 'OnSiteSummaryReportClass', employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number, crewTypeSummaries: Array<{ __typename?: 'CrewTypeOnSiteSummaryClass', crewType: CrewTypes, employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number }> } }>, expenseInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, revenueInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, summary: { __typename?: 'RangeSummaryReportClass', externalExpenseInvoiceValue: number, internalExpenseInvoiceValue: number, accrualExpenseInvoiceValue: number, externalRevenueInvoiceValue: number, internalRevenueInvoiceValue: number, accrualRevenueInvoiceValue: number }, issues: Array<{ __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } | null }>, reportNotes: Array<{ __typename?: 'ReportNoteClass', _id: string, note: string, dailyReport?: { __typename?: 'DailyReportClass', _id: string, date: any, jobCostApproved: boolean, payrollComplete: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null }, crew: { __typename?: 'CrewClass', _id: string, name: string } } | null, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null }> }>, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } } | null };
 
 export type JobsiteYearReportSummaryQueryVariables = Exact<{
   id: Scalars['ID'];
@@ -3260,7 +3280,7 @@ export type JobsiteMonthReportSubSubscriptionVariables = Exact<{
 }>;
 
 
-export type JobsiteMonthReportSubSubscription = { __typename?: 'Subscription', jobsiteMonthReportSub?: { __typename?: 'JobsiteMonthReportClass', crewTypes: Array<CrewTypes>, excelDownloadUrl?: string | null, _id: string, startOfMonth: any, dayReports: Array<{ __typename?: 'JobsiteDayReportClass', _id: string, date: any, crewTypes: Array<CrewTypes>, employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, rate: number, hours: number, crewType: CrewTypes, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, employeeWork: Array<{ __typename?: 'EmployeeWorkClass', jobTitle: string }> }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, rate: number, hours: number, crewType: CrewTypes, vehicle: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }, vehicleWork: Array<{ __typename?: 'VehicleWorkClass', jobTitle?: string | null }> }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes, jobsiteMaterial: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } }>, nonCostedMaterials: Array<{ __typename?: 'NonCostedMaterialReportClass', _id: string, materialName: string, supplierName: string, quantity: number, crewType: CrewTypes }>, trucking: Array<{ __typename?: 'TruckingReportClass', _id: string, truckingType: string, quantity: number, hours?: number | null, type: TruckingRateTypes, rate: number, crewType: CrewTypes }>, summary: { __typename?: 'OnSiteSummaryReportClass', employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number, crewTypeSummaries: Array<{ __typename?: 'CrewTypeOnSiteSummaryClass', crewType: CrewTypes, employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number }> } }>, expenseInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, revenueInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, summary: { __typename?: 'RangeSummaryReportClass', externalExpenseInvoiceValue: number, internalExpenseInvoiceValue: number, accrualExpenseInvoiceValue: number, externalRevenueInvoiceValue: number, internalRevenueInvoiceValue: number, accrualRevenueInvoiceValue: number }, issues: Array<{ __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } | null }>, reportNotes: Array<{ __typename?: 'ReportNoteClass', _id: string, note: string, dailyReport?: { __typename?: 'DailyReportClass', _id: string, date: any, jobCostApproved: boolean, payrollComplete: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null }, crew: { __typename?: 'CrewClass', _id: string, name: string } } | null, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null }> }>, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } } | null };
+export type JobsiteMonthReportSubSubscription = { __typename?: 'Subscription', jobsiteMonthReportSub?: { __typename?: 'JobsiteMonthReportClass', crewTypes: Array<CrewTypes>, excelDownloadUrl?: string | null, _id: string, startOfMonth: any, dayReports: Array<{ __typename?: 'JobsiteDayReportClass', _id: string, date: any, crewTypes: Array<CrewTypes>, employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, employee?: string | null, employeeWork: Array<string>, rate: number, hours: number, crewType: CrewTypes }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, vehicle: string, vehicleWork: Array<string>, rate: number, hours: number, crewType: CrewTypes }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, jobsiteMaterial?: string | null, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes }>, nonCostedMaterials: Array<{ __typename?: 'NonCostedMaterialReportClass', _id: string, materialName: string, supplierName: string, quantity: number, crewType: CrewTypes }>, trucking: Array<{ __typename?: 'TruckingReportClass', _id: string, truckingType: string, quantity: number, hours?: number | null, type: TruckingRateTypes, rate: number, crewType: CrewTypes }>, summary: { __typename?: 'OnSiteSummaryReportClass', employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number, crewTypeSummaries: Array<{ __typename?: 'CrewTypeOnSiteSummaryClass', crewType: CrewTypes, employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number }> } }>, expenseInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, revenueInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, summary: { __typename?: 'RangeSummaryReportClass', externalExpenseInvoiceValue: number, internalExpenseInvoiceValue: number, accrualExpenseInvoiceValue: number, externalRevenueInvoiceValue: number, internalRevenueInvoiceValue: number, accrualRevenueInvoiceValue: number }, issues: Array<{ __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } | null }>, reportNotes: Array<{ __typename?: 'ReportNoteClass', _id: string, note: string, dailyReport?: { __typename?: 'DailyReportClass', _id: string, date: any, jobCostApproved: boolean, payrollComplete: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null }, crew: { __typename?: 'CrewClass', _id: string, name: string } } | null, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null }> }>, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } } | null };
 
 export type JobsiteYearMasterReportSubSubscriptionVariables = Exact<{
   id: Scalars['ID'];
@@ -3274,35 +3294,8 @@ export type JobsiteYearReportSubSubscriptionVariables = Exact<{
 }>;
 
 
-export type JobsiteYearReportSubSubscription = { __typename?: 'Subscription', jobsiteYearReportSub?: { __typename?: 'JobsiteYearReportClass', crewTypes: Array<CrewTypes>, excelDownloadUrl?: string | null, _id: string, startOfYear: any, dayReports: Array<{ __typename?: 'JobsiteDayReportClass', _id: string, date: any, crewTypes: Array<CrewTypes>, employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, rate: number, hours: number, crewType: CrewTypes, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, employeeWork: Array<{ __typename?: 'EmployeeWorkClass', jobTitle: string }> }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, rate: number, hours: number, crewType: CrewTypes, vehicle: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }, vehicleWork: Array<{ __typename?: 'VehicleWorkClass', jobTitle?: string | null }> }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes, jobsiteMaterial: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } }>, nonCostedMaterials: Array<{ __typename?: 'NonCostedMaterialReportClass', _id: string, materialName: string, supplierName: string, quantity: number, crewType: CrewTypes }>, trucking: Array<{ __typename?: 'TruckingReportClass', _id: string, truckingType: string, quantity: number, hours?: number | null, type: TruckingRateTypes, rate: number, crewType: CrewTypes }>, summary: { __typename?: 'OnSiteSummaryReportClass', employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number, crewTypeSummaries: Array<{ __typename?: 'CrewTypeOnSiteSummaryClass', crewType: CrewTypes, employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number }> } }>, expenseInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, revenueInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, summary: { __typename?: 'RangeSummaryReportClass', externalExpenseInvoiceValue: number, internalExpenseInvoiceValue: number, accrualExpenseInvoiceValue: number, externalRevenueInvoiceValue: number, internalRevenueInvoiceValue: number, accrualRevenueInvoiceValue: number }, issues: Array<{ __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } | null }>, reportNotes: Array<{ __typename?: 'ReportNoteClass', _id: string, note: string, dailyReport?: { __typename?: 'DailyReportClass', _id: string, date: any, jobCostApproved: boolean, payrollComplete: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null }, crew: { __typename?: 'CrewClass', _id: string, name: string } } | null, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null }> }>, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } } | null };
+export type JobsiteYearReportSubSubscription = { __typename?: 'Subscription', jobsiteYearReportSub?: { __typename?: 'JobsiteYearReportClass', crewTypes: Array<CrewTypes>, excelDownloadUrl?: string | null, _id: string, startOfYear: any, dayReports: Array<{ __typename?: 'JobsiteDayReportClass', _id: string, date: any, crewTypes: Array<CrewTypes>, employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, employee?: string | null, employeeWork: Array<string>, rate: number, hours: number, crewType: CrewTypes }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, vehicle: string, vehicleWork: Array<string>, rate: number, hours: number, crewType: CrewTypes }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, jobsiteMaterial?: string | null, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes }>, nonCostedMaterials: Array<{ __typename?: 'NonCostedMaterialReportClass', _id: string, materialName: string, supplierName: string, quantity: number, crewType: CrewTypes }>, trucking: Array<{ __typename?: 'TruckingReportClass', _id: string, truckingType: string, quantity: number, hours?: number | null, type: TruckingRateTypes, rate: number, crewType: CrewTypes }>, summary: { __typename?: 'OnSiteSummaryReportClass', employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number, crewTypeSummaries: Array<{ __typename?: 'CrewTypeOnSiteSummaryClass', crewType: CrewTypes, employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number }> } }>, expenseInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, revenueInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, summary: { __typename?: 'RangeSummaryReportClass', externalExpenseInvoiceValue: number, internalExpenseInvoiceValue: number, accrualExpenseInvoiceValue: number, externalRevenueInvoiceValue: number, internalRevenueInvoiceValue: number, accrualRevenueInvoiceValue: number }, issues: Array<{ __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } | null }>, reportNotes: Array<{ __typename?: 'ReportNoteClass', _id: string, note: string, dailyReport?: { __typename?: 'DailyReportClass', _id: string, date: any, jobCostApproved: boolean, payrollComplete: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null }, crew: { __typename?: 'CrewClass', _id: string, name: string } } | null, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null }> }>, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } } | null };
 
-export const JobsiteCardSnippetFragmentDoc = gql`
-    fragment JobsiteCardSnippet on JobsiteClass {
-  _id
-  name
-  jobcode
-}
-    `;
-export const CompanyMaterialReportJobDaySnippetFragmentDoc = gql`
-    fragment CompanyMaterialReportJobDaySnippet on CompanyMaterialReportJobDay {
-  jobsite {
-    ...JobsiteCardSnippet
-  }
-  quantity
-  date
-}
-    ${JobsiteCardSnippetFragmentDoc}`;
-export const CompanyMaterialReportSnippetFragmentDoc = gql`
-    fragment CompanyMaterialReportSnippet on CompanyMaterialReport {
-  material {
-    _id
-    name
-  }
-  jobDays {
-    ...CompanyMaterialReportJobDaySnippet
-  }
-}
-    ${CompanyMaterialReportJobDaySnippetFragmentDoc}`;
 export const CompanyCardSnippetFragmentDoc = gql`
     fragment CompanyCardSnippet on CompanyClass {
   _id
@@ -3715,6 +3708,13 @@ export const FileFullSnippetFragmentDoc = gql`
   downloadUrl
 }
     ${FilePreloadSnippetFragmentDoc}`;
+export const JobsiteCardSnippetFragmentDoc = gql`
+    fragment JobsiteCardSnippet on JobsiteClass {
+  _id
+  name
+  jobcode
+}
+    `;
 export const InvoiceFullSnippetFragmentDoc = gql`
     fragment InvoiceFullSnippet on InvoiceClass {
   ...InvoiceCardSnippet
@@ -3728,65 +3728,102 @@ export const InvoiceFullSnippetFragmentDoc = gql`
     ${InvoiceCardSnippetFragmentDoc}
 ${JobsiteCardSnippetFragmentDoc}
 ${JobsiteMaterialCardSnippetFragmentDoc}`;
-export const UpdateSnippetFragmentDoc = gql`
-    fragment UpdateSnippet on UpdateClass {
-  status
-  lastUpdatedAt
-}
-    `;
-export const JobsiteMonthReportCardSnippetFragmentDoc = gql`
-    fragment JobsiteMonthReportCardSnippet on JobsiteMonthReportClass {
-  _id
-  startOfMonth
-  update {
-    ...UpdateSnippet
-  }
-  jobsite {
-    ...JobsiteCardSnippet
-  }
-}
-    ${UpdateSnippetFragmentDoc}
-${JobsiteCardSnippetFragmentDoc}`;
 export const JobsiteDayReportEmployeeSnippetFragmentDoc = gql`
     fragment JobsiteDayReportEmployeeSnippet on EmployeeReportClass {
   _id
-  employee {
+  employeeRecord {
     ...EmployeeCardSnippet
   }
-  employeeWork {
+  employeeWorkRecord {
     jobTitle
   }
-  rate
-  hours
-  crewType
 }
     ${EmployeeCardSnippetFragmentDoc}`;
-export const JobsiteDayReportVehicleSnippetFragmentDoc = gql`
-    fragment JobsiteDayReportVehicleSnippet on VehicleReportClass {
+export const JobsiteDayReportEmployeeNoFetchSnippetFragmentDoc = gql`
+    fragment JobsiteDayReportEmployeeNoFetchSnippet on EmployeeReportClass {
   _id
-  vehicle {
-    ...VehicleCardSnippet
-  }
-  vehicleWork {
-    jobTitle
-  }
+  employee
+  employeeWork
   rate
   hours
   crewType
 }
-    ${VehicleCardSnippetFragmentDoc}`;
-export const JobsiteDayReportMaterialSnippetFragmentDoc = gql`
-    fragment JobsiteDayReportMaterialSnippet on MaterialReportClass {
+    `;
+export const JobsiteDayReportEmployeeFullSnippetFragmentDoc = gql`
+    fragment JobsiteDayReportEmployeeFullSnippet on EmployeeReportClass {
+  ...JobsiteDayReportEmployeeSnippet
+  ...JobsiteDayReportEmployeeNoFetchSnippet
+}
+    ${JobsiteDayReportEmployeeSnippetFragmentDoc}
+${JobsiteDayReportEmployeeNoFetchSnippetFragmentDoc}`;
+export const JobsiteDayReportMaterialNoFetchSnippetFragmentDoc = gql`
+    fragment JobsiteDayReportMaterialNoFetchSnippet on MaterialReportClass {
   _id
-  jobsiteMaterial {
-    ...JobsiteMaterialCardSnippet
-  }
+  jobsiteMaterial
   deliveredRateId
   rate
   quantity
   crewType
 }
+    `;
+export const JobsiteDayReportMaterialSnippetFragmentDoc = gql`
+    fragment JobsiteDayReportMaterialSnippet on MaterialReportClass {
+  _id
+  jobsiteMaterialRecord {
+    ...JobsiteMaterialCardSnippet
+  }
+}
     ${JobsiteMaterialCardSnippetFragmentDoc}`;
+export const JobsiteDayReportMaterialFullSnippetFragmentDoc = gql`
+    fragment JobsiteDayReportMaterialFullSnippet on MaterialReportClass {
+  ...JobsiteDayReportMaterialNoFetchSnippet
+  ...JobsiteDayReportMaterialSnippet
+}
+    ${JobsiteDayReportMaterialNoFetchSnippetFragmentDoc}
+${JobsiteDayReportMaterialSnippetFragmentDoc}`;
+export const JobsiteDayReportVehicleSnippetFragmentDoc = gql`
+    fragment JobsiteDayReportVehicleSnippet on VehicleReportClass {
+  _id
+  vehicleRecord {
+    ...VehicleCardSnippet
+  }
+  vehicleWorkRecord {
+    jobTitle
+  }
+}
+    ${VehicleCardSnippetFragmentDoc}`;
+export const JobsiteDayReportVehicleNoFetchSnippetFragmentDoc = gql`
+    fragment JobsiteDayReportVehicleNoFetchSnippet on VehicleReportClass {
+  _id
+  vehicle
+  vehicleWork
+  rate
+  hours
+  crewType
+}
+    `;
+export const JobsiteDayReportVehicleFullSnippetFragmentDoc = gql`
+    fragment JobsiteDayReportVehicleFullSnippet on VehicleReportClass {
+  ...JobsiteDayReportVehicleSnippet
+  ...JobsiteDayReportVehicleNoFetchSnippet
+}
+    ${JobsiteDayReportVehicleSnippetFragmentDoc}
+${JobsiteDayReportVehicleNoFetchSnippetFragmentDoc}`;
+export const JobsiteDayReportFetchSnippetFragmentDoc = gql`
+    fragment JobsiteDayReportFetchSnippet on JobsiteDayReportClass {
+  employees {
+    ...JobsiteDayReportEmployeeSnippet
+  }
+  vehicles {
+    ...JobsiteDayReportVehicleSnippet
+  }
+  materials {
+    ...JobsiteDayReportMaterialSnippet
+  }
+}
+    ${JobsiteDayReportEmployeeSnippetFragmentDoc}
+${JobsiteDayReportVehicleSnippetFragmentDoc}
+${JobsiteDayReportMaterialSnippetFragmentDoc}`;
 export const JobsiteDayReportNonCostedMaterialSnippetFragmentDoc = gql`
     fragment JobsiteDayReportNonCostedMaterialSnippet on NonCostedMaterialReportClass {
   _id
@@ -3834,19 +3871,19 @@ export const OnSiteSummaryReportSnippetFragmentDoc = gql`
   truckingCost
 }
     `;
-export const JobsiteDayReportFullSnippetFragmentDoc = gql`
-    fragment JobsiteDayReportFullSnippet on JobsiteDayReportClass {
+export const JobsiteDayReportNoFetchSnippetFragmentDoc = gql`
+    fragment JobsiteDayReportNoFetchSnippet on JobsiteDayReportClass {
   _id
   date
   crewTypes
   employees {
-    ...JobsiteDayReportEmployeeSnippet
+    ...JobsiteDayReportEmployeeNoFetchSnippet
   }
   vehicles {
-    ...JobsiteDayReportVehicleSnippet
+    ...JobsiteDayReportVehicleNoFetchSnippet
   }
   materials {
-    ...JobsiteDayReportMaterialSnippet
+    ...JobsiteDayReportMaterialNoFetchSnippet
   }
   nonCostedMaterials {
     ...JobsiteDayReportNonCostedMaterialSnippet
@@ -3858,12 +3895,45 @@ export const JobsiteDayReportFullSnippetFragmentDoc = gql`
     ...OnSiteSummaryReportSnippet
   }
 }
-    ${JobsiteDayReportEmployeeSnippetFragmentDoc}
-${JobsiteDayReportVehicleSnippetFragmentDoc}
-${JobsiteDayReportMaterialSnippetFragmentDoc}
+    ${JobsiteDayReportEmployeeNoFetchSnippetFragmentDoc}
+${JobsiteDayReportVehicleNoFetchSnippetFragmentDoc}
+${JobsiteDayReportMaterialNoFetchSnippetFragmentDoc}
 ${JobsiteDayReportNonCostedMaterialSnippetFragmentDoc}
 ${JobsiteDayReportTruckingSnippetFragmentDoc}
 ${OnSiteSummaryReportSnippetFragmentDoc}`;
+export const JobsiteDayReportFullSnippetFragmentDoc = gql`
+    fragment JobsiteDayReportFullSnippet on JobsiteDayReportClass {
+  ...JobsiteDayReportFetchSnippet
+  ...JobsiteDayReportNoFetchSnippet
+}
+    ${JobsiteDayReportFetchSnippetFragmentDoc}
+${JobsiteDayReportNoFetchSnippetFragmentDoc}`;
+export const JobsiteMonthReportFetchSnippetFragmentDoc = gql`
+    fragment JobsiteMonthReportFetchSnippet on JobsiteMonthReportClass {
+  dayReports {
+    ...JobsiteDayReportFetchSnippet
+  }
+}
+    ${JobsiteDayReportFetchSnippetFragmentDoc}`;
+export const UpdateSnippetFragmentDoc = gql`
+    fragment UpdateSnippet on UpdateClass {
+  status
+  lastUpdatedAt
+}
+    `;
+export const JobsiteMonthReportCardSnippetFragmentDoc = gql`
+    fragment JobsiteMonthReportCardSnippet on JobsiteMonthReportClass {
+  _id
+  startOfMonth
+  update {
+    ...UpdateSnippet
+  }
+  jobsite {
+    ...JobsiteCardSnippet
+  }
+}
+    ${UpdateSnippetFragmentDoc}
+${JobsiteCardSnippetFragmentDoc}`;
 export const JobsiteDayReportInvoiceSnippetFragmentDoc = gql`
     fragment JobsiteDayReportInvoiceSnippet on InvoiceReportClass {
   _id
@@ -3896,12 +3966,12 @@ export const ReportIssueSnippetFragmentDoc = gql`
     ${EmployeeCardSnippetFragmentDoc}
 ${VehicleCardSnippetFragmentDoc}
 ${JobsiteMaterialCardSnippetFragmentDoc}`;
-export const JobsiteMonthReportFullSnippetFragmentDoc = gql`
-    fragment JobsiteMonthReportFullSnippet on JobsiteMonthReportClass {
+export const JobsiteMonthReportNoFetchSnippetFragmentDoc = gql`
+    fragment JobsiteMonthReportNoFetchSnippet on JobsiteMonthReportClass {
   ...JobsiteMonthReportCardSnippet
   crewTypes
   dayReports {
-    ...JobsiteDayReportFullSnippet
+    ...JobsiteDayReportNoFetchSnippet
   }
   expenseInvoices {
     ...JobsiteDayReportInvoiceSnippet
@@ -3926,7 +3996,7 @@ export const JobsiteMonthReportFullSnippetFragmentDoc = gql`
   }
 }
     ${JobsiteMonthReportCardSnippetFragmentDoc}
-${JobsiteDayReportFullSnippetFragmentDoc}
+${JobsiteDayReportNoFetchSnippetFragmentDoc}
 ${JobsiteDayReportInvoiceSnippetFragmentDoc}
 ${ReportIssueSnippetFragmentDoc}
 ${ReportNoteFullSnippetFragmentDoc}`;
@@ -3969,6 +4039,13 @@ export const JobsiteYearMasterReportFullSnippetFragmentDoc = gql`
 }
     ${JobsiteYearMasterReportCardSnippetFragmentDoc}
 ${JobsiteYearMasterReportItemSnippetFragmentDoc}`;
+export const JobsiteYearReportFetchSnippetFragmentDoc = gql`
+    fragment JobsiteYearReportFetchSnippet on JobsiteYearReportClass {
+  dayReports {
+    ...JobsiteDayReportFetchSnippet
+  }
+}
+    ${JobsiteDayReportFetchSnippetFragmentDoc}`;
 export const JobsiteYearReportCardSnippetFragmentDoc = gql`
     fragment JobsiteYearReportCardSnippet on JobsiteYearReportClass {
   _id
@@ -3982,12 +4059,12 @@ export const JobsiteYearReportCardSnippetFragmentDoc = gql`
 }
     ${UpdateSnippetFragmentDoc}
 ${JobsiteCardSnippetFragmentDoc}`;
-export const JobsiteYearReportFullSnippetFragmentDoc = gql`
-    fragment JobsiteYearReportFullSnippet on JobsiteYearReportClass {
+export const JobsiteYearReportNoFetchSnippetFragmentDoc = gql`
+    fragment JobsiteYearReportNoFetchSnippet on JobsiteYearReportClass {
   ...JobsiteYearReportCardSnippet
   crewTypes
   dayReports {
-    ...JobsiteDayReportFullSnippet
+    ...JobsiteDayReportNoFetchSnippet
   }
   expenseInvoices {
     ...JobsiteDayReportInvoiceSnippet
@@ -4012,7 +4089,7 @@ export const JobsiteYearReportFullSnippetFragmentDoc = gql`
   }
 }
     ${JobsiteYearReportCardSnippetFragmentDoc}
-${JobsiteDayReportFullSnippetFragmentDoc}
+${JobsiteDayReportNoFetchSnippetFragmentDoc}
 ${JobsiteDayReportInvoiceSnippetFragmentDoc}
 ${ReportIssueSnippetFragmentDoc}
 ${ReportNoteFullSnippetFragmentDoc}`;
@@ -4437,9 +4514,9 @@ export type CompanyArchiveMutationFn = Apollo.MutationFunction<CompanyArchiveMut
  * });
  */
 export function useCompanyArchiveMutation(baseOptions?: Apollo.MutationHookOptions<CompanyArchiveMutation, CompanyArchiveMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<CompanyArchiveMutation, CompanyArchiveMutationVariables>(CompanyArchiveDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CompanyArchiveMutation, CompanyArchiveMutationVariables>(CompanyArchiveDocument, options);
+      }
 export type CompanyArchiveMutationHookResult = ReturnType<typeof useCompanyArchiveMutation>;
 export type CompanyArchiveMutationResult = Apollo.MutationResult<CompanyArchiveMutation>;
 export type CompanyArchiveMutationOptions = Apollo.BaseMutationOptions<CompanyArchiveMutation, CompanyArchiveMutationVariables>;
@@ -4470,9 +4547,9 @@ export type CompanyCreateMutationFn = Apollo.MutationFunction<CompanyCreateMutat
  * });
  */
 export function useCompanyCreateMutation(baseOptions?: Apollo.MutationHookOptions<CompanyCreateMutation, CompanyCreateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<CompanyCreateMutation, CompanyCreateMutationVariables>(CompanyCreateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CompanyCreateMutation, CompanyCreateMutationVariables>(CompanyCreateDocument, options);
+      }
 export type CompanyCreateMutationHookResult = ReturnType<typeof useCompanyCreateMutation>;
 export type CompanyCreateMutationResult = Apollo.MutationResult<CompanyCreateMutation>;
 export type CompanyCreateMutationOptions = Apollo.BaseMutationOptions<CompanyCreateMutation, CompanyCreateMutationVariables>;
@@ -4504,9 +4581,9 @@ export type CrewAddEmployeeMutationFn = Apollo.MutationFunction<CrewAddEmployeeM
  * });
  */
 export function useCrewAddEmployeeMutation(baseOptions?: Apollo.MutationHookOptions<CrewAddEmployeeMutation, CrewAddEmployeeMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<CrewAddEmployeeMutation, CrewAddEmployeeMutationVariables>(CrewAddEmployeeDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CrewAddEmployeeMutation, CrewAddEmployeeMutationVariables>(CrewAddEmployeeDocument, options);
+      }
 export type CrewAddEmployeeMutationHookResult = ReturnType<typeof useCrewAddEmployeeMutation>;
 export type CrewAddEmployeeMutationResult = Apollo.MutationResult<CrewAddEmployeeMutation>;
 export type CrewAddEmployeeMutationOptions = Apollo.BaseMutationOptions<CrewAddEmployeeMutation, CrewAddEmployeeMutationVariables>;
@@ -4538,9 +4615,9 @@ export type CrewAddVehicleMutationFn = Apollo.MutationFunction<CrewAddVehicleMut
  * });
  */
 export function useCrewAddVehicleMutation(baseOptions?: Apollo.MutationHookOptions<CrewAddVehicleMutation, CrewAddVehicleMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<CrewAddVehicleMutation, CrewAddVehicleMutationVariables>(CrewAddVehicleDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CrewAddVehicleMutation, CrewAddVehicleMutationVariables>(CrewAddVehicleDocument, options);
+      }
 export type CrewAddVehicleMutationHookResult = ReturnType<typeof useCrewAddVehicleMutation>;
 export type CrewAddVehicleMutationResult = Apollo.MutationResult<CrewAddVehicleMutation>;
 export type CrewAddVehicleMutationOptions = Apollo.BaseMutationOptions<CrewAddVehicleMutation, CrewAddVehicleMutationVariables>;
@@ -4571,9 +4648,9 @@ export type CrewArchiveMutationFn = Apollo.MutationFunction<CrewArchiveMutation,
  * });
  */
 export function useCrewArchiveMutation(baseOptions?: Apollo.MutationHookOptions<CrewArchiveMutation, CrewArchiveMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<CrewArchiveMutation, CrewArchiveMutationVariables>(CrewArchiveDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CrewArchiveMutation, CrewArchiveMutationVariables>(CrewArchiveDocument, options);
+      }
 export type CrewArchiveMutationHookResult = ReturnType<typeof useCrewArchiveMutation>;
 export type CrewArchiveMutationResult = Apollo.MutationResult<CrewArchiveMutation>;
 export type CrewArchiveMutationOptions = Apollo.BaseMutationOptions<CrewArchiveMutation, CrewArchiveMutationVariables>;
@@ -4604,9 +4681,9 @@ export type CrewCreateMutationFn = Apollo.MutationFunction<CrewCreateMutation, C
  * });
  */
 export function useCrewCreateMutation(baseOptions?: Apollo.MutationHookOptions<CrewCreateMutation, CrewCreateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<CrewCreateMutation, CrewCreateMutationVariables>(CrewCreateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CrewCreateMutation, CrewCreateMutationVariables>(CrewCreateDocument, options);
+      }
 export type CrewCreateMutationHookResult = ReturnType<typeof useCrewCreateMutation>;
 export type CrewCreateMutationResult = Apollo.MutationResult<CrewCreateMutation>;
 export type CrewCreateMutationOptions = Apollo.BaseMutationOptions<CrewCreateMutation, CrewCreateMutationVariables>;
@@ -4638,9 +4715,9 @@ export type CrewRemoveEmployeeMutationFn = Apollo.MutationFunction<CrewRemoveEmp
  * });
  */
 export function useCrewRemoveEmployeeMutation(baseOptions?: Apollo.MutationHookOptions<CrewRemoveEmployeeMutation, CrewRemoveEmployeeMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<CrewRemoveEmployeeMutation, CrewRemoveEmployeeMutationVariables>(CrewRemoveEmployeeDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CrewRemoveEmployeeMutation, CrewRemoveEmployeeMutationVariables>(CrewRemoveEmployeeDocument, options);
+      }
 export type CrewRemoveEmployeeMutationHookResult = ReturnType<typeof useCrewRemoveEmployeeMutation>;
 export type CrewRemoveEmployeeMutationResult = Apollo.MutationResult<CrewRemoveEmployeeMutation>;
 export type CrewRemoveEmployeeMutationOptions = Apollo.BaseMutationOptions<CrewRemoveEmployeeMutation, CrewRemoveEmployeeMutationVariables>;
@@ -4672,9 +4749,9 @@ export type CrewRemoveVehicleMutationFn = Apollo.MutationFunction<CrewRemoveVehi
  * });
  */
 export function useCrewRemoveVehicleMutation(baseOptions?: Apollo.MutationHookOptions<CrewRemoveVehicleMutation, CrewRemoveVehicleMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<CrewRemoveVehicleMutation, CrewRemoveVehicleMutationVariables>(CrewRemoveVehicleDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CrewRemoveVehicleMutation, CrewRemoveVehicleMutationVariables>(CrewRemoveVehicleDocument, options);
+      }
 export type CrewRemoveVehicleMutationHookResult = ReturnType<typeof useCrewRemoveVehicleMutation>;
 export type CrewRemoveVehicleMutationResult = Apollo.MutationResult<CrewRemoveVehicleMutation>;
 export type CrewRemoveVehicleMutationOptions = Apollo.BaseMutationOptions<CrewRemoveVehicleMutation, CrewRemoveVehicleMutationVariables>;
@@ -4706,9 +4783,9 @@ export type CrewUpdateMutationFn = Apollo.MutationFunction<CrewUpdateMutation, C
  * });
  */
 export function useCrewUpdateMutation(baseOptions?: Apollo.MutationHookOptions<CrewUpdateMutation, CrewUpdateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<CrewUpdateMutation, CrewUpdateMutationVariables>(CrewUpdateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CrewUpdateMutation, CrewUpdateMutationVariables>(CrewUpdateDocument, options);
+      }
 export type CrewUpdateMutationHookResult = ReturnType<typeof useCrewUpdateMutation>;
 export type CrewUpdateMutationResult = Apollo.MutationResult<CrewUpdateMutation>;
 export type CrewUpdateMutationOptions = Apollo.BaseMutationOptions<CrewUpdateMutation, CrewUpdateMutationVariables>;
@@ -4740,9 +4817,9 @@ export type DailyReportAddNoteFileMutationFn = Apollo.MutationFunction<DailyRepo
  * });
  */
 export function useDailyReportAddNoteFileMutation(baseOptions?: Apollo.MutationHookOptions<DailyReportAddNoteFileMutation, DailyReportAddNoteFileMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<DailyReportAddNoteFileMutation, DailyReportAddNoteFileMutationVariables>(DailyReportAddNoteFileDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DailyReportAddNoteFileMutation, DailyReportAddNoteFileMutationVariables>(DailyReportAddNoteFileDocument, options);
+      }
 export type DailyReportAddNoteFileMutationHookResult = ReturnType<typeof useDailyReportAddNoteFileMutation>;
 export type DailyReportAddNoteFileMutationResult = Apollo.MutationResult<DailyReportAddNoteFileMutation>;
 export type DailyReportAddNoteFileMutationOptions = Apollo.BaseMutationOptions<DailyReportAddNoteFileMutation, DailyReportAddNoteFileMutationVariables>;
@@ -4774,9 +4851,9 @@ export type DailyReportAddTemporaryEmployeeMutationFn = Apollo.MutationFunction<
  * });
  */
 export function useDailyReportAddTemporaryEmployeeMutation(baseOptions?: Apollo.MutationHookOptions<DailyReportAddTemporaryEmployeeMutation, DailyReportAddTemporaryEmployeeMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<DailyReportAddTemporaryEmployeeMutation, DailyReportAddTemporaryEmployeeMutationVariables>(DailyReportAddTemporaryEmployeeDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DailyReportAddTemporaryEmployeeMutation, DailyReportAddTemporaryEmployeeMutationVariables>(DailyReportAddTemporaryEmployeeDocument, options);
+      }
 export type DailyReportAddTemporaryEmployeeMutationHookResult = ReturnType<typeof useDailyReportAddTemporaryEmployeeMutation>;
 export type DailyReportAddTemporaryEmployeeMutationResult = Apollo.MutationResult<DailyReportAddTemporaryEmployeeMutation>;
 export type DailyReportAddTemporaryEmployeeMutationOptions = Apollo.BaseMutationOptions<DailyReportAddTemporaryEmployeeMutation, DailyReportAddTemporaryEmployeeMutationVariables>;
@@ -4808,9 +4885,9 @@ export type DailyReportAddTemporaryVehicleMutationFn = Apollo.MutationFunction<D
  * });
  */
 export function useDailyReportAddTemporaryVehicleMutation(baseOptions?: Apollo.MutationHookOptions<DailyReportAddTemporaryVehicleMutation, DailyReportAddTemporaryVehicleMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<DailyReportAddTemporaryVehicleMutation, DailyReportAddTemporaryVehicleMutationVariables>(DailyReportAddTemporaryVehicleDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DailyReportAddTemporaryVehicleMutation, DailyReportAddTemporaryVehicleMutationVariables>(DailyReportAddTemporaryVehicleDocument, options);
+      }
 export type DailyReportAddTemporaryVehicleMutationHookResult = ReturnType<typeof useDailyReportAddTemporaryVehicleMutation>;
 export type DailyReportAddTemporaryVehicleMutationResult = Apollo.MutationResult<DailyReportAddTemporaryVehicleMutation>;
 export type DailyReportAddTemporaryVehicleMutationOptions = Apollo.BaseMutationOptions<DailyReportAddTemporaryVehicleMutation, DailyReportAddTemporaryVehicleMutationVariables>;
@@ -4841,9 +4918,9 @@ export type DailyReportArchiveMutationFn = Apollo.MutationFunction<DailyReportAr
  * });
  */
 export function useDailyReportArchiveMutation(baseOptions?: Apollo.MutationHookOptions<DailyReportArchiveMutation, DailyReportArchiveMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<DailyReportArchiveMutation, DailyReportArchiveMutationVariables>(DailyReportArchiveDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DailyReportArchiveMutation, DailyReportArchiveMutationVariables>(DailyReportArchiveDocument, options);
+      }
 export type DailyReportArchiveMutationHookResult = ReturnType<typeof useDailyReportArchiveMutation>;
 export type DailyReportArchiveMutationResult = Apollo.MutationResult<DailyReportArchiveMutation>;
 export type DailyReportArchiveMutationOptions = Apollo.BaseMutationOptions<DailyReportArchiveMutation, DailyReportArchiveMutationVariables>;
@@ -4874,9 +4951,9 @@ export type DailyReportCreateMutationFn = Apollo.MutationFunction<DailyReportCre
  * });
  */
 export function useDailyReportCreateMutation(baseOptions?: Apollo.MutationHookOptions<DailyReportCreateMutation, DailyReportCreateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<DailyReportCreateMutation, DailyReportCreateMutationVariables>(DailyReportCreateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DailyReportCreateMutation, DailyReportCreateMutationVariables>(DailyReportCreateDocument, options);
+      }
 export type DailyReportCreateMutationHookResult = ReturnType<typeof useDailyReportCreateMutation>;
 export type DailyReportCreateMutationResult = Apollo.MutationResult<DailyReportCreateMutation>;
 export type DailyReportCreateMutationOptions = Apollo.BaseMutationOptions<DailyReportCreateMutation, DailyReportCreateMutationVariables>;
@@ -4908,9 +4985,9 @@ export type DailyReportJobCostApprovalUpdateMutationFn = Apollo.MutationFunction
  * });
  */
 export function useDailyReportJobCostApprovalUpdateMutation(baseOptions?: Apollo.MutationHookOptions<DailyReportJobCostApprovalUpdateMutation, DailyReportJobCostApprovalUpdateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<DailyReportJobCostApprovalUpdateMutation, DailyReportJobCostApprovalUpdateMutationVariables>(DailyReportJobCostApprovalUpdateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DailyReportJobCostApprovalUpdateMutation, DailyReportJobCostApprovalUpdateMutationVariables>(DailyReportJobCostApprovalUpdateDocument, options);
+      }
 export type DailyReportJobCostApprovalUpdateMutationHookResult = ReturnType<typeof useDailyReportJobCostApprovalUpdateMutation>;
 export type DailyReportJobCostApprovalUpdateMutationResult = Apollo.MutationResult<DailyReportJobCostApprovalUpdateMutation>;
 export type DailyReportJobCostApprovalUpdateMutationOptions = Apollo.BaseMutationOptions<DailyReportJobCostApprovalUpdateMutation, DailyReportJobCostApprovalUpdateMutationVariables>;
@@ -4942,9 +5019,9 @@ export type DailyReportNoteUpdateMutationFn = Apollo.MutationFunction<DailyRepor
  * });
  */
 export function useDailyReportNoteUpdateMutation(baseOptions?: Apollo.MutationHookOptions<DailyReportNoteUpdateMutation, DailyReportNoteUpdateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<DailyReportNoteUpdateMutation, DailyReportNoteUpdateMutationVariables>(DailyReportNoteUpdateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DailyReportNoteUpdateMutation, DailyReportNoteUpdateMutationVariables>(DailyReportNoteUpdateDocument, options);
+      }
 export type DailyReportNoteUpdateMutationHookResult = ReturnType<typeof useDailyReportNoteUpdateMutation>;
 export type DailyReportNoteUpdateMutationResult = Apollo.MutationResult<DailyReportNoteUpdateMutation>;
 export type DailyReportNoteUpdateMutationOptions = Apollo.BaseMutationOptions<DailyReportNoteUpdateMutation, DailyReportNoteUpdateMutationVariables>;
@@ -4976,9 +5053,9 @@ export type DailyReportPayrollCompleteUpdateMutationFn = Apollo.MutationFunction
  * });
  */
 export function useDailyReportPayrollCompleteUpdateMutation(baseOptions?: Apollo.MutationHookOptions<DailyReportPayrollCompleteUpdateMutation, DailyReportPayrollCompleteUpdateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<DailyReportPayrollCompleteUpdateMutation, DailyReportPayrollCompleteUpdateMutationVariables>(DailyReportPayrollCompleteUpdateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DailyReportPayrollCompleteUpdateMutation, DailyReportPayrollCompleteUpdateMutationVariables>(DailyReportPayrollCompleteUpdateDocument, options);
+      }
 export type DailyReportPayrollCompleteUpdateMutationHookResult = ReturnType<typeof useDailyReportPayrollCompleteUpdateMutation>;
 export type DailyReportPayrollCompleteUpdateMutationResult = Apollo.MutationResult<DailyReportPayrollCompleteUpdateMutation>;
 export type DailyReportPayrollCompleteUpdateMutationOptions = Apollo.BaseMutationOptions<DailyReportPayrollCompleteUpdateMutation, DailyReportPayrollCompleteUpdateMutationVariables>;
@@ -5010,9 +5087,9 @@ export type DailyReportUpdateMutationFn = Apollo.MutationFunction<DailyReportUpd
  * });
  */
 export function useDailyReportUpdateMutation(baseOptions?: Apollo.MutationHookOptions<DailyReportUpdateMutation, DailyReportUpdateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<DailyReportUpdateMutation, DailyReportUpdateMutationVariables>(DailyReportUpdateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DailyReportUpdateMutation, DailyReportUpdateMutationVariables>(DailyReportUpdateDocument, options);
+      }
 export type DailyReportUpdateMutationHookResult = ReturnType<typeof useDailyReportUpdateMutation>;
 export type DailyReportUpdateMutationResult = Apollo.MutationResult<DailyReportUpdateMutation>;
 export type DailyReportUpdateMutationOptions = Apollo.BaseMutationOptions<DailyReportUpdateMutation, DailyReportUpdateMutationVariables>;
@@ -5043,9 +5120,9 @@ export type EmployeeArchiveMutationFn = Apollo.MutationFunction<EmployeeArchiveM
  * });
  */
 export function useEmployeeArchiveMutation(baseOptions?: Apollo.MutationHookOptions<EmployeeArchiveMutation, EmployeeArchiveMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<EmployeeArchiveMutation, EmployeeArchiveMutationVariables>(EmployeeArchiveDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<EmployeeArchiveMutation, EmployeeArchiveMutationVariables>(EmployeeArchiveDocument, options);
+      }
 export type EmployeeArchiveMutationHookResult = ReturnType<typeof useEmployeeArchiveMutation>;
 export type EmployeeArchiveMutationResult = Apollo.MutationResult<EmployeeArchiveMutation>;
 export type EmployeeArchiveMutationOptions = Apollo.BaseMutationOptions<EmployeeArchiveMutation, EmployeeArchiveMutationVariables>;
@@ -5077,9 +5154,9 @@ export type EmployeeCreateMutationFn = Apollo.MutationFunction<EmployeeCreateMut
  * });
  */
 export function useEmployeeCreateMutation(baseOptions?: Apollo.MutationHookOptions<EmployeeCreateMutation, EmployeeCreateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<EmployeeCreateMutation, EmployeeCreateMutationVariables>(EmployeeCreateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<EmployeeCreateMutation, EmployeeCreateMutationVariables>(EmployeeCreateDocument, options);
+      }
 export type EmployeeCreateMutationHookResult = ReturnType<typeof useEmployeeCreateMutation>;
 export type EmployeeCreateMutationResult = Apollo.MutationResult<EmployeeCreateMutation>;
 export type EmployeeCreateMutationOptions = Apollo.BaseMutationOptions<EmployeeCreateMutation, EmployeeCreateMutationVariables>;
@@ -5110,9 +5187,9 @@ export type EmployeeUnarchiveMutationFn = Apollo.MutationFunction<EmployeeUnarch
  * });
  */
 export function useEmployeeUnarchiveMutation(baseOptions?: Apollo.MutationHookOptions<EmployeeUnarchiveMutation, EmployeeUnarchiveMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<EmployeeUnarchiveMutation, EmployeeUnarchiveMutationVariables>(EmployeeUnarchiveDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<EmployeeUnarchiveMutation, EmployeeUnarchiveMutationVariables>(EmployeeUnarchiveDocument, options);
+      }
 export type EmployeeUnarchiveMutationHookResult = ReturnType<typeof useEmployeeUnarchiveMutation>;
 export type EmployeeUnarchiveMutationResult = Apollo.MutationResult<EmployeeUnarchiveMutation>;
 export type EmployeeUnarchiveMutationOptions = Apollo.BaseMutationOptions<EmployeeUnarchiveMutation, EmployeeUnarchiveMutationVariables>;
@@ -5144,9 +5221,9 @@ export type EmployeeUpdateMutationFn = Apollo.MutationFunction<EmployeeUpdateMut
  * });
  */
 export function useEmployeeUpdateMutation(baseOptions?: Apollo.MutationHookOptions<EmployeeUpdateMutation, EmployeeUpdateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<EmployeeUpdateMutation, EmployeeUpdateMutationVariables>(EmployeeUpdateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<EmployeeUpdateMutation, EmployeeUpdateMutationVariables>(EmployeeUpdateDocument, options);
+      }
 export type EmployeeUpdateMutationHookResult = ReturnType<typeof useEmployeeUpdateMutation>;
 export type EmployeeUpdateMutationResult = Apollo.MutationResult<EmployeeUpdateMutation>;
 export type EmployeeUpdateMutationOptions = Apollo.BaseMutationOptions<EmployeeUpdateMutation, EmployeeUpdateMutationVariables>;
@@ -5178,9 +5255,9 @@ export type EmployeeUpdateRatesMutationFn = Apollo.MutationFunction<EmployeeUpda
  * });
  */
 export function useEmployeeUpdateRatesMutation(baseOptions?: Apollo.MutationHookOptions<EmployeeUpdateRatesMutation, EmployeeUpdateRatesMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<EmployeeUpdateRatesMutation, EmployeeUpdateRatesMutationVariables>(EmployeeUpdateRatesDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<EmployeeUpdateRatesMutation, EmployeeUpdateRatesMutationVariables>(EmployeeUpdateRatesDocument, options);
+      }
 export type EmployeeUpdateRatesMutationHookResult = ReturnType<typeof useEmployeeUpdateRatesMutation>;
 export type EmployeeUpdateRatesMutationResult = Apollo.MutationResult<EmployeeUpdateRatesMutation>;
 export type EmployeeUpdateRatesMutationOptions = Apollo.BaseMutationOptions<EmployeeUpdateRatesMutation, EmployeeUpdateRatesMutationVariables>;
@@ -5212,9 +5289,9 @@ export type EmployeeWorkCreateMutationFn = Apollo.MutationFunction<EmployeeWorkC
  * });
  */
 export function useEmployeeWorkCreateMutation(baseOptions?: Apollo.MutationHookOptions<EmployeeWorkCreateMutation, EmployeeWorkCreateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<EmployeeWorkCreateMutation, EmployeeWorkCreateMutationVariables>(EmployeeWorkCreateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<EmployeeWorkCreateMutation, EmployeeWorkCreateMutationVariables>(EmployeeWorkCreateDocument, options);
+      }
 export type EmployeeWorkCreateMutationHookResult = ReturnType<typeof useEmployeeWorkCreateMutation>;
 export type EmployeeWorkCreateMutationResult = Apollo.MutationResult<EmployeeWorkCreateMutation>;
 export type EmployeeWorkCreateMutationOptions = Apollo.BaseMutationOptions<EmployeeWorkCreateMutation, EmployeeWorkCreateMutationVariables>;
@@ -5243,9 +5320,9 @@ export type EmployeeWorkDeleteMutationFn = Apollo.MutationFunction<EmployeeWorkD
  * });
  */
 export function useEmployeeWorkDeleteMutation(baseOptions?: Apollo.MutationHookOptions<EmployeeWorkDeleteMutation, EmployeeWorkDeleteMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<EmployeeWorkDeleteMutation, EmployeeWorkDeleteMutationVariables>(EmployeeWorkDeleteDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<EmployeeWorkDeleteMutation, EmployeeWorkDeleteMutationVariables>(EmployeeWorkDeleteDocument, options);
+      }
 export type EmployeeWorkDeleteMutationHookResult = ReturnType<typeof useEmployeeWorkDeleteMutation>;
 export type EmployeeWorkDeleteMutationResult = Apollo.MutationResult<EmployeeWorkDeleteMutation>;
 export type EmployeeWorkDeleteMutationOptions = Apollo.BaseMutationOptions<EmployeeWorkDeleteMutation, EmployeeWorkDeleteMutationVariables>;
@@ -5277,9 +5354,9 @@ export type EmployeeWorkUpdateMutationFn = Apollo.MutationFunction<EmployeeWorkU
  * });
  */
 export function useEmployeeWorkUpdateMutation(baseOptions?: Apollo.MutationHookOptions<EmployeeWorkUpdateMutation, EmployeeWorkUpdateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<EmployeeWorkUpdateMutation, EmployeeWorkUpdateMutationVariables>(EmployeeWorkUpdateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<EmployeeWorkUpdateMutation, EmployeeWorkUpdateMutationVariables>(EmployeeWorkUpdateDocument, options);
+      }
 export type EmployeeWorkUpdateMutationHookResult = ReturnType<typeof useEmployeeWorkUpdateMutation>;
 export type EmployeeWorkUpdateMutationResult = Apollo.MutationResult<EmployeeWorkUpdateMutation>;
 export type EmployeeWorkUpdateMutationOptions = Apollo.BaseMutationOptions<EmployeeWorkUpdateMutation, EmployeeWorkUpdateMutationVariables>;
@@ -5308,9 +5385,9 @@ export type InvoiceRemoveMutationFn = Apollo.MutationFunction<InvoiceRemoveMutat
  * });
  */
 export function useInvoiceRemoveMutation(baseOptions?: Apollo.MutationHookOptions<InvoiceRemoveMutation, InvoiceRemoveMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<InvoiceRemoveMutation, InvoiceRemoveMutationVariables>(InvoiceRemoveDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<InvoiceRemoveMutation, InvoiceRemoveMutationVariables>(InvoiceRemoveDocument, options);
+      }
 export type InvoiceRemoveMutationHookResult = ReturnType<typeof useInvoiceRemoveMutation>;
 export type InvoiceRemoveMutationResult = Apollo.MutationResult<InvoiceRemoveMutation>;
 export type InvoiceRemoveMutationOptions = Apollo.BaseMutationOptions<InvoiceRemoveMutation, InvoiceRemoveMutationVariables>;
@@ -5343,9 +5420,9 @@ export type InvoiceUpdateForJobsiteMutationFn = Apollo.MutationFunction<InvoiceU
  * });
  */
 export function useInvoiceUpdateForJobsiteMutation(baseOptions?: Apollo.MutationHookOptions<InvoiceUpdateForJobsiteMutation, InvoiceUpdateForJobsiteMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<InvoiceUpdateForJobsiteMutation, InvoiceUpdateForJobsiteMutationVariables>(InvoiceUpdateForJobsiteDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<InvoiceUpdateForJobsiteMutation, InvoiceUpdateForJobsiteMutationVariables>(InvoiceUpdateForJobsiteDocument, options);
+      }
 export type InvoiceUpdateForJobsiteMutationHookResult = ReturnType<typeof useInvoiceUpdateForJobsiteMutation>;
 export type InvoiceUpdateForJobsiteMutationResult = Apollo.MutationResult<InvoiceUpdateForJobsiteMutation>;
 export type InvoiceUpdateForJobsiteMutationOptions = Apollo.BaseMutationOptions<InvoiceUpdateForJobsiteMutation, InvoiceUpdateForJobsiteMutationVariables>;
@@ -5382,9 +5459,9 @@ export type InvoiceUpdateForJobsiteMaterialMutationFn = Apollo.MutationFunction<
  * });
  */
 export function useInvoiceUpdateForJobsiteMaterialMutation(baseOptions?: Apollo.MutationHookOptions<InvoiceUpdateForJobsiteMaterialMutation, InvoiceUpdateForJobsiteMaterialMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<InvoiceUpdateForJobsiteMaterialMutation, InvoiceUpdateForJobsiteMaterialMutationVariables>(InvoiceUpdateForJobsiteMaterialDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<InvoiceUpdateForJobsiteMaterialMutation, InvoiceUpdateForJobsiteMaterialMutationVariables>(InvoiceUpdateForJobsiteMaterialDocument, options);
+      }
 export type InvoiceUpdateForJobsiteMaterialMutationHookResult = ReturnType<typeof useInvoiceUpdateForJobsiteMaterialMutation>;
 export type InvoiceUpdateForJobsiteMaterialMutationResult = Apollo.MutationResult<InvoiceUpdateForJobsiteMaterialMutation>;
 export type InvoiceUpdateForJobsiteMaterialMutationOptions = Apollo.BaseMutationOptions<InvoiceUpdateForJobsiteMaterialMutation, InvoiceUpdateForJobsiteMaterialMutationVariables>;
@@ -5419,9 +5496,9 @@ export type JobsiteAddDefaultTruckingRateToAllMutationFn = Apollo.MutationFuncti
  * });
  */
 export function useJobsiteAddDefaultTruckingRateToAllMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteAddDefaultTruckingRateToAllMutation, JobsiteAddDefaultTruckingRateToAllMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<JobsiteAddDefaultTruckingRateToAllMutation, JobsiteAddDefaultTruckingRateToAllMutationVariables>(JobsiteAddDefaultTruckingRateToAllDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteAddDefaultTruckingRateToAllMutation, JobsiteAddDefaultTruckingRateToAllMutationVariables>(JobsiteAddDefaultTruckingRateToAllDocument, options);
+      }
 export type JobsiteAddDefaultTruckingRateToAllMutationHookResult = ReturnType<typeof useJobsiteAddDefaultTruckingRateToAllMutation>;
 export type JobsiteAddDefaultTruckingRateToAllMutationResult = Apollo.MutationResult<JobsiteAddDefaultTruckingRateToAllMutation>;
 export type JobsiteAddDefaultTruckingRateToAllMutationOptions = Apollo.BaseMutationOptions<JobsiteAddDefaultTruckingRateToAllMutation, JobsiteAddDefaultTruckingRateToAllMutationVariables>;
@@ -5453,9 +5530,9 @@ export type JobsiteAddExpenseInvoiceMutationFn = Apollo.MutationFunction<Jobsite
  * });
  */
 export function useJobsiteAddExpenseInvoiceMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteAddExpenseInvoiceMutation, JobsiteAddExpenseInvoiceMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<JobsiteAddExpenseInvoiceMutation, JobsiteAddExpenseInvoiceMutationVariables>(JobsiteAddExpenseInvoiceDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteAddExpenseInvoiceMutation, JobsiteAddExpenseInvoiceMutationVariables>(JobsiteAddExpenseInvoiceDocument, options);
+      }
 export type JobsiteAddExpenseInvoiceMutationHookResult = ReturnType<typeof useJobsiteAddExpenseInvoiceMutation>;
 export type JobsiteAddExpenseInvoiceMutationResult = Apollo.MutationResult<JobsiteAddExpenseInvoiceMutation>;
 export type JobsiteAddExpenseInvoiceMutationOptions = Apollo.BaseMutationOptions<JobsiteAddExpenseInvoiceMutation, JobsiteAddExpenseInvoiceMutationVariables>;
@@ -5487,9 +5564,9 @@ export type JobsiteAddFileObjectMutationFn = Apollo.MutationFunction<JobsiteAddF
  * });
  */
 export function useJobsiteAddFileObjectMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteAddFileObjectMutation, JobsiteAddFileObjectMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<JobsiteAddFileObjectMutation, JobsiteAddFileObjectMutationVariables>(JobsiteAddFileObjectDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteAddFileObjectMutation, JobsiteAddFileObjectMutationVariables>(JobsiteAddFileObjectDocument, options);
+      }
 export type JobsiteAddFileObjectMutationHookResult = ReturnType<typeof useJobsiteAddFileObjectMutation>;
 export type JobsiteAddFileObjectMutationResult = Apollo.MutationResult<JobsiteAddFileObjectMutation>;
 export type JobsiteAddFileObjectMutationOptions = Apollo.BaseMutationOptions<JobsiteAddFileObjectMutation, JobsiteAddFileObjectMutationVariables>;
@@ -5521,9 +5598,9 @@ export type JobsiteAddMaterialMutationFn = Apollo.MutationFunction<JobsiteAddMat
  * });
  */
 export function useJobsiteAddMaterialMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteAddMaterialMutation, JobsiteAddMaterialMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<JobsiteAddMaterialMutation, JobsiteAddMaterialMutationVariables>(JobsiteAddMaterialDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteAddMaterialMutation, JobsiteAddMaterialMutationVariables>(JobsiteAddMaterialDocument, options);
+      }
 export type JobsiteAddMaterialMutationHookResult = ReturnType<typeof useJobsiteAddMaterialMutation>;
 export type JobsiteAddMaterialMutationResult = Apollo.MutationResult<JobsiteAddMaterialMutation>;
 export type JobsiteAddMaterialMutationOptions = Apollo.BaseMutationOptions<JobsiteAddMaterialMutation, JobsiteAddMaterialMutationVariables>;
@@ -5555,9 +5632,9 @@ export type JobsiteAddRevenueInvoiceMutationFn = Apollo.MutationFunction<Jobsite
  * });
  */
 export function useJobsiteAddRevenueInvoiceMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteAddRevenueInvoiceMutation, JobsiteAddRevenueInvoiceMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<JobsiteAddRevenueInvoiceMutation, JobsiteAddRevenueInvoiceMutationVariables>(JobsiteAddRevenueInvoiceDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteAddRevenueInvoiceMutation, JobsiteAddRevenueInvoiceMutationVariables>(JobsiteAddRevenueInvoiceDocument, options);
+      }
 export type JobsiteAddRevenueInvoiceMutationHookResult = ReturnType<typeof useJobsiteAddRevenueInvoiceMutation>;
 export type JobsiteAddRevenueInvoiceMutationResult = Apollo.MutationResult<JobsiteAddRevenueInvoiceMutation>;
 export type JobsiteAddRevenueInvoiceMutationOptions = Apollo.BaseMutationOptions<JobsiteAddRevenueInvoiceMutation, JobsiteAddRevenueInvoiceMutationVariables>;
@@ -5588,9 +5665,9 @@ export type JobsiteArchiveMutationFn = Apollo.MutationFunction<JobsiteArchiveMut
  * });
  */
 export function useJobsiteArchiveMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteArchiveMutation, JobsiteArchiveMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<JobsiteArchiveMutation, JobsiteArchiveMutationVariables>(JobsiteArchiveDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteArchiveMutation, JobsiteArchiveMutationVariables>(JobsiteArchiveDocument, options);
+      }
 export type JobsiteArchiveMutationHookResult = ReturnType<typeof useJobsiteArchiveMutation>;
 export type JobsiteArchiveMutationResult = Apollo.MutationResult<JobsiteArchiveMutation>;
 export type JobsiteArchiveMutationOptions = Apollo.BaseMutationOptions<JobsiteArchiveMutation, JobsiteArchiveMutationVariables>;
@@ -5625,9 +5702,9 @@ export type JobsiteUpdateContractMutationFn = Apollo.MutationFunction<JobsiteUpd
  * });
  */
 export function useJobsiteUpdateContractMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteUpdateContractMutation, JobsiteUpdateContractMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<JobsiteUpdateContractMutation, JobsiteUpdateContractMutationVariables>(JobsiteUpdateContractDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteUpdateContractMutation, JobsiteUpdateContractMutationVariables>(JobsiteUpdateContractDocument, options);
+      }
 export type JobsiteUpdateContractMutationHookResult = ReturnType<typeof useJobsiteUpdateContractMutation>;
 export type JobsiteUpdateContractMutationResult = Apollo.MutationResult<JobsiteUpdateContractMutation>;
 export type JobsiteUpdateContractMutationOptions = Apollo.BaseMutationOptions<JobsiteUpdateContractMutation, JobsiteUpdateContractMutationVariables>;
@@ -5658,9 +5735,9 @@ export type JobsiteCreateMutationFn = Apollo.MutationFunction<JobsiteCreateMutat
  * });
  */
 export function useJobsiteCreateMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteCreateMutation, JobsiteCreateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<JobsiteCreateMutation, JobsiteCreateMutationVariables>(JobsiteCreateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteCreateMutation, JobsiteCreateMutationVariables>(JobsiteCreateDocument, options);
+      }
 export type JobsiteCreateMutationHookResult = ReturnType<typeof useJobsiteCreateMutation>;
 export type JobsiteCreateMutationResult = Apollo.MutationResult<JobsiteCreateMutation>;
 export type JobsiteCreateMutationOptions = Apollo.BaseMutationOptions<JobsiteCreateMutation, JobsiteCreateMutationVariables>;
@@ -5696,9 +5773,9 @@ export type JobsiteUpdateLocationMutationFn = Apollo.MutationFunction<JobsiteUpd
  * });
  */
 export function useJobsiteUpdateLocationMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteUpdateLocationMutation, JobsiteUpdateLocationMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<JobsiteUpdateLocationMutation, JobsiteUpdateLocationMutationVariables>(JobsiteUpdateLocationDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteUpdateLocationMutation, JobsiteUpdateLocationMutationVariables>(JobsiteUpdateLocationDocument, options);
+      }
 export type JobsiteUpdateLocationMutationHookResult = ReturnType<typeof useJobsiteUpdateLocationMutation>;
 export type JobsiteUpdateLocationMutationResult = Apollo.MutationResult<JobsiteUpdateLocationMutation>;
 export type JobsiteUpdateLocationMutationOptions = Apollo.BaseMutationOptions<JobsiteUpdateLocationMutation, JobsiteUpdateLocationMutationVariables>;
@@ -5730,9 +5807,9 @@ export type JobsiteMaterialAddInvoiceMutationFn = Apollo.MutationFunction<Jobsit
  * });
  */
 export function useJobsiteMaterialAddInvoiceMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteMaterialAddInvoiceMutation, JobsiteMaterialAddInvoiceMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<JobsiteMaterialAddInvoiceMutation, JobsiteMaterialAddInvoiceMutationVariables>(JobsiteMaterialAddInvoiceDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteMaterialAddInvoiceMutation, JobsiteMaterialAddInvoiceMutationVariables>(JobsiteMaterialAddInvoiceDocument, options);
+      }
 export type JobsiteMaterialAddInvoiceMutationHookResult = ReturnType<typeof useJobsiteMaterialAddInvoiceMutation>;
 export type JobsiteMaterialAddInvoiceMutationResult = Apollo.MutationResult<JobsiteMaterialAddInvoiceMutation>;
 export type JobsiteMaterialAddInvoiceMutationOptions = Apollo.BaseMutationOptions<JobsiteMaterialAddInvoiceMutation, JobsiteMaterialAddInvoiceMutationVariables>;
@@ -5761,9 +5838,9 @@ export type JobsiteMaterialRemoveMutationFn = Apollo.MutationFunction<JobsiteMat
  * });
  */
 export function useJobsiteMaterialRemoveMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteMaterialRemoveMutation, JobsiteMaterialRemoveMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<JobsiteMaterialRemoveMutation, JobsiteMaterialRemoveMutationVariables>(JobsiteMaterialRemoveDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteMaterialRemoveMutation, JobsiteMaterialRemoveMutationVariables>(JobsiteMaterialRemoveDocument, options);
+      }
 export type JobsiteMaterialRemoveMutationHookResult = ReturnType<typeof useJobsiteMaterialRemoveMutation>;
 export type JobsiteMaterialRemoveMutationResult = Apollo.MutationResult<JobsiteMaterialRemoveMutation>;
 export type JobsiteMaterialRemoveMutationOptions = Apollo.BaseMutationOptions<JobsiteMaterialRemoveMutation, JobsiteMaterialRemoveMutationVariables>;
@@ -5795,9 +5872,9 @@ export type JobsiteMaterialUpdateMutationFn = Apollo.MutationFunction<JobsiteMat
  * });
  */
 export function useJobsiteMaterialUpdateMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteMaterialUpdateMutation, JobsiteMaterialUpdateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<JobsiteMaterialUpdateMutation, JobsiteMaterialUpdateMutationVariables>(JobsiteMaterialUpdateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteMaterialUpdateMutation, JobsiteMaterialUpdateMutationVariables>(JobsiteMaterialUpdateDocument, options);
+      }
 export type JobsiteMaterialUpdateMutationHookResult = ReturnType<typeof useJobsiteMaterialUpdateMutation>;
 export type JobsiteMaterialUpdateMutationResult = Apollo.MutationResult<JobsiteMaterialUpdateMutation>;
 export type JobsiteMaterialUpdateMutationOptions = Apollo.BaseMutationOptions<JobsiteMaterialUpdateMutation, JobsiteMaterialUpdateMutationVariables>;
@@ -5827,9 +5904,9 @@ export type JobsiteRemoveMutationFn = Apollo.MutationFunction<JobsiteRemoveMutat
  * });
  */
 export function useJobsiteRemoveMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteRemoveMutation, JobsiteRemoveMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<JobsiteRemoveMutation, JobsiteRemoveMutationVariables>(JobsiteRemoveDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteRemoveMutation, JobsiteRemoveMutationVariables>(JobsiteRemoveDocument, options);
+      }
 export type JobsiteRemoveMutationHookResult = ReturnType<typeof useJobsiteRemoveMutation>;
 export type JobsiteRemoveMutationResult = Apollo.MutationResult<JobsiteRemoveMutation>;
 export type JobsiteRemoveMutationOptions = Apollo.BaseMutationOptions<JobsiteRemoveMutation, JobsiteRemoveMutationVariables>;
@@ -5861,9 +5938,9 @@ export type JobsiteRemoveFileObjectMutationFn = Apollo.MutationFunction<JobsiteR
  * });
  */
 export function useJobsiteRemoveFileObjectMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteRemoveFileObjectMutation, JobsiteRemoveFileObjectMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<JobsiteRemoveFileObjectMutation, JobsiteRemoveFileObjectMutationVariables>(JobsiteRemoveFileObjectDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteRemoveFileObjectMutation, JobsiteRemoveFileObjectMutationVariables>(JobsiteRemoveFileObjectDocument, options);
+      }
 export type JobsiteRemoveFileObjectMutationHookResult = ReturnType<typeof useJobsiteRemoveFileObjectMutation>;
 export type JobsiteRemoveFileObjectMutationResult = Apollo.MutationResult<JobsiteRemoveFileObjectMutation>;
 export type JobsiteRemoveFileObjectMutationOptions = Apollo.BaseMutationOptions<JobsiteRemoveFileObjectMutation, JobsiteRemoveFileObjectMutationVariables>;
@@ -5894,9 +5971,9 @@ export type JobsiteRequestReportGenerationMutationFn = Apollo.MutationFunction<J
  * });
  */
 export function useJobsiteRequestReportGenerationMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteRequestReportGenerationMutation, JobsiteRequestReportGenerationMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<JobsiteRequestReportGenerationMutation, JobsiteRequestReportGenerationMutationVariables>(JobsiteRequestReportGenerationDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteRequestReportGenerationMutation, JobsiteRequestReportGenerationMutationVariables>(JobsiteRequestReportGenerationDocument, options);
+      }
 export type JobsiteRequestReportGenerationMutationHookResult = ReturnType<typeof useJobsiteRequestReportGenerationMutation>;
 export type JobsiteRequestReportGenerationMutationResult = Apollo.MutationResult<JobsiteRequestReportGenerationMutation>;
 export type JobsiteRequestReportGenerationMutationOptions = Apollo.BaseMutationOptions<JobsiteRequestReportGenerationMutation, JobsiteRequestReportGenerationMutationVariables>;
@@ -5926,9 +6003,9 @@ export type JobsiteSetAllEmptyTruckingRatesMutationFn = Apollo.MutationFunction<
  * });
  */
 export function useJobsiteSetAllEmptyTruckingRatesMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteSetAllEmptyTruckingRatesMutation, JobsiteSetAllEmptyTruckingRatesMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<JobsiteSetAllEmptyTruckingRatesMutation, JobsiteSetAllEmptyTruckingRatesMutationVariables>(JobsiteSetAllEmptyTruckingRatesDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteSetAllEmptyTruckingRatesMutation, JobsiteSetAllEmptyTruckingRatesMutationVariables>(JobsiteSetAllEmptyTruckingRatesDocument, options);
+      }
 export type JobsiteSetAllEmptyTruckingRatesMutationHookResult = ReturnType<typeof useJobsiteSetAllEmptyTruckingRatesMutation>;
 export type JobsiteSetAllEmptyTruckingRatesMutationResult = Apollo.MutationResult<JobsiteSetAllEmptyTruckingRatesMutation>;
 export type JobsiteSetAllEmptyTruckingRatesMutationOptions = Apollo.BaseMutationOptions<JobsiteSetAllEmptyTruckingRatesMutation, JobsiteSetAllEmptyTruckingRatesMutationVariables>;
@@ -5960,9 +6037,9 @@ export type JobsiteSetTruckingRatesMutationFn = Apollo.MutationFunction<JobsiteS
  * });
  */
 export function useJobsiteSetTruckingRatesMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteSetTruckingRatesMutation, JobsiteSetTruckingRatesMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<JobsiteSetTruckingRatesMutation, JobsiteSetTruckingRatesMutationVariables>(JobsiteSetTruckingRatesDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteSetTruckingRatesMutation, JobsiteSetTruckingRatesMutationVariables>(JobsiteSetTruckingRatesDocument, options);
+      }
 export type JobsiteSetTruckingRatesMutationHookResult = ReturnType<typeof useJobsiteSetTruckingRatesMutation>;
 export type JobsiteSetTruckingRatesMutationResult = Apollo.MutationResult<JobsiteSetTruckingRatesMutation>;
 export type JobsiteSetTruckingRatesMutationOptions = Apollo.BaseMutationOptions<JobsiteSetTruckingRatesMutation, JobsiteSetTruckingRatesMutationVariables>;
@@ -5993,9 +6070,9 @@ export type JobsiteUnarchiveMutationFn = Apollo.MutationFunction<JobsiteUnarchiv
  * });
  */
 export function useJobsiteUnarchiveMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteUnarchiveMutation, JobsiteUnarchiveMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<JobsiteUnarchiveMutation, JobsiteUnarchiveMutationVariables>(JobsiteUnarchiveDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteUnarchiveMutation, JobsiteUnarchiveMutationVariables>(JobsiteUnarchiveDocument, options);
+      }
 export type JobsiteUnarchiveMutationHookResult = ReturnType<typeof useJobsiteUnarchiveMutation>;
 export type JobsiteUnarchiveMutationResult = Apollo.MutationResult<JobsiteUnarchiveMutation>;
 export type JobsiteUnarchiveMutationOptions = Apollo.BaseMutationOptions<JobsiteUnarchiveMutation, JobsiteUnarchiveMutationVariables>;
@@ -6027,9 +6104,9 @@ export type JobsiteUpdateMutationFn = Apollo.MutationFunction<JobsiteUpdateMutat
  * });
  */
 export function useJobsiteUpdateMutation(baseOptions?: Apollo.MutationHookOptions<JobsiteUpdateMutation, JobsiteUpdateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<JobsiteUpdateMutation, JobsiteUpdateMutationVariables>(JobsiteUpdateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JobsiteUpdateMutation, JobsiteUpdateMutationVariables>(JobsiteUpdateDocument, options);
+      }
 export type JobsiteUpdateMutationHookResult = ReturnType<typeof useJobsiteUpdateMutation>;
 export type JobsiteUpdateMutationResult = Apollo.MutationResult<JobsiteUpdateMutation>;
 export type JobsiteUpdateMutationOptions = Apollo.BaseMutationOptions<JobsiteUpdateMutation, JobsiteUpdateMutationVariables>;
@@ -6058,9 +6135,9 @@ export type LoginMutationFn = Apollo.MutationFunction<LoginMutation, LoginMutati
  * });
  */
 export function useLoginMutation(baseOptions?: Apollo.MutationHookOptions<LoginMutation, LoginMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<LoginMutation, LoginMutationVariables>(LoginDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<LoginMutation, LoginMutationVariables>(LoginDocument, options);
+      }
 export type LoginMutationHookResult = ReturnType<typeof useLoginMutation>;
 export type LoginMutationResult = Apollo.MutationResult<LoginMutation>;
 export type LoginMutationOptions = Apollo.BaseMutationOptions<LoginMutation, LoginMutationVariables>;
@@ -6091,9 +6168,9 @@ export type MaterialArchiveMutationFn = Apollo.MutationFunction<MaterialArchiveM
  * });
  */
 export function useMaterialArchiveMutation(baseOptions?: Apollo.MutationHookOptions<MaterialArchiveMutation, MaterialArchiveMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<MaterialArchiveMutation, MaterialArchiveMutationVariables>(MaterialArchiveDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<MaterialArchiveMutation, MaterialArchiveMutationVariables>(MaterialArchiveDocument, options);
+      }
 export type MaterialArchiveMutationHookResult = ReturnType<typeof useMaterialArchiveMutation>;
 export type MaterialArchiveMutationResult = Apollo.MutationResult<MaterialArchiveMutation>;
 export type MaterialArchiveMutationOptions = Apollo.BaseMutationOptions<MaterialArchiveMutation, MaterialArchiveMutationVariables>;
@@ -6124,9 +6201,9 @@ export type MaterialCreateMutationFn = Apollo.MutationFunction<MaterialCreateMut
  * });
  */
 export function useMaterialCreateMutation(baseOptions?: Apollo.MutationHookOptions<MaterialCreateMutation, MaterialCreateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<MaterialCreateMutation, MaterialCreateMutationVariables>(MaterialCreateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<MaterialCreateMutation, MaterialCreateMutationVariables>(MaterialCreateDocument, options);
+      }
 export type MaterialCreateMutationHookResult = ReturnType<typeof useMaterialCreateMutation>;
 export type MaterialCreateMutationResult = Apollo.MutationResult<MaterialCreateMutation>;
 export type MaterialCreateMutationOptions = Apollo.BaseMutationOptions<MaterialCreateMutation, MaterialCreateMutationVariables>;
@@ -6155,9 +6232,9 @@ export type MaterialRemoveMutationFn = Apollo.MutationFunction<MaterialRemoveMut
  * });
  */
 export function useMaterialRemoveMutation(baseOptions?: Apollo.MutationHookOptions<MaterialRemoveMutation, MaterialRemoveMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<MaterialRemoveMutation, MaterialRemoveMutationVariables>(MaterialRemoveDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<MaterialRemoveMutation, MaterialRemoveMutationVariables>(MaterialRemoveDocument, options);
+      }
 export type MaterialRemoveMutationHookResult = ReturnType<typeof useMaterialRemoveMutation>;
 export type MaterialRemoveMutationResult = Apollo.MutationResult<MaterialRemoveMutation>;
 export type MaterialRemoveMutationOptions = Apollo.BaseMutationOptions<MaterialRemoveMutation, MaterialRemoveMutationVariables>;
@@ -6189,9 +6266,9 @@ export type MaterialShipmentCreateMutationFn = Apollo.MutationFunction<MaterialS
  * });
  */
 export function useMaterialShipmentCreateMutation(baseOptions?: Apollo.MutationHookOptions<MaterialShipmentCreateMutation, MaterialShipmentCreateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<MaterialShipmentCreateMutation, MaterialShipmentCreateMutationVariables>(MaterialShipmentCreateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<MaterialShipmentCreateMutation, MaterialShipmentCreateMutationVariables>(MaterialShipmentCreateDocument, options);
+      }
 export type MaterialShipmentCreateMutationHookResult = ReturnType<typeof useMaterialShipmentCreateMutation>;
 export type MaterialShipmentCreateMutationResult = Apollo.MutationResult<MaterialShipmentCreateMutation>;
 export type MaterialShipmentCreateMutationOptions = Apollo.BaseMutationOptions<MaterialShipmentCreateMutation, MaterialShipmentCreateMutationVariables>;
@@ -6220,9 +6297,9 @@ export type MaterialShipmentDeleteMutationFn = Apollo.MutationFunction<MaterialS
  * });
  */
 export function useMaterialShipmentDeleteMutation(baseOptions?: Apollo.MutationHookOptions<MaterialShipmentDeleteMutation, MaterialShipmentDeleteMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<MaterialShipmentDeleteMutation, MaterialShipmentDeleteMutationVariables>(MaterialShipmentDeleteDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<MaterialShipmentDeleteMutation, MaterialShipmentDeleteMutationVariables>(MaterialShipmentDeleteDocument, options);
+      }
 export type MaterialShipmentDeleteMutationHookResult = ReturnType<typeof useMaterialShipmentDeleteMutation>;
 export type MaterialShipmentDeleteMutationResult = Apollo.MutationResult<MaterialShipmentDeleteMutation>;
 export type MaterialShipmentDeleteMutationOptions = Apollo.BaseMutationOptions<MaterialShipmentDeleteMutation, MaterialShipmentDeleteMutationVariables>;
@@ -6254,9 +6331,9 @@ export type MaterialShipmentUpdateMutationFn = Apollo.MutationFunction<MaterialS
  * });
  */
 export function useMaterialShipmentUpdateMutation(baseOptions?: Apollo.MutationHookOptions<MaterialShipmentUpdateMutation, MaterialShipmentUpdateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<MaterialShipmentUpdateMutation, MaterialShipmentUpdateMutationVariables>(MaterialShipmentUpdateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<MaterialShipmentUpdateMutation, MaterialShipmentUpdateMutationVariables>(MaterialShipmentUpdateDocument, options);
+      }
 export type MaterialShipmentUpdateMutationHookResult = ReturnType<typeof useMaterialShipmentUpdateMutation>;
 export type MaterialShipmentUpdateMutationResult = Apollo.MutationResult<MaterialShipmentUpdateMutation>;
 export type MaterialShipmentUpdateMutationOptions = Apollo.BaseMutationOptions<MaterialShipmentUpdateMutation, MaterialShipmentUpdateMutationVariables>;
@@ -6288,9 +6365,9 @@ export type MaterialUpdateMutationFn = Apollo.MutationFunction<MaterialUpdateMut
  * });
  */
 export function useMaterialUpdateMutation(baseOptions?: Apollo.MutationHookOptions<MaterialUpdateMutation, MaterialUpdateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<MaterialUpdateMutation, MaterialUpdateMutationVariables>(MaterialUpdateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<MaterialUpdateMutation, MaterialUpdateMutationVariables>(MaterialUpdateDocument, options);
+      }
 export type MaterialUpdateMutationHookResult = ReturnType<typeof useMaterialUpdateMutation>;
 export type MaterialUpdateMutationResult = Apollo.MutationResult<MaterialUpdateMutation>;
 export type MaterialUpdateMutationOptions = Apollo.BaseMutationOptions<MaterialUpdateMutation, MaterialUpdateMutationVariables>;
@@ -6322,9 +6399,9 @@ export type OperatorDailyReportCreateMutationFn = Apollo.MutationFunction<Operat
  * });
  */
 export function useOperatorDailyReportCreateMutation(baseOptions?: Apollo.MutationHookOptions<OperatorDailyReportCreateMutation, OperatorDailyReportCreateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<OperatorDailyReportCreateMutation, OperatorDailyReportCreateMutationVariables>(OperatorDailyReportCreateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<OperatorDailyReportCreateMutation, OperatorDailyReportCreateMutationVariables>(OperatorDailyReportCreateDocument, options);
+      }
 export type OperatorDailyReportCreateMutationHookResult = ReturnType<typeof useOperatorDailyReportCreateMutation>;
 export type OperatorDailyReportCreateMutationResult = Apollo.MutationResult<OperatorDailyReportCreateMutation>;
 export type OperatorDailyReportCreateMutationOptions = Apollo.BaseMutationOptions<OperatorDailyReportCreateMutation, OperatorDailyReportCreateMutationVariables>;
@@ -6356,9 +6433,9 @@ export type ProductionCreateMutationFn = Apollo.MutationFunction<ProductionCreat
  * });
  */
 export function useProductionCreateMutation(baseOptions?: Apollo.MutationHookOptions<ProductionCreateMutation, ProductionCreateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<ProductionCreateMutation, ProductionCreateMutationVariables>(ProductionCreateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ProductionCreateMutation, ProductionCreateMutationVariables>(ProductionCreateDocument, options);
+      }
 export type ProductionCreateMutationHookResult = ReturnType<typeof useProductionCreateMutation>;
 export type ProductionCreateMutationResult = Apollo.MutationResult<ProductionCreateMutation>;
 export type ProductionCreateMutationOptions = Apollo.BaseMutationOptions<ProductionCreateMutation, ProductionCreateMutationVariables>;
@@ -6387,9 +6464,9 @@ export type ProductionDeleteMutationFn = Apollo.MutationFunction<ProductionDelet
  * });
  */
 export function useProductionDeleteMutation(baseOptions?: Apollo.MutationHookOptions<ProductionDeleteMutation, ProductionDeleteMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<ProductionDeleteMutation, ProductionDeleteMutationVariables>(ProductionDeleteDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ProductionDeleteMutation, ProductionDeleteMutationVariables>(ProductionDeleteDocument, options);
+      }
 export type ProductionDeleteMutationHookResult = ReturnType<typeof useProductionDeleteMutation>;
 export type ProductionDeleteMutationResult = Apollo.MutationResult<ProductionDeleteMutation>;
 export type ProductionDeleteMutationOptions = Apollo.BaseMutationOptions<ProductionDeleteMutation, ProductionDeleteMutationVariables>;
@@ -6421,9 +6498,9 @@ export type ProductionUpdateMutationFn = Apollo.MutationFunction<ProductionUpdat
  * });
  */
 export function useProductionUpdateMutation(baseOptions?: Apollo.MutationHookOptions<ProductionUpdateMutation, ProductionUpdateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<ProductionUpdateMutation, ProductionUpdateMutationVariables>(ProductionUpdateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ProductionUpdateMutation, ProductionUpdateMutationVariables>(ProductionUpdateDocument, options);
+      }
 export type ProductionUpdateMutationHookResult = ReturnType<typeof useProductionUpdateMutation>;
 export type ProductionUpdateMutationResult = Apollo.MutationResult<ProductionUpdateMutation>;
 export type ProductionUpdateMutationOptions = Apollo.BaseMutationOptions<ProductionUpdateMutation, ProductionUpdateMutationVariables>;
@@ -6455,9 +6532,9 @@ export type ReportNoteRemoveFileMutationFn = Apollo.MutationFunction<ReportNoteR
  * });
  */
 export function useReportNoteRemoveFileMutation(baseOptions?: Apollo.MutationHookOptions<ReportNoteRemoveFileMutation, ReportNoteRemoveFileMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<ReportNoteRemoveFileMutation, ReportNoteRemoveFileMutationVariables>(ReportNoteRemoveFileDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ReportNoteRemoveFileMutation, ReportNoteRemoveFileMutationVariables>(ReportNoteRemoveFileDocument, options);
+      }
 export type ReportNoteRemoveFileMutationHookResult = ReturnType<typeof useReportNoteRemoveFileMutation>;
 export type ReportNoteRemoveFileMutationResult = Apollo.MutationResult<ReportNoteRemoveFileMutation>;
 export type ReportNoteRemoveFileMutationOptions = Apollo.BaseMutationOptions<ReportNoteRemoveFileMutation, ReportNoteRemoveFileMutationVariables>;
@@ -6487,9 +6564,9 @@ export type SignupMutationFn = Apollo.MutationFunction<SignupMutation, SignupMut
  * });
  */
 export function useSignupMutation(baseOptions?: Apollo.MutationHookOptions<SignupMutation, SignupMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<SignupMutation, SignupMutationVariables>(SignupDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SignupMutation, SignupMutationVariables>(SignupDocument, options);
+      }
 export type SignupMutationHookResult = ReturnType<typeof useSignupMutation>;
 export type SignupMutationResult = Apollo.MutationResult<SignupMutation>;
 export type SignupMutationOptions = Apollo.BaseMutationOptions<SignupMutation, SignupMutationVariables>;
@@ -6520,9 +6597,9 @@ export type SignupCreateMutationFn = Apollo.MutationFunction<SignupCreateMutatio
  * });
  */
 export function useSignupCreateMutation(baseOptions?: Apollo.MutationHookOptions<SignupCreateMutation, SignupCreateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<SignupCreateMutation, SignupCreateMutationVariables>(SignupCreateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SignupCreateMutation, SignupCreateMutationVariables>(SignupCreateDocument, options);
+      }
 export type SignupCreateMutationHookResult = ReturnType<typeof useSignupCreateMutation>;
 export type SignupCreateMutationResult = Apollo.MutationResult<SignupCreateMutation>;
 export type SignupCreateMutationOptions = Apollo.BaseMutationOptions<SignupCreateMutation, SignupCreateMutationVariables>;
@@ -6553,9 +6630,9 @@ export type SystemUpdateCompanyVehicleTypeDefaultsMutationFn = Apollo.MutationFu
  * });
  */
 export function useSystemUpdateCompanyVehicleTypeDefaultsMutation(baseOptions?: Apollo.MutationHookOptions<SystemUpdateCompanyVehicleTypeDefaultsMutation, SystemUpdateCompanyVehicleTypeDefaultsMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<SystemUpdateCompanyVehicleTypeDefaultsMutation, SystemUpdateCompanyVehicleTypeDefaultsMutationVariables>(SystemUpdateCompanyVehicleTypeDefaultsDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SystemUpdateCompanyVehicleTypeDefaultsMutation, SystemUpdateCompanyVehicleTypeDefaultsMutationVariables>(SystemUpdateCompanyVehicleTypeDefaultsDocument, options);
+      }
 export type SystemUpdateCompanyVehicleTypeDefaultsMutationHookResult = ReturnType<typeof useSystemUpdateCompanyVehicleTypeDefaultsMutation>;
 export type SystemUpdateCompanyVehicleTypeDefaultsMutationResult = Apollo.MutationResult<SystemUpdateCompanyVehicleTypeDefaultsMutation>;
 export type SystemUpdateCompanyVehicleTypeDefaultsMutationOptions = Apollo.BaseMutationOptions<SystemUpdateCompanyVehicleTypeDefaultsMutation, SystemUpdateCompanyVehicleTypeDefaultsMutationVariables>;
@@ -6586,9 +6663,9 @@ export type SystemUpdateFluidTypesMutationFn = Apollo.MutationFunction<SystemUpd
  * });
  */
 export function useSystemUpdateFluidTypesMutation(baseOptions?: Apollo.MutationHookOptions<SystemUpdateFluidTypesMutation, SystemUpdateFluidTypesMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<SystemUpdateFluidTypesMutation, SystemUpdateFluidTypesMutationVariables>(SystemUpdateFluidTypesDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SystemUpdateFluidTypesMutation, SystemUpdateFluidTypesMutationVariables>(SystemUpdateFluidTypesDocument, options);
+      }
 export type SystemUpdateFluidTypesMutationHookResult = ReturnType<typeof useSystemUpdateFluidTypesMutation>;
 export type SystemUpdateFluidTypesMutationResult = Apollo.MutationResult<SystemUpdateFluidTypesMutation>;
 export type SystemUpdateFluidTypesMutationOptions = Apollo.BaseMutationOptions<SystemUpdateFluidTypesMutation, SystemUpdateFluidTypesMutationVariables>;
@@ -6619,9 +6696,9 @@ export type SystemUpdateInternalExpenseOverheadRateMutationFn = Apollo.MutationF
  * });
  */
 export function useSystemUpdateInternalExpenseOverheadRateMutation(baseOptions?: Apollo.MutationHookOptions<SystemUpdateInternalExpenseOverheadRateMutation, SystemUpdateInternalExpenseOverheadRateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<SystemUpdateInternalExpenseOverheadRateMutation, SystemUpdateInternalExpenseOverheadRateMutationVariables>(SystemUpdateInternalExpenseOverheadRateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SystemUpdateInternalExpenseOverheadRateMutation, SystemUpdateInternalExpenseOverheadRateMutationVariables>(SystemUpdateInternalExpenseOverheadRateDocument, options);
+      }
 export type SystemUpdateInternalExpenseOverheadRateMutationHookResult = ReturnType<typeof useSystemUpdateInternalExpenseOverheadRateMutation>;
 export type SystemUpdateInternalExpenseOverheadRateMutationResult = Apollo.MutationResult<SystemUpdateInternalExpenseOverheadRateMutation>;
 export type SystemUpdateInternalExpenseOverheadRateMutationOptions = Apollo.BaseMutationOptions<SystemUpdateInternalExpenseOverheadRateMutation, SystemUpdateInternalExpenseOverheadRateMutationVariables>;
@@ -6652,9 +6729,9 @@ export type SystemUpdateLaborTypesMutationFn = Apollo.MutationFunction<SystemUpd
  * });
  */
 export function useSystemUpdateLaborTypesMutation(baseOptions?: Apollo.MutationHookOptions<SystemUpdateLaborTypesMutation, SystemUpdateLaborTypesMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<SystemUpdateLaborTypesMutation, SystemUpdateLaborTypesMutationVariables>(SystemUpdateLaborTypesDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SystemUpdateLaborTypesMutation, SystemUpdateLaborTypesMutationVariables>(SystemUpdateLaborTypesDocument, options);
+      }
 export type SystemUpdateLaborTypesMutationHookResult = ReturnType<typeof useSystemUpdateLaborTypesMutation>;
 export type SystemUpdateLaborTypesMutationResult = Apollo.MutationResult<SystemUpdateLaborTypesMutation>;
 export type SystemUpdateLaborTypesMutationOptions = Apollo.BaseMutationOptions<SystemUpdateLaborTypesMutation, SystemUpdateLaborTypesMutationVariables>;
@@ -6685,9 +6762,9 @@ export type SystemUpdateMaterialShipmentVehicleTypeDefaultsMutationFn = Apollo.M
  * });
  */
 export function useSystemUpdateMaterialShipmentVehicleTypeDefaultsMutation(baseOptions?: Apollo.MutationHookOptions<SystemUpdateMaterialShipmentVehicleTypeDefaultsMutation, SystemUpdateMaterialShipmentVehicleTypeDefaultsMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<SystemUpdateMaterialShipmentVehicleTypeDefaultsMutation, SystemUpdateMaterialShipmentVehicleTypeDefaultsMutationVariables>(SystemUpdateMaterialShipmentVehicleTypeDefaultsDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SystemUpdateMaterialShipmentVehicleTypeDefaultsMutation, SystemUpdateMaterialShipmentVehicleTypeDefaultsMutationVariables>(SystemUpdateMaterialShipmentVehicleTypeDefaultsDocument, options);
+      }
 export type SystemUpdateMaterialShipmentVehicleTypeDefaultsMutationHookResult = ReturnType<typeof useSystemUpdateMaterialShipmentVehicleTypeDefaultsMutation>;
 export type SystemUpdateMaterialShipmentVehicleTypeDefaultsMutationResult = Apollo.MutationResult<SystemUpdateMaterialShipmentVehicleTypeDefaultsMutation>;
 export type SystemUpdateMaterialShipmentVehicleTypeDefaultsMutationOptions = Apollo.BaseMutationOptions<SystemUpdateMaterialShipmentVehicleTypeDefaultsMutation, SystemUpdateMaterialShipmentVehicleTypeDefaultsMutationVariables>;
@@ -6718,9 +6795,9 @@ export type SystemUpdateUnitDefaultsMutationFn = Apollo.MutationFunction<SystemU
  * });
  */
 export function useSystemUpdateUnitDefaultsMutation(baseOptions?: Apollo.MutationHookOptions<SystemUpdateUnitDefaultsMutation, SystemUpdateUnitDefaultsMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<SystemUpdateUnitDefaultsMutation, SystemUpdateUnitDefaultsMutationVariables>(SystemUpdateUnitDefaultsDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SystemUpdateUnitDefaultsMutation, SystemUpdateUnitDefaultsMutationVariables>(SystemUpdateUnitDefaultsDocument, options);
+      }
 export type SystemUpdateUnitDefaultsMutationHookResult = ReturnType<typeof useSystemUpdateUnitDefaultsMutation>;
 export type SystemUpdateUnitDefaultsMutationResult = Apollo.MutationResult<SystemUpdateUnitDefaultsMutation>;
 export type SystemUpdateUnitDefaultsMutationOptions = Apollo.BaseMutationOptions<SystemUpdateUnitDefaultsMutation, SystemUpdateUnitDefaultsMutationVariables>;
@@ -6749,9 +6826,9 @@ export type UserDeleteMutationFn = Apollo.MutationFunction<UserDeleteMutation, U
  * });
  */
 export function useUserDeleteMutation(baseOptions?: Apollo.MutationHookOptions<UserDeleteMutation, UserDeleteMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<UserDeleteMutation, UserDeleteMutationVariables>(UserDeleteDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UserDeleteMutation, UserDeleteMutationVariables>(UserDeleteDocument, options);
+      }
 export type UserDeleteMutationHookResult = ReturnType<typeof useUserDeleteMutation>;
 export type UserDeleteMutationResult = Apollo.MutationResult<UserDeleteMutation>;
 export type UserDeleteMutationOptions = Apollo.BaseMutationOptions<UserDeleteMutation, UserDeleteMutationVariables>;
@@ -6781,9 +6858,9 @@ export type UserPasswordResetMutationFn = Apollo.MutationFunction<UserPasswordRe
  * });
  */
 export function useUserPasswordResetMutation(baseOptions?: Apollo.MutationHookOptions<UserPasswordResetMutation, UserPasswordResetMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<UserPasswordResetMutation, UserPasswordResetMutationVariables>(UserPasswordResetDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UserPasswordResetMutation, UserPasswordResetMutationVariables>(UserPasswordResetDocument, options);
+      }
 export type UserPasswordResetMutationHookResult = ReturnType<typeof useUserPasswordResetMutation>;
 export type UserPasswordResetMutationResult = Apollo.MutationResult<UserPasswordResetMutation>;
 export type UserPasswordResetMutationOptions = Apollo.BaseMutationOptions<UserPasswordResetMutation, UserPasswordResetMutationVariables>;
@@ -6812,9 +6889,9 @@ export type UserPasswordResetRequestMutationFn = Apollo.MutationFunction<UserPas
  * });
  */
 export function useUserPasswordResetRequestMutation(baseOptions?: Apollo.MutationHookOptions<UserPasswordResetRequestMutation, UserPasswordResetRequestMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<UserPasswordResetRequestMutation, UserPasswordResetRequestMutationVariables>(UserPasswordResetRequestDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UserPasswordResetRequestMutation, UserPasswordResetRequestMutationVariables>(UserPasswordResetRequestDocument, options);
+      }
 export type UserPasswordResetRequestMutationHookResult = ReturnType<typeof useUserPasswordResetRequestMutation>;
 export type UserPasswordResetRequestMutationResult = Apollo.MutationResult<UserPasswordResetRequestMutation>;
 export type UserPasswordResetRequestMutationOptions = Apollo.BaseMutationOptions<UserPasswordResetRequestMutation, UserPasswordResetRequestMutationVariables>;
@@ -6845,9 +6922,9 @@ export type UserUpdateHomeViewMutationFn = Apollo.MutationFunction<UserUpdateHom
  * });
  */
 export function useUserUpdateHomeViewMutation(baseOptions?: Apollo.MutationHookOptions<UserUpdateHomeViewMutation, UserUpdateHomeViewMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<UserUpdateHomeViewMutation, UserUpdateHomeViewMutationVariables>(UserUpdateHomeViewDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UserUpdateHomeViewMutation, UserUpdateHomeViewMutationVariables>(UserUpdateHomeViewDocument, options);
+      }
 export type UserUpdateHomeViewMutationHookResult = ReturnType<typeof useUserUpdateHomeViewMutation>;
 export type UserUpdateHomeViewMutationResult = Apollo.MutationResult<UserUpdateHomeViewMutation>;
 export type UserUpdateHomeViewMutationOptions = Apollo.BaseMutationOptions<UserUpdateHomeViewMutation, UserUpdateHomeViewMutationVariables>;
@@ -6879,9 +6956,9 @@ export type UserUpdateRoleMutationFn = Apollo.MutationFunction<UserUpdateRoleMut
  * });
  */
 export function useUserUpdateRoleMutation(baseOptions?: Apollo.MutationHookOptions<UserUpdateRoleMutation, UserUpdateRoleMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<UserUpdateRoleMutation, UserUpdateRoleMutationVariables>(UserUpdateRoleDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UserUpdateRoleMutation, UserUpdateRoleMutationVariables>(UserUpdateRoleDocument, options);
+      }
 export type UserUpdateRoleMutationHookResult = ReturnType<typeof useUserUpdateRoleMutation>;
 export type UserUpdateRoleMutationResult = Apollo.MutationResult<UserUpdateRoleMutation>;
 export type UserUpdateRoleMutationOptions = Apollo.BaseMutationOptions<UserUpdateRoleMutation, UserUpdateRoleMutationVariables>;
@@ -6912,9 +6989,9 @@ export type UserUpdateSubscribedPrioritiesMutationFn = Apollo.MutationFunction<U
  * });
  */
 export function useUserUpdateSubscribedPrioritiesMutation(baseOptions?: Apollo.MutationHookOptions<UserUpdateSubscribedPrioritiesMutation, UserUpdateSubscribedPrioritiesMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<UserUpdateSubscribedPrioritiesMutation, UserUpdateSubscribedPrioritiesMutationVariables>(UserUpdateSubscribedPrioritiesDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UserUpdateSubscribedPrioritiesMutation, UserUpdateSubscribedPrioritiesMutationVariables>(UserUpdateSubscribedPrioritiesDocument, options);
+      }
 export type UserUpdateSubscribedPrioritiesMutationHookResult = ReturnType<typeof useUserUpdateSubscribedPrioritiesMutation>;
 export type UserUpdateSubscribedPrioritiesMutationResult = Apollo.MutationResult<UserUpdateSubscribedPrioritiesMutation>;
 export type UserUpdateSubscribedPrioritiesMutationOptions = Apollo.BaseMutationOptions<UserUpdateSubscribedPrioritiesMutation, UserUpdateSubscribedPrioritiesMutationVariables>;
@@ -6946,9 +7023,9 @@ export type UserUpdateTypesMutationFn = Apollo.MutationFunction<UserUpdateTypesM
  * });
  */
 export function useUserUpdateTypesMutation(baseOptions?: Apollo.MutationHookOptions<UserUpdateTypesMutation, UserUpdateTypesMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<UserUpdateTypesMutation, UserUpdateTypesMutationVariables>(UserUpdateTypesDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UserUpdateTypesMutation, UserUpdateTypesMutationVariables>(UserUpdateTypesDocument, options);
+      }
 export type UserUpdateTypesMutationHookResult = ReturnType<typeof useUserUpdateTypesMutation>;
 export type UserUpdateTypesMutationResult = Apollo.MutationResult<UserUpdateTypesMutation>;
 export type UserUpdateTypesMutationOptions = Apollo.BaseMutationOptions<UserUpdateTypesMutation, UserUpdateTypesMutationVariables>;
@@ -6979,9 +7056,9 @@ export type VehicleArchiveMutationFn = Apollo.MutationFunction<VehicleArchiveMut
  * });
  */
 export function useVehicleArchiveMutation(baseOptions?: Apollo.MutationHookOptions<VehicleArchiveMutation, VehicleArchiveMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<VehicleArchiveMutation, VehicleArchiveMutationVariables>(VehicleArchiveDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<VehicleArchiveMutation, VehicleArchiveMutationVariables>(VehicleArchiveDocument, options);
+      }
 export type VehicleArchiveMutationHookResult = ReturnType<typeof useVehicleArchiveMutation>;
 export type VehicleArchiveMutationResult = Apollo.MutationResult<VehicleArchiveMutation>;
 export type VehicleArchiveMutationOptions = Apollo.BaseMutationOptions<VehicleArchiveMutation, VehicleArchiveMutationVariables>;
@@ -7013,9 +7090,9 @@ export type VehicleCreateMutationFn = Apollo.MutationFunction<VehicleCreateMutat
  * });
  */
 export function useVehicleCreateMutation(baseOptions?: Apollo.MutationHookOptions<VehicleCreateMutation, VehicleCreateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<VehicleCreateMutation, VehicleCreateMutationVariables>(VehicleCreateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<VehicleCreateMutation, VehicleCreateMutationVariables>(VehicleCreateDocument, options);
+      }
 export type VehicleCreateMutationHookResult = ReturnType<typeof useVehicleCreateMutation>;
 export type VehicleCreateMutationResult = Apollo.MutationResult<VehicleCreateMutation>;
 export type VehicleCreateMutationOptions = Apollo.BaseMutationOptions<VehicleCreateMutation, VehicleCreateMutationVariables>;
@@ -7047,9 +7124,9 @@ export type VehicleIssueAssignedToUpdateMutationFn = Apollo.MutationFunction<Veh
  * });
  */
 export function useVehicleIssueAssignedToUpdateMutation(baseOptions?: Apollo.MutationHookOptions<VehicleIssueAssignedToUpdateMutation, VehicleIssueAssignedToUpdateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<VehicleIssueAssignedToUpdateMutation, VehicleIssueAssignedToUpdateMutationVariables>(VehicleIssueAssignedToUpdateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<VehicleIssueAssignedToUpdateMutation, VehicleIssueAssignedToUpdateMutationVariables>(VehicleIssueAssignedToUpdateDocument, options);
+      }
 export type VehicleIssueAssignedToUpdateMutationHookResult = ReturnType<typeof useVehicleIssueAssignedToUpdateMutation>;
 export type VehicleIssueAssignedToUpdateMutationResult = Apollo.MutationResult<VehicleIssueAssignedToUpdateMutation>;
 export type VehicleIssueAssignedToUpdateMutationOptions = Apollo.BaseMutationOptions<VehicleIssueAssignedToUpdateMutation, VehicleIssueAssignedToUpdateMutationVariables>;
@@ -7080,9 +7157,9 @@ export type VehicleIssueCloseMutationFn = Apollo.MutationFunction<VehicleIssueCl
  * });
  */
 export function useVehicleIssueCloseMutation(baseOptions?: Apollo.MutationHookOptions<VehicleIssueCloseMutation, VehicleIssueCloseMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<VehicleIssueCloseMutation, VehicleIssueCloseMutationVariables>(VehicleIssueCloseDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<VehicleIssueCloseMutation, VehicleIssueCloseMutationVariables>(VehicleIssueCloseDocument, options);
+      }
 export type VehicleIssueCloseMutationHookResult = ReturnType<typeof useVehicleIssueCloseMutation>;
 export type VehicleIssueCloseMutationResult = Apollo.MutationResult<VehicleIssueCloseMutation>;
 export type VehicleIssueCloseMutationOptions = Apollo.BaseMutationOptions<VehicleIssueCloseMutation, VehicleIssueCloseMutationVariables>;
@@ -7114,9 +7191,9 @@ export type VehicleIssueCreateMutationFn = Apollo.MutationFunction<VehicleIssueC
  * });
  */
 export function useVehicleIssueCreateMutation(baseOptions?: Apollo.MutationHookOptions<VehicleIssueCreateMutation, VehicleIssueCreateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<VehicleIssueCreateMutation, VehicleIssueCreateMutationVariables>(VehicleIssueCreateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<VehicleIssueCreateMutation, VehicleIssueCreateMutationVariables>(VehicleIssueCreateDocument, options);
+      }
 export type VehicleIssueCreateMutationHookResult = ReturnType<typeof useVehicleIssueCreateMutation>;
 export type VehicleIssueCreateMutationResult = Apollo.MutationResult<VehicleIssueCreateMutation>;
 export type VehicleIssueCreateMutationOptions = Apollo.BaseMutationOptions<VehicleIssueCreateMutation, VehicleIssueCreateMutationVariables>;
@@ -7147,9 +7224,9 @@ export type VehicleUnarchiveMutationFn = Apollo.MutationFunction<VehicleUnarchiv
  * });
  */
 export function useVehicleUnarchiveMutation(baseOptions?: Apollo.MutationHookOptions<VehicleUnarchiveMutation, VehicleUnarchiveMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<VehicleUnarchiveMutation, VehicleUnarchiveMutationVariables>(VehicleUnarchiveDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<VehicleUnarchiveMutation, VehicleUnarchiveMutationVariables>(VehicleUnarchiveDocument, options);
+      }
 export type VehicleUnarchiveMutationHookResult = ReturnType<typeof useVehicleUnarchiveMutation>;
 export type VehicleUnarchiveMutationResult = Apollo.MutationResult<VehicleUnarchiveMutation>;
 export type VehicleUnarchiveMutationOptions = Apollo.BaseMutationOptions<VehicleUnarchiveMutation, VehicleUnarchiveMutationVariables>;
@@ -7181,9 +7258,9 @@ export type VehicleUpdateMutationFn = Apollo.MutationFunction<VehicleUpdateMutat
  * });
  */
 export function useVehicleUpdateMutation(baseOptions?: Apollo.MutationHookOptions<VehicleUpdateMutation, VehicleUpdateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<VehicleUpdateMutation, VehicleUpdateMutationVariables>(VehicleUpdateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<VehicleUpdateMutation, VehicleUpdateMutationVariables>(VehicleUpdateDocument, options);
+      }
 export type VehicleUpdateMutationHookResult = ReturnType<typeof useVehicleUpdateMutation>;
 export type VehicleUpdateMutationResult = Apollo.MutationResult<VehicleUpdateMutation>;
 export type VehicleUpdateMutationOptions = Apollo.BaseMutationOptions<VehicleUpdateMutation, VehicleUpdateMutationVariables>;
@@ -7215,9 +7292,9 @@ export type VehicleUpdateRatesMutationFn = Apollo.MutationFunction<VehicleUpdate
  * });
  */
 export function useVehicleUpdateRatesMutation(baseOptions?: Apollo.MutationHookOptions<VehicleUpdateRatesMutation, VehicleUpdateRatesMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<VehicleUpdateRatesMutation, VehicleUpdateRatesMutationVariables>(VehicleUpdateRatesDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<VehicleUpdateRatesMutation, VehicleUpdateRatesMutationVariables>(VehicleUpdateRatesDocument, options);
+      }
 export type VehicleUpdateRatesMutationHookResult = ReturnType<typeof useVehicleUpdateRatesMutation>;
 export type VehicleUpdateRatesMutationResult = Apollo.MutationResult<VehicleUpdateRatesMutation>;
 export type VehicleUpdateRatesMutationOptions = Apollo.BaseMutationOptions<VehicleUpdateRatesMutation, VehicleUpdateRatesMutationVariables>;
@@ -7249,9 +7326,9 @@ export type VehicleWorkCreateMutationFn = Apollo.MutationFunction<VehicleWorkCre
  * });
  */
 export function useVehicleWorkCreateMutation(baseOptions?: Apollo.MutationHookOptions<VehicleWorkCreateMutation, VehicleWorkCreateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<VehicleWorkCreateMutation, VehicleWorkCreateMutationVariables>(VehicleWorkCreateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<VehicleWorkCreateMutation, VehicleWorkCreateMutationVariables>(VehicleWorkCreateDocument, options);
+      }
 export type VehicleWorkCreateMutationHookResult = ReturnType<typeof useVehicleWorkCreateMutation>;
 export type VehicleWorkCreateMutationResult = Apollo.MutationResult<VehicleWorkCreateMutation>;
 export type VehicleWorkCreateMutationOptions = Apollo.BaseMutationOptions<VehicleWorkCreateMutation, VehicleWorkCreateMutationVariables>;
@@ -7280,9 +7357,9 @@ export type VehicleWorkDeleteMutationFn = Apollo.MutationFunction<VehicleWorkDel
  * });
  */
 export function useVehicleWorkDeleteMutation(baseOptions?: Apollo.MutationHookOptions<VehicleWorkDeleteMutation, VehicleWorkDeleteMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<VehicleWorkDeleteMutation, VehicleWorkDeleteMutationVariables>(VehicleWorkDeleteDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<VehicleWorkDeleteMutation, VehicleWorkDeleteMutationVariables>(VehicleWorkDeleteDocument, options);
+      }
 export type VehicleWorkDeleteMutationHookResult = ReturnType<typeof useVehicleWorkDeleteMutation>;
 export type VehicleWorkDeleteMutationResult = Apollo.MutationResult<VehicleWorkDeleteMutation>;
 export type VehicleWorkDeleteMutationOptions = Apollo.BaseMutationOptions<VehicleWorkDeleteMutation, VehicleWorkDeleteMutationVariables>;
@@ -7314,9 +7391,9 @@ export type VehicleWorkUpdateMutationFn = Apollo.MutationFunction<VehicleWorkUpd
  * });
  */
 export function useVehicleWorkUpdateMutation(baseOptions?: Apollo.MutationHookOptions<VehicleWorkUpdateMutation, VehicleWorkUpdateMutationVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useMutation<VehicleWorkUpdateMutation, VehicleWorkUpdateMutationVariables>(VehicleWorkUpdateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<VehicleWorkUpdateMutation, VehicleWorkUpdateMutationVariables>(VehicleWorkUpdateDocument, options);
+      }
 export type VehicleWorkUpdateMutationHookResult = ReturnType<typeof useVehicleWorkUpdateMutation>;
 export type VehicleWorkUpdateMutationResult = Apollo.MutationResult<VehicleWorkUpdateMutation>;
 export type VehicleWorkUpdateMutationOptions = Apollo.BaseMutationOptions<VehicleWorkUpdateMutation, VehicleWorkUpdateMutationVariables>;
@@ -7345,13 +7422,13 @@ export const ArchivedEmployeesDocument = gql`
  * });
  */
 export function useArchivedEmployeesQuery(baseOptions?: Apollo.QueryHookOptions<ArchivedEmployeesQuery, ArchivedEmployeesQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<ArchivedEmployeesQuery, ArchivedEmployeesQueryVariables>(ArchivedEmployeesDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ArchivedEmployeesQuery, ArchivedEmployeesQueryVariables>(ArchivedEmployeesDocument, options);
+      }
 export function useArchivedEmployeesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ArchivedEmployeesQuery, ArchivedEmployeesQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<ArchivedEmployeesQuery, ArchivedEmployeesQueryVariables>(ArchivedEmployeesDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ArchivedEmployeesQuery, ArchivedEmployeesQueryVariables>(ArchivedEmployeesDocument, options);
+        }
 export type ArchivedEmployeesQueryHookResult = ReturnType<typeof useArchivedEmployeesQuery>;
 export type ArchivedEmployeesLazyQueryHookResult = ReturnType<typeof useArchivedEmployeesLazyQuery>;
 export type ArchivedEmployeesQueryResult = Apollo.QueryResult<ArchivedEmployeesQuery, ArchivedEmployeesQueryVariables>;
@@ -7380,13 +7457,13 @@ export const ArchivedVehiclesDocument = gql`
  * });
  */
 export function useArchivedVehiclesQuery(baseOptions?: Apollo.QueryHookOptions<ArchivedVehiclesQuery, ArchivedVehiclesQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<ArchivedVehiclesQuery, ArchivedVehiclesQueryVariables>(ArchivedVehiclesDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ArchivedVehiclesQuery, ArchivedVehiclesQueryVariables>(ArchivedVehiclesDocument, options);
+      }
 export function useArchivedVehiclesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ArchivedVehiclesQuery, ArchivedVehiclesQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<ArchivedVehiclesQuery, ArchivedVehiclesQueryVariables>(ArchivedVehiclesDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ArchivedVehiclesQuery, ArchivedVehiclesQueryVariables>(ArchivedVehiclesDocument, options);
+        }
 export type ArchivedVehiclesQueryHookResult = ReturnType<typeof useArchivedVehiclesQuery>;
 export type ArchivedVehiclesLazyQueryHookResult = ReturnType<typeof useArchivedVehiclesLazyQuery>;
 export type ArchivedVehiclesQueryResult = Apollo.QueryResult<ArchivedVehiclesQuery, ArchivedVehiclesQueryVariables>;
@@ -7415,13 +7492,13 @@ export const CompaniesDocument = gql`
  * });
  */
 export function useCompaniesQuery(baseOptions?: Apollo.QueryHookOptions<CompaniesQuery, CompaniesQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<CompaniesQuery, CompaniesQueryVariables>(CompaniesDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<CompaniesQuery, CompaniesQueryVariables>(CompaniesDocument, options);
+      }
 export function useCompaniesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<CompaniesQuery, CompaniesQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<CompaniesQuery, CompaniesQueryVariables>(CompaniesDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<CompaniesQuery, CompaniesQueryVariables>(CompaniesDocument, options);
+        }
 export type CompaniesQueryHookResult = ReturnType<typeof useCompaniesQuery>;
 export type CompaniesLazyQueryHookResult = ReturnType<typeof useCompaniesLazyQuery>;
 export type CompaniesQueryResult = Apollo.QueryResult<CompaniesQuery, CompaniesQueryVariables>;
@@ -7451,13 +7528,13 @@ export const CompanySearchDocument = gql`
  * });
  */
 export function useCompanySearchQuery(baseOptions: Apollo.QueryHookOptions<CompanySearchQuery, CompanySearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<CompanySearchQuery, CompanySearchQueryVariables>(CompanySearchDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<CompanySearchQuery, CompanySearchQueryVariables>(CompanySearchDocument, options);
+      }
 export function useCompanySearchLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<CompanySearchQuery, CompanySearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<CompanySearchQuery, CompanySearchQueryVariables>(CompanySearchDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<CompanySearchQuery, CompanySearchQueryVariables>(CompanySearchDocument, options);
+        }
 export type CompanySearchQueryHookResult = ReturnType<typeof useCompanySearchQuery>;
 export type CompanySearchLazyQueryHookResult = ReturnType<typeof useCompanySearchLazyQuery>;
 export type CompanySearchQueryResult = Apollo.QueryResult<CompanySearchQuery, CompanySearchQueryVariables>;
@@ -7486,13 +7563,13 @@ export const CompanyCardDocument = gql`
  * });
  */
 export function useCompanyCardQuery(baseOptions: Apollo.QueryHookOptions<CompanyCardQuery, CompanyCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<CompanyCardQuery, CompanyCardQueryVariables>(CompanyCardDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<CompanyCardQuery, CompanyCardQueryVariables>(CompanyCardDocument, options);
+      }
 export function useCompanyCardLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<CompanyCardQuery, CompanyCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<CompanyCardQuery, CompanyCardQueryVariables>(CompanyCardDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<CompanyCardQuery, CompanyCardQueryVariables>(CompanyCardDocument, options);
+        }
 export type CompanyCardQueryHookResult = ReturnType<typeof useCompanyCardQuery>;
 export type CompanyCardLazyQueryHookResult = ReturnType<typeof useCompanyCardLazyQuery>;
 export type CompanyCardQueryResult = Apollo.QueryResult<CompanyCardQuery, CompanyCardQueryVariables>;
@@ -7521,13 +7598,13 @@ export const CompanyFullDocument = gql`
  * });
  */
 export function useCompanyFullQuery(baseOptions: Apollo.QueryHookOptions<CompanyFullQuery, CompanyFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<CompanyFullQuery, CompanyFullQueryVariables>(CompanyFullDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<CompanyFullQuery, CompanyFullQueryVariables>(CompanyFullDocument, options);
+      }
 export function useCompanyFullLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<CompanyFullQuery, CompanyFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<CompanyFullQuery, CompanyFullQueryVariables>(CompanyFullDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<CompanyFullQuery, CompanyFullQueryVariables>(CompanyFullDocument, options);
+        }
 export type CompanyFullQueryHookResult = ReturnType<typeof useCompanyFullQuery>;
 export type CompanyFullLazyQueryHookResult = ReturnType<typeof useCompanyFullLazyQuery>;
 export type CompanyFullQueryResult = Apollo.QueryResult<CompanyFullQuery, CompanyFullQueryVariables>;
@@ -7557,13 +7634,13 @@ export const CrewLocationsDocument = gql`
  * });
  */
 export function useCrewLocationsQuery(baseOptions?: Apollo.QueryHookOptions<CrewLocationsQuery, CrewLocationsQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<CrewLocationsQuery, CrewLocationsQueryVariables>(CrewLocationsDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<CrewLocationsQuery, CrewLocationsQueryVariables>(CrewLocationsDocument, options);
+      }
 export function useCrewLocationsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<CrewLocationsQuery, CrewLocationsQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<CrewLocationsQuery, CrewLocationsQueryVariables>(CrewLocationsDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<CrewLocationsQuery, CrewLocationsQueryVariables>(CrewLocationsDocument, options);
+        }
 export type CrewLocationsQueryHookResult = ReturnType<typeof useCrewLocationsQuery>;
 export type CrewLocationsLazyQueryHookResult = ReturnType<typeof useCrewLocationsLazyQuery>;
 export type CrewLocationsQueryResult = Apollo.QueryResult<CrewLocationsQuery, CrewLocationsQueryVariables>;
@@ -7591,13 +7668,13 @@ export const CrewLocationsExcelDocument = gql`
  * });
  */
 export function useCrewLocationsExcelQuery(baseOptions: Apollo.QueryHookOptions<CrewLocationsExcelQuery, CrewLocationsExcelQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<CrewLocationsExcelQuery, CrewLocationsExcelQueryVariables>(CrewLocationsExcelDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<CrewLocationsExcelQuery, CrewLocationsExcelQueryVariables>(CrewLocationsExcelDocument, options);
+      }
 export function useCrewLocationsExcelLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<CrewLocationsExcelQuery, CrewLocationsExcelQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<CrewLocationsExcelQuery, CrewLocationsExcelQueryVariables>(CrewLocationsExcelDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<CrewLocationsExcelQuery, CrewLocationsExcelQueryVariables>(CrewLocationsExcelDocument, options);
+        }
 export type CrewLocationsExcelQueryHookResult = ReturnType<typeof useCrewLocationsExcelQuery>;
 export type CrewLocationsExcelLazyQueryHookResult = ReturnType<typeof useCrewLocationsExcelLazyQuery>;
 export type CrewLocationsExcelQueryResult = Apollo.QueryResult<CrewLocationsExcelQuery, CrewLocationsExcelQueryVariables>;
@@ -7627,13 +7704,13 @@ export const CrewSearchDocument = gql`
  * });
  */
 export function useCrewSearchQuery(baseOptions: Apollo.QueryHookOptions<CrewSearchQuery, CrewSearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<CrewSearchQuery, CrewSearchQueryVariables>(CrewSearchDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<CrewSearchQuery, CrewSearchQueryVariables>(CrewSearchDocument, options);
+      }
 export function useCrewSearchLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<CrewSearchQuery, CrewSearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<CrewSearchQuery, CrewSearchQueryVariables>(CrewSearchDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<CrewSearchQuery, CrewSearchQueryVariables>(CrewSearchDocument, options);
+        }
 export type CrewSearchQueryHookResult = ReturnType<typeof useCrewSearchQuery>;
 export type CrewSearchLazyQueryHookResult = ReturnType<typeof useCrewSearchLazyQuery>;
 export type CrewSearchQueryResult = Apollo.QueryResult<CrewSearchQuery, CrewSearchQueryVariables>;
@@ -7662,13 +7739,13 @@ export const CrewCardDocument = gql`
  * });
  */
 export function useCrewCardQuery(baseOptions: Apollo.QueryHookOptions<CrewCardQuery, CrewCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<CrewCardQuery, CrewCardQueryVariables>(CrewCardDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<CrewCardQuery, CrewCardQueryVariables>(CrewCardDocument, options);
+      }
 export function useCrewCardLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<CrewCardQuery, CrewCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<CrewCardQuery, CrewCardQueryVariables>(CrewCardDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<CrewCardQuery, CrewCardQueryVariables>(CrewCardDocument, options);
+        }
 export type CrewCardQueryHookResult = ReturnType<typeof useCrewCardQuery>;
 export type CrewCardLazyQueryHookResult = ReturnType<typeof useCrewCardLazyQuery>;
 export type CrewCardQueryResult = Apollo.QueryResult<CrewCardQuery, CrewCardQueryVariables>;
@@ -7697,13 +7774,13 @@ export const CrewFullDocument = gql`
  * });
  */
 export function useCrewFullQuery(baseOptions: Apollo.QueryHookOptions<CrewFullQuery, CrewFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<CrewFullQuery, CrewFullQueryVariables>(CrewFullDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<CrewFullQuery, CrewFullQueryVariables>(CrewFullDocument, options);
+      }
 export function useCrewFullLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<CrewFullQuery, CrewFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<CrewFullQuery, CrewFullQueryVariables>(CrewFullDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<CrewFullQuery, CrewFullQueryVariables>(CrewFullDocument, options);
+        }
 export type CrewFullQueryHookResult = ReturnType<typeof useCrewFullQuery>;
 export type CrewFullLazyQueryHookResult = ReturnType<typeof useCrewFullLazyQuery>;
 export type CrewFullQueryResult = Apollo.QueryResult<CrewFullQuery, CrewFullQueryVariables>;
@@ -7732,13 +7809,13 @@ export const CrewSsrDocument = gql`
  * });
  */
 export function useCrewSsrQuery(baseOptions: Apollo.QueryHookOptions<CrewSsrQuery, CrewSsrQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<CrewSsrQuery, CrewSsrQueryVariables>(CrewSsrDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<CrewSsrQuery, CrewSsrQueryVariables>(CrewSsrDocument, options);
+      }
 export function useCrewSsrLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<CrewSsrQuery, CrewSsrQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<CrewSsrQuery, CrewSsrQueryVariables>(CrewSsrDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<CrewSsrQuery, CrewSsrQueryVariables>(CrewSsrDocument, options);
+        }
 export type CrewSsrQueryHookResult = ReturnType<typeof useCrewSsrQuery>;
 export type CrewSsrLazyQueryHookResult = ReturnType<typeof useCrewSsrLazyQuery>;
 export type CrewSsrQueryResult = Apollo.QueryResult<CrewSsrQuery, CrewSsrQueryVariables>;
@@ -7766,13 +7843,13 @@ export const CurrentUserDocument = gql`
  * });
  */
 export function useCurrentUserQuery(baseOptions?: Apollo.QueryHookOptions<CurrentUserQuery, CurrentUserQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<CurrentUserQuery, CurrentUserQueryVariables>(CurrentUserDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<CurrentUserQuery, CurrentUserQueryVariables>(CurrentUserDocument, options);
+      }
 export function useCurrentUserLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<CurrentUserQuery, CurrentUserQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<CurrentUserQuery, CurrentUserQueryVariables>(CurrentUserDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<CurrentUserQuery, CurrentUserQueryVariables>(CurrentUserDocument, options);
+        }
 export type CurrentUserQueryHookResult = ReturnType<typeof useCurrentUserQuery>;
 export type CurrentUserLazyQueryHookResult = ReturnType<typeof useCurrentUserLazyQuery>;
 export type CurrentUserQueryResult = Apollo.QueryResult<CurrentUserQuery, CurrentUserQueryVariables>;
@@ -7801,13 +7878,13 @@ export const DailyReportCardDocument = gql`
  * });
  */
 export function useDailyReportCardQuery(baseOptions: Apollo.QueryHookOptions<DailyReportCardQuery, DailyReportCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<DailyReportCardQuery, DailyReportCardQueryVariables>(DailyReportCardDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<DailyReportCardQuery, DailyReportCardQueryVariables>(DailyReportCardDocument, options);
+      }
 export function useDailyReportCardLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<DailyReportCardQuery, DailyReportCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<DailyReportCardQuery, DailyReportCardQueryVariables>(DailyReportCardDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<DailyReportCardQuery, DailyReportCardQueryVariables>(DailyReportCardDocument, options);
+        }
 export type DailyReportCardQueryHookResult = ReturnType<typeof useDailyReportCardQuery>;
 export type DailyReportCardLazyQueryHookResult = ReturnType<typeof useDailyReportCardLazyQuery>;
 export type DailyReportCardQueryResult = Apollo.QueryResult<DailyReportCardQuery, DailyReportCardQueryVariables>;
@@ -7836,13 +7913,13 @@ export const DailyReportFullDocument = gql`
  * });
  */
 export function useDailyReportFullQuery(baseOptions: Apollo.QueryHookOptions<DailyReportFullQuery, DailyReportFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<DailyReportFullQuery, DailyReportFullQueryVariables>(DailyReportFullDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<DailyReportFullQuery, DailyReportFullQueryVariables>(DailyReportFullDocument, options);
+      }
 export function useDailyReportFullLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<DailyReportFullQuery, DailyReportFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<DailyReportFullQuery, DailyReportFullQueryVariables>(DailyReportFullDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<DailyReportFullQuery, DailyReportFullQueryVariables>(DailyReportFullDocument, options);
+        }
 export type DailyReportFullQueryHookResult = ReturnType<typeof useDailyReportFullQuery>;
 export type DailyReportFullLazyQueryHookResult = ReturnType<typeof useDailyReportFullLazyQuery>;
 export type DailyReportFullQueryResult = Apollo.QueryResult<DailyReportFullQuery, DailyReportFullQueryVariables>;
@@ -7871,13 +7948,13 @@ export const DailyReportPdfDocument = gql`
  * });
  */
 export function useDailyReportPdfQuery(baseOptions: Apollo.QueryHookOptions<DailyReportPdfQuery, DailyReportPdfQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<DailyReportPdfQuery, DailyReportPdfQueryVariables>(DailyReportPdfDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<DailyReportPdfQuery, DailyReportPdfQueryVariables>(DailyReportPdfDocument, options);
+      }
 export function useDailyReportPdfLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<DailyReportPdfQuery, DailyReportPdfQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<DailyReportPdfQuery, DailyReportPdfQueryVariables>(DailyReportPdfDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<DailyReportPdfQuery, DailyReportPdfQueryVariables>(DailyReportPdfDocument, options);
+        }
 export type DailyReportPdfQueryHookResult = ReturnType<typeof useDailyReportPdfQuery>;
 export type DailyReportPdfLazyQueryHookResult = ReturnType<typeof useDailyReportPdfLazyQuery>;
 export type DailyReportPdfQueryResult = Apollo.QueryResult<DailyReportPdfQuery, DailyReportPdfQueryVariables>;
@@ -7906,13 +7983,13 @@ export const DailyReportSsrDocument = gql`
  * });
  */
 export function useDailyReportSsrQuery(baseOptions: Apollo.QueryHookOptions<DailyReportSsrQuery, DailyReportSsrQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<DailyReportSsrQuery, DailyReportSsrQueryVariables>(DailyReportSsrDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<DailyReportSsrQuery, DailyReportSsrQueryVariables>(DailyReportSsrDocument, options);
+      }
 export function useDailyReportSsrLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<DailyReportSsrQuery, DailyReportSsrQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<DailyReportSsrQuery, DailyReportSsrQueryVariables>(DailyReportSsrDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<DailyReportSsrQuery, DailyReportSsrQueryVariables>(DailyReportSsrDocument, options);
+        }
 export type DailyReportSsrQueryHookResult = ReturnType<typeof useDailyReportSsrQuery>;
 export type DailyReportSsrLazyQueryHookResult = ReturnType<typeof useDailyReportSsrLazyQuery>;
 export type DailyReportSsrQueryResult = Apollo.QueryResult<DailyReportSsrQuery, DailyReportSsrQueryVariables>;
@@ -7941,13 +8018,13 @@ export const DailyReportsDocument = gql`
  * });
  */
 export function useDailyReportsQuery(baseOptions?: Apollo.QueryHookOptions<DailyReportsQuery, DailyReportsQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<DailyReportsQuery, DailyReportsQueryVariables>(DailyReportsDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<DailyReportsQuery, DailyReportsQueryVariables>(DailyReportsDocument, options);
+      }
 export function useDailyReportsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<DailyReportsQuery, DailyReportsQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<DailyReportsQuery, DailyReportsQueryVariables>(DailyReportsDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<DailyReportsQuery, DailyReportsQueryVariables>(DailyReportsDocument, options);
+        }
 export type DailyReportsQueryHookResult = ReturnType<typeof useDailyReportsQuery>;
 export type DailyReportsLazyQueryHookResult = ReturnType<typeof useDailyReportsLazyQuery>;
 export type DailyReportsQueryResult = Apollo.QueryResult<DailyReportsQuery, DailyReportsQueryVariables>;
@@ -7977,13 +8054,13 @@ export const DailyReportsForJobsiteDocument = gql`
  * });
  */
 export function useDailyReportsForJobsiteQuery(baseOptions: Apollo.QueryHookOptions<DailyReportsForJobsiteQuery, DailyReportsForJobsiteQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<DailyReportsForJobsiteQuery, DailyReportsForJobsiteQueryVariables>(DailyReportsForJobsiteDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<DailyReportsForJobsiteQuery, DailyReportsForJobsiteQueryVariables>(DailyReportsForJobsiteDocument, options);
+      }
 export function useDailyReportsForJobsiteLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<DailyReportsForJobsiteQuery, DailyReportsForJobsiteQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<DailyReportsForJobsiteQuery, DailyReportsForJobsiteQueryVariables>(DailyReportsForJobsiteDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<DailyReportsForJobsiteQuery, DailyReportsForJobsiteQueryVariables>(DailyReportsForJobsiteDocument, options);
+        }
 export type DailyReportsForJobsiteQueryHookResult = ReturnType<typeof useDailyReportsForJobsiteQuery>;
 export type DailyReportsForJobsiteLazyQueryHookResult = ReturnType<typeof useDailyReportsForJobsiteLazyQuery>;
 export type DailyReportsForJobsiteQueryResult = Apollo.QueryResult<DailyReportsForJobsiteQuery, DailyReportsForJobsiteQueryVariables>;
@@ -8017,13 +8094,13 @@ export const EmployeeHourReportsDocument = gql`
  * });
  */
 export function useEmployeeHourReportsQuery(baseOptions: Apollo.QueryHookOptions<EmployeeHourReportsQuery, EmployeeHourReportsQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<EmployeeHourReportsQuery, EmployeeHourReportsQueryVariables>(EmployeeHourReportsDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<EmployeeHourReportsQuery, EmployeeHourReportsQueryVariables>(EmployeeHourReportsDocument, options);
+      }
 export function useEmployeeHourReportsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<EmployeeHourReportsQuery, EmployeeHourReportsQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<EmployeeHourReportsQuery, EmployeeHourReportsQueryVariables>(EmployeeHourReportsDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<EmployeeHourReportsQuery, EmployeeHourReportsQueryVariables>(EmployeeHourReportsDocument, options);
+        }
 export type EmployeeHourReportsQueryHookResult = ReturnType<typeof useEmployeeHourReportsQuery>;
 export type EmployeeHourReportsLazyQueryHookResult = ReturnType<typeof useEmployeeHourReportsLazyQuery>;
 export type EmployeeHourReportsQueryResult = Apollo.QueryResult<EmployeeHourReportsQuery, EmployeeHourReportsQueryVariables>;
@@ -8053,13 +8130,13 @@ export const EmployeeSearchDocument = gql`
  * });
  */
 export function useEmployeeSearchQuery(baseOptions: Apollo.QueryHookOptions<EmployeeSearchQuery, EmployeeSearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<EmployeeSearchQuery, EmployeeSearchQueryVariables>(EmployeeSearchDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<EmployeeSearchQuery, EmployeeSearchQueryVariables>(EmployeeSearchDocument, options);
+      }
 export function useEmployeeSearchLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<EmployeeSearchQuery, EmployeeSearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<EmployeeSearchQuery, EmployeeSearchQueryVariables>(EmployeeSearchDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<EmployeeSearchQuery, EmployeeSearchQueryVariables>(EmployeeSearchDocument, options);
+        }
 export type EmployeeSearchQueryHookResult = ReturnType<typeof useEmployeeSearchQuery>;
 export type EmployeeSearchLazyQueryHookResult = ReturnType<typeof useEmployeeSearchLazyQuery>;
 export type EmployeeSearchQueryResult = Apollo.QueryResult<EmployeeSearchQuery, EmployeeSearchQueryVariables>;
@@ -8088,13 +8165,13 @@ export const EmployeeFullDocument = gql`
  * });
  */
 export function useEmployeeFullQuery(baseOptions: Apollo.QueryHookOptions<EmployeeFullQuery, EmployeeFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<EmployeeFullQuery, EmployeeFullQueryVariables>(EmployeeFullDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<EmployeeFullQuery, EmployeeFullQueryVariables>(EmployeeFullDocument, options);
+      }
 export function useEmployeeFullLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<EmployeeFullQuery, EmployeeFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<EmployeeFullQuery, EmployeeFullQueryVariables>(EmployeeFullDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<EmployeeFullQuery, EmployeeFullQueryVariables>(EmployeeFullDocument, options);
+        }
 export type EmployeeFullQueryHookResult = ReturnType<typeof useEmployeeFullQuery>;
 export type EmployeeFullLazyQueryHookResult = ReturnType<typeof useEmployeeFullLazyQuery>;
 export type EmployeeFullQueryResult = Apollo.QueryResult<EmployeeFullQuery, EmployeeFullQueryVariables>;
@@ -8123,13 +8200,13 @@ export const EmployeeSsrDocument = gql`
  * });
  */
 export function useEmployeeSsrQuery(baseOptions: Apollo.QueryHookOptions<EmployeeSsrQuery, EmployeeSsrQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<EmployeeSsrQuery, EmployeeSsrQueryVariables>(EmployeeSsrDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<EmployeeSsrQuery, EmployeeSsrQueryVariables>(EmployeeSsrDocument, options);
+      }
 export function useEmployeeSsrLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<EmployeeSsrQuery, EmployeeSsrQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<EmployeeSsrQuery, EmployeeSsrQueryVariables>(EmployeeSsrDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<EmployeeSsrQuery, EmployeeSsrQueryVariables>(EmployeeSsrDocument, options);
+        }
 export type EmployeeSsrQueryHookResult = ReturnType<typeof useEmployeeSsrQuery>;
 export type EmployeeSsrLazyQueryHookResult = ReturnType<typeof useEmployeeSsrLazyQuery>;
 export type EmployeeSsrQueryResult = Apollo.QueryResult<EmployeeSsrQuery, EmployeeSsrQueryVariables>;
@@ -8158,13 +8235,13 @@ export const EmployeeFetchSearchDocument = gql`
  * });
  */
 export function useEmployeeFetchSearchQuery(baseOptions: Apollo.QueryHookOptions<EmployeeFetchSearchQuery, EmployeeFetchSearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<EmployeeFetchSearchQuery, EmployeeFetchSearchQueryVariables>(EmployeeFetchSearchDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<EmployeeFetchSearchQuery, EmployeeFetchSearchQueryVariables>(EmployeeFetchSearchDocument, options);
+      }
 export function useEmployeeFetchSearchLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<EmployeeFetchSearchQuery, EmployeeFetchSearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<EmployeeFetchSearchQuery, EmployeeFetchSearchQueryVariables>(EmployeeFetchSearchDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<EmployeeFetchSearchQuery, EmployeeFetchSearchQueryVariables>(EmployeeFetchSearchDocument, options);
+        }
 export type EmployeeFetchSearchQueryHookResult = ReturnType<typeof useEmployeeFetchSearchQuery>;
 export type EmployeeFetchSearchLazyQueryHookResult = ReturnType<typeof useEmployeeFetchSearchLazyQuery>;
 export type EmployeeFetchSearchQueryResult = Apollo.QueryResult<EmployeeFetchSearchQuery, EmployeeFetchSearchQueryVariables>;
@@ -8193,13 +8270,13 @@ export const EmployeesDocument = gql`
  * });
  */
 export function useEmployeesQuery(baseOptions?: Apollo.QueryHookOptions<EmployeesQuery, EmployeesQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<EmployeesQuery, EmployeesQueryVariables>(EmployeesDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<EmployeesQuery, EmployeesQueryVariables>(EmployeesDocument, options);
+      }
 export function useEmployeesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<EmployeesQuery, EmployeesQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<EmployeesQuery, EmployeesQueryVariables>(EmployeesDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<EmployeesQuery, EmployeesQueryVariables>(EmployeesDocument, options);
+        }
 export type EmployeesQueryHookResult = ReturnType<typeof useEmployeesQuery>;
 export type EmployeesLazyQueryHookResult = ReturnType<typeof useEmployeesLazyQuery>;
 export type EmployeesQueryResult = Apollo.QueryResult<EmployeesQuery, EmployeesQueryVariables>;
@@ -8228,16 +8305,51 @@ export const FileFullDocument = gql`
  * });
  */
 export function useFileFullQuery(baseOptions: Apollo.QueryHookOptions<FileFullQuery, FileFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<FileFullQuery, FileFullQueryVariables>(FileFullDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<FileFullQuery, FileFullQueryVariables>(FileFullDocument, options);
+      }
 export function useFileFullLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<FileFullQuery, FileFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<FileFullQuery, FileFullQueryVariables>(FileFullDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<FileFullQuery, FileFullQueryVariables>(FileFullDocument, options);
+        }
 export type FileFullQueryHookResult = ReturnType<typeof useFileFullQuery>;
 export type FileFullLazyQueryHookResult = ReturnType<typeof useFileFullLazyQuery>;
 export type FileFullQueryResult = Apollo.QueryResult<FileFullQuery, FileFullQueryVariables>;
+export const JobsiteDayReportsFetchDocument = gql`
+    query JobsiteDayReportsFetch($ids: [ID!]!) {
+  jobsiteDayReports(ids: $ids) {
+    ...JobsiteDayReportFetchSnippet
+  }
+}
+    ${JobsiteDayReportFetchSnippetFragmentDoc}`;
+
+/**
+ * __useJobsiteDayReportsFetchQuery__
+ *
+ * To run a query within a React component, call `useJobsiteDayReportsFetchQuery` and pass it any options that fit your needs.
+ * When your component renders, `useJobsiteDayReportsFetchQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useJobsiteDayReportsFetchQuery({
+ *   variables: {
+ *      ids: // value for 'ids'
+ *   },
+ * });
+ */
+export function useJobsiteDayReportsFetchQuery(baseOptions: Apollo.QueryHookOptions<JobsiteDayReportsFetchQuery, JobsiteDayReportsFetchQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsiteDayReportsFetchQuery, JobsiteDayReportsFetchQueryVariables>(JobsiteDayReportsFetchDocument, options);
+      }
+export function useJobsiteDayReportsFetchLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsiteDayReportsFetchQuery, JobsiteDayReportsFetchQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsiteDayReportsFetchQuery, JobsiteDayReportsFetchQueryVariables>(JobsiteDayReportsFetchDocument, options);
+        }
+export type JobsiteDayReportsFetchQueryHookResult = ReturnType<typeof useJobsiteDayReportsFetchQuery>;
+export type JobsiteDayReportsFetchLazyQueryHookResult = ReturnType<typeof useJobsiteDayReportsFetchLazyQuery>;
+export type JobsiteDayReportsFetchQueryResult = Apollo.QueryResult<JobsiteDayReportsFetchQuery, JobsiteDayReportsFetchQueryVariables>;
 export const JobsiteMasterExcelReportByDateDocument = gql`
     query JobsiteMasterExcelReportByDate($startTime: DateTime!, $endTime: DateTime!) {
   jobsiteMasterExcelReportByDate(startTime: $startTime, endTime: $endTime)
@@ -8262,13 +8374,13 @@ export const JobsiteMasterExcelReportByDateDocument = gql`
  * });
  */
 export function useJobsiteMasterExcelReportByDateQuery(baseOptions: Apollo.QueryHookOptions<JobsiteMasterExcelReportByDateQuery, JobsiteMasterExcelReportByDateQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsiteMasterExcelReportByDateQuery, JobsiteMasterExcelReportByDateQueryVariables>(JobsiteMasterExcelReportByDateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsiteMasterExcelReportByDateQuery, JobsiteMasterExcelReportByDateQueryVariables>(JobsiteMasterExcelReportByDateDocument, options);
+      }
 export function useJobsiteMasterExcelReportByDateLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsiteMasterExcelReportByDateQuery, JobsiteMasterExcelReportByDateQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsiteMasterExcelReportByDateQuery, JobsiteMasterExcelReportByDateQueryVariables>(JobsiteMasterExcelReportByDateDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsiteMasterExcelReportByDateQuery, JobsiteMasterExcelReportByDateQueryVariables>(JobsiteMasterExcelReportByDateDocument, options);
+        }
 export type JobsiteMasterExcelReportByDateQueryHookResult = ReturnType<typeof useJobsiteMasterExcelReportByDateQuery>;
 export type JobsiteMasterExcelReportByDateLazyQueryHookResult = ReturnType<typeof useJobsiteMasterExcelReportByDateLazyQuery>;
 export type JobsiteMasterExcelReportByDateQueryResult = Apollo.QueryResult<JobsiteMasterExcelReportByDateQuery, JobsiteMasterExcelReportByDateQueryVariables>;
@@ -8297,23 +8409,23 @@ export const JobsiteMonthReportCardDocument = gql`
  * });
  */
 export function useJobsiteMonthReportCardQuery(baseOptions: Apollo.QueryHookOptions<JobsiteMonthReportCardQuery, JobsiteMonthReportCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsiteMonthReportCardQuery, JobsiteMonthReportCardQueryVariables>(JobsiteMonthReportCardDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsiteMonthReportCardQuery, JobsiteMonthReportCardQueryVariables>(JobsiteMonthReportCardDocument, options);
+      }
 export function useJobsiteMonthReportCardLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsiteMonthReportCardQuery, JobsiteMonthReportCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsiteMonthReportCardQuery, JobsiteMonthReportCardQueryVariables>(JobsiteMonthReportCardDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsiteMonthReportCardQuery, JobsiteMonthReportCardQueryVariables>(JobsiteMonthReportCardDocument, options);
+        }
 export type JobsiteMonthReportCardQueryHookResult = ReturnType<typeof useJobsiteMonthReportCardQuery>;
 export type JobsiteMonthReportCardLazyQueryHookResult = ReturnType<typeof useJobsiteMonthReportCardLazyQuery>;
 export type JobsiteMonthReportCardQueryResult = Apollo.QueryResult<JobsiteMonthReportCardQuery, JobsiteMonthReportCardQueryVariables>;
 export const JobsiteMonthReportFullDocument = gql`
     query JobsiteMonthReportFull($id: ID!) {
   jobsiteMonthReport(id: $id) {
-    ...JobsiteMonthReportFullSnippet
+    ...JobsiteMonthReportNoFetchSnippet
   }
 }
-    ${JobsiteMonthReportFullSnippetFragmentDoc}`;
+    ${JobsiteMonthReportNoFetchSnippetFragmentDoc}`;
 
 /**
  * __useJobsiteMonthReportFullQuery__
@@ -8332,13 +8444,13 @@ export const JobsiteMonthReportFullDocument = gql`
  * });
  */
 export function useJobsiteMonthReportFullQuery(baseOptions: Apollo.QueryHookOptions<JobsiteMonthReportFullQuery, JobsiteMonthReportFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsiteMonthReportFullQuery, JobsiteMonthReportFullQueryVariables>(JobsiteMonthReportFullDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsiteMonthReportFullQuery, JobsiteMonthReportFullQueryVariables>(JobsiteMonthReportFullDocument, options);
+      }
 export function useJobsiteMonthReportFullLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsiteMonthReportFullQuery, JobsiteMonthReportFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsiteMonthReportFullQuery, JobsiteMonthReportFullQueryVariables>(JobsiteMonthReportFullDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsiteMonthReportFullQuery, JobsiteMonthReportFullQueryVariables>(JobsiteMonthReportFullDocument, options);
+        }
 export type JobsiteMonthReportFullQueryHookResult = ReturnType<typeof useJobsiteMonthReportFullQuery>;
 export type JobsiteMonthReportFullLazyQueryHookResult = ReturnType<typeof useJobsiteMonthReportFullLazyQuery>;
 export type JobsiteMonthReportFullQueryResult = Apollo.QueryResult<JobsiteMonthReportFullQuery, JobsiteMonthReportFullQueryVariables>;
@@ -8368,13 +8480,13 @@ export const JobsiteSearchDocument = gql`
  * });
  */
 export function useJobsiteSearchQuery(baseOptions: Apollo.QueryHookOptions<JobsiteSearchQuery, JobsiteSearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsiteSearchQuery, JobsiteSearchQueryVariables>(JobsiteSearchDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsiteSearchQuery, JobsiteSearchQueryVariables>(JobsiteSearchDocument, options);
+      }
 export function useJobsiteSearchLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsiteSearchQuery, JobsiteSearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsiteSearchQuery, JobsiteSearchQueryVariables>(JobsiteSearchDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsiteSearchQuery, JobsiteSearchQueryVariables>(JobsiteSearchDocument, options);
+        }
 export type JobsiteSearchQueryHookResult = ReturnType<typeof useJobsiteSearchQuery>;
 export type JobsiteSearchLazyQueryHookResult = ReturnType<typeof useJobsiteSearchLazyQuery>;
 export type JobsiteSearchQueryResult = Apollo.QueryResult<JobsiteSearchQuery, JobsiteSearchQueryVariables>;
@@ -8402,13 +8514,13 @@ export const JobsiteYearMasterReportCurrentDocument = gql`
  * });
  */
 export function useJobsiteYearMasterReportCurrentQuery(baseOptions?: Apollo.QueryHookOptions<JobsiteYearMasterReportCurrentQuery, JobsiteYearMasterReportCurrentQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsiteYearMasterReportCurrentQuery, JobsiteYearMasterReportCurrentQueryVariables>(JobsiteYearMasterReportCurrentDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsiteYearMasterReportCurrentQuery, JobsiteYearMasterReportCurrentQueryVariables>(JobsiteYearMasterReportCurrentDocument, options);
+      }
 export function useJobsiteYearMasterReportCurrentLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsiteYearMasterReportCurrentQuery, JobsiteYearMasterReportCurrentQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsiteYearMasterReportCurrentQuery, JobsiteYearMasterReportCurrentQueryVariables>(JobsiteYearMasterReportCurrentDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsiteYearMasterReportCurrentQuery, JobsiteYearMasterReportCurrentQueryVariables>(JobsiteYearMasterReportCurrentDocument, options);
+        }
 export type JobsiteYearMasterReportCurrentQueryHookResult = ReturnType<typeof useJobsiteYearMasterReportCurrentQuery>;
 export type JobsiteYearMasterReportCurrentLazyQueryHookResult = ReturnType<typeof useJobsiteYearMasterReportCurrentLazyQuery>;
 export type JobsiteYearMasterReportCurrentQueryResult = Apollo.QueryResult<JobsiteYearMasterReportCurrentQuery, JobsiteYearMasterReportCurrentQueryVariables>;
@@ -8437,13 +8549,13 @@ export const JobsiteYearMasterReportCardDocument = gql`
  * });
  */
 export function useJobsiteYearMasterReportCardQuery(baseOptions: Apollo.QueryHookOptions<JobsiteYearMasterReportCardQuery, JobsiteYearMasterReportCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsiteYearMasterReportCardQuery, JobsiteYearMasterReportCardQueryVariables>(JobsiteYearMasterReportCardDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsiteYearMasterReportCardQuery, JobsiteYearMasterReportCardQueryVariables>(JobsiteYearMasterReportCardDocument, options);
+      }
 export function useJobsiteYearMasterReportCardLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsiteYearMasterReportCardQuery, JobsiteYearMasterReportCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsiteYearMasterReportCardQuery, JobsiteYearMasterReportCardQueryVariables>(JobsiteYearMasterReportCardDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsiteYearMasterReportCardQuery, JobsiteYearMasterReportCardQueryVariables>(JobsiteYearMasterReportCardDocument, options);
+        }
 export type JobsiteYearMasterReportCardQueryHookResult = ReturnType<typeof useJobsiteYearMasterReportCardQuery>;
 export type JobsiteYearMasterReportCardLazyQueryHookResult = ReturnType<typeof useJobsiteYearMasterReportCardLazyQuery>;
 export type JobsiteYearMasterReportCardQueryResult = Apollo.QueryResult<JobsiteYearMasterReportCardQuery, JobsiteYearMasterReportCardQueryVariables>;
@@ -8472,13 +8584,13 @@ export const JobsiteYearMasterReportFullDocument = gql`
  * });
  */
 export function useJobsiteYearMasterReportFullQuery(baseOptions: Apollo.QueryHookOptions<JobsiteYearMasterReportFullQuery, JobsiteYearMasterReportFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsiteYearMasterReportFullQuery, JobsiteYearMasterReportFullQueryVariables>(JobsiteYearMasterReportFullDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsiteYearMasterReportFullQuery, JobsiteYearMasterReportFullQueryVariables>(JobsiteYearMasterReportFullDocument, options);
+      }
 export function useJobsiteYearMasterReportFullLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsiteYearMasterReportFullQuery, JobsiteYearMasterReportFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsiteYearMasterReportFullQuery, JobsiteYearMasterReportFullQueryVariables>(JobsiteYearMasterReportFullDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsiteYearMasterReportFullQuery, JobsiteYearMasterReportFullQueryVariables>(JobsiteYearMasterReportFullDocument, options);
+        }
 export type JobsiteYearMasterReportFullQueryHookResult = ReturnType<typeof useJobsiteYearMasterReportFullQuery>;
 export type JobsiteYearMasterReportFullLazyQueryHookResult = ReturnType<typeof useJobsiteYearMasterReportFullLazyQuery>;
 export type JobsiteYearMasterReportFullQueryResult = Apollo.QueryResult<JobsiteYearMasterReportFullQuery, JobsiteYearMasterReportFullQueryVariables>;
@@ -8506,13 +8618,13 @@ export const JobsiteYearMasterReportsDocument = gql`
  * });
  */
 export function useJobsiteYearMasterReportsQuery(baseOptions?: Apollo.QueryHookOptions<JobsiteYearMasterReportsQuery, JobsiteYearMasterReportsQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsiteYearMasterReportsQuery, JobsiteYearMasterReportsQueryVariables>(JobsiteYearMasterReportsDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsiteYearMasterReportsQuery, JobsiteYearMasterReportsQueryVariables>(JobsiteYearMasterReportsDocument, options);
+      }
 export function useJobsiteYearMasterReportsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsiteYearMasterReportsQuery, JobsiteYearMasterReportsQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsiteYearMasterReportsQuery, JobsiteYearMasterReportsQueryVariables>(JobsiteYearMasterReportsDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsiteYearMasterReportsQuery, JobsiteYearMasterReportsQueryVariables>(JobsiteYearMasterReportsDocument, options);
+        }
 export type JobsiteYearMasterReportsQueryHookResult = ReturnType<typeof useJobsiteYearMasterReportsQuery>;
 export type JobsiteYearMasterReportsLazyQueryHookResult = ReturnType<typeof useJobsiteYearMasterReportsLazyQuery>;
 export type JobsiteYearMasterReportsQueryResult = Apollo.QueryResult<JobsiteYearMasterReportsQuery, JobsiteYearMasterReportsQueryVariables>;
@@ -8541,23 +8653,23 @@ export const JobsiteYearReportCardDocument = gql`
  * });
  */
 export function useJobsiteYearReportCardQuery(baseOptions: Apollo.QueryHookOptions<JobsiteYearReportCardQuery, JobsiteYearReportCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsiteYearReportCardQuery, JobsiteYearReportCardQueryVariables>(JobsiteYearReportCardDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsiteYearReportCardQuery, JobsiteYearReportCardQueryVariables>(JobsiteYearReportCardDocument, options);
+      }
 export function useJobsiteYearReportCardLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsiteYearReportCardQuery, JobsiteYearReportCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsiteYearReportCardQuery, JobsiteYearReportCardQueryVariables>(JobsiteYearReportCardDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsiteYearReportCardQuery, JobsiteYearReportCardQueryVariables>(JobsiteYearReportCardDocument, options);
+        }
 export type JobsiteYearReportCardQueryHookResult = ReturnType<typeof useJobsiteYearReportCardQuery>;
 export type JobsiteYearReportCardLazyQueryHookResult = ReturnType<typeof useJobsiteYearReportCardLazyQuery>;
 export type JobsiteYearReportCardQueryResult = Apollo.QueryResult<JobsiteYearReportCardQuery, JobsiteYearReportCardQueryVariables>;
 export const JobsiteYearReportFullDocument = gql`
     query JobsiteYearReportFull($id: ID!) {
   jobsiteYearReport(id: $id) {
-    ...JobsiteYearReportFullSnippet
+    ...JobsiteYearReportNoFetchSnippet
   }
 }
-    ${JobsiteYearReportFullSnippetFragmentDoc}`;
+    ${JobsiteYearReportNoFetchSnippetFragmentDoc}`;
 
 /**
  * __useJobsiteYearReportFullQuery__
@@ -8576,13 +8688,13 @@ export const JobsiteYearReportFullDocument = gql`
  * });
  */
 export function useJobsiteYearReportFullQuery(baseOptions: Apollo.QueryHookOptions<JobsiteYearReportFullQuery, JobsiteYearReportFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsiteYearReportFullQuery, JobsiteYearReportFullQueryVariables>(JobsiteYearReportFullDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsiteYearReportFullQuery, JobsiteYearReportFullQueryVariables>(JobsiteYearReportFullDocument, options);
+      }
 export function useJobsiteYearReportFullLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsiteYearReportFullQuery, JobsiteYearReportFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsiteYearReportFullQuery, JobsiteYearReportFullQueryVariables>(JobsiteYearReportFullDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsiteYearReportFullQuery, JobsiteYearReportFullQueryVariables>(JobsiteYearReportFullDocument, options);
+        }
 export type JobsiteYearReportFullQueryHookResult = ReturnType<typeof useJobsiteYearReportFullQuery>;
 export type JobsiteYearReportFullLazyQueryHookResult = ReturnType<typeof useJobsiteYearReportFullLazyQuery>;
 export type JobsiteYearReportFullQueryResult = Apollo.QueryResult<JobsiteYearReportFullQuery, JobsiteYearReportFullQueryVariables>;
@@ -8611,13 +8723,13 @@ export const JobsiteYearReportSummaryDocument = gql`
  * });
  */
 export function useJobsiteYearReportSummaryQuery(baseOptions: Apollo.QueryHookOptions<JobsiteYearReportSummaryQuery, JobsiteYearReportSummaryQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsiteYearReportSummaryQuery, JobsiteYearReportSummaryQueryVariables>(JobsiteYearReportSummaryDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsiteYearReportSummaryQuery, JobsiteYearReportSummaryQueryVariables>(JobsiteYearReportSummaryDocument, options);
+      }
 export function useJobsiteYearReportSummaryLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsiteYearReportSummaryQuery, JobsiteYearReportSummaryQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsiteYearReportSummaryQuery, JobsiteYearReportSummaryQueryVariables>(JobsiteYearReportSummaryDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsiteYearReportSummaryQuery, JobsiteYearReportSummaryQueryVariables>(JobsiteYearReportSummaryDocument, options);
+        }
 export type JobsiteYearReportSummaryQueryHookResult = ReturnType<typeof useJobsiteYearReportSummaryQuery>;
 export type JobsiteYearReportSummaryLazyQueryHookResult = ReturnType<typeof useJobsiteYearReportSummaryLazyQuery>;
 export type JobsiteYearReportSummaryQueryResult = Apollo.QueryResult<JobsiteYearReportSummaryQuery, JobsiteYearReportSummaryQueryVariables>;
@@ -8646,13 +8758,13 @@ export const JobsiteAllDataDocument = gql`
  * });
  */
 export function useJobsiteAllDataQuery(baseOptions: Apollo.QueryHookOptions<JobsiteAllDataQuery, JobsiteAllDataQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsiteAllDataQuery, JobsiteAllDataQueryVariables>(JobsiteAllDataDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsiteAllDataQuery, JobsiteAllDataQueryVariables>(JobsiteAllDataDocument, options);
+      }
 export function useJobsiteAllDataLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsiteAllDataQuery, JobsiteAllDataQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsiteAllDataQuery, JobsiteAllDataQueryVariables>(JobsiteAllDataDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsiteAllDataQuery, JobsiteAllDataQueryVariables>(JobsiteAllDataDocument, options);
+        }
 export type JobsiteAllDataQueryHookResult = ReturnType<typeof useJobsiteAllDataQuery>;
 export type JobsiteAllDataLazyQueryHookResult = ReturnType<typeof useJobsiteAllDataLazyQuery>;
 export type JobsiteAllDataQueryResult = Apollo.QueryResult<JobsiteAllDataQuery, JobsiteAllDataQueryVariables>;
@@ -8681,13 +8793,13 @@ export const JobsiteCurrentYearDocument = gql`
  * });
  */
 export function useJobsiteCurrentYearQuery(baseOptions: Apollo.QueryHookOptions<JobsiteCurrentYearQuery, JobsiteCurrentYearQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsiteCurrentYearQuery, JobsiteCurrentYearQueryVariables>(JobsiteCurrentYearDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsiteCurrentYearQuery, JobsiteCurrentYearQueryVariables>(JobsiteCurrentYearDocument, options);
+      }
 export function useJobsiteCurrentYearLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsiteCurrentYearQuery, JobsiteCurrentYearQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsiteCurrentYearQuery, JobsiteCurrentYearQueryVariables>(JobsiteCurrentYearDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsiteCurrentYearQuery, JobsiteCurrentYearQueryVariables>(JobsiteCurrentYearDocument, options);
+        }
 export type JobsiteCurrentYearQueryHookResult = ReturnType<typeof useJobsiteCurrentYearQuery>;
 export type JobsiteCurrentYearLazyQueryHookResult = ReturnType<typeof useJobsiteCurrentYearLazyQuery>;
 export type JobsiteCurrentYearQueryResult = Apollo.QueryResult<JobsiteCurrentYearQuery, JobsiteCurrentYearQueryVariables>;
@@ -8716,13 +8828,13 @@ export const JobsiteFullDocument = gql`
  * });
  */
 export function useJobsiteFullQuery(baseOptions: Apollo.QueryHookOptions<JobsiteFullQuery, JobsiteFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsiteFullQuery, JobsiteFullQueryVariables>(JobsiteFullDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsiteFullQuery, JobsiteFullQueryVariables>(JobsiteFullDocument, options);
+      }
 export function useJobsiteFullLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsiteFullQuery, JobsiteFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsiteFullQuery, JobsiteFullQueryVariables>(JobsiteFullDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsiteFullQuery, JobsiteFullQueryVariables>(JobsiteFullDocument, options);
+        }
 export type JobsiteFullQueryHookResult = ReturnType<typeof useJobsiteFullQuery>;
 export type JobsiteFullLazyQueryHookResult = ReturnType<typeof useJobsiteFullLazyQuery>;
 export type JobsiteFullQueryResult = Apollo.QueryResult<JobsiteFullQuery, JobsiteFullQueryVariables>;
@@ -8751,13 +8863,13 @@ export const JobsitesMaterialsDocument = gql`
  * });
  */
 export function useJobsitesMaterialsQuery(baseOptions: Apollo.QueryHookOptions<JobsitesMaterialsQuery, JobsitesMaterialsQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsitesMaterialsQuery, JobsitesMaterialsQueryVariables>(JobsitesMaterialsDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsitesMaterialsQuery, JobsitesMaterialsQueryVariables>(JobsitesMaterialsDocument, options);
+      }
 export function useJobsitesMaterialsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsitesMaterialsQuery, JobsitesMaterialsQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsitesMaterialsQuery, JobsitesMaterialsQueryVariables>(JobsitesMaterialsDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsitesMaterialsQuery, JobsitesMaterialsQueryVariables>(JobsitesMaterialsDocument, options);
+        }
 export type JobsitesMaterialsQueryHookResult = ReturnType<typeof useJobsitesMaterialsQuery>;
 export type JobsitesMaterialsLazyQueryHookResult = ReturnType<typeof useJobsitesMaterialsLazyQuery>;
 export type JobsitesMaterialsQueryResult = Apollo.QueryResult<JobsitesMaterialsQuery, JobsitesMaterialsQueryVariables>;
@@ -8786,13 +8898,13 @@ export const JobsitesNonCostedMaterialsDocument = gql`
  * });
  */
 export function useJobsitesNonCostedMaterialsQuery(baseOptions: Apollo.QueryHookOptions<JobsitesNonCostedMaterialsQuery, JobsitesNonCostedMaterialsQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsitesNonCostedMaterialsQuery, JobsitesNonCostedMaterialsQueryVariables>(JobsitesNonCostedMaterialsDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsitesNonCostedMaterialsQuery, JobsitesNonCostedMaterialsQueryVariables>(JobsitesNonCostedMaterialsDocument, options);
+      }
 export function useJobsitesNonCostedMaterialsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsitesNonCostedMaterialsQuery, JobsitesNonCostedMaterialsQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsitesNonCostedMaterialsQuery, JobsitesNonCostedMaterialsQueryVariables>(JobsitesNonCostedMaterialsDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsitesNonCostedMaterialsQuery, JobsitesNonCostedMaterialsQueryVariables>(JobsitesNonCostedMaterialsDocument, options);
+        }
 export type JobsitesNonCostedMaterialsQueryHookResult = ReturnType<typeof useJobsitesNonCostedMaterialsQuery>;
 export type JobsitesNonCostedMaterialsLazyQueryHookResult = ReturnType<typeof useJobsitesNonCostedMaterialsLazyQuery>;
 export type JobsitesNonCostedMaterialsQueryResult = Apollo.QueryResult<JobsitesNonCostedMaterialsQuery, JobsitesNonCostedMaterialsQueryVariables>;
@@ -8821,13 +8933,13 @@ export const JobsiteSsrDocument = gql`
  * });
  */
 export function useJobsiteSsrQuery(baseOptions: Apollo.QueryHookOptions<JobsiteSsrQuery, JobsiteSsrQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsiteSsrQuery, JobsiteSsrQueryVariables>(JobsiteSsrDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsiteSsrQuery, JobsiteSsrQueryVariables>(JobsiteSsrDocument, options);
+      }
 export function useJobsiteSsrLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsiteSsrQuery, JobsiteSsrQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsiteSsrQuery, JobsiteSsrQueryVariables>(JobsiteSsrDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsiteSsrQuery, JobsiteSsrQueryVariables>(JobsiteSsrDocument, options);
+        }
 export type JobsiteSsrQueryHookResult = ReturnType<typeof useJobsiteSsrQuery>;
 export type JobsiteSsrLazyQueryHookResult = ReturnType<typeof useJobsiteSsrLazyQuery>;
 export type JobsiteSsrQueryResult = Apollo.QueryResult<JobsiteSsrQuery, JobsiteSsrQueryVariables>;
@@ -8856,13 +8968,13 @@ export const JobsiteFetchSearchDocument = gql`
  * });
  */
 export function useJobsiteFetchSearchQuery(baseOptions: Apollo.QueryHookOptions<JobsiteFetchSearchQuery, JobsiteFetchSearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsiteFetchSearchQuery, JobsiteFetchSearchQueryVariables>(JobsiteFetchSearchDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsiteFetchSearchQuery, JobsiteFetchSearchQueryVariables>(JobsiteFetchSearchDocument, options);
+      }
 export function useJobsiteFetchSearchLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsiteFetchSearchQuery, JobsiteFetchSearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsiteFetchSearchQuery, JobsiteFetchSearchQueryVariables>(JobsiteFetchSearchDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsiteFetchSearchQuery, JobsiteFetchSearchQueryVariables>(JobsiteFetchSearchDocument, options);
+        }
 export type JobsiteFetchSearchQueryHookResult = ReturnType<typeof useJobsiteFetchSearchQuery>;
 export type JobsiteFetchSearchLazyQueryHookResult = ReturnType<typeof useJobsiteFetchSearchLazyQuery>;
 export type JobsiteFetchSearchQueryResult = Apollo.QueryResult<JobsiteFetchSearchQuery, JobsiteFetchSearchQueryVariables>;
@@ -8891,13 +9003,13 @@ export const JobsitesYearNonCostedMaterialsDocument = gql`
  * });
  */
 export function useJobsitesYearNonCostedMaterialsQuery(baseOptions: Apollo.QueryHookOptions<JobsitesYearNonCostedMaterialsQuery, JobsitesYearNonCostedMaterialsQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsitesYearNonCostedMaterialsQuery, JobsitesYearNonCostedMaterialsQueryVariables>(JobsitesYearNonCostedMaterialsDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsitesYearNonCostedMaterialsQuery, JobsitesYearNonCostedMaterialsQueryVariables>(JobsitesYearNonCostedMaterialsDocument, options);
+      }
 export function useJobsitesYearNonCostedMaterialsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsitesYearNonCostedMaterialsQuery, JobsitesYearNonCostedMaterialsQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsitesYearNonCostedMaterialsQuery, JobsitesYearNonCostedMaterialsQueryVariables>(JobsitesYearNonCostedMaterialsDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsitesYearNonCostedMaterialsQuery, JobsitesYearNonCostedMaterialsQueryVariables>(JobsitesYearNonCostedMaterialsDocument, options);
+        }
 export type JobsitesYearNonCostedMaterialsQueryHookResult = ReturnType<typeof useJobsitesYearNonCostedMaterialsQuery>;
 export type JobsitesYearNonCostedMaterialsLazyQueryHookResult = ReturnType<typeof useJobsitesYearNonCostedMaterialsLazyQuery>;
 export type JobsitesYearNonCostedMaterialsQueryResult = Apollo.QueryResult<JobsitesYearNonCostedMaterialsQuery, JobsitesYearNonCostedMaterialsQueryVariables>;
@@ -8926,13 +9038,13 @@ export const JobsitesDocument = gql`
  * });
  */
 export function useJobsitesQuery(baseOptions?: Apollo.QueryHookOptions<JobsitesQuery, JobsitesQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsitesQuery, JobsitesQueryVariables>(JobsitesDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsitesQuery, JobsitesQueryVariables>(JobsitesDocument, options);
+      }
 export function useJobsitesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsitesQuery, JobsitesQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsitesQuery, JobsitesQueryVariables>(JobsitesDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsitesQuery, JobsitesQueryVariables>(JobsitesDocument, options);
+        }
 export type JobsitesQueryHookResult = ReturnType<typeof useJobsitesQuery>;
 export type JobsitesLazyQueryHookResult = ReturnType<typeof useJobsitesLazyQuery>;
 export type JobsitesQueryResult = Apollo.QueryResult<JobsitesQuery, JobsitesQueryVariables>;
@@ -8961,13 +9073,13 @@ export const JobsitesTruckingRateDocument = gql`
  * });
  */
 export function useJobsitesTruckingRateQuery(baseOptions?: Apollo.QueryHookOptions<JobsitesTruckingRateQuery, JobsitesTruckingRateQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<JobsitesTruckingRateQuery, JobsitesTruckingRateQueryVariables>(JobsitesTruckingRateDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsitesTruckingRateQuery, JobsitesTruckingRateQueryVariables>(JobsitesTruckingRateDocument, options);
+      }
 export function useJobsitesTruckingRateLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsitesTruckingRateQuery, JobsitesTruckingRateQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<JobsitesTruckingRateQuery, JobsitesTruckingRateQueryVariables>(JobsitesTruckingRateDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsitesTruckingRateQuery, JobsitesTruckingRateQueryVariables>(JobsitesTruckingRateDocument, options);
+        }
 export type JobsitesTruckingRateQueryHookResult = ReturnType<typeof useJobsitesTruckingRateQuery>;
 export type JobsitesTruckingRateLazyQueryHookResult = ReturnType<typeof useJobsitesTruckingRateLazyQuery>;
 export type JobsitesTruckingRateQueryResult = Apollo.QueryResult<JobsitesTruckingRateQuery, JobsitesTruckingRateQueryVariables>;
@@ -8997,13 +9109,13 @@ export const MaterialSearchDocument = gql`
  * });
  */
 export function useMaterialSearchQuery(baseOptions: Apollo.QueryHookOptions<MaterialSearchQuery, MaterialSearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<MaterialSearchQuery, MaterialSearchQueryVariables>(MaterialSearchDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<MaterialSearchQuery, MaterialSearchQueryVariables>(MaterialSearchDocument, options);
+      }
 export function useMaterialSearchLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<MaterialSearchQuery, MaterialSearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<MaterialSearchQuery, MaterialSearchQueryVariables>(MaterialSearchDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<MaterialSearchQuery, MaterialSearchQueryVariables>(MaterialSearchDocument, options);
+        }
 export type MaterialSearchQueryHookResult = ReturnType<typeof useMaterialSearchQuery>;
 export type MaterialSearchLazyQueryHookResult = ReturnType<typeof useMaterialSearchLazyQuery>;
 export type MaterialSearchQueryResult = Apollo.QueryResult<MaterialSearchQuery, MaterialSearchQueryVariables>;
@@ -9032,13 +9144,13 @@ export const MaterialCardDocument = gql`
  * });
  */
 export function useMaterialCardQuery(baseOptions: Apollo.QueryHookOptions<MaterialCardQuery, MaterialCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<MaterialCardQuery, MaterialCardQueryVariables>(MaterialCardDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<MaterialCardQuery, MaterialCardQueryVariables>(MaterialCardDocument, options);
+      }
 export function useMaterialCardLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<MaterialCardQuery, MaterialCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<MaterialCardQuery, MaterialCardQueryVariables>(MaterialCardDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<MaterialCardQuery, MaterialCardQueryVariables>(MaterialCardDocument, options);
+        }
 export type MaterialCardQueryHookResult = ReturnType<typeof useMaterialCardQuery>;
 export type MaterialCardLazyQueryHookResult = ReturnType<typeof useMaterialCardLazyQuery>;
 export type MaterialCardQueryResult = Apollo.QueryResult<MaterialCardQuery, MaterialCardQueryVariables>;
@@ -9067,13 +9179,13 @@ export const MaterialsCardDocument = gql`
  * });
  */
 export function useMaterialsCardQuery(baseOptions?: Apollo.QueryHookOptions<MaterialsCardQuery, MaterialsCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<MaterialsCardQuery, MaterialsCardQueryVariables>(MaterialsCardDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<MaterialsCardQuery, MaterialsCardQueryVariables>(MaterialsCardDocument, options);
+      }
 export function useMaterialsCardLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<MaterialsCardQuery, MaterialsCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<MaterialsCardQuery, MaterialsCardQueryVariables>(MaterialsCardDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<MaterialsCardQuery, MaterialsCardQueryVariables>(MaterialsCardDocument, options);
+        }
 export type MaterialsCardQueryHookResult = ReturnType<typeof useMaterialsCardQuery>;
 export type MaterialsCardLazyQueryHookResult = ReturnType<typeof useMaterialsCardLazyQuery>;
 export type MaterialsCardQueryResult = Apollo.QueryResult<MaterialsCardQuery, MaterialsCardQueryVariables>;
@@ -9102,13 +9214,13 @@ export const MaterialsFullDocument = gql`
  * });
  */
 export function useMaterialsFullQuery(baseOptions?: Apollo.QueryHookOptions<MaterialsFullQuery, MaterialsFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<MaterialsFullQuery, MaterialsFullQueryVariables>(MaterialsFullDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<MaterialsFullQuery, MaterialsFullQueryVariables>(MaterialsFullDocument, options);
+      }
 export function useMaterialsFullLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<MaterialsFullQuery, MaterialsFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<MaterialsFullQuery, MaterialsFullQueryVariables>(MaterialsFullDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<MaterialsFullQuery, MaterialsFullQueryVariables>(MaterialsFullDocument, options);
+        }
 export type MaterialsFullQueryHookResult = ReturnType<typeof useMaterialsFullQuery>;
 export type MaterialsFullLazyQueryHookResult = ReturnType<typeof useMaterialsFullLazyQuery>;
 export type MaterialsFullQueryResult = Apollo.QueryResult<MaterialsFullQuery, MaterialsFullQueryVariables>;
@@ -9136,13 +9248,13 @@ export const MechanicsDocument = gql`
  * });
  */
 export function useMechanicsQuery(baseOptions?: Apollo.QueryHookOptions<MechanicsQuery, MechanicsQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<MechanicsQuery, MechanicsQueryVariables>(MechanicsDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<MechanicsQuery, MechanicsQueryVariables>(MechanicsDocument, options);
+      }
 export function useMechanicsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<MechanicsQuery, MechanicsQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<MechanicsQuery, MechanicsQueryVariables>(MechanicsDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<MechanicsQuery, MechanicsQueryVariables>(MechanicsDocument, options);
+        }
 export type MechanicsQueryHookResult = ReturnType<typeof useMechanicsQuery>;
 export type MechanicsLazyQueryHookResult = ReturnType<typeof useMechanicsLazyQuery>;
 export type MechanicsQueryResult = Apollo.QueryResult<MechanicsQuery, MechanicsQueryVariables>;
@@ -9171,13 +9283,13 @@ export const OperatorDailyReportCardDocument = gql`
  * });
  */
 export function useOperatorDailyReportCardQuery(baseOptions: Apollo.QueryHookOptions<OperatorDailyReportCardQuery, OperatorDailyReportCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<OperatorDailyReportCardQuery, OperatorDailyReportCardQueryVariables>(OperatorDailyReportCardDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<OperatorDailyReportCardQuery, OperatorDailyReportCardQueryVariables>(OperatorDailyReportCardDocument, options);
+      }
 export function useOperatorDailyReportCardLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<OperatorDailyReportCardQuery, OperatorDailyReportCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<OperatorDailyReportCardQuery, OperatorDailyReportCardQueryVariables>(OperatorDailyReportCardDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<OperatorDailyReportCardQuery, OperatorDailyReportCardQueryVariables>(OperatorDailyReportCardDocument, options);
+        }
 export type OperatorDailyReportCardQueryHookResult = ReturnType<typeof useOperatorDailyReportCardQuery>;
 export type OperatorDailyReportCardLazyQueryHookResult = ReturnType<typeof useOperatorDailyReportCardLazyQuery>;
 export type OperatorDailyReportCardQueryResult = Apollo.QueryResult<OperatorDailyReportCardQuery, OperatorDailyReportCardQueryVariables>;
@@ -9206,13 +9318,13 @@ export const OperatorDailyReportFullDocument = gql`
  * });
  */
 export function useOperatorDailyReportFullQuery(baseOptions: Apollo.QueryHookOptions<OperatorDailyReportFullQuery, OperatorDailyReportFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<OperatorDailyReportFullQuery, OperatorDailyReportFullQueryVariables>(OperatorDailyReportFullDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<OperatorDailyReportFullQuery, OperatorDailyReportFullQueryVariables>(OperatorDailyReportFullDocument, options);
+      }
 export function useOperatorDailyReportFullLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<OperatorDailyReportFullQuery, OperatorDailyReportFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<OperatorDailyReportFullQuery, OperatorDailyReportFullQueryVariables>(OperatorDailyReportFullDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<OperatorDailyReportFullQuery, OperatorDailyReportFullQueryVariables>(OperatorDailyReportFullDocument, options);
+        }
 export type OperatorDailyReportFullQueryHookResult = ReturnType<typeof useOperatorDailyReportFullQuery>;
 export type OperatorDailyReportFullLazyQueryHookResult = ReturnType<typeof useOperatorDailyReportFullLazyQuery>;
 export type OperatorDailyReportFullQueryResult = Apollo.QueryResult<OperatorDailyReportFullQuery, OperatorDailyReportFullQueryVariables>;
@@ -9241,13 +9353,13 @@ export const OperatorDailyReportsDocument = gql`
  * });
  */
 export function useOperatorDailyReportsQuery(baseOptions?: Apollo.QueryHookOptions<OperatorDailyReportsQuery, OperatorDailyReportsQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<OperatorDailyReportsQuery, OperatorDailyReportsQueryVariables>(OperatorDailyReportsDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<OperatorDailyReportsQuery, OperatorDailyReportsQueryVariables>(OperatorDailyReportsDocument, options);
+      }
 export function useOperatorDailyReportsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<OperatorDailyReportsQuery, OperatorDailyReportsQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<OperatorDailyReportsQuery, OperatorDailyReportsQueryVariables>(OperatorDailyReportsDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<OperatorDailyReportsQuery, OperatorDailyReportsQueryVariables>(OperatorDailyReportsDocument, options);
+        }
 export type OperatorDailyReportsQueryHookResult = ReturnType<typeof useOperatorDailyReportsQuery>;
 export type OperatorDailyReportsLazyQueryHookResult = ReturnType<typeof useOperatorDailyReportsLazyQuery>;
 export type OperatorDailyReportsQueryResult = Apollo.QueryResult<OperatorDailyReportsQuery, OperatorDailyReportsQueryVariables>;
@@ -9276,13 +9388,13 @@ export const SearchDocument = gql`
  * });
  */
 export function useSearchQuery(baseOptions: Apollo.QueryHookOptions<SearchQuery, SearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<SearchQuery, SearchQueryVariables>(SearchDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<SearchQuery, SearchQueryVariables>(SearchDocument, options);
+      }
 export function useSearchLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<SearchQuery, SearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<SearchQuery, SearchQueryVariables>(SearchDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<SearchQuery, SearchQueryVariables>(SearchDocument, options);
+        }
 export type SearchQueryHookResult = ReturnType<typeof useSearchQuery>;
 export type SearchLazyQueryHookResult = ReturnType<typeof useSearchLazyQuery>;
 export type SearchQueryResult = Apollo.QueryResult<SearchQuery, SearchQueryVariables>;
@@ -9311,13 +9423,13 @@ export const SignupSsrDocument = gql`
  * });
  */
 export function useSignupSsrQuery(baseOptions: Apollo.QueryHookOptions<SignupSsrQuery, SignupSsrQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<SignupSsrQuery, SignupSsrQueryVariables>(SignupSsrDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<SignupSsrQuery, SignupSsrQueryVariables>(SignupSsrDocument, options);
+      }
 export function useSignupSsrLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<SignupSsrQuery, SignupSsrQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<SignupSsrQuery, SignupSsrQueryVariables>(SignupSsrDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<SignupSsrQuery, SignupSsrQueryVariables>(SignupSsrDocument, options);
+        }
 export type SignupSsrQueryHookResult = ReturnType<typeof useSignupSsrQuery>;
 export type SignupSsrLazyQueryHookResult = ReturnType<typeof useSignupSsrLazyQuery>;
 export type SignupSsrQueryResult = Apollo.QueryResult<SignupSsrQuery, SignupSsrQueryVariables>;
@@ -9345,13 +9457,13 @@ export const SystemDocument = gql`
  * });
  */
 export function useSystemQuery(baseOptions?: Apollo.QueryHookOptions<SystemQuery, SystemQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<SystemQuery, SystemQueryVariables>(SystemDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<SystemQuery, SystemQueryVariables>(SystemDocument, options);
+      }
 export function useSystemLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<SystemQuery, SystemQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<SystemQuery, SystemQueryVariables>(SystemDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<SystemQuery, SystemQueryVariables>(SystemDocument, options);
+        }
 export type SystemQueryHookResult = ReturnType<typeof useSystemQuery>;
 export type SystemLazyQueryHookResult = ReturnType<typeof useSystemLazyQuery>;
 export type SystemQueryResult = Apollo.QueryResult<SystemQuery, SystemQueryVariables>;
@@ -9380,13 +9492,13 @@ export const UserCrewDocument = gql`
  * });
  */
 export function useUserCrewQuery(baseOptions: Apollo.QueryHookOptions<UserCrewQuery, UserCrewQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<UserCrewQuery, UserCrewQueryVariables>(UserCrewDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<UserCrewQuery, UserCrewQueryVariables>(UserCrewDocument, options);
+      }
 export function useUserCrewLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<UserCrewQuery, UserCrewQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<UserCrewQuery, UserCrewQueryVariables>(UserCrewDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<UserCrewQuery, UserCrewQueryVariables>(UserCrewDocument, options);
+        }
 export type UserCrewQueryHookResult = ReturnType<typeof useUserCrewQuery>;
 export type UserCrewLazyQueryHookResult = ReturnType<typeof useUserCrewLazyQuery>;
 export type UserCrewQueryResult = Apollo.QueryResult<UserCrewQuery, UserCrewQueryVariables>;
@@ -9416,13 +9528,13 @@ export const UserForPasswordResetDocument = gql`
  * });
  */
 export function useUserForPasswordResetQuery(baseOptions: Apollo.QueryHookOptions<UserForPasswordResetQuery, UserForPasswordResetQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<UserForPasswordResetQuery, UserForPasswordResetQueryVariables>(UserForPasswordResetDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<UserForPasswordResetQuery, UserForPasswordResetQueryVariables>(UserForPasswordResetDocument, options);
+      }
 export function useUserForPasswordResetLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<UserForPasswordResetQuery, UserForPasswordResetQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<UserForPasswordResetQuery, UserForPasswordResetQueryVariables>(UserForPasswordResetDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<UserForPasswordResetQuery, UserForPasswordResetQueryVariables>(UserForPasswordResetDocument, options);
+        }
 export type UserForPasswordResetQueryHookResult = ReturnType<typeof useUserForPasswordResetQuery>;
 export type UserForPasswordResetLazyQueryHookResult = ReturnType<typeof useUserForPasswordResetLazyQuery>;
 export type UserForPasswordResetQueryResult = Apollo.QueryResult<UserForPasswordResetQuery, UserForPasswordResetQueryVariables>;
@@ -9451,13 +9563,13 @@ export const UsersDocument = gql`
  * });
  */
 export function useUsersQuery(baseOptions?: Apollo.QueryHookOptions<UsersQuery, UsersQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<UsersQuery, UsersQueryVariables>(UsersDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<UsersQuery, UsersQueryVariables>(UsersDocument, options);
+      }
 export function useUsersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<UsersQuery, UsersQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<UsersQuery, UsersQueryVariables>(UsersDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<UsersQuery, UsersQueryVariables>(UsersDocument, options);
+        }
 export type UsersQueryHookResult = ReturnType<typeof useUsersQuery>;
 export type UsersLazyQueryHookResult = ReturnType<typeof useUsersLazyQuery>;
 export type UsersQueryResult = Apollo.QueryResult<UsersQuery, UsersQueryVariables>;
@@ -9486,13 +9598,13 @@ export const VehicleIssueDocument = gql`
  * });
  */
 export function useVehicleIssueQuery(baseOptions: Apollo.QueryHookOptions<VehicleIssueQuery, VehicleIssueQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<VehicleIssueQuery, VehicleIssueQueryVariables>(VehicleIssueDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<VehicleIssueQuery, VehicleIssueQueryVariables>(VehicleIssueDocument, options);
+      }
 export function useVehicleIssueLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<VehicleIssueQuery, VehicleIssueQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<VehicleIssueQuery, VehicleIssueQueryVariables>(VehicleIssueDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<VehicleIssueQuery, VehicleIssueQueryVariables>(VehicleIssueDocument, options);
+        }
 export type VehicleIssueQueryHookResult = ReturnType<typeof useVehicleIssueQuery>;
 export type VehicleIssueLazyQueryHookResult = ReturnType<typeof useVehicleIssueLazyQuery>;
 export type VehicleIssueQueryResult = Apollo.QueryResult<VehicleIssueQuery, VehicleIssueQueryVariables>;
@@ -9521,13 +9633,13 @@ export const VehicleIssueCardDocument = gql`
  * });
  */
 export function useVehicleIssueCardQuery(baseOptions: Apollo.QueryHookOptions<VehicleIssueCardQuery, VehicleIssueCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<VehicleIssueCardQuery, VehicleIssueCardQueryVariables>(VehicleIssueCardDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<VehicleIssueCardQuery, VehicleIssueCardQueryVariables>(VehicleIssueCardDocument, options);
+      }
 export function useVehicleIssueCardLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<VehicleIssueCardQuery, VehicleIssueCardQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<VehicleIssueCardQuery, VehicleIssueCardQueryVariables>(VehicleIssueCardDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<VehicleIssueCardQuery, VehicleIssueCardQueryVariables>(VehicleIssueCardDocument, options);
+        }
 export type VehicleIssueCardQueryHookResult = ReturnType<typeof useVehicleIssueCardQuery>;
 export type VehicleIssueCardLazyQueryHookResult = ReturnType<typeof useVehicleIssueCardLazyQuery>;
 export type VehicleIssueCardQueryResult = Apollo.QueryResult<VehicleIssueCardQuery, VehicleIssueCardQueryVariables>;
@@ -9556,13 +9668,13 @@ export const VehicleIssuesDocument = gql`
  * });
  */
 export function useVehicleIssuesQuery(baseOptions?: Apollo.QueryHookOptions<VehicleIssuesQuery, VehicleIssuesQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<VehicleIssuesQuery, VehicleIssuesQueryVariables>(VehicleIssuesDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<VehicleIssuesQuery, VehicleIssuesQueryVariables>(VehicleIssuesDocument, options);
+      }
 export function useVehicleIssuesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<VehicleIssuesQuery, VehicleIssuesQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<VehicleIssuesQuery, VehicleIssuesQueryVariables>(VehicleIssuesDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<VehicleIssuesQuery, VehicleIssuesQueryVariables>(VehicleIssuesDocument, options);
+        }
 export type VehicleIssuesQueryHookResult = ReturnType<typeof useVehicleIssuesQuery>;
 export type VehicleIssuesLazyQueryHookResult = ReturnType<typeof useVehicleIssuesLazyQuery>;
 export type VehicleIssuesQueryResult = Apollo.QueryResult<VehicleIssuesQuery, VehicleIssuesQueryVariables>;
@@ -9592,13 +9704,13 @@ export const VehicleSearchDocument = gql`
  * });
  */
 export function useVehicleSearchQuery(baseOptions: Apollo.QueryHookOptions<VehicleSearchQuery, VehicleSearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<VehicleSearchQuery, VehicleSearchQueryVariables>(VehicleSearchDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<VehicleSearchQuery, VehicleSearchQueryVariables>(VehicleSearchDocument, options);
+      }
 export function useVehicleSearchLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<VehicleSearchQuery, VehicleSearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<VehicleSearchQuery, VehicleSearchQueryVariables>(VehicleSearchDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<VehicleSearchQuery, VehicleSearchQueryVariables>(VehicleSearchDocument, options);
+        }
 export type VehicleSearchQueryHookResult = ReturnType<typeof useVehicleSearchQuery>;
 export type VehicleSearchLazyQueryHookResult = ReturnType<typeof useVehicleSearchLazyQuery>;
 export type VehicleSearchQueryResult = Apollo.QueryResult<VehicleSearchQuery, VehicleSearchQueryVariables>;
@@ -9627,13 +9739,13 @@ export const VehicleFullDocument = gql`
  * });
  */
 export function useVehicleFullQuery(baseOptions: Apollo.QueryHookOptions<VehicleFullQuery, VehicleFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<VehicleFullQuery, VehicleFullQueryVariables>(VehicleFullDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<VehicleFullQuery, VehicleFullQueryVariables>(VehicleFullDocument, options);
+      }
 export function useVehicleFullLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<VehicleFullQuery, VehicleFullQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<VehicleFullQuery, VehicleFullQueryVariables>(VehicleFullDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<VehicleFullQuery, VehicleFullQueryVariables>(VehicleFullDocument, options);
+        }
 export type VehicleFullQueryHookResult = ReturnType<typeof useVehicleFullQuery>;
 export type VehicleFullLazyQueryHookResult = ReturnType<typeof useVehicleFullLazyQuery>;
 export type VehicleFullQueryResult = Apollo.QueryResult<VehicleFullQuery, VehicleFullQueryVariables>;
@@ -9662,13 +9774,13 @@ export const VehicleSsrDocument = gql`
  * });
  */
 export function useVehicleSsrQuery(baseOptions: Apollo.QueryHookOptions<VehicleSsrQuery, VehicleSsrQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<VehicleSsrQuery, VehicleSsrQueryVariables>(VehicleSsrDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<VehicleSsrQuery, VehicleSsrQueryVariables>(VehicleSsrDocument, options);
+      }
 export function useVehicleSsrLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<VehicleSsrQuery, VehicleSsrQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<VehicleSsrQuery, VehicleSsrQueryVariables>(VehicleSsrDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<VehicleSsrQuery, VehicleSsrQueryVariables>(VehicleSsrDocument, options);
+        }
 export type VehicleSsrQueryHookResult = ReturnType<typeof useVehicleSsrQuery>;
 export type VehicleSsrLazyQueryHookResult = ReturnType<typeof useVehicleSsrLazyQuery>;
 export type VehicleSsrQueryResult = Apollo.QueryResult<VehicleSsrQuery, VehicleSsrQueryVariables>;
@@ -9697,13 +9809,13 @@ export const VehicleFetchSearchDocument = gql`
  * });
  */
 export function useVehicleFetchSearchQuery(baseOptions: Apollo.QueryHookOptions<VehicleFetchSearchQuery, VehicleFetchSearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<VehicleFetchSearchQuery, VehicleFetchSearchQueryVariables>(VehicleFetchSearchDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<VehicleFetchSearchQuery, VehicleFetchSearchQueryVariables>(VehicleFetchSearchDocument, options);
+      }
 export function useVehicleFetchSearchLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<VehicleFetchSearchQuery, VehicleFetchSearchQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<VehicleFetchSearchQuery, VehicleFetchSearchQueryVariables>(VehicleFetchSearchDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<VehicleFetchSearchQuery, VehicleFetchSearchQueryVariables>(VehicleFetchSearchDocument, options);
+        }
 export type VehicleFetchSearchQueryHookResult = ReturnType<typeof useVehicleFetchSearchQuery>;
 export type VehicleFetchSearchLazyQueryHookResult = ReturnType<typeof useVehicleFetchSearchLazyQuery>;
 export type VehicleFetchSearchQueryResult = Apollo.QueryResult<VehicleFetchSearchQuery, VehicleFetchSearchQueryVariables>;
@@ -9732,23 +9844,23 @@ export const VehiclesDocument = gql`
  * });
  */
 export function useVehiclesQuery(baseOptions?: Apollo.QueryHookOptions<VehiclesQuery, VehiclesQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useQuery<VehiclesQuery, VehiclesQueryVariables>(VehiclesDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<VehiclesQuery, VehiclesQueryVariables>(VehiclesDocument, options);
+      }
 export function useVehiclesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<VehiclesQuery, VehiclesQueryVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useLazyQuery<VehiclesQuery, VehiclesQueryVariables>(VehiclesDocument, options);
-}
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<VehiclesQuery, VehiclesQueryVariables>(VehiclesDocument, options);
+        }
 export type VehiclesQueryHookResult = ReturnType<typeof useVehiclesQuery>;
 export type VehiclesLazyQueryHookResult = ReturnType<typeof useVehiclesLazyQuery>;
 export type VehiclesQueryResult = Apollo.QueryResult<VehiclesQuery, VehiclesQueryVariables>;
 export const JobsiteMonthReportSubDocument = gql`
     subscription JobsiteMonthReportSub($id: ID!) {
   jobsiteMonthReportSub(id: $id) {
-    ...JobsiteMonthReportFullSnippet
+    ...JobsiteMonthReportNoFetchSnippet
   }
 }
-    ${JobsiteMonthReportFullSnippetFragmentDoc}`;
+    ${JobsiteMonthReportNoFetchSnippetFragmentDoc}`;
 
 /**
  * __useJobsiteMonthReportSubSubscription__
@@ -9767,9 +9879,9 @@ export const JobsiteMonthReportSubDocument = gql`
  * });
  */
 export function useJobsiteMonthReportSubSubscription(baseOptions: Apollo.SubscriptionHookOptions<JobsiteMonthReportSubSubscription, JobsiteMonthReportSubSubscriptionVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useSubscription<JobsiteMonthReportSubSubscription, JobsiteMonthReportSubSubscriptionVariables>(JobsiteMonthReportSubDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useSubscription<JobsiteMonthReportSubSubscription, JobsiteMonthReportSubSubscriptionVariables>(JobsiteMonthReportSubDocument, options);
+      }
 export type JobsiteMonthReportSubSubscriptionHookResult = ReturnType<typeof useJobsiteMonthReportSubSubscription>;
 export type JobsiteMonthReportSubSubscriptionResult = Apollo.SubscriptionResult<JobsiteMonthReportSubSubscription>;
 export const JobsiteYearMasterReportSubDocument = gql`
@@ -9797,18 +9909,18 @@ export const JobsiteYearMasterReportSubDocument = gql`
  * });
  */
 export function useJobsiteYearMasterReportSubSubscription(baseOptions: Apollo.SubscriptionHookOptions<JobsiteYearMasterReportSubSubscription, JobsiteYearMasterReportSubSubscriptionVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useSubscription<JobsiteYearMasterReportSubSubscription, JobsiteYearMasterReportSubSubscriptionVariables>(JobsiteYearMasterReportSubDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useSubscription<JobsiteYearMasterReportSubSubscription, JobsiteYearMasterReportSubSubscriptionVariables>(JobsiteYearMasterReportSubDocument, options);
+      }
 export type JobsiteYearMasterReportSubSubscriptionHookResult = ReturnType<typeof useJobsiteYearMasterReportSubSubscription>;
 export type JobsiteYearMasterReportSubSubscriptionResult = Apollo.SubscriptionResult<JobsiteYearMasterReportSubSubscription>;
 export const JobsiteYearReportSubDocument = gql`
     subscription JobsiteYearReportSub($id: ID!) {
   jobsiteYearReportSub(id: $id) {
-    ...JobsiteYearReportFullSnippet
+    ...JobsiteYearReportNoFetchSnippet
   }
 }
-    ${JobsiteYearReportFullSnippetFragmentDoc}`;
+    ${JobsiteYearReportNoFetchSnippetFragmentDoc}`;
 
 /**
  * __useJobsiteYearReportSubSubscription__
@@ -9827,8 +9939,8 @@ export const JobsiteYearReportSubDocument = gql`
  * });
  */
 export function useJobsiteYearReportSubSubscription(baseOptions: Apollo.SubscriptionHookOptions<JobsiteYearReportSubSubscription, JobsiteYearReportSubSubscriptionVariables>) {
-  const options = { ...defaultOptions, ...baseOptions }
-  return Apollo.useSubscription<JobsiteYearReportSubSubscription, JobsiteYearReportSubSubscriptionVariables>(JobsiteYearReportSubDocument, options);
-}
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useSubscription<JobsiteYearReportSubSubscription, JobsiteYearReportSubSubscriptionVariables>(JobsiteYearReportSubDocument, options);
+      }
 export type JobsiteYearReportSubSubscriptionHookResult = ReturnType<typeof useJobsiteYearReportSubSubscription>;
 export type JobsiteYearReportSubSubscriptionResult = Apollo.SubscriptionResult<JobsiteYearReportSubSubscription>;

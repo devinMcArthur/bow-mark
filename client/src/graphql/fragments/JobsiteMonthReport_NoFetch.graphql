@@ -1,0 +1,28 @@
+fragment JobsiteMonthReportNoFetchSnippet on JobsiteMonthReportClass {
+  ...JobsiteMonthReportCardSnippet
+  crewTypes
+  dayReports {
+    ...JobsiteDayReportNoFetchSnippet
+  }
+  expenseInvoices {
+    ...JobsiteDayReportInvoiceSnippet
+  }
+  revenueInvoices {
+    ...JobsiteDayReportInvoiceSnippet
+  }
+  summary {
+    externalExpenseInvoiceValue
+    internalExpenseInvoiceValue
+    accrualExpenseInvoiceValue
+    externalRevenueInvoiceValue
+    internalRevenueInvoiceValue
+    accrualRevenueInvoiceValue
+  }
+  issues {
+    ...ReportIssueSnippet
+  }
+  excelDownloadUrl
+  reportNotes {
+    ...ReportNoteFullSnippet
+  }
+}

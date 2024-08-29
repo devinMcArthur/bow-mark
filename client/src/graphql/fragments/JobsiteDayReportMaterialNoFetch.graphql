@@ -1,0 +1,8 @@
+fragment JobsiteDayReportMaterialNoFetchSnippet on MaterialReportClass {
+  _id
+  jobsiteMaterial
+  deliveredRateId
+  rate
+  quantity
+  crewType
+}

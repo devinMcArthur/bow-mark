@@ -1,5 +1,5 @@
 subscription JobsiteYearReportSub($id: ID!) {
   jobsiteYearReportSub(id: $id) {
-    ...JobsiteYearReportFullSnippet
+    ...JobsiteYearReportNoFetchSnippet
   }
 }

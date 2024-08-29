@@ -1,0 +1,5 @@
+query JobsiteDayReportsFetch($ids: [ID!]!) {
+  jobsiteDayReports(ids: $ids) {
+    ...JobsiteDayReportFetchSnippet
+  }
+}

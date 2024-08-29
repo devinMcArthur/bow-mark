@@ -1,0 +1,8 @@
+fragment JobsiteDayReportVehicleNoFetchSnippet on VehicleReportClass {
+  _id
+  vehicle
+  vehicleWork
+  rate
+  hours
+  crewType
+}

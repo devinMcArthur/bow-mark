@@ -11,9 +11,7 @@ import {
 } from "@models";
 import {
   CompanyMaterialReport,
-  CompanyMaterialReportDocument,
   CompanyMaterialReportJobDay,
-  CompanyMaterialReportJobDayDocument,
 } from "@typescript/company";
 import { ListOptionData } from "@typescript/graphql";
 import { Id } from "@typescript/models";
@@ -92,7 +90,7 @@ export default class CompanyResolver {
 @Resolver(() => CompanyMaterialReport)
 export class CompanyMaterialReportResolver {
   @FieldResolver(() => MaterialClass)
-  async material(@Root() companyMaterialReport: CompanyMaterialReportDocument) {
+  async material(@Root() companyMaterialReport: CompanyMaterialReport) {
     if (!companyMaterialReport.material)
       throw new Error("Doesn't have a material");
 
@@ -109,7 +107,7 @@ export class CompanyMaterialReportResolver {
 export class CompanyMaterialReportJobDayResolver {
   @FieldResolver(() => JobsiteClass)
   async jobsite(
-    @Root() companyMaterialReportJobDay: CompanyMaterialReportJobDayDocument
+    @Root() companyMaterialReportJobDay: CompanyMaterialReportJobDay
   ) {
     if (!companyMaterialReportJobDay.jobsite)
       throw new Error("Doesn't have a jobsite");

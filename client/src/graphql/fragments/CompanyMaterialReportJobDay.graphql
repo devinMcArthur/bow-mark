@@ -1,7 +1,0 @@
-fragment CompanyMaterialReportJobDaySnippet on CompanyMaterialReportJobDay {
-  jobsite {
-    ...JobsiteCardSnippet
-  }
-  quantity
-  date
-}

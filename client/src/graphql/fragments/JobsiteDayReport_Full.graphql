@@ -1,23 +1,4 @@
 fragment JobsiteDayReportFullSnippet on JobsiteDayReportClass {
-  _id
-  date
-  crewTypes
-  employees {
-    ...JobsiteDayReportEmployeeSnippet
-  }
-  vehicles {
-    ...JobsiteDayReportVehicleSnippet
-  }
-  materials {
-    ...JobsiteDayReportMaterialSnippet
-  }
-  nonCostedMaterials {
-    ...JobsiteDayReportNonCostedMaterialSnippet
-  }
-  trucking {
-    ...JobsiteDayReportTruckingSnippet
-  }
-  summary {
-    ...OnSiteSummaryReportSnippet
-  }
+  ...JobsiteDayReportFetchSnippet
+  ...JobsiteDayReportNoFetchSnippet
 }

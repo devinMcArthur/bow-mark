@@ -160,7 +160,6 @@ const createApp = async () => {
         res,
       };
     },
-    // uploads: false,
     plugins: [
       ApolloServerPluginDrainHttpServer({ httpServer }),
       {

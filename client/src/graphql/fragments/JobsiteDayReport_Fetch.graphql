@@ -1,0 +1,11 @@
+fragment JobsiteDayReportFetchSnippet on JobsiteDayReportClass {
+  employees {
+    ...JobsiteDayReportEmployeeSnippet
+  }
+  vehicles {
+    ...JobsiteDayReportVehicleSnippet
+  }
+  materials {
+    ...JobsiteDayReportMaterialSnippet
+  }
+}

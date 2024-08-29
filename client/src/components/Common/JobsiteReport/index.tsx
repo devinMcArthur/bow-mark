@@ -1,8 +1,8 @@
 import React from "react";
 import { Heading, SimpleGrid, Stack } from "@chakra-ui/react";
 import {
-  JobsiteMonthReportFullSnippetFragment,
-  JobsiteYearReportFullSnippetFragment,
+  JobsiteMonthReportNoFetchSnippetFragment,
+  JobsiteYearReportNoFetchSnippetFragment,
 } from "../../../generated/graphql";
 import Card from "../Card";
 import JobsiteReportCrewType from "./CrewType";
@@ -14,8 +14,8 @@ import JobsiteReportNotes from "./ReportNotes";
 
 interface IJobsiteReport {
   report:
-    | JobsiteMonthReportFullSnippetFragment
-    | JobsiteYearReportFullSnippetFragment;
+  | JobsiteMonthReportNoFetchSnippetFragment
+  | JobsiteYearReportNoFetchSnippetFragment;
 }
 
 const JobsiteReport = ({ report }: IJobsiteReport) => {
@@ -28,7 +28,7 @@ const JobsiteReport = ({ report }: IJobsiteReport) => {
   /**
    * --- Rendering ---
    */
-    
+
   return (
     <Stack spacing={2}>
       <JobsiteReportSummary report={report} />
@@ -51,8 +51,8 @@ const JobsiteReport = ({ report }: IJobsiteReport) => {
       </Card>
 
       <Card heading={
-        <Heading 
-          onClick={() => setNotesExpanded(!notesExpanded)} 
+        <Heading
+          onClick={() => setNotesExpanded(!notesExpanded)}
           size="md"
           cursor="pointer"
         >

@@ -1,0 +1,4 @@
+fragment JobsiteDayReportMaterialFullSnippet on MaterialReportClass {
+  ...JobsiteDayReportMaterialNoFetchSnippet
+  ...JobsiteDayReportMaterialSnippet
+}

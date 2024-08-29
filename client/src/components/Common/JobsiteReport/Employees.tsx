@@ -13,12 +13,12 @@ import {
   CrewTypes,
   EmployeeCardSnippetFragment,
   JobsiteDayReportEmployeeSnippetFragment,
-  JobsiteDayReportFullSnippetFragment,
 } from "../../../generated/graphql";
 import createLink from "../../../utils/createLink";
 import formatDate from "../../../utils/formatDate";
 import formatNumber from "../../../utils/formatNumber";
 import TextLink from "../../Common/TextLink";
+import { FullDayReport } from "./CrewType";
 
 interface IEmployee {
   employee: EmployeeCardSnippetFragment;
@@ -28,7 +28,7 @@ interface IEmployee {
 }
 
 interface IJobsiteReportEmployeeReports {
-  dayReports: JobsiteDayReportFullSnippetFragment[];
+  dayReports: FullDayReport[];
   crewType: CrewTypes;
 }
 
@@ -43,7 +43,7 @@ const JobsiteReportEmployeeReports = ({
   /**
    * @desc all reports w/ employee reports for the crew type
    */
-  const relevantReports: JobsiteDayReportFullSnippetFragment[] =
+  const relevantReports: FullDayReport[] =
     React.useMemo(() => {
       return dayReports
         .filter(
@@ -74,12 +74,12 @@ const JobsiteReportEmployeeReports = ({
         // Only add if crewType matches
         if (employeeReport.crewType === crewType) {
           const existingIndex = employees.findIndex(
-            (employee) => employee.employee._id === employeeReport.employee?._id
+            (employee) => employee.employee._id === employeeReport.employeeRecord?._id
           );
 
           if (existingIndex === -1) {
             employees.push({
-              employee: employeeReport.employee!,
+              employee: employeeReport.employeeRecord!,
               reports: [],
               totalCost: 0,
               totalHours: 0,
@@ -100,7 +100,7 @@ const JobsiteReportEmployeeReports = ({
         // Only add if crewType matches
         if (employeeReport.crewType === crewType) {
           const existingIndex = employees.findIndex(
-            (employee) => employee.employee._id === employeeReport.employee?._id
+            (employee) => employee.employee._id === employeeReport.employeeRecord?._id
           );
 
           if (existingIndex !== -1) {

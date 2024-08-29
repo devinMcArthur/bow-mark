@@ -1,0 +1,5 @@
+fragment JobsiteYearReportFetchSnippet on JobsiteYearReportClass {
+  dayReports {
+    ...JobsiteDayReportFetchSnippet
+  }
+}

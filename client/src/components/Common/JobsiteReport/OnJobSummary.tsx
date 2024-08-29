@@ -12,14 +12,14 @@ import React from "react";
 import { useSystem } from "../../../contexts/System";
 import {
   CrewTypes,
-  JobsiteDayReportFullSnippetFragment,
+  JobsiteDayReportNoFetchSnippetFragment,
 } from "../../../generated/graphql";
 import formatNumber from "../../../utils/formatNumber";
 import getRateForTime from "../../../utils/getRateForTime";
 
 interface IJobsiteReportOnJobSummary {
-  dayReports: JobsiteDayReportFullSnippetFragment[];
-  allDayReports?: JobsiteDayReportFullSnippetFragment[];
+  dayReports: JobsiteDayReportNoFetchSnippetFragment[];
+  allDayReports?: JobsiteDayReportNoFetchSnippetFragment[];
   crewType?: CrewTypes;
   statSize?: StatProps["size"];
 }
@@ -76,8 +76,8 @@ const JobsiteReportOnJobSummary = ({
     for (let i = 0; i < dayReports.length; i++) {
       const employeeCost = crewType
         ? dayReports[i].summary.crewTypeSummaries.find(
-            (summary) => summary.crewType === crewType
-          )?.employeeCost
+          (summary) => summary.crewType === crewType
+        )?.employeeCost
         : dayReports[i].summary.employeeCost;
       wages += employeeCost || 0;
     }
@@ -101,8 +101,8 @@ const JobsiteReportOnJobSummary = ({
     for (let i = 0; i < dayReports.length; i++) {
       const equipmentCost = crewType
         ? dayReports[i].summary.crewTypeSummaries.find(
-            (summary) => summary.crewType === crewType
-          )?.vehicleCost
+          (summary) => summary.crewType === crewType
+        )?.vehicleCost
         : dayReports[i].summary.vehicleCost;
       equipment += equipmentCost || 0;
     }
@@ -129,15 +129,15 @@ const JobsiteReportOnJobSummary = ({
     for (let i = 0; i < dayReports.length; i++) {
       const materialCost = crewType
         ? dayReports[i].summary.crewTypeSummaries.find(
-            (summary) => summary.crewType === crewType
-          )?.materialCost
+          (summary) => summary.crewType === crewType
+        )?.materialCost
         : dayReports[i].summary.materialCost;
       materials.cost += materialCost || 0;
 
       const materialQuantity = crewType
         ? dayReports[i].summary.crewTypeSummaries.find(
-            (summary) => summary.crewType === crewType
-          )?.materialQuantity
+          (summary) => summary.crewType === crewType
+        )?.materialQuantity
         : dayReports[i].summary.materialQuantity;
       materials.quantity += materialQuantity || 0;
     }
@@ -161,8 +161,8 @@ const JobsiteReportOnJobSummary = ({
     for (let i = 0; i < dayReports.length; i++) {
       const truckingCost = crewType
         ? dayReports[i].summary.crewTypeSummaries.find(
-            (summary) => summary.crewType === crewType
-          )?.truckingCost
+          (summary) => summary.crewType === crewType
+        )?.truckingCost
         : dayReports[i].summary.truckingCost;
       trucking += truckingCost || 0;
     }

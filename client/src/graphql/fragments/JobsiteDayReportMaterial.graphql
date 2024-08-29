@@ -1,10 +1,6 @@
 fragment JobsiteDayReportMaterialSnippet on MaterialReportClass {
   _id
-  jobsiteMaterial {
+  jobsiteMaterialRecord {
     ...JobsiteMaterialCardSnippet
   }
-  deliveredRateId
-  rate
-  quantity
-  crewType
 }

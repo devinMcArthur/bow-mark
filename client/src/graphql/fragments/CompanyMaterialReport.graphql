@@ -1,9 +1,0 @@
-fragment CompanyMaterialReportSnippet on CompanyMaterialReport {
-  material {
-    _id
-    name
-  }
-  jobDays {
-    ...CompanyMaterialReportJobDaySnippet
-  }
-}
