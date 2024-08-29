@@ -12,23 +12,23 @@ import React from "react";
 import {
   CrewTypes,
   EmployeeCardSnippetFragment,
-  JobsiteDayReportEmployeeSnippetFragment,
+  JobsiteDayReportEmployeeFullSnippetFragment,
+  JobsiteDayReportFullSnippetFragment,
 } from "../../../generated/graphql";
 import createLink from "../../../utils/createLink";
 import formatDate from "../../../utils/formatDate";
 import formatNumber from "../../../utils/formatNumber";
 import TextLink from "../../Common/TextLink";
-import { FullDayReport } from "./CrewType";
 
 interface IEmployee {
   employee: EmployeeCardSnippetFragment;
-  reports: (JobsiteDayReportEmployeeSnippetFragment | null)[];
+  reports: (JobsiteDayReportEmployeeFullSnippetFragment | null)[];
   totalHours: number;
   totalCost: number;
 }
 
 interface IJobsiteReportEmployeeReports {
-  dayReports: FullDayReport[];
+  dayReports: JobsiteDayReportFullSnippetFragment[];
   crewType: CrewTypes;
 }
 
@@ -43,7 +43,7 @@ const JobsiteReportEmployeeReports = ({
   /**
    * @desc all reports w/ employee reports for the crew type
    */
-  const relevantReports: FullDayReport[] =
+  const relevantReports: JobsiteDayReportFullSnippetFragment[] =
     React.useMemo(() => {
       return dayReports
         .filter(
