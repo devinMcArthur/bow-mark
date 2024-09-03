@@ -6,11 +6,6 @@ fragment JobsiteMaterialForDailyReportSnippet on JobsiteMaterialClass {
   supplier {
     ...CompanyCardSnippet
   }
-  quantity
-  completedQuantity {
-    year
-    quantity
-  }
   unit
   costType
   delivered
