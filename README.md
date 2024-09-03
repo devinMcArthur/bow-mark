@@ -95,8 +95,8 @@ Min Resources:
  - Memory: 6000Mi
 
 Max Resources:
- - CPU: 6000m
- - Memory: 12000Mi
+ - CPU: 7600m
+ - Memory: 14000Mi
 
 server-deployment: 2
 ```
