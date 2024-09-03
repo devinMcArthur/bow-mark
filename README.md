@@ -87,3 +87,73 @@ Docker Hub references with your own Docker Hub images.
   - `kubectl create secret generic server-secrets --from-literal=mongoURI=<value> --from-literal=jwtSecret=<value> --from-literal=elasticsearchPassword=<value>`
 
 - Deploy to your branch and ensure CircleCI passes
+
+# Kubernetes Resources
+
+Min Resources:
+ - CPU: 3000m
+ - Memory: 6000Mi
+
+Max Resources:
+ - CPU: 6000m
+ - Memory: 12000Mi
+
+server-deployment: 2
+```
+requests:
+  cpu: "500m"
+  memory: "1000Mi"
+limits:
+  cpu: "900m"
+  memory: "1500Mi"
+```
+
+server-concrete-deployment: 2
+```
+requests:
+  cpu: "500m"
+  memory: "1000Mi"
+limits:
+  cpu: "900m"
+  memory: "1500Mi"
+```
+
+client-deployment: 1
+```
+requests:
+  cpu: "250m"
+  memory: "500Mi"
+limits:
+  cpu: "1000m"
+  memory: "2000Mi"
+```
+
+client-concrete-deployment: 1
+```
+requests:
+  cpu: "250m"
+  memory: "500Mi"
+limits:
+  cpu: "1000m"
+  memory: "2000Mi"
+```
+
+worker-deployment: 1
+```
+requests:
+  cpu: "250m"
+  memory: "500Mi"
+limits:
+  cpu: "1000m"
+  memory: "2000Mi"
+```
+
+worker-concrete-deployment: 1
+```
+requests:
+  cpu: "250m"
+  memory: "500Mi"
+limits:
+  cpu: "1000m"
+  memory: "2000Mi"
+```
