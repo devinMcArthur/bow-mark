@@ -150,6 +150,7 @@ const DailyReportFullPageList = ({
               )}
             </Box>
             <Menu>
+              {/* @ts-expect-error */}
               <MenuButton
                 disabled={loading}
                 as={Button}
