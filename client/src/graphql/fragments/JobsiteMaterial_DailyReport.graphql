@@ -1,0 +1,20 @@
+fragment JobsiteMaterialForDailyReportSnippet on JobsiteMaterialClass {
+  _id
+  material {
+    ...MaterialCardSnippet
+  }
+  supplier {
+    ...CompanyCardSnippet
+  }
+  quantity
+  completedQuantity {
+    year
+    quantity
+  }
+  unit
+  costType
+  delivered
+  deliveredRates {
+    ...JobsiteMaterialDeliveredRateSnippet
+  }
+}

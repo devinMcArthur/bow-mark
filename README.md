@@ -91,8 +91,8 @@ Docker Hub references with your own Docker Hub images.
 # Kubernetes Resources
 
 Min Resources:
- - CPU: 3000m
- - Memory: 6000Mi
+ - CPU: 2000m
+ - Memory: 4000Mi
 
 Max Resources:
  - CPU: 7600m
@@ -101,21 +101,21 @@ Max Resources:
 server-deployment: 2
 ```
 requests:
-  cpu: "500m"
-  memory: "1000Mi"
+  cpu: "250m"
+  memory: "500Mi"
 limits:
-  cpu: "900m"
-  memory: "1500Mi"
+  cpu: "1000m"
+  memory: "2000Mi"
 ```
 
 server-concrete-deployment: 2
 ```
 requests:
-  cpu: "500m"
-  memory: "1000Mi"
+  cpu: "250m"
+  memory: "500Mi"
 limits:
-  cpu: "900m"
-  memory: "1500Mi"
+  cpu: "1000m"
+  memory: "2000Mi"
 ```
 
 client-deployment: 1

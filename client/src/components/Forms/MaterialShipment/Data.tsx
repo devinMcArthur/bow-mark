@@ -3,8 +3,8 @@ import React from "react";
 import { FiPlus, FiX } from "react-icons/fi";
 import { MaterialShipmentVehicleTypes } from "../../../constants/select";
 import {
-  JobsiteMaterialCardSnippetFragment,
   JobsiteMaterialCostType,
+  JobsiteMaterialForDailyReportSnippetFragment,
   MaterialShipmentCreateData,
   MaterialShipmentShipmentData,
   MaterialShipmentVehicleObjectData,
@@ -31,7 +31,7 @@ interface IMaterialShipmentDataForm {
   formData: MaterialShipmentCreateData;
   canDelete: boolean;
   isLoading: boolean;
-  jobsiteMaterials: JobsiteMaterialCardSnippetFragment[];
+  jobsiteMaterials: JobsiteMaterialForDailyReportSnippetFragment[];
   truckingRates: TruckingTypeRateSnippetFragment[];
   dailyReportDate: Date;
   errors?: MaterialShipmentFormError;
@@ -80,9 +80,9 @@ const MaterialShipmentDataForm = ({
       };
     }, [truckingRates]);
 
-  const deliveredMaterial: JobsiteMaterialCardSnippetFragment | undefined =
+  const deliveredMaterial: JobsiteMaterialForDailyReportSnippetFragment | undefined =
     React.useMemo(() => {
-      let deliveredMaterial: JobsiteMaterialCardSnippetFragment | undefined =
+      let deliveredMaterial: JobsiteMaterialForDailyReportSnippetFragment | undefined =
         undefined;
       const shipment = formData.shipments[0];
       if (shipment.noJobsiteMaterial === false) {

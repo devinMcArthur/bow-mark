@@ -3,7 +3,7 @@ fragment DailyReportForMaterialShipmentSnippet on DailyReportClass {
   date
   jobsite {
     materials {
-      ...JobsiteMaterialCardSnippet
+      ...JobsiteMaterialForDailyReportSnippet
     }
     truckingRates {
       ...TruckingTypeRateSnippet

@@ -1,11 +1,10 @@
 import { SimpleGrid, useToast } from "@chakra-ui/react";
-import dayjs from "dayjs";
 import React from "react";
 import { useMaterialShipmentUpdateForm } from "../../../forms/materialShipment";
 import {
   DailyReportForMaterialShipmentSnippetFragment,
-  JobsiteMaterialCardSnippetFragment,
   JobsiteMaterialCostType,
+  JobsiteMaterialForDailyReportSnippetFragment,
   MaterialShipmentCardSnippetFragment,
   MaterialShipmentUpdateData,
   useMaterialShipmentUpdateMutation,
@@ -59,9 +58,9 @@ const MaterialShipmentUpdate = ({
    * ----- Variables -----
    */
 
-  const deliveredMaterial: JobsiteMaterialCardSnippetFragment | undefined =
+  const deliveredMaterial: JobsiteMaterialForDailyReportSnippetFragment | undefined =
     React.useMemo(() => {
-      let deliveredMaterial: JobsiteMaterialCardSnippetFragment | undefined =
+      let deliveredMaterial: JobsiteMaterialForDailyReportSnippetFragment | undefined =
         undefined;
       if (noJobsiteMaterial === false) {
         const material = dailyReport.jobsite.materials.find(

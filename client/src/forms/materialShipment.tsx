@@ -9,7 +9,7 @@ import {
 } from "react-hook-form";
 import * as yup from "yup";
 import {
-  JobsiteMaterialCardSnippetFragment,
+  JobsiteMaterialForDailyReportSnippetFragment,
   MaterialShipmentUpdateData,
 } from "../generated/graphql";
 
@@ -93,7 +93,7 @@ export const useMaterialShipmentUpdateForm = (options?: UseFormProps) => {
       jobsiteMaterials,
       ...props
     }: IFormProps<Omit<ISelect, "options">> & {
-      jobsiteMaterials: JobsiteMaterialCardSnippetFragment[];
+      jobsiteMaterials: JobsiteMaterialForDailyReportSnippetFragment[];
     }) =>
       React.useMemo(
         () => (

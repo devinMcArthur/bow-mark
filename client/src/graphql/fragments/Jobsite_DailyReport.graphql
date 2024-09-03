@@ -2,7 +2,7 @@ fragment JobsiteForDailyReportSnippet on JobsiteClass {
   _id
   name
   materials {
-    ...JobsiteMaterialCardSnippet
+    ...JobsiteMaterialForDailyReportSnippet
   }
   truckingRates {
     ...TruckingTypeRateSnippet

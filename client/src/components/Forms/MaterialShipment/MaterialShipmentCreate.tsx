@@ -1,13 +1,11 @@
 import { Box, IconButton, useToast } from "@chakra-ui/react";
 import React from "react";
 import { FiPlus } from "react-icons/fi";
-import { MaterialShipmentVehicleTypes } from "../../../constants/select";
 import {
   DailyReportFullDocument,
   DailyReportFullSnippetFragment,
   MaterialShipmentCreateData,
   MaterialShipmentShipmentData,
-  MaterialShipmentVehicleObjectData,
   useMaterialShipmentCreateMutation,
 } from "../../../generated/graphql";
 import isEmpty from "../../../utils/isEmpty";

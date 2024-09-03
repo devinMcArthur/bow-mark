@@ -1,10 +1,10 @@
 import {
-  JobsiteMaterialCardSnippetFragment,
+  JobsiteMaterialForDailyReportSnippetFragment,
   JobsiteMaterialCostType,
 } from "../generated/graphql";
 
 const jobsiteMaterialName = (
-  jobsiteMaterial: JobsiteMaterialCardSnippetFragment
+  jobsiteMaterial: JobsiteMaterialForDailyReportSnippetFragment
 ) => {
   let subText = "";
   if (jobsiteMaterial.costType === JobsiteMaterialCostType.DeliveredRate) {

@@ -2,8 +2,8 @@ import { Box, Flex, IconButton, SimpleGrid } from "@chakra-ui/react";
 import React from "react";
 import { FiX } from "react-icons/fi";
 import {
-  JobsiteMaterialCardSnippetFragment,
   JobsiteMaterialCostType,
+  JobsiteMaterialForDailyReportSnippetFragment,
   MaterialShipmentShipmentData,
 } from "../../../generated/graphql";
 import convertHourToDate from "../../../utils/convertHourToDate";
@@ -30,11 +30,11 @@ interface IMaterialShipmentShipmentForm {
   shipment: MaterialShipmentShipmentData;
   canDelete: boolean;
   isLoading: boolean;
-  jobsiteMaterials: JobsiteMaterialCardSnippetFragment[];
+  jobsiteMaterials: JobsiteMaterialForDailyReportSnippetFragment[];
   dailyReportDate: Date;
   errors?: ShipmentErrors;
   index: number;
-  deliveredMaterial?: JobsiteMaterialCardSnippetFragment;
+  deliveredMaterial?: JobsiteMaterialForDailyReportSnippetFragment;
   onChange: (shipment: MaterialShipmentShipmentData) => void;
   remove: () => void;
 }
