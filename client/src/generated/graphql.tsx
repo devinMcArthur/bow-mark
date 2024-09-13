@@ -2060,6 +2060,8 @@ export type JobsiteForDailyReportSnippetFragment = { __typename?: 'JobsiteClass'
 
 export type JobsiteFullSnippetFragment = { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, archivedAt?: any | null, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }>, location?: { __typename?: 'LocationClass', latitude: number, longitude: number } | null };
 
+export type JobsiteInvoicesSnippetFragment = { __typename?: 'JobsiteClass', _id: string, expenseInvoices: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }>, revenueInvoices: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> };
+
 export type JobsiteMaterialsSnippetFragment = { __typename?: 'JobsiteClass', _id: string, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null }> };
 
 export type JobsiteNonCostedMaterialsSnippetFragment = { __typename?: 'JobsiteClass', _id: string, nonCostedMaterialShipments: Array<{ __typename?: 'MaterialShipmentClass', _id: string, shipmentType?: string | null, supplier?: string | null, quantity: number, unit?: string | null, startTime?: any | null, endTime?: any | null, noJobsiteMaterial?: boolean | null, schemaVersion: number, dailyReport: { __typename?: 'DailyReportClass', _id: string, date: any, jobsite: { __typename?: 'JobsiteClass', materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }> }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }> } }, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, invoices?: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> | null } | null, vehicleObject?: { __typename?: 'VehicleObjectClass', source?: string | null, vehicleType?: string | null, vehicleCode?: string | null, truckingRateId?: string | null, deliveredRateId?: string | null } | null }> };
@@ -2366,7 +2368,7 @@ export type JobsiteAddExpenseInvoiceMutationVariables = Exact<{
 }>;
 
 
-export type JobsiteAddExpenseInvoiceMutation = { __typename?: 'Mutation', jobsiteAddExpenseInvoice: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, archivedAt?: any | null, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }>, location?: { __typename?: 'LocationClass', latitude: number, longitude: number } | null } };
+export type JobsiteAddExpenseInvoiceMutation = { __typename?: 'Mutation', jobsiteAddExpenseInvoice: { __typename?: 'JobsiteClass', _id: string, expenseInvoices: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }>, revenueInvoices: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> } };
 
 export type JobsiteAddFileObjectMutationVariables = Exact<{
   id: Scalars['ID'];
@@ -2390,7 +2392,7 @@ export type JobsiteAddRevenueInvoiceMutationVariables = Exact<{
 }>;
 
 
-export type JobsiteAddRevenueInvoiceMutation = { __typename?: 'Mutation', jobsiteAddRevenueInvoice: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null, location_url?: string | null, active: boolean, archivedAt?: any | null, crews: Array<{ __typename?: 'CrewClass', _id: string, name: string }>, monthReports: Array<{ __typename?: 'JobsiteMonthReportClass', _id: string, startOfMonth: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, yearReports: Array<{ __typename?: 'JobsiteYearReportClass', _id: string, startOfYear: any, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null } }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string }>, contract?: { __typename?: 'JobsiteContractClass', _id?: string | null, bidValue: number, expectedProfit: number, workOnHand: number } | null, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }>, location?: { __typename?: 'LocationClass', latitude: number, longitude: number } | null } };
+export type JobsiteAddRevenueInvoiceMutation = { __typename?: 'Mutation', jobsiteAddRevenueInvoice: { __typename?: 'JobsiteClass', _id: string, expenseInvoices: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }>, revenueInvoices: Array<{ __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, company: { __typename?: 'CompanyClass', _id: string, name: string } }> } };
 
 export type JobsiteArchiveMutationVariables = Exact<{
   id: Scalars['ID'];
@@ -4234,6 +4236,17 @@ ${JobsiteYearReportCardSnippetFragmentDoc}
 ${TruckingTypeRateSnippetFragmentDoc}
 ${JobsiteContractSnippetFragmentDoc}
 ${FilePreloadSnippetFragmentDoc}`;
+export const JobsiteInvoicesSnippetFragmentDoc = gql`
+    fragment JobsiteInvoicesSnippet on JobsiteClass {
+  _id
+  expenseInvoices {
+    ...InvoiceCardSnippet
+  }
+  revenueInvoices {
+    ...InvoiceCardSnippet
+  }
+}
+    ${InvoiceCardSnippetFragmentDoc}`;
 export const JobsiteMaterialsSnippetFragmentDoc = gql`
     fragment JobsiteMaterialsSnippet on JobsiteClass {
   _id
@@ -5541,10 +5554,10 @@ export type JobsiteAddDefaultTruckingRateToAllMutationOptions = Apollo.BaseMutat
 export const JobsiteAddExpenseInvoiceDocument = gql`
     mutation JobsiteAddExpenseInvoice($jobsiteId: String!, $data: InvoiceData!) {
   jobsiteAddExpenseInvoice(jobsiteId: $jobsiteId, data: $data) {
-    ...JobsiteFullSnippet
+    ...JobsiteInvoicesSnippet
   }
 }
-    ${JobsiteFullSnippetFragmentDoc}`;
+    ${JobsiteInvoicesSnippetFragmentDoc}`;
 export type JobsiteAddExpenseInvoiceMutationFn = Apollo.MutationFunction<JobsiteAddExpenseInvoiceMutation, JobsiteAddExpenseInvoiceMutationVariables>;
 
 /**
@@ -5643,10 +5656,10 @@ export type JobsiteAddMaterialMutationOptions = Apollo.BaseMutationOptions<Jobsi
 export const JobsiteAddRevenueInvoiceDocument = gql`
     mutation JobsiteAddRevenueInvoice($jobsiteId: String!, $data: InvoiceData!) {
   jobsiteAddRevenueInvoice(jobsiteId: $jobsiteId, data: $data) {
-    ...JobsiteFullSnippet
+    ...JobsiteInvoicesSnippet
   }
 }
-    ${JobsiteFullSnippetFragmentDoc}`;
+    ${JobsiteInvoicesSnippetFragmentDoc}`;
 export type JobsiteAddRevenueInvoiceMutationFn = Apollo.MutationFunction<JobsiteAddRevenueInvoiceMutation, JobsiteAddRevenueInvoiceMutationVariables>;
 
 /**

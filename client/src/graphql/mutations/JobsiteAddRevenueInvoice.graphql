@@ -1,5 +1,5 @@
 mutation JobsiteAddRevenueInvoice($jobsiteId: String!, $data: InvoiceData!) {
   jobsiteAddRevenueInvoice(jobsiteId: $jobsiteId, data: $data) {
-    ...JobsiteFullSnippet
+    ...JobsiteInvoicesSnippet
   }
 }

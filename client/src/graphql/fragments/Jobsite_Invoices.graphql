@@ -1,0 +1,9 @@
+fragment JobsiteInvoicesSnippet on JobsiteClass {
+  _id
+  yearsExpenseInvoices {
+    ...InvoiceCardSnippet
+  }
+  yearsRevenueInvoices {
+    ...InvoiceCardSnippet
+  }
+}
