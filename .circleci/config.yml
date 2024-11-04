@@ -1,3 +1,4 @@
+version: 2.1
 jobs:
   build:
     docker:
@@ -10,8 +11,7 @@ jobs:
     working_directory: ~/app
     steps:
       - checkout
-      - setup_remote_docker:
-          version: 19.03.13
+      - setup_remote_docker
       - run:
           name: Build Docker images
           command: |
