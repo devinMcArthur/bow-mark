@@ -55,8 +55,8 @@ const main = async () => {
         console.log(`Server running on port: ${port}`)
       );
 
-      // Set timeout to 5 minutes
-      server.setTimeout(5 * 60 * 1000);
+      // Set timeout to 10 minutes
+      server.setTimeout(10 * 60 * 1000);
     }
 
     if (process.env.NODE_ENV !== "test") {
