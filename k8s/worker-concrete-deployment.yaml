@@ -12,6 +12,8 @@ spec:
       labels:
         component: worker-concrete
     spec:
+      nodeSelector:
+        nodepool: default-pool
       containers:
         - name: worker
           image: itsdevin/bow-mark-server:$COMMIT_SHA1

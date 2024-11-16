@@ -12,6 +12,8 @@ spec:
       labels:
         component: server
     spec:
+      nodeSelector:
+        nodepool: dedicated-cpu-optimized
       containers:
         - name: server
           image: itsdevin/bow-mark-server:$COMMIT_SHA1

@@ -12,6 +12,8 @@ spec:
       labels:
         component: web
     spec:
+      nodeSelector:
+        nodepool: default-pool
       containers:
         - name: client
           image: itsdevin/bow-mark-client:$COMMIT_SHA1
