@@ -48,7 +48,7 @@ export default class DailyReportResolver {
   @FieldResolver(() => JobsiteClass)
   async jobsite(@Root() dailyReport: DailyReportDocument) {
     try {
-      return dailyReport.getJobsite();
+      return await dailyReport.getJobsite();
     } catch (error) {
       console.log(error);
       return null;
