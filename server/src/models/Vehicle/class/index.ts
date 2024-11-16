@@ -64,6 +64,10 @@ export class VehicleClass extends VehicleSchema {
     return get.vehicleIssues(this);
   }
 
+  public async getVehicleHourReports(this: VehicleDocument) {
+    return get.vehicleHourReports(this);
+  }
+
   /**
    * ----- Create -----
    */

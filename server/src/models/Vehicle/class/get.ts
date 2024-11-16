@@ -8,6 +8,8 @@ import {
   System,
   OperatorDailyReport,
   VehicleIssue,
+  JobsiteDayReportDocument,
+  JobsiteDayReport,
 } from "@models";
 import {
   GetByIDOptions,
@@ -15,9 +17,10 @@ import {
   ISearchOptions,
 } from "@typescript/models";
 import populateOptions from "@utils/populateOptions";
-import { IVehicleSearchObject } from "@typescript/vehicle";
+import { IVehicleSearchObject, VehicleHoursReport } from "@typescript/vehicle";
 import getRateForTime from "@utils/getRateForTime";
 import { searchIndex, VehicleSearchIndex } from "@search";
+import dayjs from "dayjs";
 
 /**
  * ----- Static Methods -----
@@ -165,6 +168,44 @@ const vehicleIssues = async (vehicle: VehicleDocument) => {
   return vehicleIssues;
 };
 
+const vehicleHourReports = async (
+  vehicle: VehicleDocument,
+): Promise<VehicleHoursReport> => {
+  const report: VehicleHoursReport = {
+    years: [],
+  };
+
+  const jobsiteDayReports: JobsiteDayReportDocument[] = (
+    await JobsiteDayReport.find({
+      "vehicles.vehicle": vehicle._id,
+    })
+  ).sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  // Catalog hours for each year
+  for (let i = 0; i < jobsiteDayReports.length; i++) {
+    const jobsiteDayReport = jobsiteDayReports[i];
+
+    const vehicleReport = jobsiteDayReport.vehicles.find(
+      (vehicleReport) =>
+        vehicleReport.vehicle?.toString() === vehicle._id.toString()
+    );
+
+    // Check for existing day index
+    const existingIndex = report.years.findIndex((year) => year.year === jobsiteDayReport.date.getFullYear());
+
+    if (existingIndex === -1) {
+      report.years.push({
+        year: jobsiteDayReport.date.getFullYear(),
+        hours: vehicleReport?.hours || 0,
+      });
+    } else {
+      report.years[existingIndex].hours += vehicleReport?.hours || 0;
+    }
+  }
+
+  return report;
+};
+
 export default {
   byId,
   search,
@@ -174,4 +215,5 @@ export default {
   rateForTime,
   operatorDailyReports,
   vehicleIssues,
+  vehicleHourReports
 };

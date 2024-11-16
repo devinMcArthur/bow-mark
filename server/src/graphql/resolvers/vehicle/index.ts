@@ -23,6 +23,7 @@ import { SearchOptions } from "@graphql/types/query";
 import { RatesData } from "@graphql/types/mutation";
 import { Id } from "@typescript/models";
 import { ListOptionData } from "@typescript/graphql";
+import { VehicleHoursReport } from "@typescript/vehicle";
 
 @Resolver(() => VehicleClass)
 export default class VehicleResolver {
@@ -92,6 +93,16 @@ export default class VehicleResolver {
     return (await Vehicle.search(searchString, options)).map(
       (object) => object.vehicle
     );
+  }
+
+  @Query(() => VehicleHoursReport)
+  async vehicleHourReports(
+    @Arg("id", () => ID) id: Id,
+  ) {
+    const vehicle = await Vehicle.getById(id);
+    if (!vehicle) throw new Error("Could not find vehicle");
+
+    return vehicle.getVehicleHourReports();
   }
 
   /**

@@ -1,0 +1,10 @@
+query VehicleHourReports(
+  $id: ID!
+) {
+  vehicleHourReports(id: $id) {
+    years {
+      year
+      hours
+    }
+  }
+}

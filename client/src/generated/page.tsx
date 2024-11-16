@@ -2299,6 +2299,41 @@ export const ssrUsers = {
       withPage: withPageUsers,
       usePage: useUsers,
     }
+export async function getServerPageVehicleHourReports
+    (options: Omit<Apollo.QueryOptions<Types.VehicleHourReportsQueryVariables>, 'query'>, ctx: ApolloClientContext ){
+        const apolloClient = getApolloClient(ctx);
+        
+        const data = await apolloClient.query<Types.VehicleHourReportsQuery>({ ...options, query: Operations.VehicleHourReportsDocument });
+        
+        const apolloState = apolloClient.cache.extract();
+
+        return {
+            props: {
+                apolloState: apolloState,
+                data: data?.data,
+                error: data?.error ?? data?.errors ?? null,
+            },
+        };
+      }
+export const useVehicleHourReports = (
+  optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.VehicleHourReportsQuery, Types.VehicleHourReportsQueryVariables>) => {
+  const router = useRouter();
+  const options = optionsFunc ? optionsFunc(router) : {};
+  return useQuery(Operations.VehicleHourReportsDocument, options);
+};
+export type PageVehicleHourReportsComp = React.FC<{data?: Types.VehicleHourReportsQuery, error?: Apollo.ApolloError}>;
+export const withPageVehicleHourReports = (optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.VehicleHourReportsQuery, Types.VehicleHourReportsQueryVariables>) => (WrappedComponent:PageVehicleHourReportsComp) : NextPage  => (props) => {
+                const router = useRouter()
+                const options = optionsFunc ? optionsFunc(router) : {};
+                const {data, error } = useQuery(Operations.VehicleHourReportsDocument, options)    
+                return <WrappedComponent {...props} data={data} error={error} /> ;
+                   
+            }; 
+export const ssrVehicleHourReports = {
+      getServerPage: getServerPageVehicleHourReports,
+      withPage: withPageVehicleHourReports,
+      usePage: useVehicleHourReports,
+    }
 export async function getServerPageVehicleIssue
     (options: Omit<Apollo.QueryOptions<Types.VehicleIssueQueryVariables>, 'query'>, ctx: ApolloClientContext ){
         const apolloClient = getApolloClient(ctx);

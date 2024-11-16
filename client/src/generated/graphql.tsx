@@ -1393,6 +1393,7 @@ export type Query = {
   user?: Maybe<UserClass>;
   users: Array<UserClass>;
   vehicle: VehicleClass;
+  vehicleHourReports: VehicleHoursReport;
   vehicleIssue: VehicleIssueClass;
   vehicleIssues: Array<VehicleIssueClass>;
   vehicles: Array<VehicleClass>;
@@ -1594,6 +1595,11 @@ export type QueryUsersArgs = {
 
 export type QueryVehicleArgs = {
   id: Scalars['String'];
+};
+
+
+export type QueryVehicleHourReportsArgs = {
+  id: Scalars['ID'];
 };
 
 
@@ -1860,6 +1866,17 @@ export type VehicleCreateData = {
   sourceCompany?: InputMaybe<Scalars['String']>;
   vehicleCode: Scalars['String'];
   vehicleType: Scalars['String'];
+};
+
+export type VehicleHourReport = {
+  __typename?: 'VehicleHourReport';
+  hours: Scalars['Float'];
+  year: Scalars['Int'];
+};
+
+export type VehicleHoursReport = {
+  __typename?: 'VehicleHoursReport';
+  years: Array<VehicleHourReport>;
 };
 
 export type VehicleIssueClass = {
@@ -3238,6 +3255,13 @@ export type UsersQueryVariables = Exact<{
 
 
 export type UsersQuery = { __typename?: 'Query', users: Array<{ __typename?: 'UserClass', _id: string, name: string, email: string, role: UserRoles, types?: Array<UserTypes> | null, admin: boolean, projectManager: boolean }> };
+
+export type VehicleHourReportsQueryVariables = Exact<{
+  id: Scalars['ID'];
+}>;
+
+
+export type VehicleHourReportsQuery = { __typename?: 'Query', vehicleHourReports: { __typename?: 'VehicleHoursReport', years: Array<{ __typename?: 'VehicleHourReport', year: number, hours: number }> } };
 
 export type VehicleIssueQueryVariables = Exact<{
   id: Scalars['ID'];
@@ -9676,6 +9700,44 @@ export function useUsersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<User
 export type UsersQueryHookResult = ReturnType<typeof useUsersQuery>;
 export type UsersLazyQueryHookResult = ReturnType<typeof useUsersLazyQuery>;
 export type UsersQueryResult = Apollo.QueryResult<UsersQuery, UsersQueryVariables>;
+export const VehicleHourReportsDocument = gql`
+    query VehicleHourReports($id: ID!) {
+  vehicleHourReports(id: $id) {
+    years {
+      year
+      hours
+    }
+  }
+}
+    `;
+
+/**
+ * __useVehicleHourReportsQuery__
+ *
+ * To run a query within a React component, call `useVehicleHourReportsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useVehicleHourReportsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useVehicleHourReportsQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useVehicleHourReportsQuery(baseOptions: Apollo.QueryHookOptions<VehicleHourReportsQuery, VehicleHourReportsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<VehicleHourReportsQuery, VehicleHourReportsQueryVariables>(VehicleHourReportsDocument, options);
+      }
+export function useVehicleHourReportsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<VehicleHourReportsQuery, VehicleHourReportsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<VehicleHourReportsQuery, VehicleHourReportsQueryVariables>(VehicleHourReportsDocument, options);
+        }
+export type VehicleHourReportsQueryHookResult = ReturnType<typeof useVehicleHourReportsQuery>;
+export type VehicleHourReportsLazyQueryHookResult = ReturnType<typeof useVehicleHourReportsLazyQuery>;
+export type VehicleHourReportsQueryResult = Apollo.QueryResult<VehicleHourReportsQuery, VehicleHourReportsQueryVariables>;
 export const VehicleIssueDocument = gql`
     query VehicleIssue($id: ID!) {
   vehicleIssue(id: $id) {

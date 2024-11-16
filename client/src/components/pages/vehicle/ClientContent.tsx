@@ -11,6 +11,7 @@ import ShowMore from "../../Common/ShowMore";
 import TextLink from "../../Common/TextLink";
 import VehicleIssueCard from "../../Common/VehicleIssue/Card";
 import VehicleRates from "./views/Rates";
+import VehicleHoursCard from "./views/Hours";
 
 interface IVehicleClientContent {
   id: string;
@@ -54,6 +55,7 @@ const VehicleClientContent = ({ id }: IVehicleClientContent) => {
           <Permission>
             <VehicleRates vehicle={vehicle} />
           </Permission>
+          <VehicleHoursCard vehicleId={id} />
           <Card>
             <Heading size="md">Crews</Heading>
             {vehicle.crews.map((crew) => (
@@ -109,7 +111,7 @@ const VehicleClientContent = ({ id }: IVehicleClientContent) => {
         </Box>
       );
     } else return <Loading />;
-  }, [data]);
+  }, [data, id]);
 };
 
 export default VehicleClientContent;
