@@ -227,15 +227,7 @@ const JobsiteMaterialsCosting = ({
         </>
       );
     } else return <Loading />;
-  }, [
-    addForm,
-    jobsite,
-    materialsList,
-    nonCostedList,
-    displayFullList,
-    nonCostedMaterialList,
-    selectedJobsiteMaterial,
-  ]);
+  }, [jobsite, materialsList, addForm, nonCostedList, nonCostedMaterialList, displayFullList, selectedJobsiteMaterial, showPreviousYears]);
 
   return (
     <Card h="fit-content">

@@ -2,6 +2,7 @@ import {
   CompanyClass,
   InvoiceClass,
   JobsiteClass,
+  JobsiteMaterial,
   JobsiteMaterialClass,
   JobsiteMaterialDocument,
   MaterialClass,
@@ -11,9 +12,9 @@ import {
   Arg,
   Authorized,
   FieldResolver,
-  Float,
   ID,
   Mutation,
+  Query,
   Resolver,
   Root,
 } from "type-graphql";
@@ -60,6 +61,15 @@ export default class JobsiteMaterialResolver {
   @FieldResolver(() => [InvoiceClass], { nullable: true })
   async invoices(@Root() jobsiteMaterial: JobsiteMaterialDocument) {
     return jobsiteMaterial.getInvoices();
+  }
+
+  /**
+   * ----- Queries -----
+   */
+
+  @Query(() => JobsiteMaterialClass)
+  async jobsiteMaterial(@Arg("id") id: string) {
+    return JobsiteMaterial.getById(id);
   }
 
   /**

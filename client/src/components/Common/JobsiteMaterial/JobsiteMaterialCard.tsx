@@ -4,6 +4,7 @@ import {
   JobsiteFullDocument,
   JobsiteMaterialCardSnippetFragment,
   JobsiteMaterialCostType,
+  useJobsiteMaterialInvoicesLazyQuery,
   useJobsiteMaterialRemoveMutation,
   UserRoles,
 } from "../../../generated/graphql";
@@ -16,6 +17,7 @@ import { FaFileInvoiceDollar } from "react-icons/fa";
 import JobsiteMaterialInvoices from "./Invoices";
 import jobsiteMaterialName from "../../../utils/jobsiteMaterialName";
 import ProgressBar from "../ProgressBar";
+import Loading from "../Loading";
 
 interface IJobsiteMaterialCard {
   jobsiteMaterial: JobsiteMaterialCardSnippetFragment;
@@ -44,6 +46,12 @@ const JobsiteMaterialCard = ({
     }
   );
 
+  const [invoiceQuery, { data: invoices, loading: invoicesLoading }] = useJobsiteMaterialInvoicesLazyQuery({
+    variables: {
+      id: jobsiteMaterial._id,
+    }
+  })
+
   /**
    * ----- Use-effects and other logic -----
    */
@@ -53,6 +61,12 @@ const JobsiteMaterialCard = ({
       ref.current.focus();
     }
   }, [ref, selected]);
+
+  React.useEffect(() => {
+    if (showInvoice && !invoicesLoading && !invoices) {
+      invoiceQuery();
+    }
+  }, [invoiceQuery, invoicesLoading, showInvoice, invoices])
 
   /**
    * --- Variables ---
@@ -147,12 +161,13 @@ const JobsiteMaterialCard = ({
           <JobsiteMaterialUpdate jobsiteMaterial={jobsiteMaterial} />
         </FormContainer>
       )}
-      {showInvoice && (
+      {showInvoice && (!invoicesLoading ? (
         <JobsiteMaterialInvoices
+          invoices={invoices?.jobsiteMaterial.invoices || []}
           jobsiteMaterial={jobsiteMaterial}
           showPreviousYears={showPreviousYears}
         />
-      )}
+      ) : <Loading />)}
     </Box>
   );
 };

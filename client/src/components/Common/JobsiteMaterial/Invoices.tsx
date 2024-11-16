@@ -8,7 +8,7 @@ import {
 } from "@chakra-ui/react";
 import React from "react";
 import { FiPlus, FiX } from "react-icons/fi";
-import { JobsiteMaterialCardSnippetFragment } from "../../../generated/graphql";
+import { InvoiceCardSnippetFragment, JobsiteMaterialCardSnippetFragment } from "../../../generated/graphql";
 import JobsiteMaterialInvoiceAddForm from "../../Forms/JobsiteMaterial/InvoiceAdd";
 import FormContainer from "../FormContainer";
 import Permission from "../Permission";
@@ -17,11 +17,13 @@ import dayjs from "dayjs";
 
 interface IJobsiteMaterialInvoices {
   jobsiteMaterial: JobsiteMaterialCardSnippetFragment;
+  invoices: InvoiceCardSnippetFragment[]
   showPreviousYears?: boolean;
 }
 
 const JobsiteMaterialInvoices = ({
   jobsiteMaterial,
+  invoices: propInvoices,
   showPreviousYears,
 }: IJobsiteMaterialInvoices) => {
   /**
@@ -35,9 +37,9 @@ const JobsiteMaterialInvoices = ({
    */
 
   const sortedInvoices = React.useMemo(() => {
-    let invoices = jobsiteMaterial.invoices;
+    let invoices = propInvoices;
 
-    if (jobsiteMaterial.invoices && !showPreviousYears) {
+    if (invoices && !showPreviousYears) {
       invoices = invoices?.filter((a) => {
         return dayjs(a.date).isSame(dayjs(), "year");
       });
@@ -46,7 +48,7 @@ const JobsiteMaterialInvoices = ({
     return invoices?.slice().sort((a, b) => {
       return a.company.name.localeCompare(b.company.name);
     });
-  }, [jobsiteMaterial.invoices, showPreviousYears]);
+  }, [propInvoices, showPreviousYears]);
 
   /**
    * ----- Rendering -----

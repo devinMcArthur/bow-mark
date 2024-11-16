@@ -1074,6 +1074,41 @@ export const ssrJobsiteMasterExcelReportByDate = {
       withPage: withPageJobsiteMasterExcelReportByDate,
       usePage: useJobsiteMasterExcelReportByDate,
     }
+export async function getServerPageJobsiteMaterialInvoices
+    (options: Omit<Apollo.QueryOptions<Types.JobsiteMaterialInvoicesQueryVariables>, 'query'>, ctx: ApolloClientContext ){
+        const apolloClient = getApolloClient(ctx);
+        
+        const data = await apolloClient.query<Types.JobsiteMaterialInvoicesQuery>({ ...options, query: Operations.JobsiteMaterialInvoicesDocument });
+        
+        const apolloState = apolloClient.cache.extract();
+
+        return {
+            props: {
+                apolloState: apolloState,
+                data: data?.data,
+                error: data?.error ?? data?.errors ?? null,
+            },
+        };
+      }
+export const useJobsiteMaterialInvoices = (
+  optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.JobsiteMaterialInvoicesQuery, Types.JobsiteMaterialInvoicesQueryVariables>) => {
+  const router = useRouter();
+  const options = optionsFunc ? optionsFunc(router) : {};
+  return useQuery(Operations.JobsiteMaterialInvoicesDocument, options);
+};
+export type PageJobsiteMaterialInvoicesComp = React.FC<{data?: Types.JobsiteMaterialInvoicesQuery, error?: Apollo.ApolloError}>;
+export const withPageJobsiteMaterialInvoices = (optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.JobsiteMaterialInvoicesQuery, Types.JobsiteMaterialInvoicesQueryVariables>) => (WrappedComponent:PageJobsiteMaterialInvoicesComp) : NextPage  => (props) => {
+                const router = useRouter()
+                const options = optionsFunc ? optionsFunc(router) : {};
+                const {data, error } = useQuery(Operations.JobsiteMaterialInvoicesDocument, options)    
+                return <WrappedComponent {...props} data={data} error={error} /> ;
+                   
+            }; 
+export const ssrJobsiteMaterialInvoices = {
+      getServerPage: getServerPageJobsiteMaterialInvoices,
+      withPage: withPageJobsiteMaterialInvoices,
+      usePage: useJobsiteMaterialInvoices,
+    }
 export async function getServerPageJobsiteMonthReportCard
     (options: Omit<Apollo.QueryOptions<Types.JobsiteMonthReportCardQueryVariables>, 'query'>, ctx: ApolloClientContext ){
         const apolloClient = getApolloClient(ctx);

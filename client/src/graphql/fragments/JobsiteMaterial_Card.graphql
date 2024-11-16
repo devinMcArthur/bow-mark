@@ -20,8 +20,5 @@ fragment JobsiteMaterialCardSnippet on JobsiteMaterialClass {
   deliveredRates {
     ...JobsiteMaterialDeliveredRateSnippet
   }
-  invoices {
-    ...InvoiceCardSnippet
-  }
   canRemove
 }

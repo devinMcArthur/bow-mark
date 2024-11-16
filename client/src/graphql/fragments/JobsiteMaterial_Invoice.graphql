@@ -1,0 +1,6 @@
+fragment JobsiteMaterialInvoiceSnippet on JobsiteMaterialClass {
+  _id
+  invoices {
+    ...InvoiceCardSnippet
+  }
+}
