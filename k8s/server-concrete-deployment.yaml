@@ -13,7 +13,7 @@ spec:
         component: server-concrete
     spec:
       nodeSelector:
-        nodepool: dedicated-cpu-optimized
+        doks.digitalocean.com/node-pool: dedicated-cpu-optimized
       containers:
         - name: server
           image: itsdevin/bow-mark-server:$COMMIT_SHA1

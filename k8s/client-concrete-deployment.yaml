@@ -13,7 +13,7 @@ spec:
         component: web-concrete
     spec:
       nodeSelector:
-        nodepool: default-pool
+        doks.digitalocean.com/node-pool: default-pool
       containers:
         - name: client
           image: itsdevin/bow-mark-concrete-client:$COMMIT_SHA1

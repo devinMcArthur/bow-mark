@@ -13,7 +13,7 @@ spec:
         component: worker
     spec:
       nodeSelector:
-        nodepool: default-pool
+        doks.digitalocean.com/node-pool: default-pool
       containers:
         - name: worker
           image: itsdevin/bow-mark-server:$COMMIT_SHA1
