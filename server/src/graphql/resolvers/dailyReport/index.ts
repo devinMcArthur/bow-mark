@@ -17,6 +17,7 @@ import {
   DailyReportDocument,
   EmployeeClass,
   EmployeeWorkClass,
+  Jobsite,
   JobsiteClass,
   MaterialShipmentClass,
   ProductionClass,
@@ -51,7 +52,10 @@ export default class DailyReportResolver {
       return await dailyReport.getJobsite();
     } catch (error) {
       console.log(error);
-      return null;
+      return Jobsite.createDocument({
+        name: "Unknown Jobsite",
+        jobcode: "Unknown",
+      });
     }
   }
 
