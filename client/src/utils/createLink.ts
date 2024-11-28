@@ -114,6 +114,13 @@ const server_companyMaterialReportDownload = (companyId: string, year: number) =
   )}/file/company/${companyId}/material-report/${year}`;
 }
 
+const server_companyInvoiceReportDownload = (companyId: string, year: number) => {
+  return `${(process.env.NEXT_PUBLIC_API_URL as string).replace(
+    "/graphql",
+    ""
+  )}/file/company/${companyId}/invoice-report/${year}`;
+}
+
 const createLink = {
   employee,
   vehicle,
@@ -134,6 +141,7 @@ const createLink = {
   server_employeesExcelDownload,
   server_operatorDailyReportDownloadPDF,
   server_companyMaterialReportDownload,
+  server_companyInvoiceReportDownload,
 };
 
 export default createLink;

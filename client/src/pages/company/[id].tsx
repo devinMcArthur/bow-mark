@@ -12,7 +12,6 @@ const Company: PageCompanyCardComp = ({ data }) => {
     <Container>
       <Heading>{company.name}</Heading>
       <Box>
-        <Heading size="md">Material Report</Heading>
         <ClientOnly>
           <CompanyClientContent company={company} />
         </ClientOnly>

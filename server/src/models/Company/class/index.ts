@@ -58,6 +58,14 @@ export class CompanyClass extends CompanySchema {
     return get.invoices(this);
   }
 
+  public async getInvoiceReportYears(this: CompanyDocument) {
+    return get.invoiceReportYears(this);
+  }
+
+  public async getInvoiceReport(this: CompanyDocument, year: number) {
+    return get.invoiceReport(this, year);
+  }
+
   /**
    * ----- CREATE -----
    */

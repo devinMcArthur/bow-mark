@@ -67,7 +67,7 @@ const jobsiteMaterial = async (
   invoice: InvoiceDocument
 ): Promise<JobsiteMaterialDocument | null> => {
   const jobsiteMaterial = await JobsiteMaterial.findOne({
-    invoices: [invoice._id],
+    invoices: { $in: [invoice._id] },
   });
 
   return jobsiteMaterial;
@@ -83,8 +83,8 @@ const jobsite = async (
   } else {
     const jobsite = await Jobsite.findOne({
       $or: [
-        { expenseInvoices: [invoice._id] },
-        { revenueInvoices: [invoice._id] },
+        { expenseInvoices: { $in: [invoice._id] } },
+        { revenueInvoices: { $in: [invoice._id] } },
       ],
     });
 

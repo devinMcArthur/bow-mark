@@ -7,6 +7,7 @@ import archiver from "archiver";
 import { generateForVehicles } from "@utils/excel/vehicles";
 import { generateForEmployees } from "@utils/excel/employees";
 import generateCompanyMaterialReportExcel from "@utils/excel/companyMaterialReport";
+import generateCompanyInvoiceReportExcel from "@utils/excel/companyInvoiceReport";
 
 const router = Router();
 
@@ -125,6 +126,27 @@ router.get("/company/:companyId/material-report/:year", async (req, res) => {
   res.setHeader(
     "Content-Disposition",
     `attachment; filename=${company.name}-${year}-Material-Report.xlsx`
+  );
+
+  return res.send(await getWorkbookBuffer(workbook));
+});
+
+router.get("/company/:companyId/invoice-report/:year", async (req, res) => {
+  const companyId = req.params.companyId;
+  const year = req.params.year;
+
+  const company = await Company.getById(companyId);
+  if (!company) return res.status(404).send("Could not find company");
+
+  if (!year) return res.status(400).send("Invalid year");
+
+  const invoices = await company.getInvoiceReport(parseInt(year, 10));
+  const workbook = await generateCompanyInvoiceReportExcel(invoices);
+
+  res.setHeader("Content-Type", SupportedMimeTypes.XLSX);
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename=${company.name}-${year}-Invoice-Report.xlsx`
   );
 
   return res.send(await getWorkbookBuffer(workbook));

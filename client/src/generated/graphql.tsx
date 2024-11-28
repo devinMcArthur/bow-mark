@@ -30,6 +30,7 @@ export type CompanyClass = {
   _id: Scalars['ID'];
   archivedAt: Scalars['DateTime'];
   createdAt: Scalars['DateTime'];
+  invoiceReportYears: Array<Scalars['Float']>;
   invoices: Array<InvoiceClass>;
   isBowMarkConcrete: Scalars['Boolean'];
   isBowMarkPaving: Scalars['Boolean'];
@@ -1971,7 +1972,7 @@ export type YearlyMaterialQuantity = {
 
 export type CompanyCardSnippetFragment = { __typename?: 'CompanyClass', _id: string, name: string };
 
-export type CompanyFullSnippetFragment = { __typename?: 'CompanyClass', materialReportYears: Array<number>, _id: string, name: string };
+export type CompanyFullSnippetFragment = { __typename?: 'CompanyClass', materialReportYears: Array<number>, invoiceReportYears: Array<number>, _id: string, name: string };
 
 export type CrewLocationSnippetFragment = { __typename?: 'CrewLocationClass', crew: { __typename?: 'CrewClass', _id: string, name: string }, days: Array<{ __typename?: 'CrewLocationDayClass', date: any, items: Array<{ __typename?: 'CrewLocationDayItemClass', jobsiteName: string, dailyReportId: string }> }> };
 
@@ -2855,7 +2856,7 @@ export type CompanyFullQueryVariables = Exact<{
 }>;
 
 
-export type CompanyFullQuery = { __typename?: 'Query', company: { __typename?: 'CompanyClass', materialReportYears: Array<number>, _id: string, name: string } };
+export type CompanyFullQuery = { __typename?: 'Query', company: { __typename?: 'CompanyClass', materialReportYears: Array<number>, invoiceReportYears: Array<number>, _id: string, name: string } };
 
 export type CrewLocationsQueryVariables = Exact<{
   startTime?: InputMaybe<Scalars['DateTime']>;
@@ -3351,6 +3352,7 @@ export const CompanyFullSnippetFragmentDoc = gql`
     fragment CompanyFullSnippet on CompanyClass {
   ...CompanyCardSnippet
   materialReportYears
+  invoiceReportYears
 }
     ${CompanyCardSnippetFragmentDoc}`;
 export const CrewLocationSnippetFragmentDoc = gql`

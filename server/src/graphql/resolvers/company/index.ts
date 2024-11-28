@@ -43,6 +43,11 @@ export default class CompanyResolver {
     return company.getInvoices();
   }
 
+  @FieldResolver(() => [Number])
+  async invoiceReportYears(@Root() company: CompanyDocument) {
+    return company.getInvoiceReportYears();
+  }
+
   /**
    * ----- Queries -----
    */

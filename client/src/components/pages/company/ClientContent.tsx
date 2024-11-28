@@ -1,4 +1,4 @@
-import { Center, Stack, Text } from "@chakra-ui/react";
+import { Center, Heading, Stack, Text } from "@chakra-ui/react";
 import {
   CompanyCardSnippetFragment,
   useCompanyFullQuery,
@@ -29,15 +29,35 @@ const CompanyClientContent = ({ company }: ICompanyClientContent) => {
   if (data?.company && !loading) {
     return (
       <div>
-        <i>Keep in mind that this may take up to a few minutes to load</i>
-        <Stack spacing={2}>
-          {data.company.materialReportYears.map((year) => {
-            return (
-              <TextLink link={createLink.server_companyMaterialReportDownload(data.company._id, year)} newTab key={year}>
-                Material Report {year}
-              </TextLink>
-            );
-          })}
+        <Stack spacing={4}>
+          <div>
+            <Heading size="md">Material Reports</Heading>
+            <Stack>
+              {data.company.materialReportYears.length === 0 ? (
+                <Text>No material reports available</Text>
+              ) : data.company.materialReportYears.map((year) => {
+                return (
+                  <TextLink link={createLink.server_companyMaterialReportDownload(data.company._id, year)} newTab key={year}>
+                    Material Report {year}
+                  </TextLink>
+                );
+              })}
+            </Stack>
+          </div>
+          <div>
+            <Heading size="md">Invoice Reports</Heading>
+            <Stack>
+              {data.company.invoiceReportYears.length === 0 ? (
+                <Text>No invoice reports available</Text>
+              ) : data.company.invoiceReportYears.map((year) => {
+                return (
+                  <TextLink link={createLink.server_companyInvoiceReportDownload(data.company._id, year)} newTab key={year}>
+                    Invoice Report {year}
+                  </TextLink>
+                );
+              })}
+            </Stack>
+          </div>
         </Stack>
       </div>
     );

@@ -3,6 +3,7 @@ import {
   CompanyDocument,
   CompanyModel,
   Invoice,
+  InvoiceDocument,
   JobsiteDayReport,
   JobsiteMaterial,
   MaterialReportClass,
@@ -254,6 +255,33 @@ const invoices = async (company: CompanyDocument) => {
   return invoices;
 };
 
+const invoiceReportYears = async (
+  company: CompanyDocument
+): Promise<number[]> => {
+  // Retreive all invoices
+  const invoices = await company.getInvoices();
+
+  // Get all unique years from the invoices
+  const years = [...new Set(invoices.map((day) => day.date.getFullYear()))];
+
+  return years;
+};
+
+const invoiceReport = async (
+  company: CompanyDocument,
+  year: number
+): Promise<InvoiceDocument[]> => {
+  // Retreive all invoices for this company
+  const invoices = await company.getInvoices();
+
+  // Filter out invoices that are not from the specified year
+  const filteredInvoices = invoices.filter(
+    (invoice) => invoice.date.getFullYear() === year
+  );
+
+  return filteredInvoices;
+};
+
 export default {
   byId,
   byName,
@@ -262,4 +290,6 @@ export default {
   materialReports,
   materialReportYears,
   invoices,
+  invoiceReportYears,
+  invoiceReport
 };
