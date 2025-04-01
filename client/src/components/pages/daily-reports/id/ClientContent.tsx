@@ -228,6 +228,9 @@ const DailyReportClientContent = ({ id }: IDailyReportClientContent) => {
                       >
                         Pay Roll Complete
                       </Checkbox>
+                      <Text as="span" fontWeight="light">
+                        Created At: {dayjs(new Date(parseInt(data.dailyReport._id.substring(0, 8), 16) * 1000)).format("MMMM DD, YYYY, h:mm a")}
+                      </Text>
                     </Flex>
                   </Box>
                 </Permission>
