@@ -23,6 +23,7 @@ const CrewUpdateForm = ({ crew, onSuccess }: ICrewUpdateForm) => {
   const { FormComponents } = useCrewUpdateForm({
     defaultValues: {
       name: crew.name,
+      type: crew.type,
     },
   });
 
@@ -66,6 +67,7 @@ const CrewUpdateForm = ({ crew, onSuccess }: ICrewUpdateForm) => {
   return (
     <FormComponents.Form submitHandler={submitHandler}>
       <FormComponents.Name isLoading={loading} />
+      <FormComponents.Type helperText="Changing this will affect reporting for this crew" isLoading={loading} />
       <SubmitButton isLoading={loading} />
     </FormComponents.Form>
   );

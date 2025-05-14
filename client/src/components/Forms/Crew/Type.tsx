@@ -33,6 +33,14 @@ const CrewType = ({ value, onChange, ...props }: ICrewType) => {
             title: CrewTypes.BreakoutCb,
           },
           {
+            value: CrewTypes.Breakout,
+            title: CrewTypes.Breakout,
+          },
+          {
+            value: CrewTypes.CatchBasins,
+            title: CrewTypes.CatchBasins,
+          },
+          {
             value: CrewTypes.FormLineSetting,
             title: CrewTypes.FormLineSetting,
           },

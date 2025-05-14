@@ -5,6 +5,7 @@ import isEmpty from "@utils/isEmpty";
 
 const document = async (crew: CrewDocument, data: ICrewUpdate) => {
   if (!isEmpty(data.name)) crew.name = data.name;
+  if (!isEmpty(data.type)) crew.type = data.type;
 
   return;
 };

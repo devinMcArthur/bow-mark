@@ -16,6 +16,9 @@ export class CrewCreateData {
 export class CrewUpdateData {
   @Field({ nullable: false })
   public name!: string;
+
+  @Field(() => CrewTypes, { nullable: false })
+  public type!: CrewTypes;
 }
 
 const create = async (data: CrewCreateData): Promise<CrewDocument> => {

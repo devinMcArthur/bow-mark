@@ -13,6 +13,8 @@ export enum CrewTypes {
   BasePrep = "Base Prep",
   FormTruck = "Form Truck",
   BreakoutCB = "Breakout / CB",
+  Breakout = "Breakout",
+  CatchBasins = "Catch Basins",
   Other = "Other",
 }
 
@@ -27,6 +29,7 @@ export interface ICrewCreate {
 
 export interface ICrewUpdate {
   name: string;
+  type: CrewTypes;
 }
 
 export interface ICrewSearchObject {

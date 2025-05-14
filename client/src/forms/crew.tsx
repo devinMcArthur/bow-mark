@@ -94,6 +94,7 @@ const CrewUpdateSchema = yup
   .object()
   .shape({
     name: yup.string().required("please provide a name"),
+    type: yup.string().required("please enter a crew type"),
   })
   .required();
 
@@ -125,6 +126,27 @@ export const useCrewUpdateForm = (options?: UseFormProps) => {
                 {...field}
                 errorMessage={fieldState.error?.message}
                 label="Name"
+                isDisabled={isLoading}
+              />
+            )}
+          />
+        ),
+        [isLoading, props]
+      ),
+    Type: ({ isLoading, ...props }: IFormProps<ICrewType>) =>
+      React.useMemo(
+        () => (
+          <Controller
+            control={control}
+            name="type"
+            defaultValue="Base"
+            render={({ field, fieldState }) => (
+              <CrewType
+                {...props}
+                {...field}
+                value={field.value as CrewTypes}
+                errorMessage={fieldState.error?.message}
+                label="Crew Type"
                 isDisabled={isLoading}
               />
             )}
