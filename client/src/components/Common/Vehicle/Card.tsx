@@ -35,6 +35,18 @@ const VehicleCard = ({ vehicle }: IVehicleCard) => {
     });
 
   /**
+   * ----- Variables -----
+   */
+
+  const currentRate = React.useMemo(() => {
+    if (vehicle.rates.length > 0) {
+      return vehicle.rates[vehicle.rates.length - 1].rate;
+    } else {
+      return 0;
+    }
+  }, [vehicle]);
+
+  /**
    * ----- Rendering -----
    */
 
@@ -107,6 +119,10 @@ const VehicleCard = ({ vehicle }: IVehicleCard) => {
             title: <Text fontWeight="bold">Type: </Text>,
             text: vehicle.vehicleType,
           },
+          {
+            title: <Text fontWeight="bold">Current Rate: </Text>,
+            text: `$${currentRate}`,
+          }
         ]}
       />
     </Card>
