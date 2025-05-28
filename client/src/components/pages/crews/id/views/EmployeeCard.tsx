@@ -5,9 +5,11 @@ import {
   EmployeeCardSnippetFragment,
   Scalars,
   useCrewRemoveEmployeeMutation,
+  UserRoles,
 } from "../../../../../generated/graphql";
 import createLink from "../../../../../utils/createLink";
 import EmployeeHours from "../../../../Common/Employee/Hours";
+import Permission from "../../../../Common/Permission";
 import TextLink from "../../../../Common/TextLink";
 
 interface IEmployeeCard {
@@ -42,13 +44,15 @@ const EmployeeCard = ({
           </TextLink>
           <Text>{employee.jobTitle}</Text>
         </Box>
-        <IconButton
-          onClick={() => window.confirm("Are you sure?") && remove()}
-          isLoading={removeLoading}
-          backgroundColor="transparent"
-          aria-label="remove"
-          icon={<FiTrash />}
-        />
+        <Permission minRole={UserRoles.Admin}>
+          <IconButton
+            onClick={() => window.confirm("Are you sure?") && remove()}
+            isLoading={removeLoading}
+            backgroundColor="transparent"
+            aria-label="remove"
+            icon={<FiTrash />}
+          />
+        </Permission>
       </Flex>
       {showHours && (
         <EmployeeHours
