@@ -1,4 +1,4 @@
-import { InvoiceDocument } from "@models";
+import { InvoiceDocument, JobsiteDocument } from "@models";
 import ExcelJS from "exceljs";
 
 const generateCompanyInvoiceReportExcel = async (invoices: InvoiceDocument[]) => {
@@ -9,11 +9,26 @@ const generateCompanyInvoiceReportExcel = async (invoices: InvoiceDocument[]) =>
   // Step 1: sort invoices by date
   const sortedInvoices = invoices.sort((a, b) => a.date.getTime() - b.date.getTime());
 
+  // Get jobsite for each invoice
+  interface InvoiceWithJobsite extends InvoiceDocument {
+    jobsite: JobsiteDocument | null
+  }
+
+  const invoicesWithJobsites: InvoiceWithJobsite[] = await Promise.all(
+    sortedInvoices.map(async (invoice) => {
+      const jobsite = await invoice.getJobsite();
+      // Attach jobsite to the original invoice document
+      (invoice as InvoiceWithJobsite).jobsite = jobsite;
+      return invoice as InvoiceWithJobsite;
+    })
+  );
+
   // Step 2: Create the Data Matrix
-  const dataMatrix = sortedInvoices.map(invoice => [
+  const dataMatrix = invoicesWithJobsites.map(invoice => [
     invoice.invoiceNumber,
     invoice.date.toLocaleDateString(),
     invoice.cost,
+    invoice.jobsite ? invoice.jobsite.jobcode : "",
     invoice.description || ""
   ]);
 
@@ -26,6 +41,7 @@ const generateCompanyInvoiceReportExcel = async (invoices: InvoiceDocument[]) =>
       { name: "Invoice Number", filterButton: true },
       { name: "Date", filterButton: true },
       { name: "Amount", filterButton: true, totalsRowFunction: "sum" },
+      { name: "Job", filterButton: true },
       { name: "Description", filterButton: true },
     ],
     rows: dataMatrix,
