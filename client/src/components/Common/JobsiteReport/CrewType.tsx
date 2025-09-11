@@ -3,10 +3,7 @@ import React from "react";
 import { FiChevronUp } from "react-icons/fi";
 import {
   CrewTypes,
-  JobsiteDayReportEmployeeFullSnippetFragment,
   JobsiteDayReportFullSnippetFragment,
-  JobsiteDayReportMaterialFullSnippetFragment,
-  JobsiteDayReportVehicleFullSnippetFragment,
   JobsiteMonthReportNoFetchSnippetFragment,
   JobsiteYearReportNoFetchSnippetFragment,
   useJobsiteDayReportsFetchQuery,
@@ -95,7 +92,7 @@ const JobsiteReportCrewType = ({
         />
       </>
     )
-  }, [loading, data]);
+  }, [loading, data, report.dayReports, crewType]);
 
   return (
     <Card
