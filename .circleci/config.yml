@@ -56,10 +56,16 @@ jobs:
           command: |
             sudo apt-get update && sudo apt-get -y install gettext-base
       - run:
-          name: Install kubectl
+          name: Install kubectl + doctl
           command: |
-            curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
-            chmod u+x ./kubectl
+            set -euxo pipefail
+
+            curl -sSL "https://dl.k8s.io/release/$(curl -sSL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" -o kubectl
+            chmod +x kubectl
+
+            curl -sSL https://github.com/digitalocean/doctl/releases/download/v1.114.0/doctl-1.114.0-linux-amd64.tar.gz \
+              | tar -xz
+            chmod +x doctl
       - run:
           name: Deploy code
           command: sh ./scripts/ci-deploy.sh
