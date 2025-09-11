@@ -1,5 +1,5 @@
 #! /bin/bash
-set -euo pipefail
+set -e pipefail
 
 COMMIT_SHA1=$CIRCLE_SHA1
 
