@@ -35,10 +35,26 @@ mv ./k8s/client-concrete-deployment.yaml.out ./k8s/client-concrete-deployment.ya
 
 echo "$KUBERNETES_CLUSTER_CERTIFICATE" | base64 --decode > cert.crt
 
-./kubectl \
-  --kubeconfig=/dev/null \
-  --server=$KUBERNETES_SERVER \
-  --certificate-authority=cert.crt \
-  --token=$KUBERNETES_TOKEN \
-  --validate=false \
-  apply -f ./k8s/
+set -euo pipefail
+
+# 0) Install doctl + kubectl (or use an image that has both)
+curl -sL https://github.com/digitalocean/doctl/releases/latest/download/doctl-1.114.0-linux-amd64.tar.gz \
+  | tar -xz && sudo mv doctl /usr/local/bin/
+# install kubectl matching your cluster (example: 1.29)
+KVER=1.29.7
+curl -LO https://dl.k8s.io/release/v${KVER}/bin/linux/amd64/kubectl
+chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+
+# 1) Authenticate doctl (store DO_API_TOKEN in CircleCI)
+doctl auth init -t "$DO_API_TOKEN"
+
+# 2) Fetch a short-lived kubeconfig for the cluster
+#    CLUSTER can be the cluster name or ID; 600s is usually enough for an apply
+doctl kubernetes cluster kubeconfig save --expiry-seconds 600 "$DO_CLUSTER"
+
+# 3) Sanity check (forces auth)
+kubectl version --client --short
+kubectl get ns
+
+# 4) Apply
+kubectl apply -f ./k8s/
