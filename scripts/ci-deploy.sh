@@ -40,4 +40,5 @@ echo "$KUBERNETES_CLUSTER_CERTIFICATE" | base64 --decode > cert.crt
   --server=$KUBERNETES_SERVER \
   --certificate-authority=cert.crt \
   --token=$KUBERNETES_TOKEN \
+  --validate=false \
   apply -f ./k8s/
