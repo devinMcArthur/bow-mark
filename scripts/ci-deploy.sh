@@ -35,8 +35,6 @@ mv ./k8s/client-concrete-deployment.yaml.out ./k8s/client-concrete-deployment.ya
 
 echo "$KUBERNETES_CLUSTER_CERTIFICATE" | base64 --decode > cert.crt
 
-set -euo pipefail
-
 # 0) Install doctl + kubectl (or use an image that has both)
 curl -sL https://github.com/digitalocean/doctl/releases/latest/download/doctl-1.114.0-linux-amd64.tar.gz \
   | tar -xz && sudo mv doctl /usr/local/bin/
