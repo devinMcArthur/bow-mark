@@ -75,6 +75,9 @@ export const generateForDateRange = async (startTime: Date, endTime: Date) => {
     }
   }
 
+  console.log("Start Time:", startTime);
+  console.log("End Time:", endTime);
+
   // Get all invoices that took place during the date range
   const invoices: InvoiceDocument[] = await Invoice.find({
     date: {
