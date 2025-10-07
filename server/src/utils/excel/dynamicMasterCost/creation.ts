@@ -30,8 +30,8 @@ type JobsiteCatalog = Record<
 
 export const generateForDateRange = async (startTime: Date, endTime: Date) => {
   const jobsiteDayReports = await JobsiteDayReport.getByDateRange(
-    dayjs(startTime).startOf("day").toDate(),
-    dayjs(endTime).endOf("day").toDate()
+    startTime,
+    endTime
   );
 
   // Unique list of crewTypes

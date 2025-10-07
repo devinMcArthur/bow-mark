@@ -8,6 +8,7 @@ import { Id } from "@typescript/models";
 import { PubSubTopics } from "@typescript/pubSub";
 import { getWorkbookBuffer } from "@utils/excel";
 import { generateForDateRange } from "@utils/excel/dynamicMasterCost/creation";
+import dayjs from "dayjs";
 import {
   Arg,
   Authorized,
@@ -57,7 +58,7 @@ export default class JobsiteYearMasterReportResolver {
     @Arg("startTime", () => Date) startTime: Date,
     @Arg("endTime", () => Date) endTime: Date
   ) {
-    const workbook = await generateForDateRange(startTime, endTime);
+    const workbook = await generateForDateRange(dayjs(startTime).startOf("day").toDate(), dayjs(endTime).endOf("day").toDate());
 
     const buffer = await getWorkbookBuffer(workbook);
 
