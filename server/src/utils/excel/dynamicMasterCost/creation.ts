@@ -30,8 +30,8 @@ type JobsiteCatalog = Record<
 
 export const generateForDateRange = async (startTime: Date, endTime: Date) => {
   const jobsiteDayReports = await JobsiteDayReport.getByDateRange(
-    startTime,
-    endTime
+    dayjs(startTime).startOf("day").toDate(),
+    dayjs(endTime).endOf("day").toDate()
   );
 
   // Unique list of crewTypes
@@ -78,8 +78,8 @@ export const generateForDateRange = async (startTime: Date, endTime: Date) => {
   // Get all invoices that took place during the date range
   const invoices: InvoiceDocument[] = await Invoice.find({
     date: {
-      $gte: dayjs(startTime).startOf("day").toDate(),
-      $lte: dayjs(endTime).endOf("day").toDate(),
+      $gte: startTime,
+      $lte: endTime,
     },
   });
 
