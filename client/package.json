@@ -71,6 +71,7 @@
   },
   "resolutions": {
     "@types/react": "17.0.47",
-    "minimatch": "^5.1.6"
+    "minimatch": "^5.1.6",
+    "ajv-keywords": "^5.1.0"
   }
 }

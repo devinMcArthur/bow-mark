@@ -85,6 +85,20 @@ const JobsiteReportOnJobSummary = ({
     return wages;
   }, [crewType, dayReports]);
 
+  const hours = React.useMemo(() => {
+    let hours = 0;
+    for (let i = 0; i < dayReports.length; i++) {
+      const employeeHours = crewType
+        ? dayReports[i].summary.crewTypeSummaries.find(
+          (summary) => summary.crewType === crewType
+        )?.employeeHours
+        : dayReports[i].summary.employeeHours;
+      hours += employeeHours || 0;
+    }
+
+    return hours;
+  }, [crewType, dayReports]);
+
   const totalEquipment = React.useMemo(() => {
     if (allDayReports.length === 0) return null;
 
@@ -205,6 +219,9 @@ const JobsiteReportOnJobSummary = ({
             {handlePercent(wages, totalWages)}%
           </StatHelpText>
         ) : null}
+        <StatHelpText fontSize={statSize}>
+          Hours: {formatNumber(hours)}
+        </StatHelpText>
       </Stat>
       <Stat size={statSize} display="flex" justifyContent="center">
         <StatLabel>Equipment</StatLabel>
