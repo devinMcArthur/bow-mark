@@ -113,6 +113,7 @@ export enum CrewTypes {
 
 export type CrewUpdateData = {
   name: Scalars['String'];
+  type: CrewTypes;
 };
 
 export type DailyReportClass = {
@@ -142,6 +143,11 @@ export type DailyReportCreateData = {
   jobsiteId: Scalars['String'];
 };
 
+export enum DailyReportDateSort {
+  Accending = 'Accending',
+  Descending = 'Descending'
+}
+
 export enum DailyReportListFilter {
   NoCostApproval = 'NoCostApproval',
   NoPayroll = 'NoPayroll'
@@ -149,6 +155,7 @@ export enum DailyReportListFilter {
 
 export type DailyReportListOptionData = {
   crews?: InputMaybe<Array<Scalars['String']>>;
+  dateSort?: InputMaybe<DailyReportDateSort>;
   filters?: InputMaybe<Array<DailyReportListFilter>>;
   offset?: InputMaybe<Scalars['Float']>;
   pageLimit?: InputMaybe<Scalars['Float']>;

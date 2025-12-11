@@ -41,6 +41,10 @@ const jobsiteDailyReports = (jobsiteId: string) => {
   return `/jobsite/${jobsiteId}/daily-reports`;
 };
 
+const jobsiteStory = (jobsiteId: string) => {
+  return `/jobsite/${jobsiteId}/story`;
+}
+
 const jobsiteMonthReport = (reportId: string) => {
   return `/jobsite-month-report/${reportId}`;
 };
@@ -129,6 +133,7 @@ const createLink = {
   company,
   jobsite,
   jobsiteDailyReports,
+  jobsiteStory,
   jobsiteMonthReport,
   jobsiteYearReport,
   jobsiteYearMasterReport,

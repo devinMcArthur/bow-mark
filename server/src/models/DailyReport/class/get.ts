@@ -120,6 +120,9 @@ const list = async (
 ): Promise<DailyReportDocument[]> => {
   options = populateOptions(options, listDefaultOptions);
 
+  let dateSort = -1;
+  if (options?.dateSort === "asc") dateSort = 1;
+
   const dailyReports = await DailyReport.find(
     {
       archived: { $ne: true },
@@ -130,7 +133,7 @@ const list = async (
       limit: options?.pageLimit,
       skip: options?.offset,
       sort: {
-        date: -1,
+        date: dateSort,
       },
     }
   );

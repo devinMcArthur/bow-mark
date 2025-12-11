@@ -1,4 +1,4 @@
-import { Flex, Heading, Skeleton, Stack } from "@chakra-ui/react";
+import { Box, Flex, Heading, Skeleton, Stack } from "@chakra-ui/react";
 import React from "react";
 
 import { DailyReportCardSnippetFragment } from "../../../generated/graphql";
@@ -30,9 +30,12 @@ const DailyReportListCard = ({
           Daily Reports {dailyReports ? `(${dailyReports.length})` : ""}
         </Heading>
         {jobsiteId && (
-          <TextLink link={createLink.jobsiteDailyReports(jobsiteId)}>
-            View All
-          </TextLink>
+          <div>
+            <TextLink mx={4} link={createLink.jobsiteStory(jobsiteId)}>Story</TextLink>
+            <TextLink link={createLink.jobsiteDailyReports(jobsiteId)}>
+              View All
+            </TextLink>
+          </div>
         )}
       </Flex>
       {dailyReports ? (

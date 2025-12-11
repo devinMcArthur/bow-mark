@@ -11,6 +11,7 @@ export interface IListOptions<Document> {
   pageLimit?: number;
   query?: FilterQuery<Document>;
   showArchived?: boolean;
+  dateSort?: "asc" | "desc";
 }
 
 export interface ISearchOptions {
