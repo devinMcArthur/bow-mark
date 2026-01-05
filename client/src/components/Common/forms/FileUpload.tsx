@@ -44,6 +44,7 @@ const FileUpload = ({ handleSubmit, isLoading, ...props }: IFileUpload) => {
             buffer: event.target.result.toString(),
             contentType: files[0].type,
           });
+          if (!description) setDescription(files[0].name.split(".")[0]);
         }
       };
 
@@ -54,7 +55,9 @@ const FileUpload = ({ handleSubmit, isLoading, ...props }: IFileUpload) => {
 
       reader.readAsDataURL(files[0]);
     }
-  }, []);
+  }, [description]);
+
+  console.log("Desc:", description);
 
   const submitHandler = React.useCallback(() => {
     if (!file?.buffer || !file.contentType) {
@@ -93,6 +96,7 @@ const FileUpload = ({ handleSubmit, isLoading, ...props }: IFileUpload) => {
           {...props}
           isDisabled={isLoading}
           label="Description"
+          value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
       </SimpleGrid>

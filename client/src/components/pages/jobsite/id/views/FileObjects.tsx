@@ -106,13 +106,13 @@ const JobsiteFileObjects = ({ jobsite }: IJobsiteFileObjects) => {
       )}
       {jobsite.fileObjects.length > 0 ? (
         !collapsed && (
-          <SimpleGrid columns={[1, 1, 2]}>
+          <SimpleGrid columns={1} spacing={4}>
             {jobsite.fileObjects.map((fileObject) => (
               <Permission minRole={fileObject.minRole} key={fileObject._id}>
                 <Box
                   backgroundColor="gray.200"
                   borderRadius={4}
-                  w="75%"
+                  w="90%"
                   p={2}
                   m="auto"
                 >
