@@ -11,7 +11,11 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "module": "commonjs",
-    "lib": ["ES6", "ES2017", "ESNext.AsyncIterable"],
+    "lib": [
+      "ES6",
+      "ES2017",
+      "ESNext.AsyncIterable"
+    ],
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -25,29 +29,69 @@
     "alwaysStrict": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "typeRoots": ["./node_modules/@types"],
-    "types": ["jest", "node"],
+    "typeRoots": [
+      "./node_modules/@types"
+    ],
+    "types": [
+      "jest",
+      "node"
+    ],
     "baseUrl": "src",
     "paths": {
-      "@models": ["./models"],
-      "@workers": ["./workers"],
-      "@pubsub": ["./pubsub"],
-      "@events": ["./events"],
-      "@testing/*": ["testing/*"],
-      "@constants/*": ["constants/*"],
-      "@config/*": ["config/*"],
-      "@actors/*": ["actors/*"],
-      "@typescript/*": ["typescript/*"],
-      "@utils/*": ["utils/*"],
-      "@validation/*": ["validation/*"],
-      "@graphql/*": ["graphql/*"],
-      "@logger": ["./logger"],
-      "@search": ["./search"]
+      "@models": [
+        "./models"
+      ],
+      "@workers": [
+        "./workers"
+      ],
+      "@pubsub": [
+        "./pubsub"
+      ],
+      "@events": [
+        "./events"
+      ],
+      "@testing/*": [
+        "testing/*"
+      ],
+      "@constants/*": [
+        "constants/*"
+      ],
+      "@config/*": [
+        "config/*"
+      ],
+      "@actors/*": [
+        "actors/*"
+      ],
+      "@typescript/*": [
+        "typescript/*"
+      ],
+      "@utils/*": [
+        "utils/*"
+      ],
+      "@validation/*": [
+        "validation/*"
+      ],
+      "@graphql/*": [
+        "graphql/*"
+      ],
+      "@logger": [
+        "./logger"
+      ],
+      "@search": [
+        "./search"
+      ]
     }
   },
-  "exclude": ["node_modules"],
-  "include": ["./**/*.ts", "./*.d.ts"],
+  "exclude": [
+    "node_modules"
+  ],
+  "include": [
+    "./**/*.ts",
+    "./*.d.ts"
+  ],
   "ts-node": {
-    "require": ["tsconfig-paths/register"]
+    "require": [
+      "tsconfig-paths/register"
+    ]
   }
 }

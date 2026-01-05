@@ -14,7 +14,7 @@ const generateCompanyMaterialReportExcel = async (report: CompanyMaterialReport[
 
   report.forEach((materialReport) => {
     materialReport.jobDays.forEach((jobDay) => {
-      uniqueDates.add(jobDay.date.toISOString());
+      uniqueDates.add(jobDay.date.toISOString().split("T")[0]);
     });
 
     if (materialReport.material) {
@@ -30,12 +30,26 @@ const generateCompanyMaterialReportExcel = async (report: CompanyMaterialReport[
 
   // Step 2: Create the Data Matrix
   const dataMatrix: (string | number)[][] = [];
-  sortedDates.forEach((date) => {
-    const row: (string | number)[] = [date.toString()]; // First column is the date
+  sortedDates.forEach((dateString) => {
+    const row: (string | number)[] = [dateString]; // First column is the date
 
     materialNames.forEach((_, materialId) => {
-      const quantity = report.find((r) => r.material?.toString() === materialId)
-        ?.jobDays.find((jd) => jd.date.getTime() === new Date(date).getTime())?.quantity || 0;
+      // 1. Find the report for this specific material
+      const materialReport = report.find((r) => r.material?.toString() === materialId);
+
+      // 2. If report exists, SUM all quantities that match the target date
+      let quantity = 0;
+
+      if (materialReport) {
+        // We use reduce instead of find
+        quantity = materialReport.jobDays.reduce((sum, jd) => {
+          const jdDateString = jd.date.toISOString().split("T")[0];
+          if (jdDateString === dateString) {
+            return sum + jd.quantity;
+          }
+          return sum;
+        }, 0);
+      }
 
       row.push(quantity);
     });
