@@ -25,6 +25,9 @@ const UserLoginSchema = yup
 export const useUserLoginForm = (options?: UseFormProps) => {
   const form = useForm({
     resolver: yupResolver(UserLoginSchema),
+    defaultValues: {
+      rememberMe: true,
+    },
     ...options,
   });
 
@@ -85,7 +88,7 @@ export const useUserLoginForm = (options?: UseFormProps) => {
             control={control}
             name="rememberMe"
             render={({ field }) => (
-              <Checkbox {...field} isDisabled={isLoading}>
+              <Checkbox {...field} defaultChecked isDisabled={isLoading}>
                 Remember Me
               </Checkbox>
             )}
