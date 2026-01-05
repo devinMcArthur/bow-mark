@@ -88,7 +88,7 @@ export const useUserLoginForm = (options?: UseFormProps) => {
             control={control}
             name="rememberMe"
             render={({ field }) => (
-              <Checkbox {...field} defaultChecked isDisabled={isLoading}>
+              <Checkbox {...field} defaultIsChecked={field.value} isDisabled={isLoading}>
                 Remember Me
               </Checkbox>
             )}
