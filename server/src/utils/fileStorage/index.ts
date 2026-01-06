@@ -75,7 +75,7 @@ const getFileSignedUrl = async (name: string) => {
       {
         Bucket: process.env.SPACES_NAME || "",
         Key: name,
-        Expires: 60,
+        Expires: 6000,
       },
       (err, data) => {
         if (err) reject(err);
