@@ -285,7 +285,9 @@ const DailyReportClientContent = ({ id }: IDailyReportClientContent) => {
           </Card>
 
           <Box>
-            <JobsiteFileObjects jobsite={data.dailyReport.jobsite} />
+            {data.dailyReport.jobsite.fileObjects.length > 0 &&
+              <JobsiteFileObjects jobsite={data.dailyReport.jobsite} hideAdd />
+            }
           </Box>
 
           <SimpleGrid columns={[1, 1, 1, 2]} spacingX={4} spacingY={2}>

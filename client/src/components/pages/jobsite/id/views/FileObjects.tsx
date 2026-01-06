@@ -26,9 +26,10 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 
 interface IJobsiteFileObjects {
   jobsite: Pick<JobsiteFullSnippetFragment, 'fileObjects' | '_id'>;
+  hideAdd?: boolean;
 }
 
-const JobsiteFileObjects = ({ jobsite }: IJobsiteFileObjects) => {
+const JobsiteFileObjects = ({ jobsite, hideAdd }: IJobsiteFileObjects) => {
   /**
    * ----- Hook Initialization -----
    */
@@ -174,14 +175,16 @@ const JobsiteFileObjects = ({ jobsite }: IJobsiteFileObjects) => {
         >
           Files ({filteredFileObjects.length})
         </Heading>
-        <Permission minRole={UserRoles.ProjectManager}>
-          <IconButton
-            icon={addForm ? <FiX /> : <FiPlus />}
-            aria-label="add"
-            backgroundColor="transparent"
-            onClick={() => setAddForm(!addForm)}
-          />
-        </Permission>
+        {!hideAdd &&
+          <Permission minRole={UserRoles.ProjectManager}>
+            <IconButton
+              icon={addForm ? <FiX /> : <FiPlus />}
+              aria-label="add"
+              backgroundColor="transparent"
+              onClick={() => setAddForm(!addForm)}
+            />
+          </Permission>
+        }
       </Flex>
       {addForm && (
         <JobsiteAddFileObject
