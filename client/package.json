@@ -21,6 +21,8 @@
     "@testing-library/react": "^11.1.0",
     "@testing-library/user-event": "^12.1.10",
     "@types/google.maps": "^3.54.3",
+    "ag-grid-community": "^35.0.0",
+    "ag-grid-react": "^35.0.0",
     "apollo-upload-client": "^16.0.0",
     "dayjs": "^1.10.7",
     "framer-motion": "3.1.1",

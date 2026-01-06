@@ -38,6 +38,7 @@ import Loading from "../../../Common/Loading";
 import Permission from "../../../Common/Permission";
 import TextGrid from "../../../Common/TextGrid";
 import TextLink from "../../../Common/TextLink";
+import JobsiteFileObjects from "../../jobsite/id/views/FileObjects";
 import EmployeeHours from "./views/EmployeeHours";
 import MaterialShipments from "./views/MaterialShipments";
 import Production from "./views/Production";
@@ -282,6 +283,10 @@ const DailyReportClientContent = ({ id }: IDailyReportClientContent) => {
               </Flex>
             </Flex>
           </Card>
+
+          <Box>
+            <JobsiteFileObjects jobsite={data.dailyReport.jobsite} />
+          </Box>
 
           <SimpleGrid columns={[1, 1, 1, 2]} spacingX={4} spacingY={2}>
             <EmployeeHours

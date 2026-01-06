@@ -25,11 +25,7 @@ fragment JobsiteFullSnippet on JobsiteClass {
     ...JobsiteContractSnippet
   }
   fileObjects {
-    _id
-    minRole
-    file {
-      ...FilePreloadSnippet
-    }
+    ...JobsiteFileObjectPreloadSnippet
   }
   location {
     latitude

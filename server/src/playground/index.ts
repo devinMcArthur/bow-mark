@@ -35,7 +35,7 @@ const runPlayground = async () => {
 };
 
 const testMaterialReportExcel = async () => {
-  const companyId = "626306ca27beaf001215a217";
+  const companyId = "6671e478bea32700122e2bc9";
   const year = "2025";
 
   const company = await Company.getById(companyId);
@@ -46,6 +46,8 @@ const testMaterialReportExcel = async () => {
   console.log("Found company:", company.name);
 
   const materialReport = await company.getMaterialReports(parseInt(year, 10));
+
+  console.log(materialReport.map((group) => group.jobDays));
 
   let quantitySum = 0;
   materialReport.forEach((group) => {

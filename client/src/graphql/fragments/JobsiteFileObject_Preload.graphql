@@ -1,0 +1,7 @@
+fragment JobsiteFileObjectPreloadSnippet on JobsiteFileObjectClass {
+  _id
+  minRole
+  file {
+    ...FilePreloadSnippet
+  }
+}
