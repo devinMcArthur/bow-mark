@@ -1,4 +1,4 @@
-apiVersion: skaffold/v2beta26
+apiVersion: skaffold/v4beta13
 kind: Config
 build:
   local:
@@ -50,6 +50,7 @@ deploy:
       - k8s-dev/server-cluster-ip-service.yaml
       - k8s-dev/client-cluster-ip-service.yaml
       - k8s-dev/ingress.yaml
+      - k8s-dev/mongo.yaml
 portForward:
   - resourceType: Service
     resourceName: server-cluster-ip-service
@@ -59,3 +60,7 @@ portForward:
     resourceName: client-cluster-ip-service
     namespace: default
     port: 3000
+  - resourceType: Service
+    resourceName: mongo
+    namespace: default
+    port: 27017

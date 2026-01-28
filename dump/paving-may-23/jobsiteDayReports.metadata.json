@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"3598fb0066624da882d93e81f01e47c6","collectionName":"jobsiteDayReports","type":"collection"}
