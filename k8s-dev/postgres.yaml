@@ -1,32 +1,36 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mongo
+  name: postgres
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mongo
+      app: postgres
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app: mongo
+        app: postgres
     spec:
       containers:
-      - name: mongo
-        image: mongo:7
+      - name: postgres
+        image: postgres:16
         ports:
-        - containerPort: 27017
+        - containerPort: 5432
         env:
-        - name: MONGO_INITDB_DATABASE
-          value: "bow_mark_dev"
-        args:
-        - "--wiredTigerCacheSizeGB=0.25"
+        - name: POSTGRES_USER
+          value: "bowmark"
+        - name: POSTGRES_PASSWORD
+          value: "devpassword"
+        - name: POSTGRES_DB
+          value: "bowmark_reports"
+        - name: PGDATA
+          value: "/var/lib/postgresql/data/pgdata"
         volumeMounts:
-        - name: mongo-data
-          mountPath: /data/db
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
         resources:
           requests:
             memory: "256Mi"
@@ -36,26 +40,27 @@ spec:
             cpu: "500m"
         readinessProbe:
           tcpSocket:
-            port: 27017
+            port: 5432
           initialDelaySeconds: 5
           periodSeconds: 10
         livenessProbe:
           tcpSocket:
-            port: 27017
+            port: 5432
           initialDelaySeconds: 30
           periodSeconds: 30
           failureThreshold: 5
       volumes:
-      - name: mongo-data
-        emptyDir: {}  # Ephemeral - data lives only as long as the pod
+      - name: postgres-data
+        emptyDir:
+          sizeLimit: 2Gi
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: mongo
+  name: postgres
 spec:
   selector:
-    app: mongo
+    app: postgres
   ports:
-  - port: 27017
-    targetPort: 27017
+  - port: 5432
+    targetPort: 5432

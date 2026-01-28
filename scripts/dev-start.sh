@@ -5,19 +5,15 @@ set -e
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+BLUE='\033[0;34m'
+NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-MONGO_DATA_DIR="$PROJECT_ROOT/dev-data/mongodb"
-MOUNT_PATH="/mongo-dev-data"
+DUMP_DIR="$PROJECT_ROOT/dev-data/mongodb-dump"
 
 echo -e "${GREEN}=== Branchable MongoDB Dev Environment ===${NC}"
 echo "Project root: $PROJECT_ROOT"
-echo "MongoDB data: $MONGO_DATA_DIR"
-
-# Ensure the data directory exists
-mkdir -p "$MONGO_DATA_DIR"
 
 # Check if minikube is running
 if ! minikube status | grep -q "Running"; then
@@ -25,69 +21,72 @@ if ! minikube status | grep -q "Running"; then
     minikube start
 fi
 
-# Check if mount is already active
-MOUNT_PID_FILE="/tmp/minikube-mongo-mount.pid"
-
-cleanup_mount() {
-    if [ -f "$MOUNT_PID_FILE" ]; then
-        OLD_PID=$(cat "$MOUNT_PID_FILE")
-        if ps -p "$OLD_PID" > /dev/null 2>&1; then
-            echo -e "${YELLOW}Stopping existing mount (PID: $OLD_PID)...${NC}"
-            kill "$OLD_PID" 2>/dev/null || true
-            sleep 1
-        fi
-        rm -f "$MOUNT_PID_FILE"
-    fi
-}
-
-# Check if mount point exists and is accessible in minikube
-mount_exists() {
-    minikube ssh "mount | grep -q '$MOUNT_PATH'" 2>/dev/null
-}
-
-# Start the mount
-start_mount() {
-    cleanup_mount
-    
-    echo -e "${GREEN}Starting minikube mount: $MONGO_DATA_DIR -> $MOUNT_PATH${NC}"
-    
-    # Create mount point in minikube
-    minikube ssh "sudo mkdir -p $MOUNT_PATH && sudo chmod 777 $MOUNT_PATH"
-    
-    # Start mount in background
-    nohup minikube mount "$MONGO_DATA_DIR:$MOUNT_PATH" \
-        --uid 999 --gid 999 \
-        > /tmp/minikube-mount.log 2>&1 &
-    
-    MOUNT_PID=$!
-    echo $MOUNT_PID > "$MOUNT_PID_FILE"
-    
-    # Wait for mount to be ready
-    echo -n "Waiting for mount to be ready"
-    for i in {1..30}; do
-        if mount_exists; then
-            echo -e "\n${GREEN}Mount ready!${NC}"
-            return 0
-        fi
-        echo -n "."
-        sleep 1
-    done
-    
-    echo -e "\n${RED}Mount failed to start. Check /tmp/minikube-mount.log${NC}"
-    return 1
-}
-
-# Always restart mount to ensure it's fresh
-start_mount
-
-# Handle cleanup on script exit
-trap 'echo -e "\n${YELLOW}Shutting down...${NC}"' EXIT
-
 echo -e "${GREEN}Starting skaffold...${NC}"
 echo ""
 
-# Run skaffold (this blocks until Ctrl+C)
+# Start skaffold in the background temporarily to get MongoDB running
 cd "$PROJECT_ROOT"
-skaffold dev
 
-# After skaffold exits, the trap will run
+# Check if there's a dump to restore
+if [ -d "$DUMP_DIR" ] && [ "$(ls -A $DUMP_DIR 2>/dev/null)" ]; then
+    echo -e "${BLUE}Found MongoDB dump - will restore after pods are ready${NC}"
+    SHOULD_RESTORE=true
+else
+    echo -e "${YELLOW}No MongoDB dump found at $DUMP_DIR${NC}"
+    echo "Run ./scripts/seed-from-atlas.sh to pull data from Atlas"
+    SHOULD_RESTORE=false
+fi
+
+echo ""
+
+# Function to restore DB once MongoDB is ready
+restore_when_ready() {
+    echo -e "${YELLOW}Waiting for MongoDB to be ready...${NC}"
+    
+    # Wait for mongo pod to be running
+    for i in {1..60}; do
+        if kubectl get pods -l app=mongo 2>/dev/null | grep -q "Running"; then
+            # Additional wait for MongoDB to actually be accepting connections
+            sleep 5
+            POD=$(kubectl get pods -l app=mongo -o jsonpath='{.items[0].metadata.name}')
+            if kubectl exec "$POD" -- mongosh --eval "db.adminCommand('ping')" &>/dev/null; then
+                echo -e "${GREEN}MongoDB is ready!${NC}"
+                
+                if [ "$SHOULD_RESTORE" = true ]; then
+                    echo -e "${GREEN}Restoring database from dump...${NC}"
+                    
+                    # Copy dump to pod
+                    kubectl cp "$DUMP_DIR" "$POD:/tmp/mongodb-dump"
+                    
+                    # Restore
+                    kubectl exec "$POD" -- mongorestore --drop /tmp/mongodb-dump
+                    
+                    # Cleanup
+                    kubectl exec "$POD" -- rm -rf /tmp/mongodb-dump
+                    
+                    echo -e "${GREEN}✓ Database restored successfully${NC}"
+                fi
+                return 0
+            fi
+        fi
+        echo -n "."
+        sleep 2
+    done
+    
+    echo -e "${RED}Timeout waiting for MongoDB${NC}"
+    return 1
+}
+
+# Run restore in background
+restore_when_ready &
+RESTORE_PID=$!
+
+# Handle cleanup
+cleanup() {
+    echo -e "\n${YELLOW}Shutting down...${NC}"
+    kill $RESTORE_PID 2>/dev/null || true
+}
+trap cleanup EXIT
+
+# Run skaffold (this blocks until Ctrl+C)
+skaffold dev

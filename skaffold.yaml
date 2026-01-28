@@ -41,16 +41,20 @@ build:
 # Automatically apply config files, remove them when stopped
 deploy:
   kubeContext: minikube
-  kubectl:
-    manifests:
-      - k8s-dev/meilisearch.yaml
-      - k8s-dev/worker-deployment.yaml
-      - k8s-dev/server-deployment.yaml
-      - k8s-dev/client-deployment.yaml
-      - k8s-dev/server-cluster-ip-service.yaml
-      - k8s-dev/client-cluster-ip-service.yaml
-      - k8s-dev/ingress.yaml
-      - k8s-dev/mongo.yaml
+  kubectl: {}
+manifests:
+  rawYaml:
+    - k8s-dev/mongo.yaml
+    - k8s-dev/meilisearch.yaml
+    - k8s-dev/postgres.yaml
+    - k8s-dev/rabbitmq.yaml
+
+    - k8s-dev/worker-deployment.yaml
+    - k8s-dev/server-deployment.yaml
+    - k8s-dev/client-deployment.yaml
+    - k8s-dev/server-cluster-ip-service.yaml
+    - k8s-dev/client-cluster-ip-service.yaml
+    - k8s-dev/ingress.yaml
 portForward:
   - resourceType: Service
     resourceName: server-cluster-ip-service
@@ -64,3 +68,17 @@ portForward:
     resourceName: mongo
     namespace: default
     port: 27017
+  - resourceType: Service
+    resourceName: postgres
+    namespace: default
+    port: 5432
+  # RabbitMQ
+  - resourceType: Service
+    resourceName: rabbitmq
+    namespace: default
+    port: 5672
+  # RabbitMQ Management UI - access at http://localhost:15672
+  - resourceType: Service
+    resourceName: rabbitmq
+    namespace: default
+    port: 15672
