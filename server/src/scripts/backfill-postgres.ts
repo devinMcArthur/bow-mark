@@ -26,14 +26,23 @@ import {
   DailyReport,
   EmployeeWork,
   VehicleWork,
+  MaterialShipment,
+  Production,
+  Invoice,
   Jobsite,
   type DailyReportDocument,
   type EmployeeWorkDocument,
   type VehicleWorkDocument,
+  type MaterialShipmentDocument,
+  type ProductionDocument,
+  type InvoiceDocument,
   type EmployeeDocument,
   type VehicleDocument,
   type JobsiteDocument,
   type CrewDocument,
+  type JobsiteMaterialDocument,
+  type MaterialDocument,
+  type CompanyDocument,
 } from "@models";
 import { checkConnection, closeConnection } from "../db";
 import {
@@ -45,6 +54,9 @@ import {
 } from "../consumer/handlers/dimensions";
 import { upsertFactEmployeeWork } from "../consumer/handlers/employeeWorkSync";
 import { upsertFactVehicleWork } from "../consumer/handlers/vehicleWorkSync";
+import { upsertFactMaterialShipment } from "../consumer/handlers/materialShipmentSync";
+import { upsertFactProduction } from "../consumer/handlers/productionSync";
+import { upsertFactInvoice } from "../consumer/handlers/invoiceSync";
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -63,6 +75,11 @@ interface SyncStats {
   dailyReports: number;
   employeeWork: number;
   vehicleWork: number;
+  materialShipments: number;
+  nonCostedMaterials: number;
+  trucking: number;
+  production: number;
+  invoices: number;
   errors: number;
 }
 
@@ -70,6 +87,11 @@ const stats: SyncStats = {
   dailyReports: 0,
   employeeWork: 0,
   vehicleWork: 0,
+  materialShipments: 0,
+  nonCostedMaterials: 0,
+  trucking: 0,
+  production: 0,
+  invoices: 0,
   errors: 0,
 };
 
@@ -148,7 +170,136 @@ async function syncDailyReport(
     }
   }
 
+  // Sync MaterialShipments (includes non-costed materials and trucking)
+  const materialShipmentIds = dailyReport.materialShipment || [];
+  if (materialShipmentIds.length > 0) {
+    const materialShipments = await MaterialShipment.find({
+      _id: { $in: materialShipmentIds },
+    })
+      .populate({
+        path: "jobsiteMaterial",
+        populate: [
+          { path: "material" },
+          { path: "supplier" },
+        ],
+      })
+      .exec();
+
+    for (const ms of materialShipments) {
+      try {
+        const typedMs = ms as MaterialShipmentDocument & {
+          jobsiteMaterial?: JobsiteMaterialDocument & {
+            material: MaterialDocument;
+            supplier: CompanyDocument;
+          };
+        };
+
+        await upsertFactMaterialShipment({
+          materialShipment: typedMs,
+          dailyReport,
+          dailyReportId,
+          jobsiteId,
+          crewId,
+        });
+
+        if (typedMs.noJobsiteMaterial) {
+          stats.nonCostedMaterials++;
+        } else {
+          stats.materialShipments++;
+        }
+
+        if (typedMs.vehicleObject?.truckingRateId) {
+          stats.trucking++;
+        }
+      } catch (error) {
+        console.error(`  Error syncing MaterialShipment ${ms._id}:`, error);
+        stats.errors++;
+      }
+    }
+  }
+
+  // Sync Production
+  const productionIds = dailyReport.production || [];
+  if (productionIds.length > 0) {
+    const productions = await Production.find({
+      _id: { $in: productionIds },
+    }).exec();
+
+    for (const prod of productions) {
+      try {
+        await upsertFactProduction({
+          production: prod as ProductionDocument,
+          dailyReport,
+          dailyReportId,
+          jobsiteId,
+          crewId,
+        });
+        stats.production++;
+      } catch (error) {
+        console.error(`  Error syncing Production ${prod._id}:`, error);
+        stats.errors++;
+      }
+    }
+  }
+
   stats.dailyReports++;
+}
+
+/**
+ * Sync invoices for a jobsite
+ */
+async function syncJobsiteInvoices(jobsite: JobsiteDocument): Promise<void> {
+  // Sync revenue invoices
+  const revenueInvoiceIds = jobsite.revenueInvoices || [];
+  if (revenueInvoiceIds.length > 0) {
+    const revenueInvoices = await Invoice.find({
+      _id: { $in: revenueInvoiceIds },
+    })
+      .populate("company")
+      .exec();
+
+    for (const inv of revenueInvoices) {
+      if (!inv.company) continue;
+
+      try {
+        await upsertFactInvoice({
+          invoice: inv as InvoiceDocument & { company: CompanyDocument },
+          jobsite,
+          direction: "revenue",
+        });
+        stats.invoices++;
+      } catch (error) {
+        console.error(`  Error syncing revenue Invoice ${inv._id}:`, error);
+        stats.errors++;
+      }
+    }
+  }
+
+  // Sync expense invoices
+  const expenseInvoiceIds = jobsite.expenseInvoices || [];
+  if (expenseInvoiceIds.length > 0) {
+    const expenseInvoices = await Invoice.find({
+      _id: { $in: expenseInvoiceIds },
+    })
+      .populate("company")
+      .exec();
+
+    for (const inv of expenseInvoices) {
+      if (!inv.company) continue;
+
+      try {
+        await upsertFactInvoice({
+          invoice: inv as InvoiceDocument & { company: CompanyDocument },
+          jobsite,
+          direction: "expense",
+        });
+        stats.invoices++;
+      } catch (error) {
+        console.error(`  Error syncing expense Invoice ${inv._id}:`, error);
+        stats.errors++;
+      }
+    }
+  }
 }
 
 async function main() {
@@ -248,11 +399,43 @@ async function main() {
         const percent = ((processed / toProcess) * 100).toFixed(1);
         console.log(
           `Progress: ${processed}/${toProcess} (${percent}%) - ` +
-          `EW: ${stats.employeeWork}, VW: ${stats.vehicleWork}, Errors: ${stats.errors}`
+          `EW: ${stats.employeeWork}, VW: ${stats.vehicleWork}, MS: ${stats.materialShipments}, ` +
+          `NC: ${stats.nonCostedMaterials}, TR: ${stats.trucking}, PR: ${stats.production}, Errors: ${stats.errors}`
         );
       }
     } catch (error) {
       console.error(`Error processing DailyReport ${dailyReport._id}:`, error);
+      stats.errors++;
+    }
+  }
+
+  // Sync invoices (separate from daily reports)
+  console.log("\nSyncing invoices...");
+
+  // Get jobsites to sync invoices for
+  let jobsitesToSync: JobsiteDocument[];
+  if (jobsiteFilter) {
+    const jobsite = await Jobsite.findById(jobsiteFilter)
+      .populate("revenueInvoices")
+      .populate("expenseInvoices");
+    jobsitesToSync = jobsite ? [jobsite] : [];
+  } else {
+    // Get all jobsites that have invoices
+    jobsitesToSync = await Jobsite.find({
+      $or: [
+        { revenueInvoices: { $exists: true, $ne: [] } },
+        { expenseInvoices: { $exists: true, $ne: [] } },
+      ],
+    });
+  }
+
+  console.log(`Found ${jobsitesToSync.length} jobsites with invoices`);
+
+  for (const jobsite of jobsitesToSync) {
+    try {
+      await syncJobsiteInvoices(jobsite);
+    } catch (error) {
+      console.error(`Error syncing invoices for jobsite ${jobsite._id}:`, error);
       stats.errors++;
     }
   }
@@ -263,6 +446,11 @@ async function main() {
   console.log(`Daily Reports synced: ${stats.dailyReports}`);
   console.log(`Employee Work records: ${stats.employeeWork}`);
   console.log(`Vehicle Work records: ${stats.vehicleWork}`);
+  console.log(`Material Shipments: ${stats.materialShipments}`);
+  console.log(`Non-costed Materials: ${stats.nonCostedMaterials}`);
+  console.log(`Trucking records: ${stats.trucking}`);
+  console.log(`Production records: ${stats.production}`);
+  console.log(`Invoices: ${stats.invoices}`);
   console.log(`Errors: ${stats.errors}`);
 }
 

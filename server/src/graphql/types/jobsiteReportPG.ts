@@ -378,3 +378,45 @@ export class JobsiteYearReportPG {
   @Field(() => [ReportIssuePG])
   issues!: ReportIssuePG[];
 }
+
+/**
+ * Master report jobsite item - per-jobsite summary for master reports
+ */
+@ObjectType()
+export class MasterReportJobsiteItemPG {
+  @Field(() => ID)
+  jobsiteId!: string;
+
+  @Field()
+  jobsiteName!: string;
+
+  @Field({ nullable: true })
+  jobcode?: string;
+
+  @Field(() => OnSiteSummaryPG)
+  summary!: OnSiteSummaryPG;
+
+  @Field(() => InvoiceSummaryPG)
+  invoiceSummary!: InvoiceSummaryPG;
+}
+
+/**
+ * Year master report from PostgreSQL - aggregates all jobsites
+ */
+@ObjectType()
+export class JobsiteYearMasterReportPG {
+  @Field(() => ID)
+  _id!: string;
+
+  @Field(() => Date)
+  startOfYear!: Date;
+
+  @Field(() => [String])
+  crewTypes!: string[];
+
+  @Field(() => InvoiceSummaryPG)
+  summary!: InvoiceSummaryPG;
+
+  @Field(() => [MasterReportJobsiteItemPG])
+  jobsites!: MasterReportJobsiteItemPG[];
+}

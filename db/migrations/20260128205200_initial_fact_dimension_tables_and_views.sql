@@ -210,12 +210,24 @@ CREATE TABLE fact_employee_work (
     job_title VARCHAR(255) NOT NULL,
 
     -- Pre-calculated metrics
+    -- Handle overnight shifts: if end_time < start_time, add 24 hours (86400 seconds)
+    -- Use AT TIME ZONE 'UTC' to make the expression immutable
     hours DECIMAL(10, 2) GENERATED ALWAYS AS (
-        EXTRACT(EPOCH FROM (end_time - start_time)) / 3600
+        CASE
+            WHEN EXTRACT(EPOCH FROM (end_time AT TIME ZONE 'UTC')) < EXTRACT(EPOCH FROM (start_time AT TIME ZONE 'UTC')) THEN
+                (EXTRACT(EPOCH FROM (end_time AT TIME ZONE 'UTC')) + 86400 - EXTRACT(EPOCH FROM (start_time AT TIME ZONE 'UTC'))) / 3600
+            ELSE
+                (EXTRACT(EPOCH FROM (end_time AT TIME ZONE 'UTC')) - EXTRACT(EPOCH FROM (start_time AT TIME ZONE 'UTC'))) / 3600
+        END
     ) STORED,
     hourly_rate DECIMAL(10, 2) NOT NULL,
     total_cost DECIMAL(12, 2) GENERATED ALWAYS AS (
-        (EXTRACT(EPOCH FROM (end_time - start_time)) / 3600) * hourly_rate
+        CASE
+            WHEN EXTRACT(EPOCH FROM (end_time AT TIME ZONE 'UTC')) < EXTRACT(EPOCH FROM (start_time AT TIME ZONE 'UTC')) THEN
+                ((EXTRACT(EPOCH FROM (end_time AT TIME ZONE 'UTC')) + 86400 - EXTRACT(EPOCH FROM (start_time AT TIME ZONE 'UTC'))) / 3600) * hourly_rate
+            ELSE
+                ((EXTRACT(EPOCH FROM (end_time AT TIME ZONE 'UTC')) - EXTRACT(EPOCH FROM (start_time AT TIME ZONE 'UTC'))) / 3600) * hourly_rate
+        END
     ) STORED,
 
     -- Soft delete tracking
@@ -411,16 +423,22 @@ CREATE TABLE fact_production (
     work_date DATE NOT NULL,
 
     -- Production tracking
-    job_title VARCHAR(255) NOT NULL,
+    job_title TEXT NOT NULL,
     quantity DECIMAL(12, 3) NOT NULL,
     unit VARCHAR(50) NOT NULL,
     start_time TIMESTAMPTZ NOT NULL,
     end_time TIMESTAMPTZ NOT NULL,
     description TEXT,
 
-    -- Calculated duration
+    -- Calculated duration (handle overnight: if end_time < start_time, add 24 hours)
+    -- Use AT TIME ZONE 'UTC' to make the expression immutable
     hours DECIMAL(10, 2) GENERATED ALWAYS AS (
-        EXTRACT(EPOCH FROM (end_time - start_time)) / 3600
+        CASE
+            WHEN EXTRACT(EPOCH FROM (end_time AT TIME ZONE 'UTC')) < EXTRACT(EPOCH FROM (start_time AT TIME ZONE 'UTC')) THEN
+                (EXTRACT(EPOCH FROM (end_time AT TIME ZONE 'UTC')) + 86400 - EXTRACT(EPOCH FROM (start_time AT TIME ZONE 'UTC'))) / 3600
+            ELSE
+                (EXTRACT(EPOCH FROM (end_time AT TIME ZONE 'UTC')) - EXTRACT(EPOCH FROM (start_time AT TIME ZONE 'UTC'))) / 3600
+        END
     ) STORED,
 
     -- Sync metadata
@@ -469,94 +487,100 @@ CREATE INDEX idx_fact_invoice_direction ON fact_invoice(direction);
 
 -- Unified cost view for reports that need "all costs"
 -- Includes all fact tables for comprehensive reporting
+-- IMPORTANT: Only includes data from APPROVED daily reports to match MongoDB behavior
 CREATE VIEW jobsite_all_costs AS
 SELECT
-    jobsite_id,
-    work_date as date,
-    crew_type,
+    f.jobsite_id,
+    f.work_date as date,
+    f.crew_type,
     'employee' as cost_type,
-    employee_id as entity_id,
+    f.employee_id as entity_id,
     NULL::varchar as entity_name,
-    hours as quantity,
+    f.hours as quantity,
     'hours' as quantity_unit,
-    hourly_rate as rate,
-    total_cost,
+    f.hourly_rate as rate,
+    f.total_cost,
     FALSE as estimated,
-    daily_report_id
-FROM fact_employee_work
-WHERE archived_at IS NULL
+    f.daily_report_id
+FROM fact_employee_work f
+INNER JOIN dim_daily_report dr ON dr.id = f.daily_report_id
+WHERE f.archived_at IS NULL AND dr.approved = true AND dr.archived = false
 
 UNION ALL
 
 SELECT
-    jobsite_id,
-    work_date as date,
-    crew_type,
+    f.jobsite_id,
+    f.work_date as date,
+    f.crew_type,
     'vehicle' as cost_type,
-    vehicle_id as entity_id,
+    f.vehicle_id as entity_id,
     NULL::varchar as entity_name,
-    hours as quantity,
+    f.hours as quantity,
     'hours' as quantity_unit,
-    hourly_rate as rate,
-    total_cost,
+    f.hourly_rate as rate,
+    f.total_cost,
     FALSE as estimated,
-    daily_report_id
-FROM fact_vehicle_work
-WHERE archived_at IS NULL
+    f.daily_report_id
+FROM fact_vehicle_work f
+INNER JOIN dim_daily_report dr ON dr.id = f.daily_report_id
+WHERE f.archived_at IS NULL AND dr.approved = true AND dr.archived = false
 
 UNION ALL
 
 SELECT
-    jobsite_id,
-    work_date as date,
-    crew_type,
+    f.jobsite_id,
+    f.work_date as date,
+    f.crew_type,
     'material' as cost_type,
-    jobsite_material_id as entity_id,
+    f.jobsite_material_id as entity_id,
     NULL::varchar as entity_name,
-    quantity,
-    unit as quantity_unit,
-    rate,
-    total_cost,
-    estimated,
-    daily_report_id
-FROM fact_material_shipment
-WHERE archived_at IS NULL
+    f.quantity,
+    f.unit as quantity_unit,
+    f.rate,
+    f.total_cost,
+    f.estimated,
+    f.daily_report_id
+FROM fact_material_shipment f
+INNER JOIN dim_daily_report dr ON dr.id = f.daily_report_id
+WHERE f.archived_at IS NULL AND dr.approved = true AND dr.archived = false
 
 UNION ALL
 
 SELECT
-    jobsite_id,
-    work_date as date,
-    crew_type,
+    f.jobsite_id,
+    f.work_date as date,
+    f.crew_type,
     'non_costed_material' as cost_type,
     NULL::uuid as entity_id,
-    material_name as entity_name,
-    quantity,
-    unit as quantity_unit,
+    f.material_name as entity_name,
+    f.quantity,
+    f.unit as quantity_unit,
     0 as rate,
     0 as total_cost,
     FALSE as estimated,
-    daily_report_id
-FROM fact_non_costed_material
-WHERE archived_at IS NULL
+    f.daily_report_id
+FROM fact_non_costed_material f
+INNER JOIN dim_daily_report dr ON dr.id = f.daily_report_id
+WHERE f.archived_at IS NULL AND dr.approved = true AND dr.archived = false
 
 UNION ALL
 
 SELECT
-    jobsite_id,
-    work_date as date,
-    crew_type,
+    f.jobsite_id,
+    f.work_date as date,
+    f.crew_type,
     'trucking' as cost_type,
     NULL::uuid as entity_id,
-    trucking_type as entity_name,
-    quantity,
-    rate_type as quantity_unit,
-    rate,
-    total_cost,
+    f.trucking_type as entity_name,
+    f.quantity,
+    f.rate_type as quantity_unit,
+    f.rate,
+    f.total_cost,
     FALSE as estimated,
-    daily_report_id
-FROM fact_trucking
-WHERE archived_at IS NULL;
+    f.daily_report_id
+FROM fact_trucking f
+INNER JOIN dim_daily_report dr ON dr.id = f.daily_report_id
+WHERE f.archived_at IS NULL AND dr.approved = true AND dr.archived = false;
 
 
 -- Daily summary view (replaces JobsiteDayReport.summary)
@@ -600,11 +624,13 @@ SELECT
 FROM jobsite_all_costs c
 LEFT JOIN dim_jobsite dj ON dj.id = c.jobsite_id
 -- Trucking hours need separate aggregation since they're not in jobsite_all_costs quantity
+-- Only include approved daily reports
 LEFT JOIN (
-    SELECT jobsite_id, work_date, SUM(COALESCE(hours, 0)) as trucking_hours
-    FROM fact_trucking
-    WHERE archived_at IS NULL
-    GROUP BY jobsite_id, work_date
+    SELECT f.jobsite_id, f.work_date, SUM(COALESCE(f.hours, 0)) as trucking_hours
+    FROM fact_trucking f
+    INNER JOIN dim_daily_report dr ON dr.id = f.daily_report_id
+    WHERE f.archived_at IS NULL AND dr.approved = true AND dr.archived = false
+    GROUP BY f.jobsite_id, f.work_date
 ) th ON th.jobsite_id = c.jobsite_id AND th.work_date = c.date
 GROUP BY c.jobsite_id, c.date, dj.name, dj.jobcode, th.trucking_hours;
 
@@ -641,90 +667,97 @@ SELECT
 
 FROM jobsite_all_costs c
 LEFT JOIN (
-    SELECT jobsite_id, work_date, crew_type, SUM(COALESCE(hours, 0)) as trucking_hours
-    FROM fact_trucking
-    WHERE archived_at IS NULL
-    GROUP BY jobsite_id, work_date, crew_type
+    SELECT f.jobsite_id, f.work_date, f.crew_type, SUM(COALESCE(f.hours, 0)) as trucking_hours
+    FROM fact_trucking f
+    INNER JOIN dim_daily_report dr ON dr.id = f.daily_report_id
+    WHERE f.archived_at IS NULL AND dr.approved = true AND dr.archived = false
+    GROUP BY f.jobsite_id, f.work_date, f.crew_type
 ) th ON th.jobsite_id = c.jobsite_id AND th.work_date = c.date AND th.crew_type = c.crew_type
 GROUP BY c.jobsite_id, c.date, c.crew_type, th.trucking_hours;
 
 
 -- Report issues view (replaces JobsiteReportBaseClass.issues)
 -- Computes data quality issues that need attention
+-- Only includes data from APPROVED daily reports
 CREATE VIEW jobsite_report_issues AS
 
 -- Employees with zero rate
 SELECT
-    jobsite_id,
-    work_date as date,
+    f.jobsite_id,
+    f.work_date as date,
     'EMPLOYEE_RATE_ZERO' as issue_type,
-    employee_id as entity_id,
+    f.employee_id as entity_id,
     'dim_employee' as entity_table,
     NULL::varchar as entity_name,
     COUNT(*) as occurrence_count
-FROM fact_employee_work
-WHERE hourly_rate = 0 AND archived_at IS NULL
-GROUP BY jobsite_id, work_date, employee_id
+FROM fact_employee_work f
+INNER JOIN dim_daily_report dr ON dr.id = f.daily_report_id
+WHERE f.hourly_rate = 0 AND f.archived_at IS NULL AND dr.approved = true AND dr.archived = false
+GROUP BY f.jobsite_id, f.work_date, f.employee_id
 
 UNION ALL
 
 -- Vehicles with zero rate
 SELECT
-    jobsite_id,
-    work_date as date,
+    f.jobsite_id,
+    f.work_date as date,
     'VEHICLE_RATE_ZERO' as issue_type,
-    vehicle_id as entity_id,
+    f.vehicle_id as entity_id,
     'dim_vehicle' as entity_table,
     NULL::varchar as entity_name,
     COUNT(*) as occurrence_count
-FROM fact_vehicle_work
-WHERE hourly_rate = 0 AND archived_at IS NULL
-GROUP BY jobsite_id, work_date, vehicle_id
+FROM fact_vehicle_work f
+INNER JOIN dim_daily_report dr ON dr.id = f.daily_report_id
+WHERE f.hourly_rate = 0 AND f.archived_at IS NULL AND dr.approved = true AND dr.archived = false
+GROUP BY f.jobsite_id, f.work_date, f.vehicle_id
 
 UNION ALL
 
 -- Materials with zero rate
 SELECT
-    jobsite_id,
-    work_date as date,
+    f.jobsite_id,
+    f.work_date as date,
     'MATERIAL_RATE_ZERO' as issue_type,
-    jobsite_material_id as entity_id,
+    f.jobsite_material_id as entity_id,
     'dim_jobsite_material' as entity_table,
     NULL::varchar as entity_name,
     COUNT(*) as occurrence_count
-FROM fact_material_shipment
-WHERE rate = 0 AND archived_at IS NULL
-GROUP BY jobsite_id, work_date, jobsite_material_id
+FROM fact_material_shipment f
+INNER JOIN dim_daily_report dr ON dr.id = f.daily_report_id
+WHERE f.rate = 0 AND f.archived_at IS NULL AND dr.approved = true AND dr.archived = false
+GROUP BY f.jobsite_id, f.work_date, f.jobsite_material_id
 
 UNION ALL
 
 -- Materials with estimated rate
 SELECT
-    jobsite_id,
-    work_date as date,
+    f.jobsite_id,
+    f.work_date as date,
     'MATERIAL_ESTIMATED_RATE' as issue_type,
-    jobsite_material_id as entity_id,
+    f.jobsite_material_id as entity_id,
     'dim_jobsite_material' as entity_table,
     NULL::varchar as entity_name,
     COUNT(*) as occurrence_count
-FROM fact_material_shipment
-WHERE estimated = true AND archived_at IS NULL
-GROUP BY jobsite_id, work_date, jobsite_material_id
+FROM fact_material_shipment f
+INNER JOIN dim_daily_report dr ON dr.id = f.daily_report_id
+WHERE f.estimated = true AND f.archived_at IS NULL AND dr.approved = true AND dr.archived = false
+GROUP BY f.jobsite_id, f.work_date, f.jobsite_material_id
 
 UNION ALL
 
 -- Non-costed materials (grouped by material_name + supplier_name)
 SELECT
-    jobsite_id,
-    work_date as date,
+    f.jobsite_id,
+    f.work_date as date,
     'NON_COSTED_MATERIALS' as issue_type,
     NULL::uuid as entity_id,
     NULL::varchar as entity_table,
-    material_name || ' (' || supplier_name || ')' as entity_name,
+    f.material_name || ' (' || f.supplier_name || ')' as entity_name,
     COUNT(*) as occurrence_count
-FROM fact_non_costed_material
-WHERE archived_at IS NULL
-GROUP BY jobsite_id, work_date, material_name, supplier_name;
+FROM fact_non_costed_material f
+INNER JOIN dim_daily_report dr ON dr.id = f.daily_report_id
+WHERE f.archived_at IS NULL AND dr.approved = true AND dr.archived = false
+GROUP BY f.jobsite_id, f.work_date, f.material_name, f.supplier_name;
 
 
 -- Issues summary by jobsite and date range (for period reports)

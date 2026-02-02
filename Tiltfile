@@ -275,26 +275,6 @@ local_resource(
     labels=['utilities'],
 )
 
-# Backfill PostgreSQL from MongoDB
-# Usage: tilt trigger backfill-postgres
-# Or with args: tilt args -- --jobsite <id> --year <year>
-local_resource(
-    'backfill-postgres',
-    cmd='cd server && npm run db:backfill -- ' + ' '.join(cfg.get('to-run', [])),
-    resource_deps=['mongo', 'postgres', 'db-migrate'],
-    auto_init=False,
-    trigger_mode=TRIGGER_MODE_MANUAL,
-    env={
-        'MONGO_URI': 'mongodb://localhost:27017/paving',
-        'POSTGRES_HOST': 'localhost',
-        'POSTGRES_PORT': '5432',
-        'POSTGRES_USER': 'bowmark',
-        'POSTGRES_PASSWORD': 'devpassword',
-        'POSTGRES_DB': 'bowmark_reports',
-    },
-    labels=['utilities'],
-)
-
 # ============================================================================
 # UI Configuration
 # ============================================================================

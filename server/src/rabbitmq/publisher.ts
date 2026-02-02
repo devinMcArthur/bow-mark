@@ -119,3 +119,18 @@ export const publishEmployeeWorkChange = createPublisher(ROUTING_KEYS.employeeWo
  * Publish a Vehicle Work change event
  */
 export const publishVehicleWorkChange = createPublisher(ROUTING_KEYS.vehicleWork);
+
+/**
+ * Publish a Material Shipment change event
+ */
+export const publishMaterialShipmentChange = createPublisher(ROUTING_KEYS.materialShipment);
+
+/**
+ * Publish a Production change event
+ */
+export const publishProductionChange = createPublisher(ROUTING_KEYS.production);
+
+/**
+ * Publish an Invoice change event
+ */
+export const publishInvoiceChange = createPublisher(ROUTING_KEYS.invoice);

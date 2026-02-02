@@ -341,9 +341,17 @@ CREATE TABLE public.fact_employee_work (
     start_time timestamp with time zone NOT NULL,
     end_time timestamp with time zone NOT NULL,
     job_title character varying(255) NOT NULL,
-    hours numeric(10,2) GENERATED ALWAYS AS ((EXTRACT(epoch FROM (end_time - start_time)) / (3600)::numeric)) STORED,
+    hours numeric(10,2) GENERATED ALWAYS AS (
+CASE
+    WHEN (EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) < EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) THEN (((EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) + (86400)::numeric) - EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) / (3600)::numeric)
+    ELSE ((EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) - EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) / (3600)::numeric)
+END) STORED,
     hourly_rate numeric(10,2) NOT NULL,
-    total_cost numeric(12,2) GENERATED ALWAYS AS (((EXTRACT(epoch FROM (end_time - start_time)) / (3600)::numeric) * hourly_rate)) STORED,
+    total_cost numeric(12,2) GENERATED ALWAYS AS (
+CASE
+    WHEN (EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) < EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) THEN ((((EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) + (86400)::numeric) - EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) / (3600)::numeric) * hourly_rate)
+    ELSE (((EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) - EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) / (3600)::numeric) * hourly_rate)
+END) STORED,
     archived_at timestamp with time zone,
     synced_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -426,13 +434,17 @@ CREATE TABLE public.fact_production (
     crew_id uuid NOT NULL,
     crew_type character varying(100) NOT NULL,
     work_date date NOT NULL,
-    job_title character varying(255) NOT NULL,
+    job_title text NOT NULL,
     quantity numeric(12,3) NOT NULL,
     unit character varying(50) NOT NULL,
     start_time timestamp with time zone NOT NULL,
     end_time timestamp with time zone NOT NULL,
     description text,
-    hours numeric(10,2) GENERATED ALWAYS AS ((EXTRACT(epoch FROM (end_time - start_time)) / (3600)::numeric)) STORED,
+    hours numeric(10,2) GENERATED ALWAYS AS (
+CASE
+    WHEN (EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) < EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) THEN (((EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) + (86400)::numeric) - EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) / (3600)::numeric)
+    ELSE ((EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) - EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) / (3600)::numeric)
+END) STORED,
     synced_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -492,80 +504,85 @@ CREATE TABLE public.fact_vehicle_work (
 --
 
 CREATE VIEW public.jobsite_all_costs AS
- SELECT fact_employee_work.jobsite_id,
-    fact_employee_work.work_date AS date,
-    fact_employee_work.crew_type,
+ SELECT f.jobsite_id,
+    f.work_date AS date,
+    f.crew_type,
     'employee'::text AS cost_type,
-    fact_employee_work.employee_id AS entity_id,
+    f.employee_id AS entity_id,
     NULL::character varying AS entity_name,
-    fact_employee_work.hours AS quantity,
+    f.hours AS quantity,
     'hours'::text AS quantity_unit,
-    fact_employee_work.hourly_rate AS rate,
-    fact_employee_work.total_cost,
+    f.hourly_rate AS rate,
+    f.total_cost,
     false AS estimated,
-    fact_employee_work.daily_report_id
-   FROM public.fact_employee_work
-  WHERE (fact_employee_work.archived_at IS NULL)
+    f.daily_report_id
+   FROM (public.fact_employee_work f
+     JOIN public.dim_daily_report dr ON ((dr.id = f.daily_report_id)))
+  WHERE ((f.archived_at IS NULL) AND (dr.approved = true) AND (dr.archived = false))
 UNION ALL
- SELECT fact_vehicle_work.jobsite_id,
-    fact_vehicle_work.work_date AS date,
-    fact_vehicle_work.crew_type,
+ SELECT f.jobsite_id,
+    f.work_date AS date,
+    f.crew_type,
     'vehicle'::text AS cost_type,
-    fact_vehicle_work.vehicle_id AS entity_id,
+    f.vehicle_id AS entity_id,
     NULL::character varying AS entity_name,
-    fact_vehicle_work.hours AS quantity,
+    f.hours AS quantity,
     'hours'::text AS quantity_unit,
-    fact_vehicle_work.hourly_rate AS rate,
-    fact_vehicle_work.total_cost,
+    f.hourly_rate AS rate,
+    f.total_cost,
     false AS estimated,
-    fact_vehicle_work.daily_report_id
-   FROM public.fact_vehicle_work
-  WHERE (fact_vehicle_work.archived_at IS NULL)
+    f.daily_report_id
+   FROM (public.fact_vehicle_work f
+     JOIN public.dim_daily_report dr ON ((dr.id = f.daily_report_id)))
+  WHERE ((f.archived_at IS NULL) AND (dr.approved = true) AND (dr.archived = false))
 UNION ALL
- SELECT fact_material_shipment.jobsite_id,
-    fact_material_shipment.work_date AS date,
-    fact_material_shipment.crew_type,
+ SELECT f.jobsite_id,
+    f.work_date AS date,
+    f.crew_type,
     'material'::text AS cost_type,
-    fact_material_shipment.jobsite_material_id AS entity_id,
+    f.jobsite_material_id AS entity_id,
     NULL::character varying AS entity_name,
-    fact_material_shipment.quantity,
-    fact_material_shipment.unit AS quantity_unit,
-    fact_material_shipment.rate,
-    fact_material_shipment.total_cost,
-    fact_material_shipment.estimated,
-    fact_material_shipment.daily_report_id
-   FROM public.fact_material_shipment
-  WHERE (fact_material_shipment.archived_at IS NULL)
+    f.quantity,
+    f.unit AS quantity_unit,
+    f.rate,
+    f.total_cost,
+    f.estimated,
+    f.daily_report_id
+   FROM (public.fact_material_shipment f
+     JOIN public.dim_daily_report dr ON ((dr.id = f.daily_report_id)))
+  WHERE ((f.archived_at IS NULL) AND (dr.approved = true) AND (dr.archived = false))
 UNION ALL
- SELECT fact_non_costed_material.jobsite_id,
-    fact_non_costed_material.work_date AS date,
-    fact_non_costed_material.crew_type,
+ SELECT f.jobsite_id,
+    f.work_date AS date,
+    f.crew_type,
     'non_costed_material'::text AS cost_type,
     NULL::uuid AS entity_id,
-    fact_non_costed_material.material_name AS entity_name,
-    fact_non_costed_material.quantity,
-    fact_non_costed_material.unit AS quantity_unit,
+    f.material_name AS entity_name,
+    f.quantity,
+    f.unit AS quantity_unit,
     0 AS rate,
     0 AS total_cost,
     false AS estimated,
-    fact_non_costed_material.daily_report_id
-   FROM public.fact_non_costed_material
-  WHERE (fact_non_costed_material.archived_at IS NULL)
+    f.daily_report_id
+   FROM (public.fact_non_costed_material f
+     JOIN public.dim_daily_report dr ON ((dr.id = f.daily_report_id)))
+  WHERE ((f.archived_at IS NULL) AND (dr.approved = true) AND (dr.archived = false))
 UNION ALL
- SELECT fact_trucking.jobsite_id,
-    fact_trucking.work_date AS date,
-    fact_trucking.crew_type,
+ SELECT f.jobsite_id,
+    f.work_date AS date,
+    f.crew_type,
     'trucking'::text AS cost_type,
     NULL::uuid AS entity_id,
-    fact_trucking.trucking_type AS entity_name,
-    fact_trucking.quantity,
-    fact_trucking.rate_type AS quantity_unit,
-    fact_trucking.rate,
-    fact_trucking.total_cost,
+    f.trucking_type AS entity_name,
+    f.quantity,
+    f.rate_type AS quantity_unit,
+    f.rate,
+    f.total_cost,
     false AS estimated,
-    fact_trucking.daily_report_id
-   FROM public.fact_trucking
-  WHERE (fact_trucking.archived_at IS NULL);
+    f.daily_report_id
+   FROM (public.fact_trucking f
+     JOIN public.dim_daily_report dr ON ((dr.id = f.daily_report_id)))
+  WHERE ((f.archived_at IS NULL) AND (dr.approved = true) AND (dr.archived = false));
 
 
 --
@@ -624,13 +641,14 @@ CREATE VIEW public.jobsite_daily_crew_type_summary AS
         END) AS trucking_cost,
     sum(c.total_cost) AS total_cost
    FROM (public.jobsite_all_costs c
-     LEFT JOIN ( SELECT fact_trucking.jobsite_id,
-            fact_trucking.work_date,
-            fact_trucking.crew_type,
-            sum(COALESCE(fact_trucking.hours, (0)::numeric)) AS trucking_hours
-           FROM public.fact_trucking
-          WHERE (fact_trucking.archived_at IS NULL)
-          GROUP BY fact_trucking.jobsite_id, fact_trucking.work_date, fact_trucking.crew_type) th ON (((th.jobsite_id = c.jobsite_id) AND (th.work_date = c.date) AND ((th.crew_type)::text = (c.crew_type)::text))))
+     LEFT JOIN ( SELECT f.jobsite_id,
+            f.work_date,
+            f.crew_type,
+            sum(COALESCE(f.hours, (0)::numeric)) AS trucking_hours
+           FROM (public.fact_trucking f
+             JOIN public.dim_daily_report dr ON ((dr.id = f.daily_report_id)))
+          WHERE ((f.archived_at IS NULL) AND (dr.approved = true) AND (dr.archived = false))
+          GROUP BY f.jobsite_id, f.work_date, f.crew_type) th ON (((th.jobsite_id = c.jobsite_id) AND (th.work_date = c.date) AND ((th.crew_type)::text = (c.crew_type)::text))))
   GROUP BY c.jobsite_id, c.date, c.crew_type, th.trucking_hours;
 
 
@@ -694,12 +712,13 @@ CREATE VIEW public.jobsite_daily_summary AS
     array_agg(DISTINCT c.crew_type) AS crew_types
    FROM ((public.jobsite_all_costs c
      LEFT JOIN public.dim_jobsite dj ON ((dj.id = c.jobsite_id)))
-     LEFT JOIN ( SELECT fact_trucking.jobsite_id,
-            fact_trucking.work_date,
-            sum(COALESCE(fact_trucking.hours, (0)::numeric)) AS trucking_hours
-           FROM public.fact_trucking
-          WHERE (fact_trucking.archived_at IS NULL)
-          GROUP BY fact_trucking.jobsite_id, fact_trucking.work_date) th ON (((th.jobsite_id = c.jobsite_id) AND (th.work_date = c.date))))
+     LEFT JOIN ( SELECT f.jobsite_id,
+            f.work_date,
+            sum(COALESCE(f.hours, (0)::numeric)) AS trucking_hours
+           FROM (public.fact_trucking f
+             JOIN public.dim_daily_report dr ON ((dr.id = f.daily_report_id)))
+          WHERE ((f.archived_at IS NULL) AND (dr.approved = true) AND (dr.archived = false))
+          GROUP BY f.jobsite_id, f.work_date) th ON (((th.jobsite_id = c.jobsite_id) AND (th.work_date = c.date))))
   GROUP BY c.jobsite_id, c.date, dj.name, dj.jobcode, th.trucking_hours;
 
 
@@ -708,60 +727,65 @@ CREATE VIEW public.jobsite_daily_summary AS
 --
 
 CREATE VIEW public.jobsite_report_issues AS
- SELECT fact_employee_work.jobsite_id,
-    fact_employee_work.work_date AS date,
+ SELECT f.jobsite_id,
+    f.work_date AS date,
     'EMPLOYEE_RATE_ZERO'::text AS issue_type,
-    fact_employee_work.employee_id AS entity_id,
+    f.employee_id AS entity_id,
     'dim_employee'::text AS entity_table,
     NULL::character varying AS entity_name,
     count(*) AS occurrence_count
-   FROM public.fact_employee_work
-  WHERE ((fact_employee_work.hourly_rate = (0)::numeric) AND (fact_employee_work.archived_at IS NULL))
-  GROUP BY fact_employee_work.jobsite_id, fact_employee_work.work_date, fact_employee_work.employee_id
+   FROM (public.fact_employee_work f
+     JOIN public.dim_daily_report dr ON ((dr.id = f.daily_report_id)))
+  WHERE ((f.hourly_rate = (0)::numeric) AND (f.archived_at IS NULL) AND (dr.approved = true) AND (dr.archived = false))
+  GROUP BY f.jobsite_id, f.work_date, f.employee_id
 UNION ALL
- SELECT fact_vehicle_work.jobsite_id,
-    fact_vehicle_work.work_date AS date,
+ SELECT f.jobsite_id,
+    f.work_date AS date,
     'VEHICLE_RATE_ZERO'::text AS issue_type,
-    fact_vehicle_work.vehicle_id AS entity_id,
+    f.vehicle_id AS entity_id,
     'dim_vehicle'::text AS entity_table,
     NULL::character varying AS entity_name,
     count(*) AS occurrence_count
-   FROM public.fact_vehicle_work
-  WHERE ((fact_vehicle_work.hourly_rate = (0)::numeric) AND (fact_vehicle_work.archived_at IS NULL))
-  GROUP BY fact_vehicle_work.jobsite_id, fact_vehicle_work.work_date, fact_vehicle_work.vehicle_id
+   FROM (public.fact_vehicle_work f
+     JOIN public.dim_daily_report dr ON ((dr.id = f.daily_report_id)))
+  WHERE ((f.hourly_rate = (0)::numeric) AND (f.archived_at IS NULL) AND (dr.approved = true) AND (dr.archived = false))
+  GROUP BY f.jobsite_id, f.work_date, f.vehicle_id
 UNION ALL
- SELECT fact_material_shipment.jobsite_id,
-    fact_material_shipment.work_date AS date,
+ SELECT f.jobsite_id,
+    f.work_date AS date,
     'MATERIAL_RATE_ZERO'::text AS issue_type,
-    fact_material_shipment.jobsite_material_id AS entity_id,
+    f.jobsite_material_id AS entity_id,
     'dim_jobsite_material'::text AS entity_table,
     NULL::character varying AS entity_name,
     count(*) AS occurrence_count
-   FROM public.fact_material_shipment
-  WHERE ((fact_material_shipment.rate = (0)::numeric) AND (fact_material_shipment.archived_at IS NULL))
-  GROUP BY fact_material_shipment.jobsite_id, fact_material_shipment.work_date, fact_material_shipment.jobsite_material_id
+   FROM (public.fact_material_shipment f
+     JOIN public.dim_daily_report dr ON ((dr.id = f.daily_report_id)))
+  WHERE ((f.rate = (0)::numeric) AND (f.archived_at IS NULL) AND (dr.approved = true) AND (dr.archived = false))
+  GROUP BY f.jobsite_id, f.work_date, f.jobsite_material_id
 UNION ALL
- SELECT fact_material_shipment.jobsite_id,
-    fact_material_shipment.work_date AS date,
+ SELECT f.jobsite_id,
+    f.work_date AS date,
     'MATERIAL_ESTIMATED_RATE'::text AS issue_type,
-    fact_material_shipment.jobsite_material_id AS entity_id,
+    f.jobsite_material_id AS entity_id,
     'dim_jobsite_material'::text AS entity_table,
     NULL::character varying AS entity_name,
     count(*) AS occurrence_count
-   FROM public.fact_material_shipment
-  WHERE ((fact_material_shipment.estimated = true) AND (fact_material_shipment.archived_at IS NULL))
-  GROUP BY fact_material_shipment.jobsite_id, fact_material_shipment.work_date, fact_material_shipment.jobsite_material_id
+   FROM (public.fact_material_shipment f
+     JOIN public.dim_daily_report dr ON ((dr.id = f.daily_report_id)))
+  WHERE ((f.estimated = true) AND (f.archived_at IS NULL) AND (dr.approved = true) AND (dr.archived = false))
+  GROUP BY f.jobsite_id, f.work_date, f.jobsite_material_id
 UNION ALL
- SELECT fact_non_costed_material.jobsite_id,
-    fact_non_costed_material.work_date AS date,
+ SELECT f.jobsite_id,
+    f.work_date AS date,
     'NON_COSTED_MATERIALS'::text AS issue_type,
     NULL::uuid AS entity_id,
     NULL::character varying AS entity_table,
-    ((((fact_non_costed_material.material_name)::text || ' ('::text) || (fact_non_costed_material.supplier_name)::text) || ')'::text) AS entity_name,
+    ((((f.material_name)::text || ' ('::text) || (f.supplier_name)::text) || ')'::text) AS entity_name,
     count(*) AS occurrence_count
-   FROM public.fact_non_costed_material
-  WHERE (fact_non_costed_material.archived_at IS NULL)
-  GROUP BY fact_non_costed_material.jobsite_id, fact_non_costed_material.work_date, fact_non_costed_material.material_name, fact_non_costed_material.supplier_name;
+   FROM (public.fact_non_costed_material f
+     JOIN public.dim_daily_report dr ON ((dr.id = f.daily_report_id)))
+  WHERE ((f.archived_at IS NULL) AND (dr.approved = true) AND (dr.archived = false))
+  GROUP BY f.jobsite_id, f.work_date, f.material_name, f.supplier_name;
 
 
 --

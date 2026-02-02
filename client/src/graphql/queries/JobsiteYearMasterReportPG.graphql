@@ -1,0 +1,53 @@
+query JobsiteYearMasterReportPG($year: Int!) {
+  jobsiteYearMasterReportPG(year: $year) {
+    _id
+    startOfYear
+    crewTypes
+    summary {
+      externalExpenseInvoiceValue
+      internalExpenseInvoiceValue
+      accrualExpenseInvoiceValue
+      externalRevenueInvoiceValue
+      internalRevenueInvoiceValue
+      accrualRevenueInvoiceValue
+    }
+    jobsites {
+      jobsiteId
+      jobsiteName
+      jobcode
+      summary {
+        employeeHours
+        employeeCost
+        vehicleHours
+        vehicleCost
+        materialQuantity
+        materialCost
+        nonCostedMaterialQuantity
+        truckingQuantity
+        truckingHours
+        truckingCost
+        crewTypeSummaries {
+          crewType
+          employeeHours
+          employeeCost
+          vehicleHours
+          vehicleCost
+          materialQuantity
+          materialCost
+          nonCostedMaterialQuantity
+          truckingQuantity
+          truckingHours
+          truckingCost
+        }
+      }
+      invoiceSummary {
+        externalExpenseInvoiceValue
+        internalExpenseInvoiceValue
+        accrualExpenseInvoiceValue
+        externalRevenueInvoiceValue
+        internalRevenueInvoiceValue
+        accrualRevenueInvoiceValue
+      }
+    }
+  }
+}

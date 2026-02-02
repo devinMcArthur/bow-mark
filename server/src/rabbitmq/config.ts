@@ -63,6 +63,27 @@ export const RABBITMQ_CONFIG = {
         durable: true,
       },
     },
+    materialShipment: {
+      name: "sync.material_shipment",
+      bindings: ["material_shipment.*"],
+      options: {
+        durable: true,
+      },
+    },
+    production: {
+      name: "sync.production",
+      bindings: ["production.*"],
+      options: {
+        durable: true,
+      },
+    },
+    invoice: {
+      name: "sync.invoice",
+      bindings: ["invoice.*"],
+      options: {
+        durable: true,
+      },
+    },
   },
 } as const;
 
@@ -99,6 +120,21 @@ export const ROUTING_KEYS = {
     created: "vehicle_work.created",
     updated: "vehicle_work.updated",
     deleted: "vehicle_work.deleted",
+  },
+  materialShipment: {
+    created: "material_shipment.created",
+    updated: "material_shipment.updated",
+    deleted: "material_shipment.deleted",
+  },
+  production: {
+    created: "production.created",
+    updated: "production.updated",
+    deleted: "production.deleted",
+  },
+  invoice: {
+    created: "invoice.created",
+    updated: "invoice.updated",
+    deleted: "invoice.deleted",
   },
 } as const;
 

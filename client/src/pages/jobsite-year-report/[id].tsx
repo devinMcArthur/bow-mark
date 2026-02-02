@@ -1,6 +1,7 @@
 import { Box, Divider, Heading, Switch, FormControl, FormLabel } from "@chakra-ui/react";
 import { GetServerSideProps } from "next";
 import { useState } from "react";
+import dayjs from "dayjs";
 import Breadcrumbs from "../../components/Common/Breadcrumbs";
 import Container from "../../components/Common/Container";
 import {
@@ -18,8 +19,9 @@ const JobsiteYearlyReport: PageJobsiteYearReportCardComp = ({ data }) => {
   const jobsiteYearReport = data?.jobsiteYearReport!;
   const [showPGReport, setShowPGReport] = useState(false);
 
-  // Extract year from startOfYear date
-  const year = new Date(jobsiteYearReport.startOfYear).getFullYear();
+  // Extract year from startOfYear date (with timezone offset correction)
+  const startDate = dayjs(jobsiteYearReport.startOfYear);
+  const year = startDate.add(-startDate.utcOffset(), "minutes").year();
 
   /**
    * ----- Rendering -----

@@ -16,6 +16,9 @@ import type {
   JobsiteDocument,
   DailyReportDocument,
   VehicleDocument,
+  MaterialDocument,
+  CompanyDocument,
+  JobsiteMaterialDocument,
 } from "@models";
 
 /**
@@ -365,4 +368,238 @@ export async function getVehicleRateForDate(
     .executeTakeFirst();
 
   return result ? parseFloat(result.rate) : 0;
+}
+
+/**
+ * Upsert a material dimension record
+ * @returns PostgreSQL id for the material
+ */
+export async function upsertDimMaterial(
+  material: MaterialDocument
+): Promise<string> {
+  const mongoId = material._id.toString();
+
+  const existing = await db
+    .selectFrom("dim_material")
+    .select("id")
+    .where("mongo_id", "=", mongoId)
+    .executeTakeFirst();
+
+  if (existing) {
+    await db
+      .updateTable("dim_material")
+      .set({
+        name: material.name,
+        archived_at: material.archivedAt || null,
+        synced_at: new Date(),
+      })
+      .where("id", "=", existing.id)
+      .execute();
+
+    return existing.id;
+  }
+
+  const result = await db
+    .insertInto("dim_material")
+    .values({
+      mongo_id: mongoId,
+      name: material.name,
+      archived_at: material.archivedAt || null,
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+
+  return result.id;
+}
+
+/**
+ * Upsert a company dimension record
+ * @returns PostgreSQL id for the company
+ */
+export async function upsertDimCompany(
+  company: CompanyDocument
+): Promise<string> {
+  const mongoId = company._id.toString();
+
+  const existing = await db
+    .selectFrom("dim_company")
+    .select("id")
+    .where("mongo_id", "=", mongoId)
+    .executeTakeFirst();
+
+  if (existing) {
+    await db
+      .updateTable("dim_company")
+      .set({
+        name: company.name,
+        archived_at: company.archivedAt || null,
+        synced_at: new Date(),
+      })
+      .where("id", "=", existing.id)
+      .execute();
+
+    return existing.id;
+  }
+
+  const result = await db
+    .insertInto("dim_company")
+    .values({
+      mongo_id: mongoId,
+      name: company.name,
+      archived_at: company.archivedAt || null,
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+
+  return result.id;
+}
+
+/**
+ * Upsert a jobsite material dimension record
+ * @returns PostgreSQL id for the jobsite material
+ */
+export async function upsertDimJobsiteMaterial(
+  jobsiteMaterial: JobsiteMaterialDocument,
+  jobsiteId: string,
+  materialId: string,
+  supplierId: string
+): Promise<string> {
+  const mongoId = jobsiteMaterial._id.toString();
+
+  const existing = await db
+    .selectFrom("dim_jobsite_material")
+    .select("id")
+    .where("mongo_id", "=", mongoId)
+    .executeTakeFirst();
+
+  if (existing) {
+    await db
+      .updateTable("dim_jobsite_material")
+      .set({
+        jobsite_id: jobsiteId,
+        material_id: materialId,
+        supplier_id: supplierId,
+        quantity: jobsiteMaterial.quantity.toString(),
+        unit: jobsiteMaterial.unit,
+        cost_type: jobsiteMaterial.costType,
+        delivered: jobsiteMaterial.delivered || false,
+        synced_at: new Date(),
+      })
+      .where("id", "=", existing.id)
+      .execute();
+
+    // Sync rates
+    await syncJobsiteMaterialRates(existing.id, jobsiteMaterial);
+
+    return existing.id;
+  }
+
+  const result = await db
+    .insertInto("dim_jobsite_material")
+    .values({
+      mongo_id: mongoId,
+      jobsite_id: jobsiteId,
+      material_id: materialId,
+      supplier_id: supplierId,
+      quantity: jobsiteMaterial.quantity.toString(),
+      unit: jobsiteMaterial.unit,
+      cost_type: jobsiteMaterial.costType,
+      delivered: jobsiteMaterial.delivered || false,
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+
+  // Sync rates
+  await syncJobsiteMaterialRates(result.id, jobsiteMaterial);
+
+  return result.id;
+}
+
+/**
+ * Sync jobsite material rates
+ *
+ * For standard rates, mongo_id is null.
+ * For delivered rates, mongo_id stores the delivered rate subdocument ID.
+ */
+async function syncJobsiteMaterialRates(
+  jobsiteMaterialId: string,
+  jobsiteMaterial: JobsiteMaterialDocument
+): Promise<void> {
+  // Delete existing rates
+  await db
+    .deleteFrom("dim_jobsite_material_rate")
+    .where("jobsite_material_id", "=", jobsiteMaterialId)
+    .execute();
+
+  // Insert standard rates (mongo_id = null to indicate standard rate)
+  if (jobsiteMaterial.rates && jobsiteMaterial.rates.length > 0) {
+    const rateValues = jobsiteMaterial.rates.map((r) => ({
+      jobsite_material_id: jobsiteMaterialId,
+      mongo_id: null as string | null,
+      rate: r.rate.toString(),
+      estimated: r.estimated || false,
+      effective_date: r.date,
+    }));
+
+    await db.insertInto("dim_jobsite_material_rate").values(rateValues).execute();
+  }
+
+  // Insert delivered rates (mongo_id = deliveredRate._id to identify which delivered rate)
+  if (jobsiteMaterial.deliveredRates && jobsiteMaterial.deliveredRates.length > 0) {
+    for (const deliveredRate of jobsiteMaterial.deliveredRates) {
+      if (deliveredRate.rates && deliveredRate.rates.length > 0) {
+        const rateValues = deliveredRate.rates.map((r) => ({
+          jobsite_material_id: jobsiteMaterialId,
+          mongo_id: deliveredRate._id?.toString() || null,
+          rate: r.rate.toString(),
+          estimated: r.estimated || false,
+          effective_date: r.date,
+        }));
+
+        await db.insertInto("dim_jobsite_material_rate").values(rateValues).execute();
+      }
+    }
+  }
+}
+
+/**
+ * Get the applicable rate for a jobsite material on a given date
+ *
+ * @param deliveredRateId - If provided, looks up rates for that specific delivered rate.
+ *                          If null/undefined, looks up standard rates (mongo_id IS NULL).
+ */
+export async function getJobsiteMaterialRateForDate(
+  jobsiteMaterialId: string,
+  date: Date,
+  deliveredRateId?: string
+): Promise<{ rate: number; estimated: boolean }> {
+  let result;
+
+  if (deliveredRateId) {
+    // Look up delivered rate by mongo_id
+    result = await db
+      .selectFrom("dim_jobsite_material_rate")
+      .select(["rate", "estimated"])
+      .where("jobsite_material_id", "=", jobsiteMaterialId)
+      .where("mongo_id", "=", deliveredRateId)
+      .where("effective_date", "<=", date)
+      .orderBy("effective_date", "desc")
+      .limit(1)
+      .executeTakeFirst();
+  } else {
+    // Look up standard rate (mongo_id IS NULL)
+    result = await db
+      .selectFrom("dim_jobsite_material_rate")
+      .select(["rate", "estimated"])
+      .where("jobsite_material_id", "=", jobsiteMaterialId)
+      .where("mongo_id", "is", null)
+      .where("effective_date", "<=", date)
+      .orderBy("effective_date", "desc")
+      .limit(1)
+      .executeTakeFirst();
+  }
+
+  return result
+    ? { rate: parseFloat(result.rate), estimated: result.estimated }
+    : { rate: 0, estimated: true };
 }

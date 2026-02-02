@@ -29,7 +29,14 @@ import {
 } from "../rabbitmq";
 import { checkConnection as checkPostgres, closeConnection as closePostgres } from "../db";
 import type { SyncMessage } from "../rabbitmq/publisher";
-import { dailyReportSyncHandler, employeeWorkSyncHandler, vehicleWorkSyncHandler } from "./handlers";
+import {
+  dailyReportSyncHandler,
+  employeeWorkSyncHandler,
+  vehicleWorkSyncHandler,
+  materialShipmentSyncHandler,
+  productionSyncHandler,
+  invoiceSyncHandler,
+} from "./handlers";
 
 /**
  * Process a message from a queue
@@ -69,6 +76,18 @@ async function processMessage(
 
       case RABBITMQ_CONFIG.queues.vehicleWork.name:
         await vehicleWorkSyncHandler.handle(message);
+        break;
+
+      case RABBITMQ_CONFIG.queues.materialShipment.name:
+        await materialShipmentSyncHandler.handle(message);
+        break;
+
+      case RABBITMQ_CONFIG.queues.production.name:
+        await productionSyncHandler.handle(message);
+        break;
+
+      case RABBITMQ_CONFIG.queues.invoice.name:
+        await invoiceSyncHandler.handle(message);
         break;
 
       default:

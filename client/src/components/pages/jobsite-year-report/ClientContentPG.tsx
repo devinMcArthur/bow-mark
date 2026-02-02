@@ -10,6 +10,8 @@ import {
   Alert,
   AlertIcon,
   Box,
+  Code,
+  Flex,
   Heading,
   SimpleGrid,
   Spinner,
@@ -34,8 +36,10 @@ import {
 } from "@chakra-ui/react";
 import React from "react";
 import { useJobsiteYearReportPgQuery } from "../../../generated/graphql";
+import { useSystem } from "../../../contexts/System";
 import formatNumber from "../../../utils/formatNumber";
 import formatDate from "../../../utils/formatDate";
+import getRateForTime from "../../../utils/getRateForTime";
 import Card from "../../Common/Card";
 
 interface IJobsiteYearReportClientContentPG {
@@ -54,7 +58,26 @@ const JobsiteYearReportClientContentPG = ({
     },
   });
 
+  const {
+    state: { system },
+  } = useSystem();
+
   const report = data?.jobsiteYearReportPG;
+
+  // Get overhead rate from system settings (same as MongoDB report)
+  const overheadPercent = React.useMemo(() => {
+    if (system && report?.dayReports?.[0]?.date) {
+      return getRateForTime(
+        system.internalExpenseOverheadRate,
+        new Date(report.dayReports[0].date)
+      );
+    }
+    return 10; // Default to 10%
+  }, [report?.dayReports, system]);
+
+  const overheadRate = React.useMemo(() => {
+    return 1 + overheadPercent / 100;
+  }, [overheadPercent]);
 
   // Calculate totals from day reports - must be called before any early returns
   const totals = React.useMemo(() => {
@@ -68,6 +91,7 @@ const JobsiteYearReportClientContentPG = ({
         materialCost: 0,
         truckingCost: 0,
         internalExpenses: 0,
+        internalExpensesWithOverhead: 0,
         totalRevenue: 0,
         totalExpenses: 0,
         netIncome: 0,
@@ -93,13 +117,16 @@ const JobsiteYearReportClientContentPG = ({
     }
 
     const internalExpenses = employeeCost + vehicleCost + materialCost + truckingCost;
+    const internalExpensesWithOverhead = internalExpenses * overheadRate;
     const totalRevenue =
       report.summary.externalRevenueInvoiceValue +
       report.summary.internalRevenueInvoiceValue;
+    // Match MongoDB calculation: internal expenses + overhead, external invoices + 3%, internal + accrual invoices
     const totalExpenses =
-      internalExpenses +
-      report.summary.externalExpenseInvoiceValue +
-      report.summary.internalExpenseInvoiceValue;
+      internalExpensesWithOverhead +
+      report.summary.externalExpenseInvoiceValue * 1.03 +
+      report.summary.internalExpenseInvoiceValue +
+      report.summary.accrualExpenseInvoiceValue;
 
     return {
       employeeHours,
@@ -110,11 +137,12 @@ const JobsiteYearReportClientContentPG = ({
       materialCost,
       truckingCost,
       internalExpenses,
+      internalExpensesWithOverhead,
       totalRevenue,
       totalExpenses,
       netIncome: totalRevenue - totalExpenses,
     };
-  }, [report]);
+  }, [report, overheadRate]);
 
   if (loading) {
     return (
@@ -175,7 +203,20 @@ const JobsiteYearReportClientContentPG = ({
               ${formatNumber(totals.totalExpenses)}
             </StatNumber>
             <StatHelpText>
-              Internal: ${formatNumber(totals.internalExpenses)}
+              <Flex flexDir="column" fontSize="xs">
+                <Code backgroundColor="transparent" fontSize="xs">
+                  Internal + {overheadPercent}%: ${formatNumber(totals.internalExpensesWithOverhead)}
+                </Code>
+                <Code backgroundColor="transparent" fontSize="xs">
+                  External Inv + 3%: ${formatNumber(report?.summary.externalExpenseInvoiceValue * 1.03 || 0)}
+                </Code>
+                <Code backgroundColor="transparent" fontSize="xs">
+                  Internal Inv: ${formatNumber(report?.summary.internalExpenseInvoiceValue || 0)}
+                </Code>
+                <Code backgroundColor="transparent" fontSize="xs">
+                  Accrual Inv: ${formatNumber(report?.summary.accrualExpenseInvoiceValue || 0)}
+                </Code>
+              </Flex>
             </StatHelpText>
           </Stat>
 

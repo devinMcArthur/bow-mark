@@ -14,13 +14,21 @@ import {
   DailyReport,
   EmployeeWork,
   VehicleWork,
+  MaterialShipment,
+  Production,
+  JobsiteMaterial,
   type DailyReportDocument,
   type EmployeeWorkDocument,
   type VehicleWorkDocument,
+  type MaterialShipmentDocument,
+  type ProductionDocument,
   type EmployeeDocument,
   type VehicleDocument,
   type JobsiteDocument,
   type CrewDocument,
+  type JobsiteMaterialDocument,
+  type MaterialDocument,
+  type CompanyDocument,
 } from "@models";
 import { db } from "../../db";
 import { SyncHandler } from "./base";
@@ -33,6 +41,8 @@ import {
 } from "./dimensions";
 import { upsertFactEmployeeWork } from "./employeeWorkSync";
 import { upsertFactVehicleWork } from "./vehicleWorkSync";
+import { upsertFactMaterialShipment } from "./materialShipmentSync";
+import { upsertFactProduction } from "./productionSync";
 
 /** DailyReport with required populated references */
 type PopulatedDailyReport = DailyReportDocument & {
@@ -76,6 +86,12 @@ class DailyReportSyncHandler extends SyncHandler<PopulatedDailyReport> {
 
     // 3. Sync VehicleWork records
     await this.syncVehicleWorks(dailyReport, dailyReportId, jobsiteId, crewId);
+
+    // 4. Sync MaterialShipment records (includes trucking and non-costed materials)
+    await this.syncMaterialShipments(dailyReport, dailyReportId, jobsiteId, crewId);
+
+    // 5. Sync Production records
+    await this.syncProductions(dailyReport, dailyReportId, jobsiteId, crewId);
   }
 
   private async syncEmployeeWorks(
@@ -174,6 +190,123 @@ class DailyReportSyncHandler extends SyncHandler<PopulatedDailyReport> {
     await this.archiveOrphanedFacts("fact_vehicle_work", dailyReportId, syncedMongoIds);
   }
 
+  private async syncMaterialShipments(
+    dailyReport: PopulatedDailyReport,
+    dailyReportId: string,
+    jobsiteId: string,
+    crewId: string
+  ): Promise<void> {
+    const materialShipmentIds = dailyReport.materialShipment || [];
+
+    if (materialShipmentIds.length === 0) {
+      await this.archiveOrphanedFacts("fact_material_shipment", dailyReportId, []);
+      await this.archiveOrphanedFacts("fact_non_costed_material", dailyReportId, []);
+      await this.archiveOrphanedFacts("fact_trucking", dailyReportId, []);
+      return;
+    }
+
+    const materialShipments = await MaterialShipment.find({
+      _id: { $in: materialShipmentIds },
+    })
+      .populate({
+        path: "jobsiteMaterial",
+        populate: [
+          { path: "material" },
+          { path: "supplier" },
+        ],
+      })
+      .exec();
+
+    const syncedCostedIds: string[] = [];
+    const syncedNonCostedIds: string[] = [];
+    const syncedTruckingIds: string[] = [];
+
+    for (const ms of materialShipments) {
+      try {
+        const typedMs = ms as MaterialShipmentDocument & {
+          jobsiteMaterial?: JobsiteMaterialDocument & {
+            material: MaterialDocument;
+            supplier: CompanyDocument;
+          };
+        };
+
+        await upsertFactMaterialShipment({
+          materialShipment: typedMs,
+          dailyReport,
+          dailyReportId,
+          jobsiteId,
+          crewId,
+        });
+
+        // Track which IDs were synced for orphan cleanup
+        if (typedMs.noJobsiteMaterial) {
+          syncedNonCostedIds.push(ms._id.toString());
+        } else {
+          syncedCostedIds.push(ms._id.toString());
+        }
+
+        // Trucking uses the same mongo_id as the MaterialShipment
+        if (typedMs.vehicleObject?.truckingRateId) {
+          syncedTruckingIds.push(ms._id.toString());
+        }
+      } catch (error) {
+        console.error(`[${this.entityName}Sync] Failed to sync MaterialShipment ${ms._id}:`, error);
+      }
+    }
+
+    await this.archiveOrphanedFacts("fact_material_shipment", dailyReportId, syncedCostedIds);
+    await this.archiveOrphanedFacts("fact_non_costed_material", dailyReportId, syncedNonCostedIds);
+    await this.archiveOrphanedFacts("fact_trucking", dailyReportId, syncedTruckingIds);
+  }
+
+  private async syncProductions(
+    dailyReport: PopulatedDailyReport,
+    dailyReportId: string,
+    jobsiteId: string,
+    crewId: string
+  ): Promise<void> {
+    const productionIds = dailyReport.production || [];
+
+    if (productionIds.length === 0) {
+      // Delete any existing production facts for this report (no archive for production)
+      await db
+        .deleteFrom("fact_production")
+        .where("daily_report_id", "=", dailyReportId)
+        .execute();
+      return;
+    }
+
+    const productions = await Production.find({
+      _id: { $in: productionIds },
+    }).exec();
+
+    const syncedMongoIds: string[] = [];
+
+    for (const prod of productions) {
+      try {
+        await upsertFactProduction({
+          production: prod as ProductionDocument,
+          dailyReport,
+          dailyReportId,
+          jobsiteId,
+          crewId,
+        });
+        syncedMongoIds.push(prod._id.toString());
+      } catch (error) {
+        console.error(`[${this.entityName}Sync] Failed to sync Production ${prod._id}:`, error);
+      }
+    }
+
+    // Delete orphaned production facts
+    if (syncedMongoIds.length > 0) {
+      await db
+        .deleteFrom("fact_production")
+        .where("daily_report_id", "=", dailyReportId)
+        .where("mongo_id", "not in", syncedMongoIds)
+        .execute();
+    }
+  }
+
   protected async handleDelete(mongoId: string): Promise<void> {
     // Find the dim_daily_report record
     const dailyReport = await db
@@ -207,6 +340,30 @@ class DailyReportSyncHandler extends SyncHandler<PopulatedDailyReport> {
       .where("daily_report_id", "=", dailyReport.id)
       .execute();
 
+    await db
+      .updateTable("fact_material_shipment")
+      .set({ archived_at: new Date(), synced_at: new Date() })
+      .where("daily_report_id", "=", dailyReport.id)
+      .execute();
+
+    await db
+      .updateTable("fact_non_costed_material")
+      .set({ archived_at: new Date(), synced_at: new Date() })
+      .where("daily_report_id", "=", dailyReport.id)
+      .execute();
+
+    await db
+      .updateTable("fact_trucking")
+      .set({ archived_at: new Date(), synced_at: new Date() })
+      .where("daily_report_id", "=", dailyReport.id)
+      .execute();
+
+    // Production facts are deleted, not archived
+    await db
+      .deleteFrom("fact_production")
+      .where("daily_report_id", "=", dailyReport.id)
+      .execute();
+
     console.log(`[${this.entityName}Sync] Archived DailyReport ${mongoId} and its facts`);
   }
 
@@ -218,7 +375,7 @@ class DailyReportSyncHandler extends SyncHandler<PopulatedDailyReport> {
    * Archive fact records that are no longer in the DailyReport
    */
   private async archiveOrphanedFacts(
-    tableName: "fact_employee_work" | "fact_vehicle_work",
+    tableName: "fact_employee_work" | "fact_vehicle_work" | "fact_material_shipment" | "fact_non_costed_material" | "fact_trucking",
     dailyReportId: string,
     validMongoIds: string[]
   ): Promise<void> {
