@@ -41,6 +41,7 @@ import formatNumber from "../../../utils/formatNumber";
 import formatDate from "../../../utils/formatDate";
 import getRateForTime from "../../../utils/getRateForTime";
 import Card from "../../Common/Card";
+import ProductivityAnalytics from "./ProductivityAnalytics";
 
 interface IJobsiteYearReportClientContentPG {
   jobsiteMongoId: string;
@@ -269,6 +270,9 @@ const JobsiteYearReportClientContentPG = ({
           </Stat>
         </SimpleGrid>
       </Card>
+
+      {/* Productivity Analytics */}
+      <ProductivityAnalytics jobsiteMongoId={jobsiteMongoId} year={year} />
 
       {/* Issues */}
       {report.issues.length > 0 && (

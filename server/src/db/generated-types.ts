@@ -15,6 +15,26 @@ export type Numeric = ColumnType<string, number | string, number | string>;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export interface CrewHoursByDay {
+  avg_crew_hours: Numeric | null;
+  crew_count: Int8 | null;
+  crew_type: string | null;
+  jobsite_id: string | null;
+  total_employees: Numeric | null;
+  total_man_hours: Numeric | null;
+  work_date: Timestamp | null;
+}
+
+export interface CrewMaxHours {
+  crew_hours: Numeric | null;
+  crew_type: string | null;
+  daily_report_id: string | null;
+  employee_count: Int8 | null;
+  jobsite_id: string | null;
+  total_man_hours: Numeric | null;
+  work_date: Timestamp | null;
+}
+
 export interface DimCompany {
   archived_at: Timestamp | null;
   id: Generated<string>;
@@ -359,6 +379,8 @@ export interface SchemaMigrations {
 }
 
 export interface DB {
+  crew_hours_by_day: CrewHoursByDay;
+  crew_max_hours: CrewMaxHours;
   dim_company: DimCompany;
   dim_crew: DimCrew;
   dim_daily_report: DimDailyReport;

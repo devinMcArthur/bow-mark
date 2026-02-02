@@ -1,0 +1,43 @@
+query JobsiteProductivity(
+  $jobsiteMongoId: String!
+  $dateRange: DateRangeInput!
+  $includeCrewHoursDetail: Boolean
+) {
+  jobsiteProductivity(
+    jobsiteMongoId: $jobsiteMongoId
+    dateRange: $dateRange
+    includeCrewHoursDetail: $includeCrewHoursDetail
+  ) {
+    jobsiteId
+    jobsiteName
+    jobcode
+    startDate
+    endDate
+    laborTypeHours {
+      jobTitle
+      crewType
+      totalManHours
+      avgHoursPerDay
+      dayCount
+      employeeCount
+    }
+    materialProductivity {
+      materialName
+      totalTonnes
+      totalCrewHours
+      tonnesPerHour
+      shipmentCount
+    }
+    overallTonnesPerHour
+    totalTonnes
+    totalCrewHours
+    crewHoursDetail {
+      date
+      crewType
+      avgCrewHours
+      totalManHours
+      totalEmployees
+      crewCount
+    }
+  }
+}

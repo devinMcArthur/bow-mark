@@ -163,6 +163,89 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: dim_daily_report; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.dim_daily_report (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    mongo_id character varying(24) NOT NULL,
+    jobsite_id uuid NOT NULL,
+    crew_id uuid NOT NULL,
+    report_date date NOT NULL,
+    approved boolean DEFAULT false NOT NULL,
+    payroll_complete boolean DEFAULT false NOT NULL,
+    archived boolean DEFAULT false NOT NULL,
+    synced_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: fact_employee_work; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.fact_employee_work (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    mongo_id character varying(24) NOT NULL,
+    daily_report_id uuid NOT NULL,
+    jobsite_id uuid NOT NULL,
+    employee_id uuid NOT NULL,
+    crew_id uuid NOT NULL,
+    crew_type character varying(100) NOT NULL,
+    work_date date NOT NULL,
+    start_time timestamp with time zone NOT NULL,
+    end_time timestamp with time zone NOT NULL,
+    job_title character varying(255) NOT NULL,
+    hours numeric(10,2) GENERATED ALWAYS AS (
+CASE
+    WHEN (EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) < EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) THEN (((EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) + (86400)::numeric) - EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) / (3600)::numeric)
+    ELSE ((EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) - EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) / (3600)::numeric)
+END) STORED,
+    hourly_rate numeric(10,2) NOT NULL,
+    total_cost numeric(12,2) GENERATED ALWAYS AS (
+CASE
+    WHEN (EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) < EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) THEN ((((EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) + (86400)::numeric) - EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) / (3600)::numeric) * hourly_rate)
+    ELSE (((EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) - EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) / (3600)::numeric) * hourly_rate)
+END) STORED,
+    archived_at timestamp with time zone,
+    synced_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: crew_max_hours; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.crew_max_hours AS
+ SELECT ew.jobsite_id,
+    ew.work_date,
+    ew.daily_report_id,
+    ew.crew_type,
+    max(ew.hours) AS crew_hours,
+    sum(ew.hours) AS total_man_hours,
+    count(DISTINCT ew.employee_id) AS employee_count
+   FROM (public.fact_employee_work ew
+     JOIN public.dim_daily_report dr ON ((dr.id = ew.daily_report_id)))
+  WHERE ((ew.archived_at IS NULL) AND (dr.approved = true) AND (dr.archived = false))
+  GROUP BY ew.jobsite_id, ew.work_date, ew.daily_report_id, ew.crew_type;
+
+
+--
+-- Name: crew_hours_by_day; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.crew_hours_by_day AS
+ SELECT jobsite_id,
+    work_date,
+    crew_type,
+    avg(crew_hours) AS avg_crew_hours,
+    sum(total_man_hours) AS total_man_hours,
+    sum(employee_count) AS total_employees,
+    count(*) AS crew_count
+   FROM public.crew_max_hours
+  GROUP BY jobsite_id, work_date, crew_type;
+
+
+--
 -- Name: dim_company; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -184,23 +267,6 @@ CREATE TABLE public.dim_crew (
     mongo_id character varying(24) NOT NULL,
     name character varying(255) NOT NULL,
     type character varying(100) NOT NULL,
-    synced_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
--- Name: dim_daily_report; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.dim_daily_report (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    mongo_id character varying(24) NOT NULL,
-    jobsite_id uuid NOT NULL,
-    crew_id uuid NOT NULL,
-    report_date date NOT NULL,
-    approved boolean DEFAULT false NOT NULL,
-    payroll_complete boolean DEFAULT false NOT NULL,
-    archived boolean DEFAULT false NOT NULL,
     synced_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -321,38 +387,6 @@ CREATE TABLE public.dim_vehicle_rate (
     mongo_id character varying(24),
     rate numeric(10,2) NOT NULL,
     effective_date date NOT NULL,
-    synced_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
--- Name: fact_employee_work; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.fact_employee_work (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    mongo_id character varying(24) NOT NULL,
-    daily_report_id uuid NOT NULL,
-    jobsite_id uuid NOT NULL,
-    employee_id uuid NOT NULL,
-    crew_id uuid NOT NULL,
-    crew_type character varying(100) NOT NULL,
-    work_date date NOT NULL,
-    start_time timestamp with time zone NOT NULL,
-    end_time timestamp with time zone NOT NULL,
-    job_title character varying(255) NOT NULL,
-    hours numeric(10,2) GENERATED ALWAYS AS (
-CASE
-    WHEN (EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) < EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) THEN (((EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) + (86400)::numeric) - EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) / (3600)::numeric)
-    ELSE ((EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) - EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) / (3600)::numeric)
-END) STORED,
-    hourly_rate numeric(10,2) NOT NULL,
-    total_cost numeric(12,2) GENERATED ALWAYS AS (
-CASE
-    WHEN (EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) < EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) THEN ((((EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) + (86400)::numeric) - EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) / (3600)::numeric) * hourly_rate)
-    ELSE (((EXTRACT(epoch FROM (end_time AT TIME ZONE 'UTC'::text)) - EXTRACT(epoch FROM (start_time AT TIME ZONE 'UTC'::text))) / (3600)::numeric) * hourly_rate)
-END) STORED,
-    archived_at timestamp with time zone,
     synced_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -1788,4 +1822,5 @@ ALTER TABLE ONLY public.fact_vehicle_work
 --
 
 INSERT INTO public.schema_migrations (version) VALUES
-    ('20260128205200');
+    ('20260128205200'),
+    ('20260202120000');

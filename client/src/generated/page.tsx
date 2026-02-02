@@ -1179,6 +1179,41 @@ export const ssrJobsiteMonthReportFull = {
       withPage: withPageJobsiteMonthReportFull,
       usePage: useJobsiteMonthReportFull,
     }
+export async function getServerPageJobsiteProductivity
+    (options: Omit<Apollo.QueryOptions<Types.JobsiteProductivityQueryVariables>, 'query'>, ctx: ApolloClientContext ){
+        const apolloClient = getApolloClient(ctx);
+        
+        const data = await apolloClient.query<Types.JobsiteProductivityQuery>({ ...options, query: Operations.JobsiteProductivityDocument });
+        
+        const apolloState = apolloClient.cache.extract();
+
+        return {
+            props: {
+                apolloState: apolloState,
+                data: data?.data,
+                error: data?.error ?? data?.errors ?? null,
+            },
+        };
+      }
+export const useJobsiteProductivity = (
+  optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.JobsiteProductivityQuery, Types.JobsiteProductivityQueryVariables>) => {
+  const router = useRouter();
+  const options = optionsFunc ? optionsFunc(router) : {};
+  return useQuery(Operations.JobsiteProductivityDocument, options);
+};
+export type PageJobsiteProductivityComp = React.FC<{data?: Types.JobsiteProductivityQuery, error?: Apollo.ApolloError}>;
+export const withPageJobsiteProductivity = (optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.JobsiteProductivityQuery, Types.JobsiteProductivityQueryVariables>) => (WrappedComponent:PageJobsiteProductivityComp) : NextPage  => (props) => {
+                const router = useRouter()
+                const options = optionsFunc ? optionsFunc(router) : {};
+                const {data, error } = useQuery(Operations.JobsiteProductivityDocument, options)    
+                return <WrappedComponent {...props} data={data} error={error} /> ;
+                   
+            }; 
+export const ssrJobsiteProductivity = {
+      getServerPage: getServerPageJobsiteProductivity,
+      withPage: withPageJobsiteProductivity,
+      usePage: useJobsiteProductivity,
+    }
 export async function getServerPageJobsiteSearch
     (options: Omit<Apollo.QueryOptions<Types.JobsiteSearchQueryVariables>, 'query'>, ctx: ApolloClientContext ){
         const apolloClient = getApolloClient(ctx);
