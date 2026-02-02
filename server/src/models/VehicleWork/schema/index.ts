@@ -1,15 +1,27 @@
 import SchemaVersions from "@constants/SchemaVersions";
 import { DailyReportClass, VehicleClass, VehicleWorkDocument } from "@models";
+import { publishVehicleWorkChange } from "../../../rabbitmq/publisher";
 import { post, prop, Ref } from "@typegoose/typegoose";
+import errorHandler from "@utils/errorHandler";
 import { Types } from "mongoose";
 import { Field, ID, ObjectType } from "type-graphql";
 
 @ObjectType()
 @post<VehicleWorkDocument>("save", async (vehicleWork) => {
   await vehicleWork.requestReportUpdate();
+  try {
+    await publishVehicleWorkChange("updated", vehicleWork._id.toString());
+  } catch (e) {
+    errorHandler("Vehicle work RabbitMQ publish error", e);
+  }
 })
 @post<VehicleWorkDocument>("remove", async (vehicleWork) => {
   await vehicleWork.requestReportUpdate();
+  try {
+    await publishVehicleWorkChange("deleted", vehicleWork._id.toString());
+  } catch (e) {
+    errorHandler("Vehicle work RabbitMQ delete publish error", e);
+  }
 })
 export class VehicleWorkSchema {
   @Field(() => ID, { nullable: false })

@@ -15,6 +15,7 @@ spec:
       containers:
         - name: worker
           image: itsdevin/bow-mark-server
+          command: ["npm", "run", "start:dev"]
           ports:
             - containerPort: 8080
           env:

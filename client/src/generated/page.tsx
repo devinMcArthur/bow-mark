@@ -1354,6 +1354,41 @@ export const ssrJobsiteYearMasterReports = {
       withPage: withPageJobsiteYearMasterReports,
       usePage: useJobsiteYearMasterReports,
     }
+export async function getServerPageJobsiteYearReportPg
+    (options: Omit<Apollo.QueryOptions<Types.JobsiteYearReportPgQueryVariables>, 'query'>, ctx: ApolloClientContext ){
+        const apolloClient = getApolloClient(ctx);
+        
+        const data = await apolloClient.query<Types.JobsiteYearReportPgQuery>({ ...options, query: Operations.JobsiteYearReportPgDocument });
+        
+        const apolloState = apolloClient.cache.extract();
+
+        return {
+            props: {
+                apolloState: apolloState,
+                data: data?.data,
+                error: data?.error ?? data?.errors ?? null,
+            },
+        };
+      }
+export const useJobsiteYearReportPg = (
+  optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.JobsiteYearReportPgQuery, Types.JobsiteYearReportPgQueryVariables>) => {
+  const router = useRouter();
+  const options = optionsFunc ? optionsFunc(router) : {};
+  return useQuery(Operations.JobsiteYearReportPgDocument, options);
+};
+export type PageJobsiteYearReportPgComp = React.FC<{data?: Types.JobsiteYearReportPgQuery, error?: Apollo.ApolloError}>;
+export const withPageJobsiteYearReportPg = (optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.JobsiteYearReportPgQuery, Types.JobsiteYearReportPgQueryVariables>) => (WrappedComponent:PageJobsiteYearReportPgComp) : NextPage  => (props) => {
+                const router = useRouter()
+                const options = optionsFunc ? optionsFunc(router) : {};
+                const {data, error } = useQuery(Operations.JobsiteYearReportPgDocument, options)    
+                return <WrappedComponent {...props} data={data} error={error} /> ;
+                   
+            }; 
+export const ssrJobsiteYearReportPg = {
+      getServerPage: getServerPageJobsiteYearReportPg,
+      withPage: withPageJobsiteYearReportPg,
+      usePage: useJobsiteYearReportPg,
+    }
 export async function getServerPageJobsiteYearReportCard
     (options: Omit<Apollo.QueryOptions<Types.JobsiteYearReportCardQueryVariables>, 'query'>, ctx: ApolloClientContext ){
         const apolloClient = getApolloClient(ctx);

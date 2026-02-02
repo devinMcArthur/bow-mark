@@ -1,37 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: server-deployment
+  name: consumer-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      component: server
+      component: consumer
   template:
     metadata:
       labels:
-        component: server
+        component: consumer
     spec:
       containers:
-        - name: server
+        - name: consumer
           image: itsdevin/bow-mark-server
-          command: ["npm", "run", "start:dev"]
-          ports:
-            - containerPort: 8080
-          resources:
-            requests:
-              cpu: "500m"
-              memory: "1000Mi"
-            limits:
-              cpu: "1000m"
-              memory: "2000Mi"
+          command: ["npm", "run", "start:consumer-dev"]
           env:
             - name: NODE_ENV
               value: development
-            - name: ELASTICSEARCH_PASSWORD
-              value: thisistest
-            - name: APP_TYPE
-              value: api
+            - name: MONGO_URI
+              value: mongodb://mongo:27017/paving
             - name: RABBITMQ_HOST
               value: rabbitmq
             - name: RABBITMQ_PORT
@@ -42,3 +31,13 @@ spec:
               value: devpassword
             - name: RABBITMQ_VHOST
               value: bowmark
+            - name: POSTGRES_HOST
+              value: postgres
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              value: bowmark
+            - name: POSTGRES_PASSWORD
+              value: devpassword
+            - name: POSTGRES_DB
+              value: bowmark_reports

@@ -50,6 +50,7 @@ manifests:
     - k8s-dev/rabbitmq.yaml
 
     - k8s-dev/worker-deployment.yaml
+    - k8s-dev/consumer-deployment.yaml
     - k8s-dev/server-deployment.yaml
     - k8s-dev/client-deployment.yaml
     - k8s-dev/server-cluster-ip-service.yaml

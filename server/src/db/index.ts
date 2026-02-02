@@ -6,7 +6,7 @@ import type { DB } from "./generated-types";
  * PostgreSQL connection pool configuration
  */
 const pool = new Pool({
-  host: process.env.POSTGRES_HOST || "localhost",
+  host: process.env.POSTGRES_HOST || "postgres",
   port: parseInt(process.env.POSTGRES_PORT || "5432"),
   user: process.env.POSTGRES_USER || "bowmark",
   password: process.env.POSTGRES_PASSWORD || "devpassword",

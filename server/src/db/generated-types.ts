@@ -9,12 +9,22 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
 
+export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
+
 export type Numeric = ColumnType<string, number | string, number | string>;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export interface DimCompany {
+  archived_at: Timestamp | null;
+  id: Generated<string>;
+  mongo_id: string;
+  name: string;
+  synced_at: Generated<Timestamp>;
+}
+
 export interface DimCrew {
-  id: Generated<number>;
+  id: Generated<string>;
   mongo_id: string;
   name: string;
   synced_at: Generated<Timestamp>;
@@ -24,9 +34,9 @@ export interface DimCrew {
 export interface DimDailyReport {
   approved: Generated<boolean>;
   archived: Generated<boolean>;
-  crew_id: number;
-  id: Generated<number>;
-  jobsite_id: number;
+  crew_id: string;
+  id: Generated<string>;
+  jobsite_id: string;
   mongo_id: string;
   payroll_complete: Generated<boolean>;
   report_date: Timestamp;
@@ -35,7 +45,7 @@ export interface DimDailyReport {
 
 export interface DimEmployee {
   archived_at: Timestamp | null;
-  id: Generated<number>;
+  id: Generated<string>;
   job_title: string | null;
   mongo_id: string;
   name: string;
@@ -44,8 +54,9 @@ export interface DimEmployee {
 
 export interface DimEmployeeRate {
   effective_date: Timestamp;
-  employee_id: number;
-  id: Generated<number>;
+  employee_id: string;
+  id: Generated<string>;
+  mongo_id: string | null;
   rate: Numeric;
   synced_at: Generated<Timestamp>;
 }
@@ -53,33 +64,294 @@ export interface DimEmployeeRate {
 export interface DimJobsite {
   active: Generated<boolean>;
   archived_at: Timestamp | null;
-  id: Generated<number>;
+  id: Generated<string>;
   jobcode: string | null;
   mongo_id: string;
   name: string;
   synced_at: Generated<Timestamp>;
 }
 
+export interface DimJobsiteMaterial {
+  cost_type: string;
+  delivered: Generated<boolean>;
+  id: Generated<string>;
+  jobsite_id: string;
+  material_id: string;
+  mongo_id: string;
+  quantity: Numeric;
+  supplier_id: string;
+  synced_at: Generated<Timestamp>;
+  unit: string;
+}
+
+export interface DimJobsiteMaterialRate {
+  effective_date: Timestamp;
+  estimated: Generated<boolean>;
+  id: Generated<string>;
+  jobsite_material_id: string;
+  mongo_id: string | null;
+  rate: Numeric;
+  synced_at: Generated<Timestamp>;
+}
+
+export interface DimMaterial {
+  archived_at: Timestamp | null;
+  id: Generated<string>;
+  mongo_id: string;
+  name: string;
+  synced_at: Generated<Timestamp>;
+}
+
+export interface DimVehicle {
+  archived_at: Timestamp | null;
+  id: Generated<string>;
+  is_rental: Generated<boolean>;
+  mongo_id: string;
+  name: string;
+  source_company: Generated<string>;
+  synced_at: Generated<Timestamp>;
+  vehicle_code: string;
+  vehicle_type: Generated<string>;
+}
+
+export interface DimVehicleRate {
+  effective_date: Timestamp;
+  id: Generated<string>;
+  mongo_id: string | null;
+  rate: Numeric;
+  synced_at: Generated<Timestamp>;
+  vehicle_id: string;
+}
+
 export interface FactEmployeeWork {
   archived_at: Timestamp | null;
-  crew_id: number;
-  daily_report_id: number;
-  day_of_week: number;
-  employee_id: number;
+  crew_id: string;
+  crew_type: string;
+  daily_report_id: string;
+  employee_id: string;
   end_time: Timestamp;
   hourly_rate: Numeric;
   hours: Generated<Numeric | null>;
-  id: Generated<number>;
+  id: Generated<string>;
   job_title: string;
-  jobsite_id: number;
+  jobsite_id: string;
   mongo_id: string;
-  month: number;
   start_time: Timestamp;
   synced_at: Generated<Timestamp>;
   total_cost: Generated<Numeric | null>;
-  week: number;
   work_date: Timestamp;
-  year: number;
+}
+
+export interface FactInvoice {
+  amount: Numeric;
+  company_id: string;
+  description: string | null;
+  direction: string;
+  id: Generated<string>;
+  invoice_date: Timestamp;
+  invoice_number: string;
+  invoice_type: string;
+  jobsite_id: string;
+  mongo_id: string;
+  synced_at: Generated<Timestamp>;
+}
+
+export interface FactMaterialShipment {
+  archived_at: Timestamp | null;
+  crew_id: string;
+  crew_type: string;
+  daily_report_id: string;
+  delivered_rate_id: string | null;
+  estimated: Generated<boolean>;
+  id: Generated<string>;
+  jobsite_id: string;
+  jobsite_material_id: string;
+  mongo_id: string;
+  quantity: Numeric;
+  rate: Numeric;
+  synced_at: Generated<Timestamp>;
+  total_cost: Generated<Numeric | null>;
+  unit: string;
+  work_date: Timestamp;
+}
+
+export interface FactNonCostedMaterial {
+  archived_at: Timestamp | null;
+  crew_id: string;
+  crew_type: string;
+  daily_report_id: string;
+  id: Generated<string>;
+  jobsite_id: string;
+  material_name: string;
+  mongo_id: string;
+  quantity: Numeric;
+  shipment_type: string | null;
+  supplier_name: string;
+  synced_at: Generated<Timestamp>;
+  unit: string | null;
+  work_date: Timestamp;
+}
+
+export interface FactProduction {
+  crew_id: string;
+  crew_type: string;
+  daily_report_id: string;
+  description: string | null;
+  end_time: Timestamp;
+  hours: Generated<Numeric | null>;
+  id: Generated<string>;
+  job_title: string;
+  jobsite_id: string;
+  mongo_id: string;
+  quantity: Numeric;
+  start_time: Timestamp;
+  synced_at: Generated<Timestamp>;
+  unit: string;
+  work_date: Timestamp;
+}
+
+export interface FactTrucking {
+  archived_at: Timestamp | null;
+  crew_id: string;
+  crew_type: string;
+  daily_report_id: string;
+  hours: Numeric | null;
+  id: Generated<string>;
+  jobsite_id: string;
+  mongo_id: string;
+  quantity: Numeric;
+  rate: Numeric;
+  rate_type: string;
+  synced_at: Generated<Timestamp>;
+  total_cost: Numeric;
+  trucking_rate_id: string | null;
+  trucking_type: string;
+  vehicle_code: string | null;
+  vehicle_id: string | null;
+  vehicle_source: string | null;
+  vehicle_type: string | null;
+  work_date: Timestamp;
+}
+
+export interface FactVehicleWork {
+  archived_at: Timestamp | null;
+  crew_id: string;
+  crew_type: string;
+  daily_report_id: string;
+  hourly_rate: Numeric;
+  hours: Numeric;
+  id: Generated<string>;
+  job_title: string | null;
+  jobsite_id: string;
+  mongo_id: string;
+  synced_at: Generated<Timestamp>;
+  total_cost: Generated<Numeric | null>;
+  vehicle_id: string;
+  work_date: Timestamp;
+}
+
+export interface JobsiteAllCosts {
+  cost_type: string | null;
+  crew_type: string | null;
+  daily_report_id: string | null;
+  date: Timestamp | null;
+  entity_id: string | null;
+  entity_name: string | null;
+  estimated: boolean | null;
+  jobsite_id: string | null;
+  quantity: Numeric | null;
+  quantity_unit: string | null;
+  rate: Numeric | null;
+  total_cost: Numeric | null;
+}
+
+export interface JobsiteDailyCrewTypeSummary {
+  crew_type: string | null;
+  date: Timestamp | null;
+  employee_cost: Numeric | null;
+  employee_hours: Numeric | null;
+  jobsite_id: string | null;
+  material_cost: Numeric | null;
+  material_quantity: Numeric | null;
+  non_costed_material_quantity: Numeric | null;
+  total_cost: Numeric | null;
+  trucking_cost: Numeric | null;
+  trucking_hours: Numeric | null;
+  trucking_quantity: Numeric | null;
+  vehicle_cost: Numeric | null;
+  vehicle_hours: Numeric | null;
+}
+
+export interface JobsiteDailyFinancialSummary {
+  accrual_expense: Numeric | null;
+  accrual_revenue: Numeric | null;
+  crew_types: string[] | null;
+  date: Timestamp | null;
+  employee_cost: Numeric | null;
+  employee_hours: Numeric | null;
+  employees_with_zero_rate: Int8 | null;
+  external_expense: Numeric | null;
+  external_revenue: Numeric | null;
+  has_estimated_costs: boolean | null;
+  internal_expense: Numeric | null;
+  internal_revenue: Numeric | null;
+  jobcode: string | null;
+  jobsite_id: string | null;
+  jobsite_name: string | null;
+  material_cost: Numeric | null;
+  material_quantity: Numeric | null;
+  materials_with_estimated_rate: Int8 | null;
+  materials_with_zero_rate: Int8 | null;
+  net_income: Numeric | null;
+  non_costed_material_quantity: Numeric | null;
+  non_costed_material_shipments: Numeric | null;
+  total_cost: Numeric | null;
+  trucking_cost: Numeric | null;
+  trucking_hours: Numeric | null;
+  trucking_quantity: Numeric | null;
+  vehicle_cost: Numeric | null;
+  vehicle_hours: Numeric | null;
+  vehicles_with_zero_rate: Int8 | null;
+}
+
+export interface JobsiteDailySummary {
+  crew_types: string[] | null;
+  date: Timestamp | null;
+  employee_cost: Numeric | null;
+  employee_hours: Numeric | null;
+  has_estimated_costs: boolean | null;
+  jobcode: string | null;
+  jobsite_id: string | null;
+  jobsite_name: string | null;
+  material_cost: Numeric | null;
+  material_quantity: Numeric | null;
+  non_costed_material_quantity: Numeric | null;
+  total_cost: Numeric | null;
+  trucking_cost: Numeric | null;
+  trucking_hours: Numeric | null;
+  trucking_quantity: Numeric | null;
+  vehicle_cost: Numeric | null;
+  vehicle_hours: Numeric | null;
+}
+
+export interface JobsiteIssuesSummary {
+  date: Timestamp | null;
+  employees_with_zero_rate: Int8 | null;
+  jobsite_id: string | null;
+  materials_with_estimated_rate: Int8 | null;
+  materials_with_zero_rate: Int8 | null;
+  non_costed_material_shipments: Numeric | null;
+  vehicles_with_zero_rate: Int8 | null;
+}
+
+export interface JobsiteReportIssues {
+  date: Timestamp | null;
+  entity_id: string | null;
+  entity_name: string | null;
+  entity_table: string | null;
+  issue_type: string | null;
+  jobsite_id: string | null;
+  occurrence_count: Int8 | null;
 }
 
 export interface SchemaMigrations {
@@ -87,11 +359,29 @@ export interface SchemaMigrations {
 }
 
 export interface DB {
+  dim_company: DimCompany;
   dim_crew: DimCrew;
   dim_daily_report: DimDailyReport;
   dim_employee: DimEmployee;
   dim_employee_rate: DimEmployeeRate;
   dim_jobsite: DimJobsite;
+  dim_jobsite_material: DimJobsiteMaterial;
+  dim_jobsite_material_rate: DimJobsiteMaterialRate;
+  dim_material: DimMaterial;
+  dim_vehicle: DimVehicle;
+  dim_vehicle_rate: DimVehicleRate;
   fact_employee_work: FactEmployeeWork;
+  fact_invoice: FactInvoice;
+  fact_material_shipment: FactMaterialShipment;
+  fact_non_costed_material: FactNonCostedMaterial;
+  fact_production: FactProduction;
+  fact_trucking: FactTrucking;
+  fact_vehicle_work: FactVehicleWork;
+  jobsite_all_costs: JobsiteAllCosts;
+  jobsite_daily_crew_type_summary: JobsiteDailyCrewTypeSummary;
+  jobsite_daily_financial_summary: JobsiteDailyFinancialSummary;
+  jobsite_daily_summary: JobsiteDailySummary;
+  jobsite_issues_summary: JobsiteIssuesSummary;
+  jobsite_report_issues: JobsiteReportIssues;
   schema_migrations: SchemaMigrations;
 }

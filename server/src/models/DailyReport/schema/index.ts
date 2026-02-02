@@ -11,6 +11,7 @@ import {
   EmployeeClass,
   VehicleClass,
 } from "@models";
+import { publishDailyReportChange } from "../../../rabbitmq/publisher";
 import { search_UpdateDailyReport } from "@search";
 import { post, prop, Ref } from "@typegoose/typegoose";
 import errorHandler from "@utils/errorHandler";
@@ -24,6 +25,13 @@ import { Field, ID, ObjectType } from "type-graphql";
     await dailyReport.requestReportUpdate();
   } catch (e) {
     errorHandler("Daily report post save error", e);
+  }
+
+  // Publish to RabbitMQ for PostgreSQL sync
+  try {
+    await publishDailyReportChange("updated", dailyReport._id.toString());
+  } catch (e) {
+    errorHandler("Daily report RabbitMQ publish error", e);
   }
 })
 export class DailyReportSchema {

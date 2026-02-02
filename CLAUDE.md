@@ -11,14 +11,15 @@ Full-stack construction/paving jobsite management application (monorepo). Suppor
 ### Local Development
 
 ```bash
-# Start full environment with Skaffold (recommended)
-./scripts/dev-start.sh
+# Start full environment with Tilt (recommended)
+eval $(minikube docker-env)  # Use minikube's docker daemon
+tilt up                       # Dashboard at http://localhost:10350
 
 # Stop environment
-./scripts/dev-stop.sh
+tilt down
 
-# Alternative: Docker Compose
-docker-compose up
+# Alternative: Skaffold (legacy)
+skaffold dev
 ```
 
 ### Server (`/server`)
@@ -47,8 +48,12 @@ npm run lint            # ESLint + Next.js lint
 
 ```bash
 ./scripts/save-db-state.sh   # Dump MongoDB for committing
-./scripts/restore-dump.sh    # Restore from committed dump
 ./scripts/seed-from-atlas.sh # Initial seed from Atlas (requires ATLAS_URI)
+
+# In Tilt UI (http://localhost:10350):
+# - restore-mongo: Auto-runs on startup if DB is empty
+# - restore-mongo-force: Manual trigger to wipe and restore
+# - save-db-state: Dump current state
 ```
 
 ## Architecture
@@ -56,11 +61,14 @@ npm run lint            # ESLint + Next.js lint
 ### Backend (`/server/src`)
 
 - **GraphQL API** using Apollo Server + Type-GraphQL with Typegoose decorators
-- **Dual database**: MongoDB (Mongoose/Typegoose) for documents, PostgreSQL (Kysely) for SQL workloads
+- **Dual database**: MongoDB (Mongoose/Typegoose) for documents, PostgreSQL (Kysely) for reporting/analytics
+- **RabbitMQ consumer** syncs MongoDB changes to PostgreSQL star schema for reporting
 - **Path aliases**: `@models`, `@graphql/*`, `@utils/*`, `@workers`, `@events`, `@pubsub`, `@logger`, `@search`, etc.
 - **Key directories**:
   - `models/` - Typegoose MongoDB schemas
-  - `graphql/resolvers/` - 40+ feature resolvers (Company, Crew, DailyReport, Employee, Jobsite, Material, Vehicle, Invoice, etc.)
+  - `graphql/resolvers/` - Feature resolvers (Company, Crew, DailyReport, Employee, Jobsite, Material, Vehicle, Invoice, etc.)
+  - `consumer/` - RabbitMQ consumer for PostgreSQL sync
+  - `rabbitmq/` - RabbitMQ connection, publishers, config
   - `workers/` - Background job processors for report generation
   - `search/` - Meilisearch integration
   - `db/` - PostgreSQL connection and Kysely query builders
@@ -77,19 +85,25 @@ npm run lint            # ESLint + Next.js lint
 
 ### Infrastructure
 
-- **Development**: Skaffold with Minikube for local Kubernetes
+- **Development**: Tilt with Minikube for local Kubernetes (see `Tiltfile`)
 - **Production**: DigitalOcean Kubernetes with Nginx Ingress + Cert-Manager
 - **CI/CD**: CircleCI builds Docker images to Docker Hub
-- **Services**: MongoDB, PostgreSQL, Redis, Meilisearch, RabbitMQ
+- **Services**: MongoDB, PostgreSQL, RabbitMQ, Meilisearch
 
-## Database Workflow
+### Data Sync Architecture
 
-Branch-specific MongoDB data is supported. Live data in `dev-data/mongodb/` (gitignored), committable snapshots in `dev-data/mongodb-dump/`. When switching branches with schema changes, run `./scripts/restore-dump.sh` after checkout.
+MongoDB → RabbitMQ → Consumer → PostgreSQL (star schema)
+
+- Mongoose post-save hooks publish events to RabbitMQ
+- Consumer process transforms and syncs to PostgreSQL reporting tables
+- See `db/migrations/` for PostgreSQL schema (dimensions + fact tables)
 
 ## Environment Variables
 
 Key production secrets (see README.md for full list):
 - `MONGO_URI`, `JWT_SECRET` - Core auth/db
+- `RABBITMQ_*` - RabbitMQ connection
+- `POSTGRES_*` / `DATABASE_URL` - PostgreSQL connection
 - `SPACES_*` - DigitalOcean Spaces (file storage)
 - `SEARCH_HOST`, `SEARCH_API_KEY` - Meilisearch
 - `EMAIL_*` - SMTP configuration
