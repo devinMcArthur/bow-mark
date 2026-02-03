@@ -192,6 +192,10 @@ export interface FactMaterialShipment {
   synced_at: Generated<Timestamp>;
   total_cost: Generated<Numeric | null>;
   unit: string;
+  /**
+   * Vehicle type from vehicleObject (e.g., "Tandem", "Tri-axle"). Used for load-to-tonne conversions.
+   */
+  vehicle_type: string | null;
   work_date: Timestamp;
 }
 

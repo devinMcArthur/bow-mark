@@ -205,11 +205,21 @@ export default class ProductivityAnalyticsResolver {
   }
 
   /**
+   * Conversion factor for loads to tonnes based on vehicle type.
+   * Tandem dump trucks typically carry 12-16 tonnes per load.
+   */
+  private static readonly TANDEM_TONNES_PER_LOAD = 14;
+
+  /**
    * Get material breakdown by material name with proportional T/H
    *
    * Groups by material name (e.g., "80mm", "25mm") regardless of supplier.
    * When multiple materials are delivered by the same crew on the same day,
    * crew hours are split proportionally by tonnes.
+   *
+   * Handles unit conversion:
+   * - 'tonnes' → used directly
+   * - 'loads' with vehicle_type containing 'Tandem' → converted to tonnes (14t per load)
    *
    * Uses the specific crew's hours (via daily_report_id) that ordered the material,
    * not averaged hours across all crews of that type.
@@ -219,6 +229,18 @@ export default class ProductivityAnalyticsResolver {
     startDate: Date,
     endDate: Date
   ): Promise<MaterialProductivity[]> {
+    // SQL CASE expression for converting loads to tonnes
+    // If unit='tonnes', use quantity directly
+    // If unit='loads' and vehicle_type contains 'Tandem', convert using 14 tonnes/load
+    const tonnesConversion = sql<number>`
+      CASE
+        WHEN LOWER(ms.unit) = 'tonnes' THEN ms.quantity
+        WHEN LOWER(ms.unit) = 'loads' AND ms.vehicle_type ILIKE '%tandem%'
+          THEN ms.quantity * ${ProductivityAnalyticsResolver.TANDEM_TONNES_PER_LOAD}
+        ELSE NULL
+      END
+    `;
+
     // Step 1: Get tonnes per material per daily_report (specific crew)
     const tonnesPerMaterialCrew = await db
       .selectFrom("fact_material_shipment as ms")
@@ -232,7 +254,7 @@ export default class ProductivityAnalyticsResolver {
       .select([
         "m.name as material_name",
         "ms.daily_report_id",
-        sql<number>`COALESCE(SUM(ms.quantity), 0)`.as("tonnes"),
+        sql<number>`COALESCE(SUM(${tonnesConversion}), 0)`.as("tonnes"),
         sql<number>`COUNT(*)`.as("shipment_count"),
       ])
       .where("ms.jobsite_id", "=", jobsiteId)
@@ -241,7 +263,16 @@ export default class ProductivityAnalyticsResolver {
       .where("ms.archived_at", "is", null)
       .where("dr.approved", "=", true)
       .where("dr.archived", "=", false)
-      .where(sql`LOWER(ms.unit)`, "=", "tonnes")
+      // Include both 'tonnes' and convertible 'loads'
+      .where((eb) =>
+        eb.or([
+          eb(sql`LOWER(ms.unit)`, "=", "tonnes"),
+          eb.and([
+            eb(sql`LOWER(ms.unit)`, "=", "loads"),
+            eb(sql`ms.vehicle_type`, "ilike", "%tandem%"),
+          ]),
+        ])
+      )
       .groupBy(["m.name", "ms.daily_report_id"])
       .execute();
 
@@ -251,7 +282,7 @@ export default class ProductivityAnalyticsResolver {
       .innerJoin("dim_daily_report as dr", "dr.id", "ms.daily_report_id")
       .select([
         "ms.daily_report_id",
-        sql<number>`COALESCE(SUM(ms.quantity), 0)`.as("total_tonnes"),
+        sql<number>`COALESCE(SUM(${tonnesConversion}), 0)`.as("total_tonnes"),
       ])
       .where("ms.jobsite_id", "=", jobsiteId)
       .where("ms.work_date", ">=", startDate)
@@ -259,18 +290,35 @@ export default class ProductivityAnalyticsResolver {
       .where("ms.archived_at", "is", null)
       .where("dr.approved", "=", true)
       .where("dr.archived", "=", false)
-      .where(sql`LOWER(ms.unit)`, "=", "tonnes")
+      .where((eb) =>
+        eb.or([
+          eb(sql`LOWER(ms.unit)`, "=", "tonnes"),
+          eb.and([
+            eb(sql`LOWER(ms.unit)`, "=", "loads"),
+            eb(sql`ms.vehicle_type`, "ilike", "%tandem%"),
+          ]),
+        ])
+      )
       .groupBy(["ms.daily_report_id"])
       .execute();
 
     // Step 3: Get crew hours per daily_report (specific crew's hours)
-    // Uses crew_max_hours which has MAX(employee hours) per daily_report
+    // Uses AVG(employee hours) per daily_report instead of MAX
+    // This better represents the average work time for T/H calculations
     const crewHoursPerReport = await db
-      .selectFrom("crew_max_hours as cmh")
-      .select(["cmh.daily_report_id", "cmh.crew_hours"])
-      .where("cmh.jobsite_id", "=", jobsiteId)
-      .where("cmh.work_date", ">=", startDate)
-      .where("cmh.work_date", "<=", endDate)
+      .selectFrom("fact_employee_work as ew")
+      .innerJoin("dim_daily_report as dr", "dr.id", "ew.daily_report_id")
+      .select([
+        "ew.daily_report_id",
+        sql<number>`AVG(ew.hours)`.as("crew_hours"),
+      ])
+      .where("ew.jobsite_id", "=", jobsiteId)
+      .where("ew.work_date", ">=", startDate)
+      .where("ew.work_date", "<=", endDate)
+      .where("ew.archived_at", "is", null)
+      .where("dr.approved", "=", true)
+      .where("dr.archived", "=", false)
+      .groupBy(["ew.daily_report_id"])
       .execute();
 
     // Build lookup maps keyed by daily_report_id
@@ -343,6 +391,10 @@ export default class ProductivityAnalyticsResolver {
    *
    * T/H = Total tonnes (all materials) / Total crew hours (from specific crews that ordered materials)
    *
+   * Handles unit conversion:
+   * - 'tonnes' → used directly
+   * - 'loads' with vehicle_type containing 'Tandem' → converted to tonnes (14t per load)
+   *
    * Uses the specific crew's hours (via daily_report_id) that ordered materials,
    * not averaged hours across crew types.
    */
@@ -355,23 +407,41 @@ export default class ProductivityAnalyticsResolver {
     totalCrewHours: number;
     overallTonnesPerHour: number;
   }> {
-    // Get total tonnes from all material shipments
+    // SQL CASE expression for converting loads to tonnes
+    const tonnesConversion = sql<number>`
+      CASE
+        WHEN LOWER(ms.unit) = 'tonnes' THEN ms.quantity
+        WHEN LOWER(ms.unit) = 'loads' AND ms.vehicle_type ILIKE '%tandem%'
+          THEN ms.quantity * ${ProductivityAnalyticsResolver.TANDEM_TONNES_PER_LOAD}
+        ELSE NULL
+      END
+    `;
+
+    // Get total tonnes from all material shipments (including converted loads)
     const tonnesResult = await db
       .selectFrom("fact_material_shipment as ms")
       .innerJoin("dim_daily_report as dr", "dr.id", "ms.daily_report_id")
-      .select([sql<number>`COALESCE(SUM(ms.quantity), 0)`.as("total_tonnes")])
+      .select([sql<number>`COALESCE(SUM(${tonnesConversion}), 0)`.as("total_tonnes")])
       .where("ms.jobsite_id", "=", jobsiteId)
       .where("ms.work_date", ">=", startDate)
       .where("ms.work_date", "<=", endDate)
       .where("ms.archived_at", "is", null)
       .where("dr.approved", "=", true)
       .where("dr.archived", "=", false)
-      .where(sql`LOWER(ms.unit)`, "=", "tonnes")
+      .where((eb) =>
+        eb.or([
+          eb(sql`LOWER(ms.unit)`, "=", "tonnes"),
+          eb.and([
+            eb(sql`LOWER(ms.unit)`, "=", "loads"),
+            eb(sql`ms.vehicle_type`, "ilike", "%tandem%"),
+          ]),
+        ])
+      )
       .executeTakeFirst();
 
     const totalTonnes = Number(tonnesResult?.total_tonnes || 0);
 
-    // Get distinct daily_report_ids that had material shipments
+    // Get distinct daily_report_ids that had material shipments (tonnes or convertible loads)
     const materialCrews = await db
       .selectFrom("fact_material_shipment as ms")
       .innerJoin("dim_daily_report as dr", "dr.id", "ms.daily_report_id")
@@ -383,16 +453,33 @@ export default class ProductivityAnalyticsResolver {
       .where("ms.archived_at", "is", null)
       .where("dr.approved", "=", true)
       .where("dr.archived", "=", false)
-      .where(sql`LOWER(ms.unit)`, "=", "tonnes")
+      .where((eb) =>
+        eb.or([
+          eb(sql`LOWER(ms.unit)`, "=", "tonnes"),
+          eb.and([
+            eb(sql`LOWER(ms.unit)`, "=", "loads"),
+            eb(sql`ms.vehicle_type`, "ilike", "%tandem%"),
+          ]),
+        ])
+      )
       .execute();
 
     // Get crew hours for those specific daily reports
+    // Uses AVG(employee hours) per daily_report instead of MAX
     const crewHoursPerReport = await db
-      .selectFrom("crew_max_hours as cmh")
-      .select(["cmh.daily_report_id", "cmh.crew_hours"])
-      .where("cmh.jobsite_id", "=", jobsiteId)
-      .where("cmh.work_date", ">=", startDate)
-      .where("cmh.work_date", "<=", endDate)
+      .selectFrom("fact_employee_work as ew")
+      .innerJoin("dim_daily_report as dr", "dr.id", "ew.daily_report_id")
+      .select([
+        "ew.daily_report_id",
+        sql<number>`AVG(ew.hours)`.as("crew_hours"),
+      ])
+      .where("ew.jobsite_id", "=", jobsiteId)
+      .where("ew.work_date", ">=", startDate)
+      .where("ew.work_date", "<=", endDate)
+      .where("ew.archived_at", "is", null)
+      .where("dr.approved", "=", true)
+      .where("dr.archived", "=", false)
+      .groupBy(["ew.daily_report_id"])
       .execute();
 
     // Build lookup map

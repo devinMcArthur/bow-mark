@@ -11,7 +11,10 @@ import {
   AlertIcon,
   Badge,
   Box,
+  Button,
+  Checkbox,
   Heading,
+  HStack,
   SimpleGrid,
   Spinner,
   Stack,
@@ -56,6 +59,55 @@ const ProductivityAnalytics = ({
   });
 
   const productivity = data?.jobsiteProductivity;
+
+  // Track selected materials for combined summary
+  const [selectedMaterials, setSelectedMaterials] = React.useState<Set<string>>(
+    new Set()
+  );
+
+  // Calculate combined summary for selected materials
+  const selectedSummary = React.useMemo(() => {
+    if (!productivity?.materialProductivity || selectedMaterials.size === 0) {
+      return null;
+    }
+
+    const selected = productivity.materialProductivity.filter((m) =>
+      selectedMaterials.has(m.materialName)
+    );
+
+    const totalTonnes = selected.reduce((sum, m) => sum + m.totalTonnes, 0);
+    const totalCrewHours = selected.reduce(
+      (sum, m) => sum + m.totalCrewHours,
+      0
+    );
+    const totalShipments = selected.reduce((sum, m) => sum + m.shipmentCount, 0);
+    const tonnesPerHour = totalCrewHours > 0 ? totalTonnes / totalCrewHours : 0;
+
+    return {
+      count: selected.length,
+      names: selected.map((m) => m.materialName),
+      totalTonnes,
+      totalCrewHours,
+      tonnesPerHour,
+      totalShipments,
+    };
+  }, [productivity?.materialProductivity, selectedMaterials]);
+
+  const toggleMaterial = (materialName: string) => {
+    setSelectedMaterials((prev) => {
+      const next = new Set(prev);
+      if (next.has(materialName)) {
+        next.delete(materialName);
+      } else {
+        next.add(materialName);
+      }
+      return next;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedMaterials(new Set());
+  };
 
   // Group labor hours by crew type for display
   const laborByCrewType = React.useMemo(() => {
@@ -144,10 +196,58 @@ const ProductivityAnalytics = ({
       {/* Material Productivity (T/H) */}
       {hasMaterialData && (
         <Card heading={<Heading size="md">Material Productivity (T/H)</Heading>}>
+          {/* Selection Summary */}
+          {selectedSummary && (
+            <Box
+              mb={4}
+              p={3}
+              bg="blue.50"
+              borderRadius="md"
+              borderWidth="1px"
+              borderColor="blue.200"
+            >
+              <HStack justify="space-between" mb={2}>
+                <Text fontWeight="bold" color="blue.700">
+                  Selected: {selectedSummary.names.join(" + ")}
+                </Text>
+                <Button size="xs" variant="ghost" onClick={clearSelection}>
+                  Clear
+                </Button>
+              </HStack>
+              <SimpleGrid columns={[2, 4]} spacing={3}>
+                <Stat size="sm">
+                  <StatLabel fontSize="xs">Combined Tonnes</StatLabel>
+                  <StatNumber fontSize="md">
+                    {formatNumber(selectedSummary.totalTonnes)}
+                  </StatNumber>
+                </Stat>
+                <Stat size="sm">
+                  <StatLabel fontSize="xs">Combined Hours</StatLabel>
+                  <StatNumber fontSize="md">
+                    {formatNumber(selectedSummary.totalCrewHours)}
+                  </StatNumber>
+                </Stat>
+                <Stat size="sm">
+                  <StatLabel fontSize="xs">Combined T/H</StatLabel>
+                  <StatNumber fontSize="md" color="blue.600" fontWeight="bold">
+                    {formatNumber(selectedSummary.tonnesPerHour)}
+                  </StatNumber>
+                </Stat>
+                <Stat size="sm">
+                  <StatLabel fontSize="xs">Shipments</StatLabel>
+                  <StatNumber fontSize="md">
+                    {selectedSummary.totalShipments}
+                  </StatNumber>
+                </Stat>
+              </SimpleGrid>
+            </Box>
+          )}
+
           <Box maxH="300px" overflowY="auto">
             <Table size="sm">
               <Thead position="sticky" top={0} bg="white">
                 <Tr>
+                  <Th w="40px"></Th>
                   <Th>Material</Th>
                   <Th isNumeric>Tonnes</Th>
                   <Th isNumeric>Crew Hours</Th>
@@ -157,7 +257,24 @@ const ProductivityAnalytics = ({
               </Thead>
               <Tbody>
                 {productivity.materialProductivity.map((mat, idx) => (
-                  <Tr key={idx}>
+                  <Tr
+                    key={idx}
+                    bg={
+                      selectedMaterials.has(mat.materialName)
+                        ? "blue.50"
+                        : undefined
+                    }
+                    _hover={{ bg: "gray.50" }}
+                    cursor="pointer"
+                    onClick={() => toggleMaterial(mat.materialName)}
+                  >
+                    <Td>
+                      <Checkbox
+                        isChecked={selectedMaterials.has(mat.materialName)}
+                        onChange={() => toggleMaterial(mat.materialName)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </Td>
                     <Td fontWeight="medium">{mat.materialName}</Td>
                     <Td isNumeric>{formatNumber(mat.totalTonnes)}</Td>
                     <Td isNumeric>{formatNumber(mat.totalCrewHours)}</Td>

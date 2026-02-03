@@ -237,6 +237,7 @@ export async function upsertFactMaterialShipment(ctx: MaterialShipmentSyncContex
     rate: rate.toString(),
     estimated,
     delivered_rate_id: deliveredRateId || null,
+    vehicle_type: materialShipment.vehicleObject?.vehicleType || null,
     archived_at: materialShipment.archivedAt || null,
     synced_at: new Date(),
   };

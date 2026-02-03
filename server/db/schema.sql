@@ -430,8 +430,16 @@ CREATE TABLE public.fact_material_shipment (
     estimated boolean DEFAULT false NOT NULL,
     delivered_rate_id character varying(24),
     archived_at timestamp with time zone,
-    synced_at timestamp with time zone DEFAULT now() NOT NULL
+    synced_at timestamp with time zone DEFAULT now() NOT NULL,
+    vehicle_type character varying(100)
 );
+
+
+--
+-- Name: COLUMN fact_material_shipment.vehicle_type; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.fact_material_shipment.vehicle_type IS 'Vehicle type from vehicleObject (e.g., "Tandem", "Tri-axle"). Used for load-to-tonne conversions.';
 
 
 --
@@ -1436,6 +1444,13 @@ CREATE INDEX idx_fact_material_shipment_mongo_id ON public.fact_material_shipmen
 
 
 --
+-- Name: idx_fact_material_shipment_vehicle_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_fact_material_shipment_vehicle_type ON public.fact_material_shipment USING btree (vehicle_type) WHERE (vehicle_type IS NOT NULL);
+
+
+--
 -- Name: idx_fact_non_costed_material_daily_report; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1823,4 +1838,5 @@ ALTER TABLE ONLY public.fact_vehicle_work
 
 INSERT INTO public.schema_migrations (version) VALUES
     ('20260128205200'),
-    ('20260202120000');
+    ('20260202120000'),
+    ('20260203100000');
