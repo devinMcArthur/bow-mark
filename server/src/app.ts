@@ -39,6 +39,7 @@ import JobsiteYearMasterReportItemResolver from "@graphql/resolvers/jobsiteYearM
 import JobsiteYearReportResolver from "@graphql/resolvers/jobsiteYearReport";
 import JobsiteReportPGResolver from "@graphql/resolvers/jobsiteReportPG";
 import ProductivityAnalyticsResolver from "@graphql/resolvers/productivityAnalytics";
+import ProductivityBenchmarksResolver from "@graphql/resolvers/productivityBenchmarks";
 import MaterialResolver from "@graphql/resolvers/material";
 import MaterialReportResolver from "@graphql/resolvers/materialReport";
 import MaterialShipmentResolver from "@graphql/resolvers/materialShipment";
@@ -98,6 +99,7 @@ const createApp = async () => {
       JobsiteYearReportResolver,
       JobsiteReportPGResolver,
       ProductivityAnalyticsResolver,
+      ProductivityBenchmarksResolver,
       MaterialResolver,
       MaterialReportResolver,
       MaterialShipmentResolver,

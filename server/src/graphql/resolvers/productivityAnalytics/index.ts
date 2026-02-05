@@ -381,6 +381,10 @@ export default class ProductivityAnalyticsResolver {
     }
 
     // Step 5: Calculate proportional hours and aggregate by grouping key
+    interface DailyData {
+      tonnes: number;
+      crewHours: number;
+    }
     interface MaterialStats {
       materialName: string;
       crewType?: string;
@@ -389,6 +393,7 @@ export default class ProductivityAnalyticsResolver {
       totalProportionalHours: number;
       shipmentCount: number;
       dailyReportIds: Set<string>;
+      dailyData: Map<string, DailyData>;
     }
     const materialStats = new Map<string, MaterialStats>();
 
@@ -431,9 +436,20 @@ export default class ProductivityAnalyticsResolver {
         totalProportionalHours: 0,
         shipmentCount: 0,
         dailyReportIds: new Set<string>(),
+        dailyData: new Map<string, DailyData>(),
       };
 
       existing.dailyReportIds.add(row.daily_report_id);
+
+      // Track daily breakdown data
+      const existingDaily = existing.dailyData.get(row.daily_report_id) || {
+        tonnes: 0,
+        crewHours: 0,
+      };
+      existing.dailyData.set(row.daily_report_id, {
+        tonnes: existingDaily.tonnes + tonnes,
+        crewHours: existingDaily.crewHours + proportionalHours,
+      });
 
       materialStats.set(groupKey, {
         ...existing,
@@ -475,6 +491,20 @@ export default class ProductivityAnalyticsResolver {
         .sort((a, b) => a.date.getTime() - b.date.getTime())
         .map((info) => ({ id: info.mongoId, date: info.date }));
 
+      // Build daily breakdown with T/H per day
+      const dailyBreakdown = [...stats.dailyData.entries()]
+        .map(([dailyReportId, data]) => {
+          const reportInfo = dailyReportMap.get(dailyReportId);
+          return {
+            date: reportInfo?.date || new Date(),
+            dailyReportId: reportInfo?.mongoId || dailyReportId,
+            tonnes: data.tonnes,
+            crewHours: data.crewHours,
+            tonnesPerHour: data.crewHours > 0 ? data.tonnes / data.crewHours : 0,
+          };
+        })
+        .sort((a, b) => a.date.getTime() - b.date.getTime());
+
       result.push({
         materialName: stats.materialName,
         crewType: stats.crewType,
@@ -487,6 +517,7 @@ export default class ProductivityAnalyticsResolver {
             : 0,
         shipmentCount: stats.shipmentCount,
         dailyReports,
+        dailyBreakdown,
       });
     }
 

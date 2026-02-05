@@ -2194,6 +2194,41 @@ export const ssrOperatorDailyReports = {
       withPage: withPageOperatorDailyReports,
       usePage: useOperatorDailyReports,
     }
+export async function getServerPageProductivityBenchmarks
+    (options: Omit<Apollo.QueryOptions<Types.ProductivityBenchmarksQueryVariables>, 'query'>, ctx: ApolloClientContext ){
+        const apolloClient = getApolloClient(ctx);
+        
+        const data = await apolloClient.query<Types.ProductivityBenchmarksQuery>({ ...options, query: Operations.ProductivityBenchmarksDocument });
+        
+        const apolloState = apolloClient.cache.extract();
+
+        return {
+            props: {
+                apolloState: apolloState,
+                data: data?.data,
+                error: data?.error ?? data?.errors ?? null,
+            },
+        };
+      }
+export const useProductivityBenchmarks = (
+  optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.ProductivityBenchmarksQuery, Types.ProductivityBenchmarksQueryVariables>) => {
+  const router = useRouter();
+  const options = optionsFunc ? optionsFunc(router) : {};
+  return useQuery(Operations.ProductivityBenchmarksDocument, options);
+};
+export type PageProductivityBenchmarksComp = React.FC<{data?: Types.ProductivityBenchmarksQuery, error?: Apollo.ApolloError}>;
+export const withPageProductivityBenchmarks = (optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.ProductivityBenchmarksQuery, Types.ProductivityBenchmarksQueryVariables>) => (WrappedComponent:PageProductivityBenchmarksComp) : NextPage  => (props) => {
+                const router = useRouter()
+                const options = optionsFunc ? optionsFunc(router) : {};
+                const {data, error } = useQuery(Operations.ProductivityBenchmarksDocument, options)    
+                return <WrappedComponent {...props} data={data} error={error} /> ;
+                   
+            }; 
+export const ssrProductivityBenchmarks = {
+      getServerPage: getServerPageProductivityBenchmarks,
+      withPage: withPageProductivityBenchmarks,
+      usePage: useProductivityBenchmarks,
+    }
 export async function getServerPageSearch
     (options: Omit<Apollo.QueryOptions<Types.SearchQueryVariables>, 'query'>, ctx: ApolloClientContext ){
         const apolloClient = getApolloClient(ctx);

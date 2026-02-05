@@ -17,6 +17,16 @@ export type Scalars = {
   Upload: any;
 };
 
+export type BenchmarkMaterial = {
+  __typename?: 'BenchmarkMaterial';
+  crewType?: Maybe<Scalars['String']>;
+  jobTitle?: Maybe<Scalars['String']>;
+  key: Scalars['String'];
+  materialName: Scalars['String'];
+  shipmentCount: Scalars['Int'];
+  totalTonnes: Scalars['Float'];
+};
+
 export type Checklist = {
   coolantChecked: Scalars['Boolean'];
   fluidsChecked: Scalars['Boolean'];
@@ -428,6 +438,18 @@ export type InvoiceSummaryPg = {
   internalRevenueInvoiceValue: Scalars['Float'];
 };
 
+export type JobsiteBenchmark = {
+  __typename?: 'JobsiteBenchmark';
+  jobcode?: Maybe<Scalars['String']>;
+  jobsiteId: Scalars['ID'];
+  jobsiteName: Scalars['String'];
+  percentFromAverage: Scalars['Float'];
+  shipmentCount: Scalars['Int'];
+  tonnesPerHour: Scalars['Float'];
+  totalCrewHours: Scalars['Float'];
+  totalTonnes: Scalars['Float'];
+};
+
 export type JobsiteClass = {
   __typename?: 'JobsiteClass';
   _id: Scalars['ID'];
@@ -755,6 +777,15 @@ export type MaterialCreateData = {
   name: Scalars['String'];
 };
 
+export type MaterialDailyBreakdown = {
+  __typename?: 'MaterialDailyBreakdown';
+  crewHours: Scalars['Float'];
+  dailyReportId: Scalars['String'];
+  date: Scalars['DateTime'];
+  tonnes: Scalars['Float'];
+  tonnesPerHour: Scalars['Float'];
+};
+
 /** How to group materials for productivity analysis */
 export enum MaterialGrouping {
   CrewType = 'CREW_TYPE',
@@ -765,6 +796,7 @@ export enum MaterialGrouping {
 export type MaterialProductivity = {
   __typename?: 'MaterialProductivity';
   crewType?: Maybe<Scalars['String']>;
+  dailyBreakdown: Array<MaterialDailyBreakdown>;
   dailyReports: Array<DailyReportReference>;
   jobTitle?: Maybe<Scalars['String']>;
   materialName: Scalars['String'];
@@ -1558,6 +1590,23 @@ export type ProductionUpdateData = {
   unit: Scalars['String'];
 };
 
+export type ProductivityBenchmarkInput = {
+  materialGrouping?: InputMaybe<MaterialGrouping>;
+  selectedMaterials?: InputMaybe<Array<Scalars['String']>>;
+  year: Scalars['Int'];
+};
+
+export type ProductivityBenchmarkReport = {
+  __typename?: 'ProductivityBenchmarkReport';
+  availableMaterials: Array<BenchmarkMaterial>;
+  averageTonnesPerHour: Scalars['Float'];
+  jobsiteCount: Scalars['Int'];
+  jobsites: Array<JobsiteBenchmark>;
+  totalCrewHours: Scalars['Float'];
+  totalTonnes: Scalars['Float'];
+  year: Scalars['Int'];
+};
+
 export type Query = {
   __typename?: 'Query';
   archivedEmployees: Array<EmployeeClass>;
@@ -1600,6 +1649,7 @@ export type Query = {
   mechanics: Array<EmployeeClass>;
   operatorDailyReport: OperatorDailyReportClass;
   operatorDailyReports: Array<OperatorDailyReportClass>;
+  productivityBenchmarks: ProductivityBenchmarkReport;
   search: Array<SearchClass>;
   signup: SignupClass;
   system: SystemClass;
@@ -1802,6 +1852,11 @@ export type QueryOperatorDailyReportArgs = {
 
 export type QueryOperatorDailyReportsArgs = {
   options?: InputMaybe<ListOptionData>;
+};
+
+
+export type QueryProductivityBenchmarksArgs = {
+  input: ProductivityBenchmarkInput;
 };
 
 
@@ -3319,7 +3374,7 @@ export type JobsiteProductivityQueryVariables = Exact<{
 }>;
 
 
-export type JobsiteProductivityQuery = { __typename?: 'Query', jobsiteProductivity?: { __typename?: 'JobsiteProductivityReport', jobsiteId: string, jobsiteName: string, jobcode?: string | null, startDate: any, endDate: any, overallTonnesPerHour: number, totalTonnes: number, totalCrewHours: number, laborTypeHours: Array<{ __typename?: 'LaborTypeHours', jobTitle: string, crewType: string, totalManHours: number, avgHoursPerDay: number, dayCount: number, employeeCount: number }>, materialProductivity: Array<{ __typename?: 'MaterialProductivity', materialName: string, crewType?: string | null, jobTitle?: string | null, totalTonnes: number, totalCrewHours: number, tonnesPerHour: number, shipmentCount: number, dailyReports: Array<{ __typename?: 'DailyReportReference', id: string, date: any }> }>, crewHoursDetail?: Array<{ __typename?: 'CrewHoursDetail', date: any, crewType: string, avgCrewHours: number, totalManHours: number, totalEmployees: number, crewCount: number }> | null } | null };
+export type JobsiteProductivityQuery = { __typename?: 'Query', jobsiteProductivity?: { __typename?: 'JobsiteProductivityReport', jobsiteId: string, jobsiteName: string, jobcode?: string | null, startDate: any, endDate: any, overallTonnesPerHour: number, totalTonnes: number, totalCrewHours: number, laborTypeHours: Array<{ __typename?: 'LaborTypeHours', jobTitle: string, crewType: string, totalManHours: number, avgHoursPerDay: number, dayCount: number, employeeCount: number }>, materialProductivity: Array<{ __typename?: 'MaterialProductivity', materialName: string, crewType?: string | null, jobTitle?: string | null, totalTonnes: number, totalCrewHours: number, tonnesPerHour: number, shipmentCount: number, dailyReports: Array<{ __typename?: 'DailyReportReference', id: string, date: any }>, dailyBreakdown: Array<{ __typename?: 'MaterialDailyBreakdown', date: any, dailyReportId: string, tonnes: number, crewHours: number, tonnesPerHour: number }> }>, crewHoursDetail?: Array<{ __typename?: 'CrewHoursDetail', date: any, crewType: string, avgCrewHours: number, totalManHours: number, totalEmployees: number, crewCount: number }> | null } | null };
 
 export type JobsiteSearchQueryVariables = Exact<{
   searchString: Scalars['String'];
@@ -3513,6 +3568,13 @@ export type OperatorDailyReportsQueryVariables = Exact<{
 
 
 export type OperatorDailyReportsQuery = { __typename?: 'Query', operatorDailyReports: Array<{ __typename?: 'OperatorDailyReportClass', _id: string, startTime: any, malfunction: boolean, damageObserved: boolean, createdAt: any, vehicle: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }, author: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }, equipmentUsage: { __typename?: 'EquipmentUsageSchema', usage: number, unit: EquipmentUsageUnits }, checklist: { __typename?: 'OperatorChecklistSchema', walkaroundComplete: boolean, visualInspectionComplete: boolean, oilChecked: boolean, coolantChecked: boolean, fluidsChecked: boolean }, functionChecks: { __typename?: 'EquipmentFunctionCheckSchema', backupAlarm: boolean, lights: boolean, fireExtinguisher: boolean, licensePlate: boolean }, leaks: Array<{ __typename?: 'EquipmentLeaksSchema', type: string, location: string }>, fluidsAdded: Array<{ __typename?: 'EquipmentFluidAddedSchema', type: string, amount: number }> }> };
+
+export type ProductivityBenchmarksQueryVariables = Exact<{
+  input: ProductivityBenchmarkInput;
+}>;
+
+
+export type ProductivityBenchmarksQuery = { __typename?: 'Query', productivityBenchmarks: { __typename?: 'ProductivityBenchmarkReport', year: number, averageTonnesPerHour: number, totalTonnes: number, totalCrewHours: number, jobsiteCount: number, availableMaterials: Array<{ __typename?: 'BenchmarkMaterial', materialName: string, crewType?: string | null, jobTitle?: string | null, key: string, totalTonnes: number, shipmentCount: number }>, jobsites: Array<{ __typename?: 'JobsiteBenchmark', jobsiteId: string, jobsiteName: string, jobcode?: string | null, totalTonnes: number, totalCrewHours: number, tonnesPerHour: number, shipmentCount: number, percentFromAverage: number }> } };
 
 export type SearchQueryVariables = Exact<{
   searchString: Scalars['String'];
@@ -8928,6 +8990,13 @@ export const JobsiteProductivityDocument = gql`
         id
         date
       }
+      dailyBreakdown {
+        date
+        dailyReportId
+        tonnes
+        crewHours
+        tonnesPerHour
+      }
     }
     overallTonnesPerHour
     totalTonnes
@@ -10117,6 +10186,63 @@ export function useOperatorDailyReportsLazyQuery(baseOptions?: Apollo.LazyQueryH
 export type OperatorDailyReportsQueryHookResult = ReturnType<typeof useOperatorDailyReportsQuery>;
 export type OperatorDailyReportsLazyQueryHookResult = ReturnType<typeof useOperatorDailyReportsLazyQuery>;
 export type OperatorDailyReportsQueryResult = Apollo.QueryResult<OperatorDailyReportsQuery, OperatorDailyReportsQueryVariables>;
+export const ProductivityBenchmarksDocument = gql`
+    query ProductivityBenchmarks($input: ProductivityBenchmarkInput!) {
+  productivityBenchmarks(input: $input) {
+    year
+    averageTonnesPerHour
+    totalTonnes
+    totalCrewHours
+    jobsiteCount
+    availableMaterials {
+      materialName
+      crewType
+      jobTitle
+      key
+      totalTonnes
+      shipmentCount
+    }
+    jobsites {
+      jobsiteId
+      jobsiteName
+      jobcode
+      totalTonnes
+      totalCrewHours
+      tonnesPerHour
+      shipmentCount
+      percentFromAverage
+    }
+  }
+}
+    `;
+
+/**
+ * __useProductivityBenchmarksQuery__
+ *
+ * To run a query within a React component, call `useProductivityBenchmarksQuery` and pass it any options that fit your needs.
+ * When your component renders, `useProductivityBenchmarksQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useProductivityBenchmarksQuery({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useProductivityBenchmarksQuery(baseOptions: Apollo.QueryHookOptions<ProductivityBenchmarksQuery, ProductivityBenchmarksQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ProductivityBenchmarksQuery, ProductivityBenchmarksQueryVariables>(ProductivityBenchmarksDocument, options);
+      }
+export function useProductivityBenchmarksLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ProductivityBenchmarksQuery, ProductivityBenchmarksQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ProductivityBenchmarksQuery, ProductivityBenchmarksQueryVariables>(ProductivityBenchmarksDocument, options);
+        }
+export type ProductivityBenchmarksQueryHookResult = ReturnType<typeof useProductivityBenchmarksQuery>;
+export type ProductivityBenchmarksLazyQueryHookResult = ReturnType<typeof useProductivityBenchmarksLazyQuery>;
+export type ProductivityBenchmarksQueryResult = Apollo.QueryResult<ProductivityBenchmarksQuery, ProductivityBenchmarksQueryVariables>;
 export const SearchDocument = gql`
     query Search($searchString: String!) {
   search(searchString: $searchString) {

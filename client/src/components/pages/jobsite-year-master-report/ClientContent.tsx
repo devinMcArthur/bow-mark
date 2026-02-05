@@ -1,5 +1,6 @@
 import { Box, Heading, Tab, TabList, TabPanel, TabPanels, Tabs } from "@chakra-ui/react";
 import React from "react";
+import dayjs from "dayjs";
 import {
   JobsiteYearMasterReportSubDocument,
   useJobsiteYearMasterReportFullQuery,
@@ -10,6 +11,7 @@ import JobsiteMaster from "../../Common/JobsiteMaster";
 import Loading from "../../Common/Loading";
 import Permission from "../../Common/Permission";
 import ComparisonPG from "./ComparisonPG";
+import ProductivityBenchmarks from "./ProductivityBenchmarks";
 
 interface IJobsiteYearMasterReportClientContent {
   id: string;
@@ -48,6 +50,13 @@ const JobsiteYearMasterReportClientContent = ({
    * ----- Rendering -----
    */
 
+  // Extract year from the report's startOfYear date
+  const year = React.useMemo(() => {
+    if (!data?.jobsiteYearMasterReport) return null;
+    const startDate = dayjs(data.jobsiteYearMasterReport.startOfYear);
+    return startDate.add(-startDate.utcOffset(), "minutes").year();
+  }, [data?.jobsiteYearMasterReport?.startOfYear]);
+
   return React.useMemo(() => {
     if (data?.jobsiteYearMasterReport && !loading) {
       const { jobsiteYearMasterReport } = data;
@@ -68,6 +77,7 @@ const JobsiteYearMasterReportClientContent = ({
               <TabList>
                 <Tab>Report (MongoDB)</Tab>
                 <Tab>Compare with PostgreSQL</Tab>
+                <Tab>Productivity Benchmarks</Tab>
               </TabList>
               <TabPanels>
                 <TabPanel px={0}>
@@ -76,13 +86,16 @@ const JobsiteYearMasterReportClientContent = ({
                 <TabPanel px={0}>
                   <ComparisonPG mongoReport={jobsiteYearMasterReport} />
                 </TabPanel>
+                <TabPanel px={0}>
+                  {year && <ProductivityBenchmarks year={year} />}
+                </TabPanel>
               </TabPanels>
             </Tabs>
           </Permission>
         </Box>
       );
     } else return <Loading />;
-  }, [data, loading]);
+  }, [data, loading, year]);
 };
 
 export default JobsiteYearMasterReportClientContent;

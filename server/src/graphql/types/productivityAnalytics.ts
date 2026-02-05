@@ -90,6 +90,27 @@ export class DailyReportReference {
   date!: Date;
 }
 
+/**
+ * Daily productivity breakdown for a single material on a single day
+ */
+@ObjectType()
+export class MaterialDailyBreakdown {
+  @Field(() => Date)
+  date!: Date;
+
+  @Field()
+  dailyReportId!: string;
+
+  @Field(() => Float)
+  tonnes!: number;
+
+  @Field(() => Float)
+  crewHours!: number;
+
+  @Field(() => Float)
+  tonnesPerHour!: number;
+}
+
 @ObjectType()
 export class MaterialProductivity {
   @Field()
@@ -115,6 +136,9 @@ export class MaterialProductivity {
 
   @Field(() => [DailyReportReference])
   dailyReports!: DailyReportReference[];
+
+  @Field(() => [MaterialDailyBreakdown])
+  dailyBreakdown!: MaterialDailyBreakdown[];
 }
 
 /**

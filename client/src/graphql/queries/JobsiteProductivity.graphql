@@ -35,6 +35,13 @@ query JobsiteProductivity(
         id
         date
       }
+      dailyBreakdown {
+        date
+        dailyReportId
+        tonnes
+        crewHours
+        tonnesPerHour
+      }
     }
     overallTonnesPerHour
     totalTonnes

@@ -1,0 +1,27 @@
+query ProductivityBenchmarks($input: ProductivityBenchmarkInput!) {
+  productivityBenchmarks(input: $input) {
+    year
+    averageTonnesPerHour
+    totalTonnes
+    totalCrewHours
+    jobsiteCount
+    availableMaterials {
+      materialName
+      crewType
+      jobTitle
+      key
+      totalTonnes
+      shipmentCount
+    }
+    jobsites {
+      jobsiteId
+      jobsiteName
+      jobcode
+      totalTonnes
+      totalCrewHours
+      tonnesPerHour
+      shipmentCount
+      percentFromAverage
+    }
+  }
+}
