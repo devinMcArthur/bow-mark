@@ -190,6 +190,12 @@ export type DailyReportNoteUpdateData = {
   note: Scalars['String'];
 };
 
+export type DailyReportReference = {
+  __typename?: 'DailyReportReference';
+  date: Scalars['DateTime'];
+  id: Scalars['String'];
+};
+
 export type DailyReportUpdateData = {
   date: Scalars['DateTime'];
   jobsiteId: Scalars['ID'];
@@ -749,8 +755,18 @@ export type MaterialCreateData = {
   name: Scalars['String'];
 };
 
+/** How to group materials for productivity analysis */
+export enum MaterialGrouping {
+  CrewType = 'CREW_TYPE',
+  JobTitle = 'JOB_TITLE',
+  MaterialOnly = 'MATERIAL_ONLY'
+}
+
 export type MaterialProductivity = {
   __typename?: 'MaterialProductivity';
+  crewType?: Maybe<Scalars['String']>;
+  dailyReports: Array<DailyReportReference>;
+  jobTitle?: Maybe<Scalars['String']>;
   materialName: Scalars['String'];
   shipmentCount: Scalars['Int'];
   tonnesPerHour: Scalars['Float'];
@@ -1727,6 +1743,7 @@ export type QueryJobsiteProductivityArgs = {
   dateRange: DateRangeInput;
   includeCrewHoursDetail?: InputMaybe<Scalars['Boolean']>;
   jobsiteMongoId: Scalars['String'];
+  materialGrouping?: InputMaybe<MaterialGrouping>;
 };
 
 
@@ -3298,10 +3315,11 @@ export type JobsiteProductivityQueryVariables = Exact<{
   jobsiteMongoId: Scalars['String'];
   dateRange: DateRangeInput;
   includeCrewHoursDetail?: InputMaybe<Scalars['Boolean']>;
+  materialGrouping?: InputMaybe<MaterialGrouping>;
 }>;
 
 
-export type JobsiteProductivityQuery = { __typename?: 'Query', jobsiteProductivity?: { __typename?: 'JobsiteProductivityReport', jobsiteId: string, jobsiteName: string, jobcode?: string | null, startDate: any, endDate: any, overallTonnesPerHour: number, totalTonnes: number, totalCrewHours: number, laborTypeHours: Array<{ __typename?: 'LaborTypeHours', jobTitle: string, crewType: string, totalManHours: number, avgHoursPerDay: number, dayCount: number, employeeCount: number }>, materialProductivity: Array<{ __typename?: 'MaterialProductivity', materialName: string, totalTonnes: number, totalCrewHours: number, tonnesPerHour: number, shipmentCount: number }>, crewHoursDetail?: Array<{ __typename?: 'CrewHoursDetail', date: any, crewType: string, avgCrewHours: number, totalManHours: number, totalEmployees: number, crewCount: number }> | null } | null };
+export type JobsiteProductivityQuery = { __typename?: 'Query', jobsiteProductivity?: { __typename?: 'JobsiteProductivityReport', jobsiteId: string, jobsiteName: string, jobcode?: string | null, startDate: any, endDate: any, overallTonnesPerHour: number, totalTonnes: number, totalCrewHours: number, laborTypeHours: Array<{ __typename?: 'LaborTypeHours', jobTitle: string, crewType: string, totalManHours: number, avgHoursPerDay: number, dayCount: number, employeeCount: number }>, materialProductivity: Array<{ __typename?: 'MaterialProductivity', materialName: string, crewType?: string | null, jobTitle?: string | null, totalTonnes: number, totalCrewHours: number, tonnesPerHour: number, shipmentCount: number, dailyReports: Array<{ __typename?: 'DailyReportReference', id: string, date: any }> }>, crewHoursDetail?: Array<{ __typename?: 'CrewHoursDetail', date: any, crewType: string, avgCrewHours: number, totalManHours: number, totalEmployees: number, crewCount: number }> | null } | null };
 
 export type JobsiteSearchQueryVariables = Exact<{
   searchString: Scalars['String'];
@@ -8878,11 +8896,12 @@ export type JobsiteMonthReportFullQueryHookResult = ReturnType<typeof useJobsite
 export type JobsiteMonthReportFullLazyQueryHookResult = ReturnType<typeof useJobsiteMonthReportFullLazyQuery>;
 export type JobsiteMonthReportFullQueryResult = Apollo.QueryResult<JobsiteMonthReportFullQuery, JobsiteMonthReportFullQueryVariables>;
 export const JobsiteProductivityDocument = gql`
-    query JobsiteProductivity($jobsiteMongoId: String!, $dateRange: DateRangeInput!, $includeCrewHoursDetail: Boolean) {
+    query JobsiteProductivity($jobsiteMongoId: String!, $dateRange: DateRangeInput!, $includeCrewHoursDetail: Boolean, $materialGrouping: MaterialGrouping) {
   jobsiteProductivity(
     jobsiteMongoId: $jobsiteMongoId
     dateRange: $dateRange
     includeCrewHoursDetail: $includeCrewHoursDetail
+    materialGrouping: $materialGrouping
   ) {
     jobsiteId
     jobsiteName
@@ -8899,10 +8918,16 @@ export const JobsiteProductivityDocument = gql`
     }
     materialProductivity {
       materialName
+      crewType
+      jobTitle
       totalTonnes
       totalCrewHours
       tonnesPerHour
       shipmentCount
+      dailyReports {
+        id
+        date
+      }
     }
     overallTonnesPerHour
     totalTonnes
@@ -8934,6 +8959,7 @@ export const JobsiteProductivityDocument = gql`
  *      jobsiteMongoId: // value for 'jobsiteMongoId'
  *      dateRange: // value for 'dateRange'
  *      includeCrewHoursDetail: // value for 'includeCrewHoursDetail'
+ *      materialGrouping: // value for 'materialGrouping'
  *   },
  * });
  */

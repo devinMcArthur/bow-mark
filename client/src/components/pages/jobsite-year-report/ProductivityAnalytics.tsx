@@ -15,6 +15,12 @@ import {
   Checkbox,
   Heading,
   HStack,
+  Link,
+  Popover,
+  PopoverBody,
+  PopoverContent,
+  PopoverTrigger,
+  Select,
   SimpleGrid,
   Spinner,
   Stack,
@@ -29,10 +35,16 @@ import {
   Th,
   Thead,
   Tr,
+  VStack,
 } from "@chakra-ui/react";
+import NextLink from "next/link";
 import React from "react";
-import { useJobsiteProductivityQuery } from "../../../generated/graphql";
+import {
+  MaterialGrouping,
+  useJobsiteProductivityQuery,
+} from "../../../generated/graphql";
 import formatNumber from "../../../utils/formatNumber";
+import createLink from "../../../utils/createLink";
 import Card from "../../Common/Card";
 
 interface IProductivityAnalytics {
@@ -47,6 +59,11 @@ const ProductivityAnalytics = ({
   const startDate = new Date(year, 0, 1);
   const endDate = new Date(year, 11, 31);
 
+  // Material grouping selection
+  const [materialGrouping, setMaterialGrouping] = React.useState<MaterialGrouping>(
+    MaterialGrouping.CrewType
+  );
+
   const { data, loading, error } = useJobsiteProductivityQuery({
     variables: {
       jobsiteMongoId,
@@ -55,14 +72,52 @@ const ProductivityAnalytics = ({
         endDate: endDate.toISOString(),
       },
       includeCrewHoursDetail: false,
+      materialGrouping,
     },
   });
 
   const productivity = data?.jobsiteProductivity;
 
-  // Track selected materials for combined summary
+  // Track selected materials for combined summary (uses composite keys based on grouping)
   const [selectedMaterials, setSelectedMaterials] = React.useState<Set<string>>(
     new Set()
+  );
+
+  // Clear selection when grouping changes
+  React.useEffect(() => {
+    setSelectedMaterials(new Set());
+  }, [materialGrouping]);
+
+  // Generate selection key based on grouping dimension
+  const getSelectionKey = React.useCallback(
+    (mat: { materialName: string; crewType?: string | null; jobTitle?: string | null }) => {
+      switch (materialGrouping) {
+        case MaterialGrouping.CrewType:
+          return `${mat.materialName}|${mat.crewType || "Unknown"}`;
+        case MaterialGrouping.JobTitle:
+          return `${mat.materialName}|${mat.jobTitle || "Unknown"}`;
+        case MaterialGrouping.MaterialOnly:
+        default:
+          return mat.materialName;
+      }
+    },
+    [materialGrouping]
+  );
+
+  // Generate display label for selected items
+  const getDisplayLabel = React.useCallback(
+    (mat: { materialName: string; crewType?: string | null; jobTitle?: string | null }) => {
+      switch (materialGrouping) {
+        case MaterialGrouping.CrewType:
+          return `${mat.materialName} (${mat.crewType || "Unknown"})`;
+        case MaterialGrouping.JobTitle:
+          return `${mat.materialName} (${mat.jobTitle || "Unknown"})`;
+        case MaterialGrouping.MaterialOnly:
+        default:
+          return mat.materialName;
+      }
+    },
+    [materialGrouping]
   );
 
   // Calculate combined summary for selected materials
@@ -72,7 +127,7 @@ const ProductivityAnalytics = ({
     }
 
     const selected = productivity.materialProductivity.filter((m) =>
-      selectedMaterials.has(m.materialName)
+      selectedMaterials.has(getSelectionKey(m))
     );
 
     const totalTonnes = selected.reduce((sum, m) => sum + m.totalTonnes, 0);
@@ -85,21 +140,21 @@ const ProductivityAnalytics = ({
 
     return {
       count: selected.length,
-      names: selected.map((m) => m.materialName),
+      names: selected.map((m) => getDisplayLabel(m)),
       totalTonnes,
       totalCrewHours,
       tonnesPerHour,
       totalShipments,
     };
-  }, [productivity?.materialProductivity, selectedMaterials]);
+  }, [productivity?.materialProductivity, selectedMaterials, getSelectionKey, getDisplayLabel]);
 
-  const toggleMaterial = (materialName: string) => {
+  const toggleMaterial = (key: string) => {
     setSelectedMaterials((prev) => {
       const next = new Set(prev);
-      if (next.has(materialName)) {
-        next.delete(materialName);
+      if (next.has(key)) {
+        next.delete(key);
       } else {
-        next.add(materialName);
+        next.add(key);
       }
       return next;
     });
@@ -195,7 +250,31 @@ const ProductivityAnalytics = ({
 
       {/* Material Productivity (T/H) */}
       {hasMaterialData && (
-        <Card heading={<Heading size="md">Material Productivity (T/H)</Heading>}>
+        <Card
+          heading={
+            <HStack justify="space-between" w="100%">
+              <Heading size="md">Material Productivity (T/H)</Heading>
+              <Select
+                size="sm"
+                w="200px"
+                value={materialGrouping}
+                onChange={(e) =>
+                  setMaterialGrouping(e.target.value as MaterialGrouping)
+                }
+              >
+                <option value={MaterialGrouping.MaterialOnly}>
+                  Group by Material
+                </option>
+                <option value={MaterialGrouping.CrewType}>
+                  Material + Crew Type
+                </option>
+                <option value={MaterialGrouping.JobTitle}>
+                  Material + Job Title
+                </option>
+              </Select>
+            </HStack>
+          }
+        >
           {/* Selection Summary */}
           {selectedSummary && (
             <Box
@@ -249,41 +328,96 @@ const ProductivityAnalytics = ({
                 <Tr>
                   <Th w="40px"></Th>
                   <Th>Material</Th>
+                  {materialGrouping === MaterialGrouping.CrewType && (
+                    <Th>Crew Type</Th>
+                  )}
+                  {materialGrouping === MaterialGrouping.JobTitle && (
+                    <Th>Job Title</Th>
+                  )}
                   <Th isNumeric>Tonnes</Th>
                   <Th isNumeric>Crew Hours</Th>
                   <Th isNumeric>T/H</Th>
                   <Th isNumeric>Shipments</Th>
+                  <Th>Reports</Th>
                 </Tr>
               </Thead>
               <Tbody>
-                {productivity.materialProductivity.map((mat, idx) => (
-                  <Tr
-                    key={idx}
-                    bg={
-                      selectedMaterials.has(mat.materialName)
-                        ? "blue.50"
-                        : undefined
-                    }
-                    _hover={{ bg: "gray.50" }}
-                    cursor="pointer"
-                    onClick={() => toggleMaterial(mat.materialName)}
-                  >
-                    <Td>
-                      <Checkbox
-                        isChecked={selectedMaterials.has(mat.materialName)}
-                        onChange={() => toggleMaterial(mat.materialName)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </Td>
-                    <Td fontWeight="medium">{mat.materialName}</Td>
-                    <Td isNumeric>{formatNumber(mat.totalTonnes)}</Td>
-                    <Td isNumeric>{formatNumber(mat.totalCrewHours)}</Td>
-                    <Td isNumeric fontWeight="bold" color="blue.600">
-                      {formatNumber(mat.tonnesPerHour)}
-                    </Td>
-                    <Td isNumeric>{mat.shipmentCount}</Td>
-                  </Tr>
-                ))}
+                {productivity.materialProductivity.map((mat, idx) => {
+                  const selectionKey = getSelectionKey(mat);
+                  return (
+                    <Tr
+                      key={idx}
+                      bg={
+                        selectedMaterials.has(selectionKey)
+                          ? "blue.50"
+                          : undefined
+                      }
+                      _hover={{ bg: "gray.50" }}
+                      cursor="pointer"
+                      onClick={() => toggleMaterial(selectionKey)}
+                    >
+                      <Td>
+                        <Checkbox
+                          isChecked={selectedMaterials.has(selectionKey)}
+                          onChange={() => toggleMaterial(selectionKey)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </Td>
+                      <Td fontWeight="medium">{mat.materialName}</Td>
+                      {materialGrouping === MaterialGrouping.CrewType && (
+                        <Td>
+                          <Badge colorScheme="purple" fontSize="xs">
+                            {mat.crewType || "Unknown"}
+                          </Badge>
+                        </Td>
+                      )}
+                      {materialGrouping === MaterialGrouping.JobTitle && (
+                        <Td>
+                          <Badge colorScheme="teal" fontSize="xs">
+                            {mat.jobTitle || "Unknown"}
+                          </Badge>
+                        </Td>
+                      )}
+                      <Td isNumeric>{formatNumber(mat.totalTonnes)}</Td>
+                      <Td isNumeric>{formatNumber(mat.totalCrewHours)}</Td>
+                      <Td isNumeric fontWeight="bold" color="blue.600">
+                        {formatNumber(mat.tonnesPerHour)}
+                      </Td>
+                      <Td isNumeric>{mat.shipmentCount}</Td>
+                      <Td onClick={(e) => e.stopPropagation()}>
+                        <Popover placement="left" isLazy>
+                          <PopoverTrigger>
+                            <Button size="xs" variant="link" colorScheme="blue">
+                              {mat.dailyReports.length} report
+                              {mat.dailyReports.length !== 1 ? "s" : ""}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent w="auto" minW="150px">
+                            <PopoverBody>
+                              <VStack align="start" spacing={1}>
+                                {mat.dailyReports.map((report) => (
+                                  <NextLink
+                                    key={report.id}
+                                    href={createLink.dailyReport(report.id)}
+                                    passHref
+                                  >
+                                    <Link
+                                      color="blue.600"
+                                      fontSize="sm"
+                                      _hover={{ textDecoration: "underline" }}
+                                    >
+                                      {new Date(report.date).toLocaleDateString()}
+                                    </Link>
+                                  </NextLink>
+                                ))}
+                              </VStack>
+                            </PopoverBody>
+                          </PopoverContent>
+                        </Popover>
+                      </Td>
+                    </Tr>
+                  );
+                })}
               </Tbody>
             </Table>
           </Box>

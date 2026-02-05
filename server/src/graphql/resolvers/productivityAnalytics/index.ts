@@ -19,6 +19,7 @@ import {
   LaborTypeHours,
   MaterialProductivity,
   CrewHoursDetail,
+  MaterialGrouping,
 } from "../../types/productivityAnalytics";
 
 @Resolver()
@@ -31,7 +32,12 @@ export default class ProductivityAnalyticsResolver {
     @Arg("jobsiteMongoId") jobsiteMongoId: string,
     @Arg("dateRange") dateRange: DateRangeInput,
     @Arg("includeCrewHoursDetail", { nullable: true, defaultValue: false })
-    includeCrewHoursDetail: boolean
+    includeCrewHoursDetail: boolean,
+    @Arg("materialGrouping", () => MaterialGrouping, {
+      nullable: true,
+      defaultValue: MaterialGrouping.CREW_TYPE,
+    })
+    materialGrouping: MaterialGrouping
   ): Promise<JobsiteProductivityReport | null> {
     // Get the jobsite from dimension table
     const jobsite = await db
@@ -57,7 +63,7 @@ export default class ProductivityAnalyticsResolver {
       crewHoursDetail,
     ] = await Promise.all([
       this.getLaborTypeHours(jobsite.id, startDate, endDate),
-      this.getMaterialProductivity(jobsite.id, startDate, endDate),
+      this.getMaterialProductivity(jobsite.id, startDate, endDate, materialGrouping),
       this.getOverallProductivity(jobsite.id, startDate, endDate),
       includeCrewHoursDetail
         ? this.getCrewHoursDetail(jobsite.id, startDate, endDate)
@@ -211,27 +217,27 @@ export default class ProductivityAnalyticsResolver {
   private static readonly TANDEM_TONNES_PER_LOAD = 14;
 
   /**
-   * Get material breakdown by material name with proportional T/H
+   * Get material breakdown with flexible grouping dimensions
    *
-   * Groups by material name (e.g., "80mm", "25mm") regardless of supplier.
+   * Grouping options:
+   * - MATERIAL_ONLY: Group by material name only (original behavior)
+   * - CREW_TYPE: Group by material + crew_type (separates Paving/Patch/Base)
+   * - JOB_TITLE: Group by material + dominant job_title per daily report
+   *
    * When multiple materials are delivered by the same crew on the same day,
    * crew hours are split proportionally by tonnes.
    *
    * Handles unit conversion:
    * - 'tonnes' → used directly
    * - 'loads' with vehicle_type containing 'Tandem' → converted to tonnes (14t per load)
-   *
-   * Uses the specific crew's hours (via daily_report_id) that ordered the material,
-   * not averaged hours across all crews of that type.
    */
   private async getMaterialProductivity(
     jobsiteId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    grouping: MaterialGrouping
   ): Promise<MaterialProductivity[]> {
     // SQL CASE expression for converting loads to tonnes
-    // If unit='tonnes', use quantity directly
-    // If unit='loads' and vehicle_type contains 'Tandem', convert using 14 tonnes/load
     const tonnesConversion = sql<number>`
       CASE
         WHEN LOWER(ms.unit) = 'tonnes' THEN ms.quantity
@@ -241,7 +247,7 @@ export default class ProductivityAnalyticsResolver {
       END
     `;
 
-    // Step 1: Get tonnes per material per daily_report (specific crew)
+    // Step 1: Get tonnes per material per daily_report, including crew_type
     const tonnesPerMaterialCrew = await db
       .selectFrom("fact_material_shipment as ms")
       .innerJoin("dim_daily_report as dr", "dr.id", "ms.daily_report_id")
@@ -254,6 +260,7 @@ export default class ProductivityAnalyticsResolver {
       .select([
         "m.name as material_name",
         "ms.daily_report_id",
+        "ms.crew_type",
         sql<number>`COALESCE(SUM(${tonnesConversion}), 0)`.as("tonnes"),
         sql<number>`COUNT(*)`.as("shipment_count"),
       ])
@@ -263,7 +270,6 @@ export default class ProductivityAnalyticsResolver {
       .where("ms.archived_at", "is", null)
       .where("dr.approved", "=", true)
       .where("dr.archived", "=", false)
-      // Include both 'tonnes' and convertible 'loads'
       .where((eb) =>
         eb.or([
           eb(sql`LOWER(ms.unit)`, "=", "tonnes"),
@@ -273,7 +279,7 @@ export default class ProductivityAnalyticsResolver {
           ]),
         ])
       )
-      .groupBy(["m.name", "ms.daily_report_id"])
+      .groupBy(["m.name", "ms.daily_report_id", "ms.crew_type"])
       .execute();
 
     // Step 2: Get total tonnes per daily_report (for proportional allocation)
@@ -302,9 +308,7 @@ export default class ProductivityAnalyticsResolver {
       .groupBy(["ms.daily_report_id"])
       .execute();
 
-    // Step 3: Get crew hours per daily_report (specific crew's hours)
-    // Uses AVG(employee hours) per daily_report instead of MAX
-    // This better represents the average work time for T/H calculations
+    // Step 3: Get crew hours per daily_report
     const crewHoursPerReport = await db
       .selectFrom("fact_employee_work as ew")
       .innerJoin("dim_daily_report as dr", "dr.id", "ew.daily_report_id")
@@ -321,7 +325,47 @@ export default class ProductivityAnalyticsResolver {
       .groupBy(["ew.daily_report_id"])
       .execute();
 
-    // Build lookup maps keyed by daily_report_id
+    // Step 4: For JOB_TITLE grouping, get dominant job_title per daily_report
+    // Dominant = job_title with most total hours for that daily report
+    let dominantJobTitleMap = new Map<string, string>();
+    if (grouping === MaterialGrouping.JOB_TITLE) {
+      const jobTitleHours = await db
+        .selectFrom("fact_employee_work as ew")
+        .innerJoin("dim_daily_report as dr", "dr.id", "ew.daily_report_id")
+        .select([
+          "ew.daily_report_id",
+          "ew.job_title",
+          sql<number>`SUM(ew.hours)`.as("total_hours"),
+        ])
+        .where("ew.jobsite_id", "=", jobsiteId)
+        .where("ew.work_date", ">=", startDate)
+        .where("ew.work_date", "<=", endDate)
+        .where("ew.archived_at", "is", null)
+        .where("dr.approved", "=", true)
+        .where("dr.archived", "=", false)
+        .groupBy(["ew.daily_report_id", "ew.job_title"])
+        .execute();
+
+      // Find the dominant (max hours) job_title per daily_report
+      const hoursMap = new Map<string, { jobTitle: string; hours: number }>();
+      for (const row of jobTitleHours) {
+        if (!row.daily_report_id) continue;
+        const existing = hoursMap.get(row.daily_report_id);
+        const hours = Number(row.total_hours || 0);
+        if (!existing || hours > existing.hours) {
+          hoursMap.set(row.daily_report_id, {
+            jobTitle: row.job_title,
+            hours,
+          });
+        }
+      }
+
+      for (const [dailyReportId, data] of hoursMap) {
+        dominantJobTitleMap.set(dailyReportId, data.jobTitle);
+      }
+    }
+
+    // Build lookup maps
     const totalTonnesMap = new Map<string, number>();
     for (const row of totalTonnesPerCrew) {
       if (row.daily_report_id) {
@@ -336,12 +380,17 @@ export default class ProductivityAnalyticsResolver {
       }
     }
 
-    // Step 4: Calculate proportional hours per material
-    // Aggregate by material name
-    const materialStats = new Map<
-      string,
-      { totalTonnes: number; totalProportionalHours: number; shipmentCount: number }
-    >();
+    // Step 5: Calculate proportional hours and aggregate by grouping key
+    interface MaterialStats {
+      materialName: string;
+      crewType?: string;
+      jobTitle?: string;
+      totalTonnes: number;
+      totalProportionalHours: number;
+      shipmentCount: number;
+      dailyReportIds: Set<string>;
+    }
+    const materialStats = new Map<string, MaterialStats>();
 
     for (const row of tonnesPerMaterialCrew) {
       if (!row.daily_report_id) continue;
@@ -354,24 +403,82 @@ export default class ProductivityAnalyticsResolver {
       const proportionalHours =
         totalCrewTonnes > 0 ? (tonnes / totalCrewTonnes) * crewHours : 0;
 
-      const existing = materialStats.get(row.material_name) || {
+      // Build grouping key based on selected dimension
+      let groupKey: string;
+      let crewType: string | undefined;
+      let jobTitle: string | undefined;
+
+      switch (grouping) {
+        case MaterialGrouping.CREW_TYPE:
+          crewType = row.crew_type || "Unknown";
+          groupKey = `${row.material_name}|${crewType}`;
+          break;
+        case MaterialGrouping.JOB_TITLE:
+          jobTitle = dominantJobTitleMap.get(row.daily_report_id) || "Unknown";
+          groupKey = `${row.material_name}|${jobTitle}`;
+          break;
+        case MaterialGrouping.MATERIAL_ONLY:
+        default:
+          groupKey = row.material_name;
+          break;
+      }
+
+      const existing = materialStats.get(groupKey) || {
+        materialName: row.material_name,
+        crewType,
+        jobTitle,
         totalTonnes: 0,
         totalProportionalHours: 0,
         shipmentCount: 0,
+        dailyReportIds: new Set<string>(),
       };
 
-      materialStats.set(row.material_name, {
+      existing.dailyReportIds.add(row.daily_report_id);
+
+      materialStats.set(groupKey, {
+        ...existing,
         totalTonnes: existing.totalTonnes + tonnes,
         totalProportionalHours: existing.totalProportionalHours + proportionalHours,
         shipmentCount: existing.shipmentCount + Number(row.shipment_count),
       });
     }
 
-    // Convert to result array and sort by tonnes descending
+    // Step 6: Get mongo_id and report_date for all daily reports
+    const allDailyReportIds = new Set<string>();
+    for (const stats of materialStats.values()) {
+      for (const id of stats.dailyReportIds) {
+        allDailyReportIds.add(id);
+      }
+    }
+
+    const dailyReportInfo = await db
+      .selectFrom("dim_daily_report")
+      .select(["id", "mongo_id", "report_date"])
+      .where("id", "in", [...allDailyReportIds])
+      .execute();
+
+    const dailyReportMap = new Map<string, { mongoId: string; date: Date }>();
+    for (const row of dailyReportInfo) {
+      dailyReportMap.set(row.id, {
+        mongoId: row.mongo_id,
+        date: new Date(row.report_date),
+      });
+    }
+
+    // Convert to result array and sort alphabetically by material name
     const result: MaterialProductivity[] = [];
-    for (const [materialName, stats] of materialStats) {
+    for (const stats of materialStats.values()) {
+      // Build daily reports list, sorted by date
+      const dailyReports = [...stats.dailyReportIds]
+        .map((id) => dailyReportMap.get(id))
+        .filter((info): info is { mongoId: string; date: Date } => info !== undefined)
+        .sort((a, b) => a.date.getTime() - b.date.getTime())
+        .map((info) => ({ id: info.mongoId, date: info.date }));
+
       result.push({
-        materialName,
+        materialName: stats.materialName,
+        crewType: stats.crewType,
+        jobTitle: stats.jobTitle,
         totalTonnes: stats.totalTonnes,
         totalCrewHours: stats.totalProportionalHours,
         tonnesPerHour:
@@ -379,10 +486,11 @@ export default class ProductivityAnalyticsResolver {
             ? stats.totalTonnes / stats.totalProportionalHours
             : 0,
         shipmentCount: stats.shipmentCount,
+        dailyReports,
       });
     }
 
-    result.sort((a, b) => b.totalTonnes - a.totalTonnes);
+    result.sort((a, b) => a.materialName.localeCompare(b.materialName));
     return result;
   }
 

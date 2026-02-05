@@ -2,11 +2,13 @@ query JobsiteProductivity(
   $jobsiteMongoId: String!
   $dateRange: DateRangeInput!
   $includeCrewHoursDetail: Boolean
+  $materialGrouping: MaterialGrouping
 ) {
   jobsiteProductivity(
     jobsiteMongoId: $jobsiteMongoId
     dateRange: $dateRange
     includeCrewHoursDetail: $includeCrewHoursDetail
+    materialGrouping: $materialGrouping
   ) {
     jobsiteId
     jobsiteName
@@ -23,10 +25,16 @@ query JobsiteProductivity(
     }
     materialProductivity {
       materialName
+      crewType
+      jobTitle
       totalTonnes
       totalCrewHours
       tonnesPerHour
       shipmentCount
+      dailyReports {
+        id
+        date
+      }
     }
     overallTonnesPerHour
     totalTonnes
