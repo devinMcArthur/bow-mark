@@ -22,6 +22,12 @@ query ProductivityBenchmarks($input: ProductivityBenchmarkInput!) {
       tonnesPerHour
       shipmentCount
       percentFromAverage
+      expectedTonnesPerHour
+      percentFromExpected
+    }
+    regression {
+      intercept
+      slope
     }
   }
 }

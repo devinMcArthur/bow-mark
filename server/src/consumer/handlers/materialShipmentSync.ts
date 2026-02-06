@@ -26,7 +26,7 @@ import {
   upsertDimMaterial,
   upsertDimCompany,
   upsertDimJobsiteMaterial,
-  getJobsiteMaterialRateForDate,
+  getMaterialShipmentRate,
 } from "./dimensions";
 
 /** MaterialShipment with required populated references */
@@ -210,10 +210,11 @@ export async function upsertFactMaterialShipment(ctx: MaterialShipmentSyncContex
     supplierId
   );
 
-  // Get the rate for this date
+  // Get the rate for this date based on the material's cost type
   const deliveredRateId = materialShipment.vehicleObject?.deliveredRateId?.toString();
-  const { rate, estimated } = await getJobsiteMaterialRateForDate(
+  const { rate, estimated } = await getMaterialShipmentRate(
     jobsiteMaterialId,
+    populatedJobsiteMaterial,
     workDate,
     deliveredRateId
   );

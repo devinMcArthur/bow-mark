@@ -65,6 +65,25 @@ export class JobsiteBenchmark {
 
   @Field(() => Float)
   percentFromAverage!: number;
+
+  @Field(() => Float, {
+    description: "Expected T/H based on job size: 1.04 + 0.99 * ln(tonnes)",
+  })
+  expectedTonnesPerHour!: number;
+
+  @Field(() => Float, {
+    description: "Percent deviation from size-adjusted expected T/H",
+  })
+  percentFromExpected!: number;
+}
+
+@ObjectType()
+export class RegressionCoefficients {
+  @Field(() => Float, { description: "y-intercept of the regression line" })
+  intercept!: number;
+
+  @Field(() => Float, { description: "Slope of the regression line (per ln(tonnes))" })
+  slope!: number;
 }
 
 @ObjectType()
@@ -89,4 +108,9 @@ export class ProductivityBenchmarkReport {
 
   @Field(() => [JobsiteBenchmark])
   jobsites!: JobsiteBenchmark[];
+
+  @Field(() => RegressionCoefficients, {
+    description: "Dynamically calculated regression coefficients for T/H vs ln(tonnes)",
+  })
+  regression!: RegressionCoefficients;
 }

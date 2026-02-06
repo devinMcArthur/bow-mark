@@ -21,6 +21,10 @@ import {
   CrewHoursDetail,
   MaterialGrouping,
 } from "../../types/productivityAnalytics";
+import {
+  CUBIC_METERS_TO_TONNES,
+  TANDEM_TONNES_PER_LOAD,
+} from "@constants/UnitConversions";
 
 @Resolver()
 export default class ProductivityAnalyticsResolver {
@@ -210,11 +214,7 @@ export default class ProductivityAnalyticsResolver {
     return result;
   }
 
-  /**
-   * Conversion factor for loads to tonnes based on vehicle type.
-   * Tandem dump trucks typically carry 12-16 tonnes per load.
-   */
-  private static readonly TANDEM_TONNES_PER_LOAD = 14;
+  // Unit conversion constants are imported from @constants/UnitConversions
 
   /**
    * Get material breakdown with flexible grouping dimensions
@@ -237,12 +237,15 @@ export default class ProductivityAnalyticsResolver {
     endDate: Date,
     grouping: MaterialGrouping
   ): Promise<MaterialProductivity[]> {
-    // SQL CASE expression for converting loads to tonnes
+    // SQL CASE expression for converting various units to tonnes
+    // Conversion constants defined in @constants/UnitConversions
     const tonnesConversion = sql<number>`
       CASE
         WHEN LOWER(ms.unit) = 'tonnes' THEN ms.quantity
         WHEN LOWER(ms.unit) = 'loads' AND ms.vehicle_type ILIKE '%tandem%'
-          THEN ms.quantity * ${ProductivityAnalyticsResolver.TANDEM_TONNES_PER_LOAD}
+          THEN ms.quantity * ${TANDEM_TONNES_PER_LOAD}
+        WHEN LOWER(ms.unit) = 'm3'
+          THEN ms.quantity * ${CUBIC_METERS_TO_TONNES}
         ELSE NULL
       END
     `;
@@ -273,6 +276,7 @@ export default class ProductivityAnalyticsResolver {
       .where((eb) =>
         eb.or([
           eb(sql`LOWER(ms.unit)`, "=", "tonnes"),
+          eb(sql`LOWER(ms.unit)`, "=", "m3"),
           eb.and([
             eb(sql`LOWER(ms.unit)`, "=", "loads"),
             eb(sql`ms.vehicle_type`, "ilike", "%tandem%"),
@@ -299,6 +303,7 @@ export default class ProductivityAnalyticsResolver {
       .where((eb) =>
         eb.or([
           eb(sql`LOWER(ms.unit)`, "=", "tonnes"),
+          eb(sql`LOWER(ms.unit)`, "=", "m3"),
           eb.and([
             eb(sql`LOWER(ms.unit)`, "=", "loads"),
             eb(sql`ms.vehicle_type`, "ilike", "%tandem%"),
@@ -546,12 +551,15 @@ export default class ProductivityAnalyticsResolver {
     totalCrewHours: number;
     overallTonnesPerHour: number;
   }> {
-    // SQL CASE expression for converting loads to tonnes
+    // SQL CASE expression for converting various units to tonnes
+    // Conversion constants defined in @constants/UnitConversions
     const tonnesConversion = sql<number>`
       CASE
         WHEN LOWER(ms.unit) = 'tonnes' THEN ms.quantity
         WHEN LOWER(ms.unit) = 'loads' AND ms.vehicle_type ILIKE '%tandem%'
-          THEN ms.quantity * ${ProductivityAnalyticsResolver.TANDEM_TONNES_PER_LOAD}
+          THEN ms.quantity * ${TANDEM_TONNES_PER_LOAD}
+        WHEN LOWER(ms.unit) = 'm3'
+          THEN ms.quantity * ${CUBIC_METERS_TO_TONNES}
         ELSE NULL
       END
     `;
@@ -570,6 +578,7 @@ export default class ProductivityAnalyticsResolver {
       .where((eb) =>
         eb.or([
           eb(sql`LOWER(ms.unit)`, "=", "tonnes"),
+          eb(sql`LOWER(ms.unit)`, "=", "m3"),
           eb.and([
             eb(sql`LOWER(ms.unit)`, "=", "loads"),
             eb(sql`ms.vehicle_type`, "ilike", "%tandem%"),
@@ -595,6 +604,7 @@ export default class ProductivityAnalyticsResolver {
       .where((eb) =>
         eb.or([
           eb(sql`LOWER(ms.unit)`, "=", "tonnes"),
+          eb(sql`LOWER(ms.unit)`, "=", "m3"),
           eb.and([
             eb(sql`LOWER(ms.unit)`, "=", "loads"),
             eb(sql`ms.vehicle_type`, "ilike", "%tandem%"),

@@ -10,16 +10,21 @@
  */
 
 import { db } from "../../db";
-import type {
-  CrewDocument,
-  EmployeeDocument,
-  JobsiteDocument,
-  DailyReportDocument,
-  VehicleDocument,
-  MaterialDocument,
-  CompanyDocument,
-  JobsiteMaterialDocument,
+import {
+  DailyReport,
+  Invoice,
+  MaterialShipment,
+  type CrewDocument,
+  type EmployeeDocument,
+  type JobsiteDocument,
+  type DailyReportDocument,
+  type VehicleDocument,
+  type MaterialDocument,
+  type CompanyDocument,
+  type JobsiteMaterialDocument,
 } from "@models";
+import { JobsiteMaterialCostType } from "@typescript/jobsiteMaterial";
+import dayjs from "dayjs";
 
 /**
  * Upsert a jobsite dimension record
@@ -602,4 +607,99 @@ export async function getJobsiteMaterialRateForDate(
   return result
     ? { rate: parseFloat(result.rate), estimated: result.estimated }
     : { rate: 0, estimated: true };
+}
+
+/**
+ * Calculate the rate for an invoice-type jobsite material
+ *
+ * Replicates MongoDB's getInvoiceMonthRate logic:
+ * 1. Sum all invoice costs for the material in the given month
+ * 2. Sum all shipment quantities for the material in the given month
+ * 3. Return rate = totalCost / totalQuantity
+ */
+async function getInvoiceMonthRate(
+  jobsiteMaterial: JobsiteMaterialDocument,
+  dayInMonth: Date
+): Promise<number> {
+  // If no invoices linked, return 0
+  if (!jobsiteMaterial.invoices || jobsiteMaterial.invoices.length === 0) {
+    return 0;
+  }
+
+  const monthStart = dayjs(dayInMonth).startOf("month").toDate();
+  const monthEnd = dayjs(dayInMonth).endOf("month").toDate();
+
+  // Get all invoices for this material in this month
+  const invoices = await Invoice.find({
+    _id: { $in: jobsiteMaterial.invoices },
+    date: { $gte: monthStart, $lte: monthEnd },
+  });
+
+  let totalCost = 0;
+  for (const invoice of invoices) {
+    totalCost += invoice.cost || 0;
+  }
+
+  // Get all shipments for this material in this month
+  const dailyReports = await DailyReport.find({
+    date: { $gte: monthStart, $lt: monthEnd },
+  });
+
+  let totalQuantity = 0;
+  for (const report of dailyReports) {
+    const shipments = await MaterialShipment.find({
+      _id: { $in: report.materialShipment || [] },
+      jobsiteMaterial: jobsiteMaterial._id,
+      noJobsiteMaterial: false,
+      archivedAt: null,
+    });
+
+    for (const shipment of shipments) {
+      totalQuantity += shipment.quantity || 0;
+    }
+  }
+
+  if (totalQuantity === 0) {
+    return 0;
+  }
+
+  return totalCost / totalQuantity;
+}
+
+/**
+ * Get the rate for a material shipment based on its jobsite material's cost type
+ *
+ * Handles all cost types:
+ * - 'rate': Look up from standard rates in dim_jobsite_material_rate
+ * - 'deliveredRate': Look up from delivered rates using deliveredRateId
+ * - 'invoice': Calculate dynamically from invoices and shipments for the month
+ */
+export async function getMaterialShipmentRate(
+  jobsiteMaterialId: string,
+  jobsiteMaterial: JobsiteMaterialDocument,
+  workDate: Date,
+  deliveredRateId?: string
+): Promise<{ rate: number; estimated: boolean }> {
+  const costType = jobsiteMaterial.costType;
+
+  switch (costType) {
+    case JobsiteMaterialCostType.invoice: {
+      const rate = await getInvoiceMonthRate(jobsiteMaterial, workDate);
+      // Invoice rates are never estimated - they come from actual invoices
+      return { rate, estimated: false };
+    }
+
+    case JobsiteMaterialCostType.deliveredRate: {
+      if (deliveredRateId) {
+        return getJobsiteMaterialRateForDate(jobsiteMaterialId, workDate, deliveredRateId);
+      }
+      // Fall through to standard rate lookup if no deliveredRateId
+      return getJobsiteMaterialRateForDate(jobsiteMaterialId, workDate);
+    }
+
+    case JobsiteMaterialCostType.rate:
+    default: {
+      return getJobsiteMaterialRateForDate(jobsiteMaterialId, workDate, deliveredRateId);
+    }
+  }
 }

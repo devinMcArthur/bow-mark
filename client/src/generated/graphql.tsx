@@ -440,10 +440,14 @@ export type InvoiceSummaryPg = {
 
 export type JobsiteBenchmark = {
   __typename?: 'JobsiteBenchmark';
+  /** Expected T/H based on job size: 1.04 + 0.99 * ln(tonnes) */
+  expectedTonnesPerHour: Scalars['Float'];
   jobcode?: Maybe<Scalars['String']>;
   jobsiteId: Scalars['ID'];
   jobsiteName: Scalars['String'];
   percentFromAverage: Scalars['Float'];
+  /** Percent deviation from size-adjusted expected T/H */
+  percentFromExpected: Scalars['Float'];
   shipmentCount: Scalars['Int'];
   tonnesPerHour: Scalars['Float'];
   totalCrewHours: Scalars['Float'];
@@ -1602,6 +1606,8 @@ export type ProductivityBenchmarkReport = {
   averageTonnesPerHour: Scalars['Float'];
   jobsiteCount: Scalars['Int'];
   jobsites: Array<JobsiteBenchmark>;
+  /** Dynamically calculated regression coefficients for T/H vs ln(tonnes) */
+  regression: RegressionCoefficients;
   totalCrewHours: Scalars['Float'];
   totalTonnes: Scalars['Float'];
   year: Scalars['Int'];
@@ -1932,6 +1938,14 @@ export type RatesData = {
   _id?: InputMaybe<Scalars['ID']>;
   date: Scalars['DateTime'];
   rate: Scalars['Float'];
+};
+
+export type RegressionCoefficients = {
+  __typename?: 'RegressionCoefficients';
+  /** y-intercept of the regression line */
+  intercept: Scalars['Float'];
+  /** Slope of the regression line (per ln(tonnes)) */
+  slope: Scalars['Float'];
 };
 
 export type ReportIssueFullClass = {
@@ -3574,7 +3588,7 @@ export type ProductivityBenchmarksQueryVariables = Exact<{
 }>;
 
 
-export type ProductivityBenchmarksQuery = { __typename?: 'Query', productivityBenchmarks: { __typename?: 'ProductivityBenchmarkReport', year: number, averageTonnesPerHour: number, totalTonnes: number, totalCrewHours: number, jobsiteCount: number, availableMaterials: Array<{ __typename?: 'BenchmarkMaterial', materialName: string, crewType?: string | null, jobTitle?: string | null, key: string, totalTonnes: number, shipmentCount: number }>, jobsites: Array<{ __typename?: 'JobsiteBenchmark', jobsiteId: string, jobsiteName: string, jobcode?: string | null, totalTonnes: number, totalCrewHours: number, tonnesPerHour: number, shipmentCount: number, percentFromAverage: number }> } };
+export type ProductivityBenchmarksQuery = { __typename?: 'Query', productivityBenchmarks: { __typename?: 'ProductivityBenchmarkReport', year: number, averageTonnesPerHour: number, totalTonnes: number, totalCrewHours: number, jobsiteCount: number, availableMaterials: Array<{ __typename?: 'BenchmarkMaterial', materialName: string, crewType?: string | null, jobTitle?: string | null, key: string, totalTonnes: number, shipmentCount: number }>, jobsites: Array<{ __typename?: 'JobsiteBenchmark', jobsiteId: string, jobsiteName: string, jobcode?: string | null, totalTonnes: number, totalCrewHours: number, tonnesPerHour: number, shipmentCount: number, percentFromAverage: number, expectedTonnesPerHour: number, percentFromExpected: number }>, regression: { __typename?: 'RegressionCoefficients', intercept: number, slope: number } } };
 
 export type SearchQueryVariables = Exact<{
   searchString: Scalars['String'];
@@ -10211,6 +10225,12 @@ export const ProductivityBenchmarksDocument = gql`
       tonnesPerHour
       shipmentCount
       percentFromAverage
+      expectedTonnesPerHour
+      percentFromExpected
+    }
+    regression {
+      intercept
+      slope
     }
   }
 }

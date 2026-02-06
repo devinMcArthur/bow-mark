@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"startOfYear":{"$numberInt":"1"}},"name":"startOfYear_1","background":true,"unique":true}],"uuid":"705d88379c53495f88d8f47eefb0140e","collectionName":"jobsiteYearMasterReports","type":"collection"}

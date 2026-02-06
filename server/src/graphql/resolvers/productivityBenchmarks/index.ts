@@ -13,23 +13,25 @@ import {
   ProductivityBenchmarkReport,
   JobsiteBenchmark,
   BenchmarkMaterial,
+  RegressionCoefficients,
 } from "../../types/productivityBenchmarks";
 import { MaterialGrouping } from "../../types/productivityAnalytics";
+import {
+  CUBIC_METERS_TO_TONNES,
+  TANDEM_TONNES_PER_LOAD,
+} from "@constants/UnitConversions";
 
 /**
- * Conversion factor for loads to tonnes based on vehicle type.
- * Tandem dump trucks typically carry 12-16 tonnes per load.
- */
-const TANDEM_TONNES_PER_LOAD = 14;
-
-/**
- * SQL CASE expression for converting loads to tonnes
+ * SQL CASE expression for converting various units to tonnes
+ * Conversion constants defined in @constants/UnitConversions
  */
 const getTonnesConversion = () => sql<number>`
   CASE
     WHEN LOWER(ms.unit) = 'tonnes' THEN ms.quantity
     WHEN LOWER(ms.unit) = 'loads' AND ms.vehicle_type ILIKE '%tandem%'
       THEN ms.quantity * ${TANDEM_TONNES_PER_LOAD}
+    WHEN LOWER(ms.unit) = 'm3'
+      THEN ms.quantity * ${CUBIC_METERS_TO_TONNES}
     ELSE NULL
   END
 `;
@@ -91,7 +93,7 @@ export default class ProductivityBenchmarksResolver {
     const jobsiteStats = this.aggregateByJobsite(shipmentsPerReport, crewHoursMap);
 
     // Calculate overall totals and build results
-    const { jobsites, overallTonnes, overallCrewHours } =
+    const { jobsites, overallTonnes, overallCrewHours, regression } =
       this.buildJobsiteBenchmarks(jobsiteStats);
 
     const averageTonnesPerHour =
@@ -105,6 +107,7 @@ export default class ProductivityBenchmarksResolver {
       jobsiteCount: jobsites.length,
       availableMaterials,
       jobsites,
+      regression,
     };
   }
 
@@ -147,6 +150,7 @@ export default class ProductivityBenchmarksResolver {
       .where((eb) =>
         eb.or([
           eb(sql`LOWER(ms.unit)`, "=", "tonnes"),
+          eb(sql`LOWER(ms.unit)`, "=", "m3"),
           eb.and([
             eb(sql`LOWER(ms.unit)`, "=", "loads"),
             eb(sql`ms.vehicle_type`, "ilike", "%tandem%"),
@@ -337,6 +341,7 @@ export default class ProductivityBenchmarksResolver {
       .where((eb) =>
         eb.or([
           eb(sql`LOWER(ms.unit)`, "=", "tonnes"),
+          eb(sql`LOWER(ms.unit)`, "=", "m3"),
           eb.and([
             eb(sql`LOWER(ms.unit)`, "=", "loads"),
             eb(sql`ms.vehicle_type`, "ilike", "%tandem%"),
@@ -480,7 +485,71 @@ export default class ProductivityBenchmarksResolver {
   }
 
   /**
-   * Build final jobsite benchmarks with percent from average
+   * Calculate logarithmic regression coefficients from jobsite data
+   * Formula: T/H = intercept + slope * ln(totalTonnes)
+   *
+   * Calculates dynamically from current dataset so coefficients stay accurate
+   * as data changes or filters are applied.
+   */
+  private calculateRegressionCoefficients(
+    jobsites: Array<{ totalTonnes: number; tonnesPerHour: number }>
+  ): { intercept: number; slope: number } {
+    // Filter to valid data points (positive tonnes and T/H)
+    const validPoints = jobsites.filter(
+      (j) => j.totalTonnes > 0 && j.tonnesPerHour > 0
+    );
+
+    if (validPoints.length < 2) {
+      // Not enough data for regression, return neutral coefficients
+      return { intercept: 0, slope: 0 };
+    }
+
+    // Transform x to ln(tonnes)
+    const points = validPoints.map((j) => ({
+      x: Math.log(j.totalTonnes),
+      y: j.tonnesPerHour,
+    }));
+
+    // Calculate means
+    const n = points.length;
+    const meanX = points.reduce((sum, p) => sum + p.x, 0) / n;
+    const meanY = points.reduce((sum, p) => sum + p.y, 0) / n;
+
+    // Calculate slope: Σ((x - x̄)(y - ȳ)) / Σ((x - x̄)²)
+    let numerator = 0;
+    let denominator = 0;
+    for (const p of points) {
+      const xDiff = p.x - meanX;
+      const yDiff = p.y - meanY;
+      numerator += xDiff * yDiff;
+      denominator += xDiff * xDiff;
+    }
+
+    // Avoid division by zero (all x values identical)
+    if (denominator === 0) {
+      return { intercept: meanY, slope: 0 };
+    }
+
+    const slope = numerator / denominator;
+    const intercept = meanY - slope * meanX;
+
+    return { intercept, slope };
+  }
+
+  /**
+   * Calculate expected T/H based on job size using regression coefficients
+   */
+  private calculateExpectedTonnesPerHour(
+    totalTonnes: number,
+    intercept: number,
+    slope: number
+  ): number {
+    if (totalTonnes <= 0) return 0;
+    return intercept + slope * Math.log(totalTonnes);
+  }
+
+  /**
+   * Build final jobsite benchmarks with percent from average and size-adjusted metrics
    */
   private buildJobsiteBenchmarks(
     jobsiteStats: Map<
@@ -506,11 +575,13 @@ export default class ProductivityBenchmarksResolver {
       totalTonnes: number;
       totalCrewHours: number;
       shipmentCount: number;
+      tonnesPerHour: number;
     }> = [];
 
     for (const stats of jobsiteStats.values()) {
       if (stats.totalTonnes > 0 && stats.totalCrewHours > 0) {
-        jobsitesWithData.push(stats);
+        const tonnesPerHour = stats.totalTonnes / stats.totalCrewHours;
+        jobsitesWithData.push({ ...stats, tonnesPerHour });
         overallTonnes += stats.totalTonnes;
         overallCrewHours += stats.totalCrewHours;
       }
@@ -519,16 +590,30 @@ export default class ProductivityBenchmarksResolver {
     const averageTonnesPerHour =
       overallCrewHours > 0 ? overallTonnes / overallCrewHours : 0;
 
+    // Calculate regression coefficients from current dataset
+    const { intercept, slope } =
+      this.calculateRegressionCoefficients(jobsitesWithData);
+
     const jobsites: JobsiteBenchmark[] = jobsitesWithData
       .map((stats) => {
-        const tonnesPerHour =
-          stats.totalCrewHours > 0
-            ? stats.totalTonnes / stats.totalCrewHours
-            : 0;
-
         const percentFromAverage =
           averageTonnesPerHour > 0
-            ? ((tonnesPerHour - averageTonnesPerHour) / averageTonnesPerHour) *
+            ? ((stats.tonnesPerHour - averageTonnesPerHour) /
+                averageTonnesPerHour) *
+              100
+            : 0;
+
+        // Size-adjusted expected T/H using dynamically calculated regression
+        const expectedTonnesPerHour = this.calculateExpectedTonnesPerHour(
+          stats.totalTonnes,
+          intercept,
+          slope
+        );
+
+        const percentFromExpected =
+          expectedTonnesPerHour > 0
+            ? ((stats.tonnesPerHour - expectedTonnesPerHour) /
+                expectedTonnesPerHour) *
               100
             : 0;
 
@@ -538,13 +623,15 @@ export default class ProductivityBenchmarksResolver {
           jobcode: stats.jobcode || undefined,
           totalTonnes: stats.totalTonnes,
           totalCrewHours: stats.totalCrewHours,
-          tonnesPerHour,
+          tonnesPerHour: stats.tonnesPerHour,
           shipmentCount: stats.shipmentCount,
           percentFromAverage,
+          expectedTonnesPerHour,
+          percentFromExpected,
         };
       })
       .sort((a, b) => b.tonnesPerHour - a.tonnesPerHour);
 
-    return { jobsites, overallTonnes, overallCrewHours };
+    return { jobsites, overallTonnes, overallCrewHours, regression: { intercept, slope } };
   }
 }

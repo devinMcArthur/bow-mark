@@ -28,4 +28,5 @@ export {
   getEmployeeRateForDate,
   getVehicleRateForDate,
   getJobsiteMaterialRateForDate,
+  getMaterialShipmentRate,
 } from "./dimensions";
