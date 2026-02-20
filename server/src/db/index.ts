@@ -10,7 +10,7 @@ const pool = new Pool({
   port: parseInt(process.env.POSTGRES_PORT || "5432"),
   user: process.env.POSTGRES_USER || "bowmark",
   password: process.env.POSTGRES_PASSWORD || "devpassword",
-  database: process.env.POSTGRES_DB || "bowmark_reports",
+  database: process.env.POSTGRES_DB || "bowmark_reports_paving",
   max: process.env.NODE_ENV === "production" ? 20 : 10,
 });
 

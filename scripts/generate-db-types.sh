@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Default to local dev database
-DATABASE_URL="${DATABASE_URL:-postgres://bowmark:devpassword@localhost:5432/bowmark_reports}"
+DATABASE_URL="${DATABASE_URL:-postgres://bowmark:devpassword@localhost:5432/bowmark_reports_paving}"
 
 echo "Generating Kysely types from database..."
 echo "Database: ${DATABASE_URL%%@*}@****"

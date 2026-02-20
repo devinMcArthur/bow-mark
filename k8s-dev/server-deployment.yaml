@@ -25,6 +25,9 @@ spec:
             limits:
               cpu: "1000m"
               memory: "2000Mi"
+          envFrom:
+            - configMapRef:
+                name: app-config
           env:
             - name: NODE_ENV
               value: development

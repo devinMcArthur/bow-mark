@@ -17,6 +17,8 @@ import {
   Input,
   InputGroup,
   InputLeftElement,
+  NumberInput,
+  NumberInputField,
   Select,
   SimpleGrid,
   Spinner,
@@ -82,6 +84,9 @@ const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
   const [sortColumn, setSortColumn] =
     React.useState<SortColumn>("percentFromExpected");
   const [sortDirection, setSortDirection] = React.useState<SortDirection>("desc");
+
+  // T/H estimation
+  const [tonneEstimate, setTonneEstimate] = React.useState("");
 
   // Jobsite highlight state
   const [highlightedJobsiteId, setHighlightedJobsiteId] = React.useState<string | null>(null);
@@ -476,7 +481,7 @@ const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
           </HStack>
         }
       >
-        <SimpleGrid columns={[2, 4]} spacing={4}>
+        <SimpleGrid columns={[2, 5]} spacing={4}>
           <Stat>
             <StatLabel>Average T/H</StatLabel>
             <StatNumber color="blue.500">
@@ -503,6 +508,33 @@ const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
             <StatLabel>Jobsites</StatLabel>
             <StatNumber>{report.jobsiteCount}</StatNumber>
             <StatHelpText>With data</StatHelpText>
+          </Stat>
+
+          <Stat>
+            <StatLabel>Estimate T/H</StatLabel>
+            <NumberInput
+              size="sm"
+              min={0}
+              value={tonneEstimate}
+              onChange={(val) => setTonneEstimate(val)}
+            >
+              <NumberInputField placeholder="Enter tonnes..." />
+            </NumberInput>
+            {(() => {
+              const val = parseFloat(tonneEstimate);
+              if (!val || val <= 0) return <StatHelpText>Enter job tonnes</StatHelpText>;
+              const estimated =
+                report.regression.intercept +
+                report.regression.slope * Math.log(val);
+              return (
+                <StatNumber color="blue.500" fontSize="xl" mt={1}>
+                  {estimated > 0 ? estimated.toFixed(2) : "N/A"}{" "}
+                  <Text as="span" fontSize="sm" color="gray.500">
+                    T/H
+                  </Text>
+                </StatNumber>
+              );
+            })()}
           </Stat>
         </SimpleGrid>
       </Card>

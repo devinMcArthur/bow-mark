@@ -25,12 +25,14 @@ spec:
         - name: POSTGRES_PASSWORD
           value: "devpassword"
         - name: POSTGRES_DB
-          value: "bowmark_reports"
+          value: "bowmark_reports_paving"
         - name: PGDATA
           value: "/var/lib/postgresql/data/pgdata"
         volumeMounts:
         - name: postgres-data
           mountPath: /var/lib/postgresql/data
+        - name: postgres-init
+          mountPath: /docker-entrypoint-initdb.d
         resources:
           requests:
             memory: "256Mi"
@@ -53,6 +55,9 @@ spec:
       - name: postgres-data
         emptyDir:
           sizeLimit: 2Gi
+      - name: postgres-init
+        configMap:
+          name: postgres-init-scripts
 ---
 apiVersion: v1
 kind: Service

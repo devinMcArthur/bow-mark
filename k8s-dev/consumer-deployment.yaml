@@ -16,11 +16,12 @@ spec:
         - name: consumer
           image: itsdevin/bow-mark-server
           command: ["npm", "run", "start:consumer-dev"]
+          envFrom:
+            - configMapRef:
+                name: app-config
           env:
             - name: NODE_ENV
               value: development
-            - name: MONGO_URI
-              value: mongodb://mongo:27017/paving
             - name: RABBITMQ_HOST
               value: rabbitmq
             - name: RABBITMQ_PORT
@@ -39,5 +40,3 @@ spec:
               value: bowmark
             - name: POSTGRES_PASSWORD
               value: devpassword
-            - name: POSTGRES_DB
-              value: bowmark_reports
