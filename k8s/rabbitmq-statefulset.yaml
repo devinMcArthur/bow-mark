@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+spec:
+  serviceName: rabbitmq
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      nodeSelector:
+        doks.digitalocean.com/node-pool: default-pool
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3-management
+          ports:
+            - containerPort: 5672
+              name: amqp
+            - containerPort: 15672
+              name: management
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: user
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: password
+            - name: RABBITMQ_DEFAULT_VHOST
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: vhost
+          volumeMounts:
+            - name: rabbitmq-data
+              mountPath: /var/lib/rabbitmq
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            exec:
+              command:
+                - rabbitmq-diagnostics
+                - ping
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command:
+                - rabbitmq-diagnostics
+                - status
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: rabbitmq-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: do-block-storage
+        resources:
+          requests:
+            storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+spec:
+  clusterIP: None
+  selector:
+    app: rabbitmq
+  ports:
+    - port: 5672
+      targetPort: 5672
+      name: amqp
+    - port: 15672
+      targetPort: 15672
+      name: management
