@@ -373,61 +373,63 @@ async function main() {
 
   console.log(`\nProcessing ${toProcess} reports (concurrency=${CONCURRENCY})...\n`);
 
-  const cursor = DailyReport.find(query)
-    .populate("jobsite")
-    .populate("crew")
-    .sort({ date: 1 })
-    .limit(limit || 0)
-    .cursor();
+  // Use paginated batch fetching instead of a cursor. MongoDB Atlas does not
+  // honour noCursorTimeout for regular database users, so any long-lived cursor
+  // will be killed after ~10 minutes. Fetching fresh batches avoids this entirely.
+  const FETCH_BATCH = 100;
+  let offset = 0;
 
-  // Prevent MongoDB Atlas from expiring the cursor during long processing stretches.
-  // With CONCURRENCY>1, expensive reports (invoice-type materials with N+1 queries)
-  // can hold all slots for >10 minutes, leaving the cursor idle and triggering expiry.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (cursor as any).addCursorFlag("noCursorTimeout", true);
+  while (true) {
+    if (limit && processed >= limit) break;
 
-  // Sliding window: keep up to CONCURRENCY tasks in flight at once.
-  const inFlight: Promise<void>[] = [];
+    const batch = await DailyReport.find(query)
+      .populate("jobsite")
+      .populate("crew")
+      .sort({ date: 1 })
+      .skip(offset)
+      .limit(FETCH_BATCH)
+      .exec() as Array<DailyReportDocument & { jobsite: JobsiteDocument; crew: CrewDocument }>;
 
-  for await (const doc of cursor) {
-    const dailyReport = doc as DailyReportDocument & {
-      jobsite: JobsiteDocument;
-      crew: CrewDocument;
-    };
+    if (batch.length === 0) break;
 
-    if (!dailyReport.jobsite || !dailyReport.crew) {
-      console.log(`Skipping ${dailyReport._id} - missing jobsite or crew`);
-      continue;
+    // Sliding window: keep up to CONCURRENCY tasks in flight at once.
+    const inFlight: Promise<void>[] = [];
+
+    for (const dailyReport of batch) {
+      if (!dailyReport.jobsite || !dailyReport.crew) {
+        console.log(`Skipping ${dailyReport._id} - missing jobsite or crew`);
+        continue;
+      }
+
+      const task = syncDailyReport(dailyReport)
+        .then(() => {
+          processed++;
+          if (processed % 10 === 0) {
+            const percent = ((processed / toProcess) * 100).toFixed(1);
+            console.log(
+              `Progress: ${processed}/${toProcess} (${percent}%) - ` +
+              `EW: ${stats.employeeWork}, VW: ${stats.vehicleWork}, MS: ${stats.materialShipments}, ` +
+              `NC: ${stats.nonCostedMaterials}, TR: ${stats.trucking}, PR: ${stats.production}, Errors: ${stats.errors}`
+            );
+          }
+        })
+        .catch((error) => {
+          console.error(`Error processing DailyReport ${dailyReport._id}:`, error);
+          stats.errors++;
+        });
+
+      inFlight.push(task);
+
+      if (inFlight.length >= CONCURRENCY) {
+        await inFlight.shift();
+      }
     }
 
-    const task = syncDailyReport(dailyReport)
-      .then(() => {
-        processed++;
-        if (processed % 10 === 0) {
-          const percent = ((processed / toProcess) * 100).toFixed(1);
-          console.log(
-            `Progress: ${processed}/${toProcess} (${percent}%) - ` +
-            `EW: ${stats.employeeWork}, VW: ${stats.vehicleWork}, MS: ${stats.materialShipments}, ` +
-            `NC: ${stats.nonCostedMaterials}, TR: ${stats.trucking}, PR: ${stats.production}, Errors: ${stats.errors}`
-          );
-        }
-      })
-      .catch((error) => {
-        console.error(`Error processing DailyReport ${dailyReport._id}:`, error);
-        stats.errors++;
-      });
+    // Drain remaining tasks before fetching the next batch.
+    await Promise.all(inFlight);
 
-    inFlight.push(task);
-
-    // Once we reach max concurrency, wait for the oldest task to finish
-    // before accepting a new one (preserves bounded memory usage).
-    if (inFlight.length >= CONCURRENCY) {
-      await inFlight.shift();
-    }
+    offset += batch.length;
   }
-
-  // Drain any remaining in-flight tasks.
-  await Promise.all(inFlight);
 
   // Sync invoices (separate from daily reports)
   console.log("\nSyncing invoices...");
