@@ -15,6 +15,7 @@ spec:
       containers:
         - name: server
           image: itsdevin/bow-mark-server
+          command: ["npm", "run", "start:dev"]
           ports:
             - containerPort: 8080
           resources:
@@ -24,6 +25,9 @@ spec:
             limits:
               cpu: "1000m"
               memory: "2000Mi"
+          envFrom:
+            - configMapRef:
+                name: app-config
           env:
             - name: NODE_ENV
               value: development
@@ -31,3 +35,13 @@ spec:
               value: thisistest
             - name: APP_TYPE
               value: api
+            - name: RABBITMQ_HOST
+              value: rabbitmq
+            - name: RABBITMQ_PORT
+              value: "5672"
+            - name: RABBITMQ_USER
+              value: bowmark
+            - name: RABBITMQ_PASSWORD
+              value: devpassword
+            - name: RABBITMQ_VHOST
+              value: bowmark

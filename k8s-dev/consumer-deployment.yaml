@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consumer-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: consumer
+  template:
+    metadata:
+      labels:
+        component: consumer
+    spec:
+      containers:
+        - name: consumer
+          image: itsdevin/bow-mark-server
+          command: ["npm", "run", "start:consumer-dev"]
+          envFrom:
+            - configMapRef:
+                name: app-config
+          env:
+            - name: NODE_ENV
+              value: development
+            - name: RABBITMQ_HOST
+              value: rabbitmq
+            - name: RABBITMQ_PORT
+              value: "5672"
+            - name: RABBITMQ_USER
+              value: bowmark
+            - name: RABBITMQ_PASSWORD
+              value: devpassword
+            - name: RABBITMQ_VHOST
+              value: bowmark
+            - name: POSTGRES_HOST
+              value: postgres
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              value: bowmark
+            - name: POSTGRES_PASSWORD
+              value: devpassword

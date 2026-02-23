@@ -1,0 +1,130 @@
+#!/bin/bash
+# .git/hooks/post-checkout
+#
+# Automatically handles database state when switching branches.
+# Reminds you to restore if dumps differ, or auto-restores if configured.
+#
+# Installation:
+#   cp scripts/git-hooks/post-checkout .git/hooks/
+#   chmod +x .git/hooks/post-checkout
+#
+# Configuration (optional - set in .git/config or environment):
+#   git config hooks.autoRestoreDb true    # Auto-restore without prompting
+#   git config hooks.silentDbHook true     # Suppress all output
+
+OLD_REF=$1
+NEW_REF=$2
+CHECKOUT_TYPE=$3  # 1 = branch checkout, 0 = file checkout
+
+# Only run on branch checkout, not file checkout
+if [ "$CHECKOUT_TYPE" != "1" ]; then
+    exit 0
+fi
+
+# Skip if same commit (e.g., creating a new branch at same point)
+if [ "$OLD_REF" = "$NEW_REF" ]; then
+    exit 0
+fi
+
+# Configuration
+AUTO_RESTORE=$(git config --bool hooks.autoRestoreDb 2>/dev/null || echo "false")
+SILENT=$(git config --bool hooks.silentDbHook 2>/dev/null || echo "false")
+
+# Paths
+SCRIPT_DIR="$(git rev-parse --show-toplevel)/scripts"
+DUMP_DIR="$(git rev-parse --show-toplevel)/dev-data/mongodb-dump"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+# Helper to print (respects SILENT setting)
+print_msg() {
+    if [ "$SILENT" != "true" ]; then
+        echo -e "$1"
+    fi
+}
+
+# Get branch names for display
+OLD_BRANCH=$(git name-rev --name-only "$OLD_REF" 2>/dev/null || echo "unknown")
+NEW_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+
+# Check if dump directory exists in current (new) branch
+if [ ! -d "$DUMP_DIR" ]; then
+    # No dump in this branch - nothing to do
+    exit 0
+fi
+
+# Check if dumps are different between old and new refs
+DUMP_CHANGED=false
+if git diff --quiet "$OLD_REF" "$NEW_REF" -- "dev-data/mongodb-dump/" 2>/dev/null; then
+    DUMP_CHANGED=false
+else
+    DUMP_CHANGED=true
+fi
+
+# If dumps haven't changed, nothing to do
+if [ "$DUMP_CHANGED" = "false" ]; then
+    exit 0
+fi
+
+# Dumps are different - need to handle this
+print_msg ""
+print_msg "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+print_msg "${BLUE}  ${BOLD}Database State Change Detected${NC}"
+print_msg "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+print_msg ""
+print_msg "  Branch: ${YELLOW}${OLD_BRANCH}${NC} → ${GREEN}${NEW_BRANCH}${NC}"
+print_msg ""
+
+# Show what changed in the dump
+CHANGED_FILES=$(git diff --name-only "$OLD_REF" "$NEW_REF" -- "dev-data/mongodb-dump/" 2>/dev/null | wc -l | tr -d ' ')
+print_msg "  ${CHANGED_FILES} file(s) changed in mongodb-dump/"
+print_msg ""
+
+# Check if MongoDB is running
+MONGO_RUNNING=false
+if kubectl get pods -l app=mongo 2>/dev/null | grep -q Running; then
+    MONGO_RUNNING=true
+fi
+
+if [ "$MONGO_RUNNING" = "true" ]; then
+    if [ "$AUTO_RESTORE" = "true" ]; then
+        print_msg "${GREEN}  Auto-restoring database...${NC}"
+        print_msg ""
+        if [ -x "$SCRIPT_DIR/restore-dump.sh" ]; then
+            # Run restore non-interactively
+            yes | "$SCRIPT_DIR/restore-dump.sh" 2>/dev/null
+            if [ $? -eq 0 ]; then
+                print_msg "${GREEN}  ✓ Database restored successfully${NC}"
+            else
+                print_msg "${RED}  ✗ Database restore failed${NC}"
+                print_msg "    Run manually: ./scripts/restore-dump.sh"
+            fi
+        else
+            print_msg "${RED}  ✗ restore-dump.sh not found${NC}"
+        fi
+    else
+        print_msg "${YELLOW}  MongoDB is running. To load this branch's data:${NC}"
+        print_msg ""
+        print_msg "    ${BOLD}./scripts/restore-dump.sh${NC}"
+        print_msg ""
+        print_msg "  ${BLUE}Tip:${NC} Enable auto-restore with:"
+        print_msg "    git config hooks.autoRestoreDb true"
+    fi
+else
+    print_msg "  MongoDB is not running."
+    print_msg ""
+    print_msg "  When you start your dev environment, restore with:"
+    print_msg "    ${BOLD}./scripts/restore-dump.sh${NC}"
+fi
+
+print_msg ""
+print_msg "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+print_msg ""
+
+exit 0

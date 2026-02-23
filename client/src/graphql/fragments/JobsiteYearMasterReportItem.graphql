@@ -2,6 +2,11 @@ fragment JobsiteYearMasterReportItemSnippet on JobsiteYearMasterReportItemClass 
   _id
   report {
     _id
+    jobsite {
+      _id
+      name
+      jobcode
+    }
   }
   summary {
     ...OnSiteSummaryReportSnippet

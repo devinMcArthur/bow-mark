@@ -12,4 +12,6 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["npm", "run", "start:dev"]
+# No default CMD - each deployment specifies its command:
+#   server/worker: npm run start:dev
+#   consumer: npm run start:consumer-dev

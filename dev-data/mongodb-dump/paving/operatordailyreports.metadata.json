@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"fe79ae98a39c40b4af287bb3a9e789d8","collectionName":"operatordailyreports","type":"collection"}

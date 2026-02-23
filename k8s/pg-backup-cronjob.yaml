@@ -1,0 +1,110 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pg-backup
+spec:
+  schedule: "0 8 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          nodeSelector:
+            doks.digitalocean.com/node-pool: default-pool
+          containers:
+            - name: pg-backup
+              image: postgres:16
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -euo pipefail
+
+                  # Install AWS CLI for DigitalOcean Spaces (S3-compatible)
+                  apt-get update -qq && apt-get install -y -qq awscli > /dev/null 2>&1
+
+                  DATE=$(date +%Y-%m-%d_%H%M%S)
+                  RETENTION_DAYS=30
+
+                  export AWS_ACCESS_KEY_ID=$SPACES_KEY
+                  export AWS_SECRET_ACCESS_KEY=$SPACES_SECRET
+                  S3_ENDPOINT="https://${SPACES_REGION}.digitaloceanspaces.com"
+                  S3_BUCKET="s3://${SPACES_NAME}"
+
+                  for DB_NAME in bowmark_reports_paving bowmark_reports_concrete; do
+                    echo "=== Backing up $DB_NAME ==="
+
+                    DUMP_FILE="/tmp/${DB_NAME}_${DATE}.pgdump"
+
+                    pg_dump -h "$PGHOST" -U "$PGUSER" -Fc "$DB_NAME" > "$DUMP_FILE"
+
+                    DUMP_SIZE=$(du -h "$DUMP_FILE" | cut -f1)
+                    echo "Dump size: $DUMP_SIZE"
+
+                    aws s3 cp "$DUMP_FILE" \
+                      "${S3_BUCKET}/pg-backups/${DB_NAME}/${DB_NAME}_${DATE}.pgdump" \
+                      --endpoint-url "$S3_ENDPOINT"
+
+                    echo "Uploaded to Spaces: pg-backups/${DB_NAME}/"
+
+                    rm -f "$DUMP_FILE"
+
+                    # Clean up backups older than retention period
+                    CUTOFF_DATE=$(date -d "-${RETENTION_DAYS} days" +%Y-%m-%d)
+                    echo "Cleaning up backups older than $CUTOFF_DATE..."
+
+                    aws s3 ls "${S3_BUCKET}/pg-backups/${DB_NAME}/" \
+                      --endpoint-url "$S3_ENDPOINT" | while read -r LINE; do
+                      FILE_DATE=$(echo "$LINE" | awk '{print $NF}' | grep -oP '\d{4}-\d{2}-\d{2}' || true)
+                      FILE_NAME=$(echo "$LINE" | awk '{print $NF}')
+                      if [ -n "$FILE_DATE" ] && [ "$FILE_DATE" \< "$CUTOFF_DATE" ]; then
+                        echo "Deleting old backup: $FILE_NAME"
+                        aws s3 rm "${S3_BUCKET}/pg-backups/${DB_NAME}/${FILE_NAME}" \
+                          --endpoint-url "$S3_ENDPOINT"
+                      fi
+                    done
+
+                    echo "=== Done with $DB_NAME ==="
+                  done
+
+                  echo "All backups complete."
+              env:
+                - name: PGHOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres
+                      key: host
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres
+                      key: user
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres
+                      key: password
+                - name: SPACES_NAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: spaces
+                      key: name
+                - name: SPACES_REGION
+                  valueFrom:
+                    secretKeyRef:
+                      name: spaces
+                      key: region
+                - name: SPACES_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: spaces
+                      key: key
+                - name: SPACES_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: spaces
+                      key: secret
+          restartPolicy: OnFailure

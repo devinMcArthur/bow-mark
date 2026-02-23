@@ -13,5 +13,5 @@ spec:
             image: bitnami/kubectl
             command: ["/bin/sh", "-c"]
             args:
-              - "kubectl rollout restart deployment worker-deployment && kubectl rollout restart deployment worker-concrete-deployment"
+              - "kubectl rollout restart deployment worker-deployment && kubectl rollout restart deployment worker-concrete-deployment && kubectl rollout restart deployment consumer-deployment && kubectl rollout restart deployment consumer-concrete-deployment"
           restartPolicy: OnFailure

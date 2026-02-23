@@ -10,6 +10,7 @@ import errorHandler from "@utils/errorHandler";
 import { Types } from "mongoose";
 import { Field, ID, ObjectType } from "type-graphql";
 import { VehicleObjectClass } from "./subDocuments";
+import { publishMaterialShipmentChange } from "../../../rabbitmq/publisher";
 
 @ObjectType()
 @post<MaterialShipmentDocument>("save", async (materialShipment) => {
@@ -18,12 +19,26 @@ import { VehicleObjectClass } from "./subDocuments";
   } catch (e) {
     errorHandler("Jobsite Material post save error", e);
   }
+
+  // Publish to RabbitMQ for PostgreSQL sync
+  try {
+    await publishMaterialShipmentChange("updated", materialShipment._id.toString());
+  } catch (e) {
+    errorHandler("MaterialShipment RabbitMQ publish error", e);
+  }
 })
 @post<MaterialShipmentDocument>("remove", async (materialShipment) => {
   try {
     await materialShipment.requestReportUpdate();
   } catch (e) {
     errorHandler("Jobsite Material post remove error", e);
+  }
+
+  // Publish deletion to RabbitMQ
+  try {
+    await publishMaterialShipmentChange("deleted", materialShipment._id.toString());
+  } catch (e) {
+    errorHandler("MaterialShipment RabbitMQ publish error", e);
   }
 })
 export class MaterialShipmentSchema {

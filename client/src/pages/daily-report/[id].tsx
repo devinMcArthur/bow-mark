@@ -17,7 +17,7 @@ const DailyReport: PageDailyReportSsrComp = ({ data }) => {
       <Breadcrumbs
         crumbs={[
           {
-            title: "Daily Reports",
+            title: "Reports",
             link: "/daily-reports",
           },
           {

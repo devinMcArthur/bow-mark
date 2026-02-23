@@ -1,0 +1,58 @@
+query JobsiteProductivity(
+  $jobsiteMongoId: String!
+  $dateRange: DateRangeInput!
+  $includeCrewHoursDetail: Boolean
+  $materialGrouping: MaterialGrouping
+) {
+  jobsiteProductivity(
+    jobsiteMongoId: $jobsiteMongoId
+    dateRange: $dateRange
+    includeCrewHoursDetail: $includeCrewHoursDetail
+    materialGrouping: $materialGrouping
+  ) {
+    jobsiteId
+    jobsiteName
+    jobcode
+    startDate
+    endDate
+    laborTypeHours {
+      jobTitle
+      crewType
+      totalManHours
+      avgHoursPerDay
+      dayCount
+      employeeCount
+    }
+    materialProductivity {
+      materialName
+      crewType
+      jobTitle
+      totalTonnes
+      totalCrewHours
+      tonnesPerHour
+      shipmentCount
+      dailyReports {
+        id
+        date
+      }
+      dailyBreakdown {
+        date
+        dailyReportId
+        tonnes
+        crewHours
+        tonnesPerHour
+      }
+    }
+    overallTonnesPerHour
+    totalTonnes
+    totalCrewHours
+    crewHoursDetail {
+      date
+      crewType
+      avgCrewHours
+      totalManHours
+      totalEmployees
+      crewCount
+    }
+  }
+}

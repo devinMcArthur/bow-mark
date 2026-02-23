@@ -24,6 +24,13 @@ mv ./k8s/worker-deployment.yaml.out ./k8s/worker-deployment.yaml
 envsubst <./k8s/worker-concrete-deployment.yaml >./k8s/worker-concrete-deployment.yaml.out
 mv ./k8s/worker-concrete-deployment.yaml.out ./k8s/worker-concrete-deployment.yaml
 
+# consumers
+envsubst <./k8s/consumer-deployment.yaml >./k8s/consumer-deployment.yaml.out
+mv ./k8s/consumer-deployment.yaml.out ./k8s/consumer-deployment.yaml
+
+envsubst <./k8s/consumer-concrete-deployment.yaml >./k8s/consumer-concrete-deployment.yaml.out
+mv ./k8s/consumer-concrete-deployment.yaml.out ./k8s/consumer-concrete-deployment.yaml
+
 envsubst <./k8s/client-deployment.yaml >./k8s/client-deployment.yaml.out
 mv ./k8s/client-deployment.yaml.out ./k8s/client-deployment.yaml
 
@@ -36,6 +43,11 @@ mv ./k8s/client-concrete-deployment.yaml.out ./k8s/client-concrete-deployment.ya
 
 # sanity check
 ./kubectl get ns
+
+# Create/update migrations ConfigMap from SQL files
+./kubectl create configmap pg-migrations \
+  --from-file=./db/migrations/ \
+  --dry-run=client -o yaml | ./kubectl apply -f -
 
 # apply
 ./kubectl apply -f ./k8s/

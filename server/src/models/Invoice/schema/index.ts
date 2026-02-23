@@ -1,10 +1,28 @@
-import { prop, Ref } from "@typegoose/typegoose";
+import { post, prop, Ref } from "@typegoose/typegoose";
 import { Types } from "mongoose";
 import { Field, ID, ObjectType } from "type-graphql";
-import { CompanyClass } from "@models";
+import { CompanyClass, InvoiceDocument } from "@models";
 import SchemaVersions from "@constants/SchemaVersions";
+import errorHandler from "@utils/errorHandler";
+import { publishInvoiceChange } from "../../../rabbitmq/publisher";
 
 @ObjectType()
+@post<InvoiceDocument>("save", async (invoice) => {
+  // Publish to RabbitMQ for PostgreSQL sync
+  try {
+    await publishInvoiceChange("updated", invoice._id.toString());
+  } catch (e) {
+    errorHandler("Invoice RabbitMQ publish error", e);
+  }
+})
+@post<InvoiceDocument>("remove", async (invoice) => {
+  // Publish deletion to RabbitMQ
+  try {
+    await publishInvoiceChange("deleted", invoice._id.toString());
+  } catch (e) {
+    errorHandler("Invoice RabbitMQ publish error", e);
+  }
+})
 export class InvoiceSchema {
   @Field(() => ID, { nullable: false })
   public _id!: Types.ObjectId;

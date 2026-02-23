@@ -1,0 +1,120 @@
+query JobsiteYearReportPG($jobsiteMongoId: String!, $year: Int!) {
+  jobsiteYearReportPG(jobsiteMongoId: $jobsiteMongoId, year: $year) {
+    _id
+    startOfYear
+    jobsite {
+      _id
+      name
+      jobcode
+    }
+    crewTypes
+    summary {
+      externalExpenseInvoiceValue
+      internalExpenseInvoiceValue
+      accrualExpenseInvoiceValue
+      externalRevenueInvoiceValue
+      internalRevenueInvoiceValue
+      accrualRevenueInvoiceValue
+    }
+    dayReports {
+      id
+      date
+      crewTypes
+      summary {
+        employeeHours
+        employeeCost
+        vehicleHours
+        vehicleCost
+        materialQuantity
+        materialCost
+        nonCostedMaterialQuantity
+        truckingQuantity
+        truckingHours
+        truckingCost
+        crewTypeSummaries {
+          crewType
+          employeeHours
+          employeeCost
+          vehicleHours
+          vehicleCost
+          materialQuantity
+          materialCost
+          nonCostedMaterialQuantity
+          truckingQuantity
+          truckingHours
+          truckingCost
+        }
+      }
+      employees {
+        id
+        employeeId
+        employeeName
+        hours
+        cost
+        crewType
+      }
+      vehicles {
+        id
+        vehicleId
+        vehicleName
+        vehicleCode
+        hours
+        cost
+        crewType
+      }
+      materials {
+        id
+        materialName
+        supplierName
+        quantity
+        unit
+        rate
+        cost
+        estimated
+        crewType
+      }
+      nonCostedMaterials {
+        id
+        materialName
+        supplierName
+        quantity
+        unit
+        crewType
+      }
+      trucking {
+        id
+        truckingType
+        quantity
+        hours
+        rate
+        rateType
+        cost
+        crewType
+      }
+    }
+    expenseInvoices {
+      id
+      invoiceNumber
+      companyName
+      amount
+      description
+      invoiceType
+      date
+    }
+    revenueInvoices {
+      id
+      invoiceNumber
+      companyName
+      amount
+      description
+      invoiceType
+      date
+    }
+    issues {
+      type
+      entityId
+      entityName
+      count
+    }
+  }
+}

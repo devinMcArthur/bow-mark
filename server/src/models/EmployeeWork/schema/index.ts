@@ -1,5 +1,6 @@
 import SchemaVersions from "@constants/SchemaVersions";
 import { DailyReportClass, EmployeeClass, EmployeeWorkDocument } from "@models";
+import { publishEmployeeWorkChange } from "../../../rabbitmq/publisher";
 import { post, prop, Ref } from "@typegoose/typegoose";
 import errorHandler from "@utils/errorHandler";
 import { Types } from "mongoose";
@@ -12,12 +13,26 @@ import { Field, ID, ObjectType } from "type-graphql";
   } catch (e) {
     errorHandler("Employee work post save error", e);
   }
+
+  // Publish to RabbitMQ for PostgreSQL sync
+  try {
+    await publishEmployeeWorkChange("updated", employeeWork._id.toString());
+  } catch (e) {
+    errorHandler("Employee work RabbitMQ publish error", e);
+  }
 })
 @post<EmployeeWorkDocument>("remove", async (employeeWork) => {
   try {
     await employeeWork.requestReportUpdate();
   } catch (e) {
     errorHandler("Employee work post remove error", e);
+  }
+
+  // Publish to RabbitMQ for PostgreSQL sync
+  try {
+    await publishEmployeeWorkChange("deleted", employeeWork._id.toString());
+  } catch (e) {
+    errorHandler("Employee work RabbitMQ publish error", e);
   }
 })
 export class EmployeeWorkSchema {

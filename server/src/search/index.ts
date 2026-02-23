@@ -57,6 +57,7 @@ export const searchMulti = async (
       return {
         indexUid: index,
         q: query,
+        showRankingScore: true,
       };
     }),
   });
@@ -68,10 +69,11 @@ export const searchMulti = async (
     switch (result.indexUid) {
       case SearchIndices.Company: {
         for (let j = 0; j < result.hits.length; j++) {
-          if (result.hits[j].id) {
+          const hit = result.hits[j];
+          if (hit.id) {
             collection.push({
-              company: (await Company.getById(result.hits[j].id)) || undefined,
-              score: 0,
+              company: (await Company.getById(hit.id)) || undefined,
+              score: hit._rankingScore ?? 0,
             });
           }
         }
@@ -80,9 +82,10 @@ export const searchMulti = async (
       }
       case SearchIndices.DailyReport: {
         for (let j = 0; j < result.hits.length; j++) {
-          if (result.hits[j].id) {
+          const hit = result.hits[j];
+          if (hit.id) {
             const dailyReport =
-              (await DailyReport.getById(result.hits[j].id)) || undefined;
+              (await DailyReport.getById(hit.id)) || undefined;
             if (
               dailyReport &&
               (!options?.whitelistedCrews ||
@@ -92,7 +95,7 @@ export const searchMulti = async (
             )
               collection.push({
                 dailyReport,
-                score: 0,
+                score: hit._rankingScore ?? 0,
               });
           }
         }
@@ -101,10 +104,11 @@ export const searchMulti = async (
       }
       case SearchIndices.Crew: {
         for (let j = 0; j < result.hits.length; j++) {
-          if (result.hits[j].id) {
+          const hit = result.hits[j];
+          if (hit.id) {
             collection.push({
-              crew: (await Crew.getById(result.hits[j].id)) || undefined,
-              score: 0,
+              crew: (await Crew.getById(hit.id)) || undefined,
+              score: hit._rankingScore ?? 0,
             });
           }
         }
@@ -113,11 +117,12 @@ export const searchMulti = async (
       }
       case SearchIndices.Employee: {
         for (let j = 0; j < result.hits.length; j++) {
-          if (result.hits[j].id) {
+          const hit = result.hits[j];
+          if (hit.id) {
             collection.push({
               employee:
-                (await Employee.getById(result.hits[j].id)) || undefined,
-              score: 0,
+                (await Employee.getById(hit.id)) || undefined,
+              score: hit._rankingScore ?? 0,
             });
           }
         }
@@ -126,10 +131,11 @@ export const searchMulti = async (
       }
       case SearchIndices.Vehicle: {
         for (let j = 0; j < result.hits.length; j++) {
-          if (result.hits[j].id) {
+          const hit = result.hits[j];
+          if (hit.id) {
             collection.push({
-              vehicle: (await Vehicle.getById(result.hits[j].id)) || undefined,
-              score: 0,
+              vehicle: (await Vehicle.getById(hit.id)) || undefined,
+              score: hit._rankingScore ?? 0,
             });
           }
         }
@@ -138,10 +144,11 @@ export const searchMulti = async (
       }
       case SearchIndices.Jobsite: {
         for (let j = 0; j < result.hits.length; j++) {
-          if (result.hits[j].id) {
+          const hit = result.hits[j];
+          if (hit.id) {
             collection.push({
-              jobsite: (await Jobsite.getById(result.hits[j].id)) || undefined,
-              score: 0,
+              jobsite: (await Jobsite.getById(hit.id)) || undefined,
+              score: hit._rankingScore ?? 0,
             });
           }
         }

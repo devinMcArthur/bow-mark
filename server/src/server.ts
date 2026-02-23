@@ -14,7 +14,7 @@ import { Company, System } from "@models";
 import mongoose from "mongoose";
 import createApp from "./app";
 import { bindEventEmitters } from "@events";
-// import saveAll from "@testing/saveAll";
+import saveAll from "@testing/saveAll";
 
 let workerEnabled = true,
   apiEnabled = true;
@@ -29,6 +29,7 @@ if (process.env.APP_TYPE === "api") {
 
 const main = async () => {
   try {
+    console.log(process.env.NODE_ENV);
     if (process.env.NODE_ENV !== "test" && process.env.MONGO_URI) {
       await mongoose.connect(process.env.MONGO_URI, {
         useNewUrlParser: true,
@@ -54,6 +55,9 @@ const main = async () => {
       const server = app.listen(port, () =>
         console.log(`Server running on port: ${port}`)
       );
+
+      // if (process.env.NODE_ENV === "development")
+      //   saveAll();
 
       // Set timeout to 10 minutes
       server.setTimeout(10 * 60 * 1000);

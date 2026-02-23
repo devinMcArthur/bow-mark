@@ -17,3 +17,13 @@ spec:
           image: itsdevin/bow-mark-client
           ports:
             - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: app-config
+          env:
+            # Enable polling for file watching in containerized environments
+            # Required for hot-reload to work with Tilt live_update
+            - name: WATCHPACK_POLLING
+              value: "true"
+            - name: CHOKIDAR_USEPOLLING
+              value: "true"

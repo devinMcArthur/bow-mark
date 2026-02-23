@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consumer-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: consumer
+  template:
+    metadata:
+      labels:
+        component: consumer
+    spec:
+      nodeSelector:
+        doks.digitalocean.com/node-pool: default-pool
+      initContainers:
+        - name: migrate
+          image: ghcr.io/amacneil/dbmate:2
+          command:
+            - /bin/sh
+            - -c
+            - |
+              mkdir -p /tmp/migrations
+              cp /migrations/*.sql /tmp/migrations/
+              dbmate --url "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable" --migrations-dir /tmp/migrations --no-dump-schema up
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: password
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: host
+            - name: POSTGRES_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: port
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: dbPaving
+          volumeMounts:
+            - name: migrations
+              mountPath: /migrations
+      containers:
+        - name: consumer
+          image: itsdevin/bow-mark-server:$COMMIT_SHA1
+          command: ["node", "dist/consumer/index.js"]
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "500Mi"
+            limits:
+              cpu: "1000m"
+              memory: "2000Mi"
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: APP_NAME
+              value: Paving
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: paving
+                  key: mongoURI
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: host
+            - name: POSTGRES_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: port
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: password
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: dbPaving
+            - name: RABBITMQ_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: host
+            - name: RABBITMQ_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: port
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: user
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: password
+            - name: RABBITMQ_VHOST
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: vhost
+      volumes:
+        - name: migrations
+          configMap:
+            name: pg-migrations

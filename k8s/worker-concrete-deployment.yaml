@@ -98,3 +98,53 @@ spec:
                 secretKeyRef:
                   name: search
                   key: apiKey
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: host
+            - name: POSTGRES_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: port
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: password
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: dbConcrete
+            - name: RABBITMQ_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: host
+            - name: RABBITMQ_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: port
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: user
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: password
+            - name: RABBITMQ_VHOST
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: vhost
