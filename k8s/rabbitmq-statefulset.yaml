@@ -1,3 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-config
+data:
+  # Tells RabbitMQ to load the definitions file on every startup.
+  # conf.d/*.conf files are automatically merged with rabbitmq.conf by the
+  # official Docker image.
+  load_definitions.conf: |
+    load_definitions = /etc/rabbitmq/definitions/definitions.json
+  # Declares both vhosts and grants the bowmark user full permissions on each.
+  # RABBITMQ_DEFAULT_VHOST handles the paving vhost creation; this file adds
+  # bowmark-concrete so it exists automatically even after a PVC rebuild.
+  definitions.json: |
+    {
+      "vhosts": [
+        {"name": "bowmark-concrete"}
+      ],
+      "permissions": [
+        {
+          "user": "bowmark",
+          "vhost": "bowmark-concrete",
+          "configure": ".*",
+          "write": ".*",
+          "read": ".*"
+        }
+      ]
+    }
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -42,6 +71,12 @@ spec:
           volumeMounts:
             - name: rabbitmq-data
               mountPath: /var/lib/rabbitmq
+            - name: rabbitmq-config
+              mountPath: /etc/rabbitmq/conf.d/load_definitions.conf
+              subPath: load_definitions.conf
+            - name: rabbitmq-config
+              mountPath: /etc/rabbitmq/definitions/definitions.json
+              subPath: definitions.json
           resources:
             requests:
               cpu: "100m"
@@ -54,16 +89,22 @@ spec:
               command:
                 - rabbitmq-diagnostics
                 - ping
-            initialDelaySeconds: 10
-            periodSeconds: 10
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 10
           livenessProbe:
             exec:
               command:
                 - rabbitmq-diagnostics
                 - status
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
             periodSeconds: 30
+            timeoutSeconds: 10
             failureThreshold: 5
+      volumes:
+        - name: rabbitmq-config
+          configMap:
+            name: rabbitmq-config
   volumeClaimTemplates:
     - metadata:
         name: rabbitmq-data

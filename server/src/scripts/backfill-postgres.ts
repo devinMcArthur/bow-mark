@@ -58,6 +58,25 @@ import { upsertFactMaterialShipment } from "../consumer/handlers/materialShipmen
 import { upsertFactProduction } from "../consumer/handlers/productionSync";
 import { upsertFactInvoice } from "../consumer/handlers/invoiceSync";
 
+// How many daily reports to process concurrently.
+// Higher values reduce wall-clock time but increase DB connection usage.
+const CONCURRENCY = 5;
+
+/**
+ * Process-level dimension cache.
+ * Stores Promises so that concurrent lookups of the same mongo_id never
+ * trigger a second INSERT (the first caller stores the in-flight Promise;
+ * subsequent callers await the same one).
+ */
+const dimCache = new Map<string, Promise<string>>();
+
+function cachedDim(key: string, fn: () => Promise<string>): Promise<string> {
+  if (!dimCache.has(key)) {
+    dimCache.set(key, fn());
+  }
+  return dimCache.get(key)!;
+}
+
 // Parse command line arguments
 const args = process.argv.slice(2);
 const getArg = (name: string): string | undefined => {
@@ -101,144 +120,127 @@ async function syncDailyReport(
     crew: CrewDocument;
   }
 ): Promise<void> {
-  // Upsert dimensions
-  const jobsiteId = await upsertDimJobsite(dailyReport.jobsite);
-  const crewId = await upsertDimCrew(dailyReport.crew);
+  // Upsert shared dimensions via cache (avoids repeated PG round trips for
+  // the same jobsite/crew across hundreds of reports).
+  const [jobsiteId, crewId] = await Promise.all([
+    cachedDim(`jobsite:${dailyReport.jobsite._id}`, () => upsertDimJobsite(dailyReport.jobsite)),
+    cachedDim(`crew:${dailyReport.crew._id}`, () => upsertDimCrew(dailyReport.crew)),
+  ]);
   const dailyReportId = await upsertDimDailyReport(dailyReport, jobsiteId, crewId);
 
-  // Sync EmployeeWork
   const employeeWorkIds = dailyReport.employeeWork || [];
-  if (employeeWorkIds.length > 0) {
-    const employeeWorks = await EmployeeWork.find({
-      _id: { $in: employeeWorkIds },
-    })
-      .populate("employee")
-      .exec();
+  const vehicleWorkIds = dailyReport.vehicleWork || [];
+  const materialShipmentIds = dailyReport.materialShipment || [];
+  const productionIds = dailyReport.production || [];
 
-    for (const ew of employeeWorks) {
-      if (!ew.employee) continue;
+  // Fetch all sub-documents in parallel — four sequential queries become one round-trip.
+  const [employeeWorks, vehicleWorks, materialShipments, productions] = await Promise.all([
+    employeeWorkIds.length > 0
+      ? EmployeeWork.find({ _id: { $in: employeeWorkIds } }).populate("employee").exec()
+      : Promise.resolve([]),
+    vehicleWorkIds.length > 0
+      ? VehicleWork.find({ _id: { $in: vehicleWorkIds } }).populate("vehicle").exec()
+      : Promise.resolve([]),
+    materialShipmentIds.length > 0
+      ? MaterialShipment.find({ _id: { $in: materialShipmentIds } })
+          .populate({ path: "jobsiteMaterial", populate: [{ path: "material" }, { path: "supplier" }] })
+          .exec()
+      : Promise.resolve([]),
+    productionIds.length > 0
+      ? Production.find({ _id: { $in: productionIds } }).exec()
+      : Promise.resolve([]),
+  ]);
 
-      try {
-        const typedEw = ew as EmployeeWorkDocument & { employee: EmployeeDocument };
-        const employeeId = await upsertDimEmployee(typedEw.employee);
-
-        await upsertFactEmployeeWork({
-          employeeWork: typedEw,
-          dailyReport,
-          dailyReportId,
-          jobsiteId,
-          crewId,
-          employeeId,
-        });
-        stats.employeeWork++;
-      } catch (error) {
-        console.error(`  Error syncing EmployeeWork ${ew._id}:`, error);
-        stats.errors++;
-      }
+  // Sync EmployeeWork
+  for (const ew of employeeWorks) {
+    if (!ew.employee) continue;
+    try {
+      const typedEw = ew as EmployeeWorkDocument & { employee: EmployeeDocument };
+      const employeeId = await cachedDim(`employee:${typedEw.employee._id}`, () =>
+        upsertDimEmployee(typedEw.employee)
+      );
+      await upsertFactEmployeeWork({
+        employeeWork: typedEw,
+        dailyReport,
+        dailyReportId,
+        jobsiteId,
+        crewId,
+        employeeId,
+      });
+      stats.employeeWork++;
+    } catch (error) {
+      console.error(`  Error syncing EmployeeWork ${ew._id}:`, error);
+      stats.errors++;
     }
   }
 
   // Sync VehicleWork
-  const vehicleWorkIds = dailyReport.vehicleWork || [];
-  if (vehicleWorkIds.length > 0) {
-    const vehicleWorks = await VehicleWork.find({
-      _id: { $in: vehicleWorkIds },
-    })
-      .populate("vehicle")
-      .exec();
-
-    for (const vw of vehicleWorks) {
-      if (!vw.vehicle) continue;
-
-      try {
-        const typedVw = vw as VehicleWorkDocument & { vehicle: VehicleDocument };
-        const vehicleId = await upsertDimVehicle(typedVw.vehicle);
-
-        await upsertFactVehicleWork({
-          vehicleWork: typedVw,
-          dailyReport,
-          dailyReportId,
-          jobsiteId,
-          crewId,
-          vehicleId,
-        });
-        stats.vehicleWork++;
-      } catch (error) {
-        console.error(`  Error syncing VehicleWork ${vw._id}:`, error);
-        stats.errors++;
-      }
+  for (const vw of vehicleWorks) {
+    if (!vw.vehicle) continue;
+    try {
+      const typedVw = vw as VehicleWorkDocument & { vehicle: VehicleDocument };
+      const vehicleId = await cachedDim(`vehicle:${typedVw.vehicle._id}`, () =>
+        upsertDimVehicle(typedVw.vehicle)
+      );
+      await upsertFactVehicleWork({
+        vehicleWork: typedVw,
+        dailyReport,
+        dailyReportId,
+        jobsiteId,
+        crewId,
+        vehicleId,
+      });
+      stats.vehicleWork++;
+    } catch (error) {
+      console.error(`  Error syncing VehicleWork ${vw._id}:`, error);
+      stats.errors++;
     }
   }
 
-  // Sync MaterialShipments (includes non-costed materials and trucking)
-  const materialShipmentIds = dailyReport.materialShipment || [];
-  if (materialShipmentIds.length > 0) {
-    const materialShipments = await MaterialShipment.find({
-      _id: { $in: materialShipmentIds },
-    })
-      .populate({
-        path: "jobsiteMaterial",
-        populate: [
-          { path: "material" },
-          { path: "supplier" },
-        ],
-      })
-      .exec();
-
-    for (const ms of materialShipments) {
-      try {
-        const typedMs = ms as MaterialShipmentDocument & {
-          jobsiteMaterial?: JobsiteMaterialDocument & {
-            material: MaterialDocument;
-            supplier: CompanyDocument;
-          };
+  // Sync MaterialShipments
+  for (const ms of materialShipments) {
+    try {
+      const typedMs = ms as MaterialShipmentDocument & {
+        jobsiteMaterial?: JobsiteMaterialDocument & {
+          material: MaterialDocument;
+          supplier: CompanyDocument;
         };
-
-        await upsertFactMaterialShipment({
-          materialShipment: typedMs,
-          dailyReport,
-          dailyReportId,
-          jobsiteId,
-          crewId,
-        });
-
-        if (typedMs.noJobsiteMaterial) {
-          stats.nonCostedMaterials++;
-        } else {
-          stats.materialShipments++;
-        }
-
-        if (typedMs.vehicleObject?.truckingRateId) {
-          stats.trucking++;
-        }
-      } catch (error) {
-        console.error(`  Error syncing MaterialShipment ${ms._id}:`, error);
-        stats.errors++;
+      };
+      await upsertFactMaterialShipment({
+        materialShipment: typedMs,
+        dailyReport,
+        dailyReportId,
+        jobsiteId,
+        crewId,
+      });
+      if (typedMs.noJobsiteMaterial) {
+        stats.nonCostedMaterials++;
+      } else {
+        stats.materialShipments++;
       }
+      if (typedMs.vehicleObject?.truckingRateId) {
+        stats.trucking++;
+      }
+    } catch (error) {
+      console.error(`  Error syncing MaterialShipment ${ms._id}:`, error);
+      stats.errors++;
     }
   }
 
   // Sync Production
-  const productionIds = dailyReport.production || [];
-  if (productionIds.length > 0) {
-    const productions = await Production.find({
-      _id: { $in: productionIds },
-    }).exec();
-
-    for (const prod of productions) {
-      try {
-        await upsertFactProduction({
-          production: prod as ProductionDocument,
-          dailyReport,
-          dailyReportId,
-          jobsiteId,
-          crewId,
-        });
-        stats.production++;
-      } catch (error) {
-        console.error(`  Error syncing Production ${prod._id}:`, error);
-        stats.errors++;
-      }
+  for (const prod of productions) {
+    try {
+      await upsertFactProduction({
+        production: prod as ProductionDocument,
+        dailyReport,
+        dailyReportId,
+        jobsiteId,
+        crewId,
+      });
+      stats.production++;
+    } catch (error) {
+      console.error(`  Error syncing Production ${prod._id}:`, error);
+      stats.errors++;
     }
   }
 
@@ -367,11 +369,9 @@ async function main() {
     return;
   }
 
-  // Process in batches
-  const batchSize = 50;
   let processed = 0;
 
-  console.log(`\nProcessing ${toProcess} reports in batches of ${batchSize}...\n`);
+  console.log(`\nProcessing ${toProcess} reports (concurrency=${CONCURRENCY})...\n`);
 
   const cursor = DailyReport.find(query)
     .populate("jobsite")
@@ -379,6 +379,9 @@ async function main() {
     .sort({ date: 1 })
     .limit(limit || 0)
     .cursor();
+
+  // Sliding window: keep up to CONCURRENCY tasks in flight at once.
+  const inFlight: Promise<void>[] = [];
 
   for await (const doc of cursor) {
     const dailyReport = doc as DailyReportDocument & {
@@ -391,23 +394,34 @@ async function main() {
       continue;
     }
 
-    try {
-      await syncDailyReport(dailyReport);
-      processed++;
+    const task = syncDailyReport(dailyReport)
+      .then(() => {
+        processed++;
+        if (processed % 10 === 0) {
+          const percent = ((processed / toProcess) * 100).toFixed(1);
+          console.log(
+            `Progress: ${processed}/${toProcess} (${percent}%) - ` +
+            `EW: ${stats.employeeWork}, VW: ${stats.vehicleWork}, MS: ${stats.materialShipments}, ` +
+            `NC: ${stats.nonCostedMaterials}, TR: ${stats.trucking}, PR: ${stats.production}, Errors: ${stats.errors}`
+          );
+        }
+      })
+      .catch((error) => {
+        console.error(`Error processing DailyReport ${dailyReport._id}:`, error);
+        stats.errors++;
+      });
 
-      if (processed % 10 === 0) {
-        const percent = ((processed / toProcess) * 100).toFixed(1);
-        console.log(
-          `Progress: ${processed}/${toProcess} (${percent}%) - ` +
-          `EW: ${stats.employeeWork}, VW: ${stats.vehicleWork}, MS: ${stats.materialShipments}, ` +
-          `NC: ${stats.nonCostedMaterials}, TR: ${stats.trucking}, PR: ${stats.production}, Errors: ${stats.errors}`
-        );
-      }
-    } catch (error) {
-      console.error(`Error processing DailyReport ${dailyReport._id}:`, error);
-      stats.errors++;
+    inFlight.push(task);
+
+    // Once we reach max concurrency, wait for the oldest task to finish
+    // before accepting a new one (preserves bounded memory usage).
+    if (inFlight.length >= CONCURRENCY) {
+      await inFlight.shift();
     }
   }
+
+  // Drain any remaining in-flight tasks.
+  await Promise.all(inFlight);
 
   // Sync invoices (separate from daily reports)
   console.log("\nSyncing invoices...");

@@ -154,4 +154,4 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq
-                  key: vhost
+                  key: vhostConcrete
