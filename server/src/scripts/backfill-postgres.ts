@@ -380,6 +380,12 @@ async function main() {
     .limit(limit || 0)
     .cursor();
 
+  // Prevent MongoDB Atlas from expiring the cursor during long processing stretches.
+  // With CONCURRENCY>1, expensive reports (invoice-type materials with N+1 queries)
+  // can hold all slots for >10 minutes, leaving the cursor idle and triggering expiry.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (cursor as any).addCursorFlag("noCursorTimeout", true);
+
   // Sliding window: keep up to CONCURRENCY tasks in flight at once.
   const inFlight: Promise<void>[] = [];
 
