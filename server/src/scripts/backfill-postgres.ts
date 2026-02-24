@@ -89,6 +89,7 @@ const jobsiteFilter = getArg("jobsite");
 const yearFilter = getArg("year") ? parseInt(getArg("year")!) : undefined;
 const limit = getArg("limit") ? parseInt(getArg("limit")!) : undefined;
 const dryRun = hasFlag("dry-run");
+const reportIds = getArg("report-ids")?.split(",").map((id) => id.trim()).filter(Boolean);
 
 interface SyncStats {
   dailyReports: number;
@@ -338,6 +339,11 @@ async function main() {
   const query: Record<string, unknown> = {
     archived: { $ne: true },
   };
+
+  if (reportIds && reportIds.length > 0) {
+    query._id = { $in: reportIds };
+    console.log(`\nFiltering by ${reportIds.length} specific report IDs`);
+  }
 
   if (jobsiteFilter) {
     // Find jobsite by mongo ID
