@@ -1,6 +1,7 @@
 import { Box, Heading, Tab, TabList, TabPanel, TabPanels, Tabs } from "@chakra-ui/react";
 import React from "react";
 import dayjs from "dayjs";
+import { useRouter } from "next/router";
 import {
   JobsiteYearMasterReportSubDocument,
   useJobsiteYearMasterReportFullQuery,
@@ -23,6 +24,25 @@ const JobsiteYearMasterReportClientContent = ({
   /**
    * ----- Hook Initialization -----
    */
+
+  const router = useRouter();
+  const [tabIndex, setTabIndex] = React.useState(0);
+
+  // Read initial tab from URL after hydration (router.query is empty on SSR)
+  React.useEffect(() => {
+    if (router.isReady) {
+      const tab = parseInt((router.query.tab as string) || "0", 10);
+      setTabIndex(isNaN(tab) || tab < 0 || tab > 2 ? 0 : tab);
+    }
+  }, [router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Use window.history directly to avoid Next.js router re-render cascade
+  const handleTabChange = React.useCallback((index: number) => {
+    setTabIndex(index);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", String(index));
+    window.history.replaceState(window.history.state, "", url.toString());
+  }, []);
 
   const { data, loading, subscribeToMore } =
     useJobsiteYearMasterReportFullQuery({
@@ -73,7 +93,7 @@ const JobsiteYearMasterReportClientContent = ({
               : "Never"}
           </Heading>
           <Permission minRole={UserRoles.ProjectManager} showError>
-            <Tabs variant="enclosed" mt={4}>
+            <Tabs variant="enclosed" mt={4} index={tabIndex} onChange={handleTabChange}>
               <TabList>
                 <Tab>Report (MongoDB)</Tab>
                 <Tab>Compare with PostgreSQL</Tab>
@@ -95,7 +115,7 @@ const JobsiteYearMasterReportClientContent = ({
         </Box>
       );
     } else return <Loading />;
-  }, [data, loading, year]);
+  }, [data, loading, year, tabIndex, handleTabChange]);
 };
 
 export default JobsiteYearMasterReportClientContent;

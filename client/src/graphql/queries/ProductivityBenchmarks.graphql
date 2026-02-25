@@ -25,6 +25,17 @@ query ProductivityBenchmarks($input: ProductivityBenchmarkInput!) {
       expectedTonnesPerHour
       percentFromExpected
     }
+    crews {
+      crewId
+      crewName
+      crewType
+      totalTonnes
+      totalCrewHours
+      tonnesPerHour
+      dayCount
+      jobsiteCount
+      percentFromAverage
+    }
     regression {
       intercept
       slope

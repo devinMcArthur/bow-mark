@@ -11,6 +11,7 @@ import {
   Badge,
   Box,
   Button,
+  ButtonGroup,
   Checkbox,
   Heading,
   HStack,
@@ -51,6 +52,7 @@ import {
   Cell,
 } from "recharts";
 import {
+  BenchmarkTarget,
   MaterialGrouping,
   useProductivityBenchmarksQuery,
 } from "../../../generated/graphql";
@@ -72,9 +74,21 @@ type SortColumn =
   | "percentFromAverage"
   | "percentFromExpected";
 
+type CrewSortColumn =
+  | "crewName"
+  | "totalTonnes"
+  | "totalCrewHours"
+  | "tonnesPerHour"
+  | "dayCount"
+  | "jobsiteCount"
+  | "percentFromAverage";
+
 type SortDirection = "asc" | "desc";
 
 const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
+  const [benchmarkTarget, setBenchmarkTarget] = React.useState<BenchmarkTarget>(
+    BenchmarkTarget.Jobsite
+  );
   const [materialGrouping, setMaterialGrouping] =
     React.useState<MaterialGrouping>(MaterialGrouping.JobTitle);
   const [selectedMaterials, setSelectedMaterials] = React.useState<Set<string>>(
@@ -84,6 +98,11 @@ const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
   const [sortColumn, setSortColumn] =
     React.useState<SortColumn>("percentFromExpected");
   const [sortDirection, setSortDirection] = React.useState<SortDirection>("desc");
+
+  const [crewSortColumn, setCrewSortColumn] =
+    React.useState<CrewSortColumn>("tonnesPerHour");
+  const [crewSortDirection, setCrewSortDirection] =
+    React.useState<SortDirection>("desc");
 
   // T/H estimation
   const [tonneEstimate, setTonneEstimate] = React.useState("");
@@ -95,11 +114,17 @@ const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
   const highlightedRowRef = React.useRef<HTMLTableRowElement>(null);
   const jobsiteSearchRef = React.useRef<HTMLInputElement>(null);
 
-  // Clear selection and search when grouping changes
+  // Clear selection and search when grouping or target changes
   React.useEffect(() => {
     setSelectedMaterials(new Set());
     setMaterialSearch("");
-  }, [materialGrouping]);
+  }, [materialGrouping, benchmarkTarget]);
+
+  // In crew mode, always use MATERIAL_ONLY grouping
+  const effectiveGrouping =
+    benchmarkTarget === BenchmarkTarget.Crew
+      ? MaterialGrouping.MaterialOnly
+      : materialGrouping;
 
   // Query for filtered results
   const selectedArray = Array.from(selectedMaterials);
@@ -112,8 +137,9 @@ const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
     variables: {
       input: {
         year,
-        materialGrouping,
+        materialGrouping: effectiveGrouping,
         selectedMaterials: selectedArray.length > 0 ? selectedArray : undefined,
+        benchmarkTarget,
       },
     },
   });
@@ -123,7 +149,8 @@ const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
     variables: {
       input: {
         year,
-        materialGrouping,
+        materialGrouping: effectiveGrouping,
+        benchmarkTarget,
       },
     },
   });
@@ -200,6 +227,52 @@ const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
     });
     return jobsites;
   }, [report?.jobsites, sortColumn, sortDirection]);
+
+  // Sort crews
+  const sortedCrews = React.useMemo(() => {
+    if (!report?.crews) return [];
+    const crews = [...report.crews];
+    crews.sort((a, b) => {
+      let aVal: number | string;
+      let bVal: number | string;
+      switch (crewSortColumn) {
+        case "crewName":
+          aVal = a.crewName.toLowerCase();
+          bVal = b.crewName.toLowerCase();
+          break;
+        case "totalTonnes":
+          aVal = a.totalTonnes;
+          bVal = b.totalTonnes;
+          break;
+        case "totalCrewHours":
+          aVal = a.totalCrewHours;
+          bVal = b.totalCrewHours;
+          break;
+        case "tonnesPerHour":
+          aVal = a.tonnesPerHour;
+          bVal = b.tonnesPerHour;
+          break;
+        case "dayCount":
+          aVal = a.dayCount;
+          bVal = b.dayCount;
+          break;
+        case "jobsiteCount":
+          aVal = a.jobsiteCount;
+          bVal = b.jobsiteCount;
+          break;
+        case "percentFromAverage":
+          aVal = a.percentFromAverage;
+          bVal = b.percentFromAverage;
+          break;
+        default:
+          return 0;
+      }
+      if (aVal < bVal) return crewSortDirection === "asc" ? -1 : 1;
+      if (aVal > bVal) return crewSortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+    return crews;
+  }, [report?.crews, crewSortColumn, crewSortDirection]);
 
   // Filter jobsites by search for dropdown
   const filteredJobsites = React.useMemo(() => {
@@ -326,6 +399,15 @@ const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
     }
   };
 
+  const handleCrewSort = (column: CrewSortColumn) => {
+    if (crewSortColumn === column) {
+      setCrewSortDirection(crewSortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setCrewSortColumn(column);
+      setCrewSortDirection(column === "crewName" ? "asc" : "desc");
+    }
+  };
+
   const renderSortIndicator = (column: SortColumn) => {
     if (sortColumn !== column) return null;
     return sortDirection === "asc" ? (
@@ -335,28 +417,68 @@ const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
     );
   };
 
+  const renderCrewSortIndicator = (column: CrewSortColumn) => {
+    if (crewSortColumn !== column) return null;
+    return crewSortDirection === "asc" ? (
+      <FiChevronUp style={{ display: "inline", marginLeft: 4 }} />
+    ) : (
+      <FiChevronDown style={{ display: "inline", marginLeft: 4 }} />
+    );
+  };
+
   return (
     <Stack spacing={4}>
-      {/* Grouping Control */}
+      {/* Benchmark Target + Grouping Controls */}
       <Box bg="white" borderRadius="md" shadow="sm" p={4}>
-        <HStack spacing={4}>
-          <Text fontWeight="medium">Group by:</Text>
-          <Select
-            size="sm"
-            w="220px"
-            value={materialGrouping}
-            onChange={(e) =>
-              setMaterialGrouping(e.target.value as MaterialGrouping)
-            }
-          >
-            <option value={MaterialGrouping.MaterialOnly}>Material Only</option>
-            <option value={MaterialGrouping.CrewType}>
-              Material + Crew Type
-            </option>
-            <option value={MaterialGrouping.JobTitle}>
-              Material + Job Title
-            </option>
-          </Select>
+        <HStack spacing={6} flexWrap="wrap">
+          <HStack spacing={3}>
+            <Text fontWeight="medium">View:</Text>
+            <ButtonGroup size="sm" isAttached variant="outline">
+              <Button
+                colorScheme={
+                  benchmarkTarget === BenchmarkTarget.Jobsite ? "blue" : "gray"
+                }
+                variant={
+                  benchmarkTarget === BenchmarkTarget.Jobsite ? "solid" : "outline"
+                }
+                onClick={() => setBenchmarkTarget(BenchmarkTarget.Jobsite)}
+              >
+                By Jobsite
+              </Button>
+              <Button
+                colorScheme={
+                  benchmarkTarget === BenchmarkTarget.Crew ? "blue" : "gray"
+                }
+                variant={
+                  benchmarkTarget === BenchmarkTarget.Crew ? "solid" : "outline"
+                }
+                onClick={() => setBenchmarkTarget(BenchmarkTarget.Crew)}
+              >
+                By Crew
+              </Button>
+            </ButtonGroup>
+          </HStack>
+          {benchmarkTarget === BenchmarkTarget.Jobsite && (
+            <HStack spacing={3}>
+              <Text fontWeight="medium">Group by:</Text>
+              <Select
+                size="sm"
+                w="220px"
+                value={materialGrouping}
+                onChange={(e) =>
+                  setMaterialGrouping(e.target.value as MaterialGrouping)
+                }
+              >
+                <option value={MaterialGrouping.MaterialOnly}>Material Only</option>
+                <option value={MaterialGrouping.CrewType}>
+                  Material + Crew Type
+                </option>
+                <option value={MaterialGrouping.JobTitle}>
+                  Material + Job Title
+                </option>
+              </Select>
+            </HStack>
+          )}
         </HStack>
       </Box>
 
@@ -407,10 +529,10 @@ const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
                 <Tr>
                   <Th w="40px"></Th>
                   <Th>Material</Th>
-                  {materialGrouping === MaterialGrouping.CrewType && (
+                  {effectiveGrouping === MaterialGrouping.CrewType && (
                     <Th>Crew Type</Th>
                   )}
-                  {materialGrouping === MaterialGrouping.JobTitle && (
+                  {effectiveGrouping === MaterialGrouping.JobTitle && (
                     <Th>Job Title</Th>
                   )}
                   <Th isNumeric>Total Tonnes</Th>
@@ -436,14 +558,14 @@ const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
                       />
                     </Td>
                     <Td fontWeight="medium">{mat.materialName}</Td>
-                    {materialGrouping === MaterialGrouping.CrewType && (
+                    {effectiveGrouping === MaterialGrouping.CrewType && (
                       <Td>
                         <Badge colorScheme="purple" fontSize="xs">
                           {mat.crewType || "Unknown"}
                         </Badge>
                       </Td>
                     )}
-                    {materialGrouping === MaterialGrouping.JobTitle && (
+                    {effectiveGrouping === MaterialGrouping.JobTitle && (
                       <Td>
                         <Badge colorScheme="teal" fontSize="xs">
                           {mat.jobTitle || "Unknown"}
@@ -481,13 +603,15 @@ const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
           </HStack>
         }
       >
-        <SimpleGrid columns={[2, 5]} spacing={4}>
+        <SimpleGrid columns={[2, benchmarkTarget === BenchmarkTarget.Crew ? 4 : 5]} spacing={4}>
           <Stat>
             <StatLabel>Average T/H</StatLabel>
             <StatNumber color="blue.500">
               {formatNumber(report.averageTonnesPerHour)}
             </StatNumber>
-            <StatHelpText>All jobsites</StatHelpText>
+            <StatHelpText>
+              {benchmarkTarget === BenchmarkTarget.Crew ? "All crews" : "All jobsites"}
+            </StatHelpText>
           </Stat>
 
           <Stat>
@@ -504,43 +628,192 @@ const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
             <StatHelpText>Combined</StatHelpText>
           </Stat>
 
-          <Stat>
-            <StatLabel>Jobsites</StatLabel>
-            <StatNumber>{report.jobsiteCount}</StatNumber>
-            <StatHelpText>With data</StatHelpText>
-          </Stat>
+          {benchmarkTarget === BenchmarkTarget.Jobsite ? (
+            <>
+              <Stat>
+                <StatLabel>Jobsites</StatLabel>
+                <StatNumber>{report.jobsiteCount}</StatNumber>
+                <StatHelpText>With data</StatHelpText>
+              </Stat>
 
-          <Stat>
-            <StatLabel>Estimate T/H</StatLabel>
-            <NumberInput
-              size="sm"
-              min={0}
-              value={tonneEstimate}
-              onChange={(val) => setTonneEstimate(val)}
-            >
-              <NumberInputField placeholder="Enter tonnes..." />
-            </NumberInput>
-            {(() => {
-              const val = parseFloat(tonneEstimate);
-              if (!val || val <= 0) return <StatHelpText>Enter job tonnes</StatHelpText>;
-              const estimated =
-                report.regression.intercept +
-                report.regression.slope * Math.log(val);
-              return (
-                <StatNumber color="blue.500" fontSize="xl" mt={1}>
-                  {estimated > 0 ? estimated.toFixed(2) : "N/A"}{" "}
-                  <Text as="span" fontSize="sm" color="gray.500">
-                    T/H
-                  </Text>
-                </StatNumber>
-              );
-            })()}
-          </Stat>
+              <Stat>
+                <StatLabel>Estimate T/H</StatLabel>
+                <NumberInput
+                  size="sm"
+                  min={0}
+                  value={tonneEstimate}
+                  onChange={(val) => setTonneEstimate(val)}
+                >
+                  <NumberInputField placeholder="Enter tonnes..." />
+                </NumberInput>
+                {(() => {
+                  const val = parseFloat(tonneEstimate);
+                  if (!val || val <= 0) return <StatHelpText>Enter job tonnes</StatHelpText>;
+                  const estimated =
+                    report.regression.intercept +
+                    report.regression.slope * Math.log(val);
+                  return (
+                    <StatNumber color="blue.500" fontSize="xl" mt={1}>
+                      {estimated > 0 ? estimated.toFixed(2) : "N/A"}{" "}
+                      <Text as="span" fontSize="sm" color="gray.500">
+                        T/H
+                      </Text>
+                    </StatNumber>
+                  );
+                })()}
+              </Stat>
+            </>
+          ) : (
+            <Stat>
+              <StatLabel>Crews</StatLabel>
+              <StatNumber>{sortedCrews.length}</StatNumber>
+              <StatHelpText>With data</StatHelpText>
+            </Stat>
+          )}
         </SimpleGrid>
       </Card>
 
-      {/* Scatter Plot with Regression Line */}
-      {sortedJobsites.length > 0 && (() => {
+      {/* Crew Rankings Table (crew mode only) */}
+      {benchmarkTarget === BenchmarkTarget.Crew && (
+        <Card
+          heading={
+            <HStack>
+              <Heading size="md">
+                Crew Rankings
+                {selectedMaterials.size > 0 && (
+                  <Badge
+                    ml={2}
+                    colorScheme="blue"
+                    fontSize="sm"
+                    fontWeight="normal"
+                  >
+                    {selectedMaterials.size} material
+                    {selectedMaterials.size > 1 ? "s" : ""}
+                  </Badge>
+                )}
+              </Heading>
+              {loading && <Spinner size="sm" color="blue.500" />}
+            </HStack>
+          }
+        >
+          {sortedCrews.length === 0 ? (
+            <Alert status="info">
+              <AlertIcon />
+              No crews found with productivity data for the selected filters.
+            </Alert>
+          ) : (
+            <Box maxH="500px" overflowY="auto">
+              <Table size="sm">
+                <Thead position="sticky" top={0} bg="white" zIndex={1}>
+                  <Tr>
+                    <Th w="40px">#</Th>
+                    <Th
+                      cursor="pointer"
+                      onClick={() => handleCrewSort("crewName")}
+                      _hover={{ bg: "gray.100" }}
+                    >
+                      Crew
+                      {renderCrewSortIndicator("crewName")}
+                    </Th>
+                    <Th
+                      isNumeric
+                      cursor="pointer"
+                      onClick={() => handleCrewSort("totalTonnes")}
+                      _hover={{ bg: "gray.100" }}
+                    >
+                      Tonnes
+                      {renderCrewSortIndicator("totalTonnes")}
+                    </Th>
+                    <Th
+                      isNumeric
+                      cursor="pointer"
+                      onClick={() => handleCrewSort("totalCrewHours")}
+                      _hover={{ bg: "gray.100" }}
+                    >
+                      Hours
+                      {renderCrewSortIndicator("totalCrewHours")}
+                    </Th>
+                    <Th
+                      isNumeric
+                      cursor="pointer"
+                      onClick={() => handleCrewSort("tonnesPerHour")}
+                      _hover={{ bg: "gray.100" }}
+                    >
+                      T/H
+                      {renderCrewSortIndicator("tonnesPerHour")}
+                    </Th>
+                    <Th
+                      isNumeric
+                      cursor="pointer"
+                      onClick={() => handleCrewSort("jobsiteCount")}
+                      _hover={{ bg: "gray.100" }}
+                    >
+                      Jobs
+                      {renderCrewSortIndicator("jobsiteCount")}
+                    </Th>
+                    <Th
+                      isNumeric
+                      cursor="pointer"
+                      onClick={() => handleCrewSort("dayCount")}
+                      _hover={{ bg: "gray.100" }}
+                    >
+                      Days
+                      {renderCrewSortIndicator("dayCount")}
+                    </Th>
+                    <Th
+                      isNumeric
+                      cursor="pointer"
+                      onClick={() => handleCrewSort("percentFromAverage")}
+                      _hover={{ bg: "gray.100" }}
+                    >
+                      vs Average
+                      {renderCrewSortIndicator("percentFromAverage")}
+                    </Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {sortedCrews.map((crew, idx) => (
+                    <Tr
+                      key={crew.crewId}
+                      _hover={{ bg: "gray.50" }}
+                      bg={
+                        crew.percentFromAverage >= 20
+                          ? "green.50"
+                          : crew.percentFromAverage <= -20
+                          ? "red.50"
+                          : undefined
+                      }
+                    >
+                      <Td fontWeight="bold" color="gray.500">
+                        {idx + 1}
+                      </Td>
+                      <Td>
+                        <Text fontWeight="medium">{crew.crewName}</Text>
+                        <Badge colorScheme="purple" fontSize="xs">
+                          {crew.crewType}
+                        </Badge>
+                      </Td>
+                      <Td isNumeric>{formatNumber(crew.totalTonnes)}</Td>
+                      <Td isNumeric>{formatNumber(crew.totalCrewHours)}</Td>
+                      <Td isNumeric fontWeight="bold" color="blue.600">
+                        {formatNumber(crew.tonnesPerHour)}
+                      </Td>
+                      <Td isNumeric>{crew.jobsiteCount}</Td>
+                      <Td isNumeric>{crew.dayCount}</Td>
+                      <Td isNumeric>
+                        {getDeviationBadge(crew.percentFromAverage)}
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </Box>
+          )}
+        </Card>
+      )}
+
+      {/* Scatter Plot with Regression Line (jobsite mode only) */}
+      {benchmarkTarget === BenchmarkTarget.Jobsite && sortedJobsites.length > 0 && (() => {
         // Prepare chart data
         const { intercept, slope } = report.regression;
         const minTonnes = Math.min(...sortedJobsites.map((j) => j.totalTonnes));
@@ -790,8 +1063,8 @@ const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
         );
       })()}
 
-      {/* Jobsite Ranking Table */}
-      <Card
+      {/* Jobsite Ranking Table (jobsite mode only) */}
+      {benchmarkTarget === BenchmarkTarget.Jobsite && <Card
         heading={
           <HStack>
             <Heading size="md">
@@ -968,7 +1241,7 @@ const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
             </Table>
           </Box>
         )}
-      </Card>
+      </Card>}
 
       {/* Legend */}
       <Box bg="white" borderRadius="md" shadow="sm" p={4}>
@@ -998,10 +1271,19 @@ const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
           </HStack>
         </HStack>
         <Text fontSize="xs" color="gray.500">
-          <strong>vs Average:</strong> Comparison to flat average T/H across all
-          jobsites. <strong>vs Expected:</strong> Size-adjusted comparison based
-          on job tonnage (larger jobs tend to have higher T/H due to economies
-          of scale).
+          {benchmarkTarget === BenchmarkTarget.Jobsite ? (
+            <>
+              <strong>vs Average:</strong> Comparison to flat average T/H across all
+              jobsites. <strong>vs Expected:</strong> Size-adjusted comparison based
+              on job tonnage (larger jobs tend to have higher T/H due to economies
+              of scale).
+            </>
+          ) : (
+            <>
+              <strong>vs Average:</strong> Comparison to flat average T/H across all
+              crews for the selected material(s).
+            </>
+          )}
         </Text>
       </Box>
     </Stack>

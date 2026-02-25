@@ -8,10 +8,11 @@
  *   npx ts-node -r tsconfig-paths/register src/scripts/backfill-postgres.ts
  *
  * Options:
- *   --jobsite <mongoId>  Only sync a specific jobsite
- *   --year <year>        Only sync a specific year
- *   --limit <n>          Limit number of reports to sync
- *   --dry-run            Show what would be synced without syncing
+ *   --jobsite <mongoId>       Only sync a specific jobsite (by MongoDB ID)
+ *   --jobcodes <a,b,c>        Only sync specific jobsites (by jobcode, comma-separated)
+ *   --year <year>             Only sync a specific year
+ *   --limit <n>               Limit number of reports to sync
+ *   --dry-run                 Show what would be synced without syncing
  */
 
 import "reflect-metadata";
@@ -86,6 +87,7 @@ const getArg = (name: string): string | undefined => {
 const hasFlag = (name: string): boolean => args.includes(`--${name}`);
 
 const jobsiteFilter = getArg("jobsite");
+const jobcodesFilter = getArg("jobcodes")?.split(",").map((c) => c.trim()).filter(Boolean);
 const yearFilter = getArg("year") ? parseInt(getArg("year")!) : undefined;
 const limit = getArg("limit") ? parseInt(getArg("limit")!) : undefined;
 const dryRun = hasFlag("dry-run");
@@ -353,6 +355,17 @@ async function main() {
     }
     query.jobsite = jobsite._id;
     console.log(`\nFiltering by jobsite: ${jobsite.name}`);
+  }
+
+  if (jobcodesFilter && jobcodesFilter.length > 0) {
+    const jobsites = await Jobsite.find({ jobcode: { $in: jobcodesFilter } }).exec();
+    const foundCodes = jobsites.map((j) => j.jobcode);
+    const missing = jobcodesFilter.filter((c) => !foundCodes.includes(c));
+    if (missing.length > 0) {
+      throw new Error(`Jobcodes not found: ${missing.join(", ")}`);
+    }
+    query.jobsite = { $in: jobsites.map((j) => j._id) };
+    console.log(`\nFiltering by jobcodes: ${jobsites.map((j) => `${j.jobcode} (${j.name})`).join(", ")}`);
   }
 
   if (yearFilter) {

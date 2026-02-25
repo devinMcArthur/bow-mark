@@ -4,8 +4,23 @@
  * Compares T/H rates across all jobsites for a given year
  */
 
-import { Field, Float, ID, InputType, Int, ObjectType } from "type-graphql";
+import {
+  Field,
+  Float,
+  ID,
+  InputType,
+  Int,
+  ObjectType,
+  registerEnumType,
+} from "type-graphql";
 import { MaterialGrouping } from "./productivityAnalytics";
+
+export enum BenchmarkTarget {
+  JOBSITE = "JOBSITE",
+  CREW = "CREW",
+}
+
+registerEnumType(BenchmarkTarget, { name: "BenchmarkTarget" });
 
 @InputType()
 export class ProductivityBenchmarkInput {
@@ -17,6 +32,9 @@ export class ProductivityBenchmarkInput {
 
   @Field(() => [String], { nullable: true })
   selectedMaterials?: string[]; // Composite keys like "HL3|Paving" or just "HL3"
+
+  @Field(() => BenchmarkTarget, { nullable: true })
+  benchmarkTarget?: BenchmarkTarget; // defaults to JOBSITE
 }
 
 @ObjectType()
@@ -78,6 +96,36 @@ export class JobsiteBenchmark {
 }
 
 @ObjectType()
+export class CrewBenchmark {
+  @Field(() => ID)
+  crewId!: string;
+
+  @Field()
+  crewName!: string;
+
+  @Field()
+  crewType!: string;
+
+  @Field(() => Float)
+  totalTonnes!: number;
+
+  @Field(() => Float)
+  totalCrewHours!: number;
+
+  @Field(() => Float)
+  tonnesPerHour!: number;
+
+  @Field(() => Int)
+  dayCount!: number;
+
+  @Field(() => Int)
+  jobsiteCount!: number;
+
+  @Field(() => Float)
+  percentFromAverage!: number;
+}
+
+@ObjectType()
 export class RegressionCoefficients {
   @Field(() => Float, { description: "y-intercept of the regression line" })
   intercept!: number;
@@ -108,6 +156,9 @@ export class ProductivityBenchmarkReport {
 
   @Field(() => [JobsiteBenchmark])
   jobsites!: JobsiteBenchmark[];
+
+  @Field(() => [CrewBenchmark])
+  crews!: CrewBenchmark[];
 
   @Field(() => RegressionCoefficients, {
     description: "Dynamically calculated regression coefficients for T/H vs ln(tonnes)",

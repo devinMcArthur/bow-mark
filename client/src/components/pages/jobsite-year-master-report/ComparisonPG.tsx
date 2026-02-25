@@ -26,6 +26,8 @@ import {
 } from "@chakra-ui/react";
 import React from "react";
 import dayjs from "dayjs";
+import NextLink from "next/link";
+import createLink from "../../../utils/createLink";
 import {
   JobsiteYearMasterReportFullSnippetFragment,
   useJobsiteYearMasterReportPgQuery,
@@ -418,7 +420,16 @@ const ComparisonPG = ({ mongoReport }: IComparisonPG) => {
                 {jobsitesWithDiffs.map((j) => (
                   <Tr key={j.jobsiteId}>
                     <Td>
-                      <Text fontWeight="medium">{j.jobsiteName}</Text>
+                      <NextLink href={createLink.jobsite(j.jobsiteId)} passHref>
+                        <Text
+                          as="a"
+                          fontWeight="medium"
+                          color="blue.600"
+                          _hover={{ textDecoration: "underline" }}
+                        >
+                          {j.jobsiteName}
+                        </Text>
+                      </NextLink>
                       {j.jobcode && (
                         <Text fontSize="xs" color="gray.500">
                           {j.jobcode}

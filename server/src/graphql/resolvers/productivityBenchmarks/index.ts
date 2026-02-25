@@ -9,6 +9,8 @@ import { Arg, Query, Resolver } from "type-graphql";
 import { db } from "../../../db";
 import { sql } from "kysely";
 import {
+  BenchmarkTarget,
+  CrewBenchmark,
   ProductivityBenchmarkInput,
   ProductivityBenchmarkReport,
   JobsiteBenchmark,
@@ -49,29 +51,83 @@ export default class ProductivityBenchmarksResolver {
       year,
       materialGrouping = MaterialGrouping.CREW_TYPE,
       selectedMaterials,
+      benchmarkTarget = BenchmarkTarget.JOBSITE,
     } = input;
 
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
 
+    // In crew mode, always use MATERIAL_ONLY grouping for the filter
+    const effectiveGrouping =
+      benchmarkTarget === BenchmarkTarget.CREW
+        ? MaterialGrouping.MATERIAL_ONLY
+        : materialGrouping;
+
     // Get available materials grouped by the selected dimension
     const availableMaterials = await this.getAvailableMaterials(
       startDate,
       endDate,
-      materialGrouping
+      effectiveGrouping
     );
+
+    if (benchmarkTarget === BenchmarkTarget.CREW) {
+      // --- CREW MODE ---
+      // Material filter is by name only in crew mode
+      const materialNames =
+        selectedMaterials && selectedMaterials.length > 0
+          ? selectedMaterials
+          : null;
+
+      const crewShipments = await this.getCrewShipmentsPerReport(
+        startDate,
+        endDate,
+        materialNames
+      );
+
+      const crewHoursPerReport = await this.getCrewHoursPerReport(
+        startDate,
+        endDate
+      );
+      const crewHoursMap = new Map<string, number>();
+      for (const row of crewHoursPerReport) {
+        if (row.daily_report_id) {
+          crewHoursMap.set(row.daily_report_id, Number(row.crew_hours || 0));
+        }
+      }
+
+      const crewStats = this.aggregateByCrew(crewShipments, crewHoursMap);
+      const { crews, overallTonnes, overallCrewHours } =
+        this.buildCrewBenchmarks(crewStats);
+
+      const averageTonnesPerHour =
+        overallCrewHours > 0 ? overallTonnes / overallCrewHours : 0;
+
+      return {
+        year,
+        averageTonnesPerHour,
+        totalTonnes: overallTonnes,
+        totalCrewHours: overallCrewHours,
+        jobsiteCount: 0,
+        availableMaterials,
+        jobsites: [],
+        crews,
+        regression: { intercept: 0, slope: 0 },
+      };
+    }
+
+    // --- JOBSITE MODE (existing logic) ---
 
     // Parse selected materials into filter criteria
     const filterCriteria = this.parseSelectedMaterials(
       selectedMaterials,
-      materialGrouping
+      effectiveGrouping
     );
 
     // Get shipments data with optional filtering
     const shipmentsPerReport = await this.getShipmentsPerReport(
       startDate,
       endDate,
-      materialGrouping,
+      effectiveGrouping,
       filterCriteria
     );
 
@@ -107,6 +163,7 @@ export default class ProductivityBenchmarksResolver {
       jobsiteCount: jobsites.length,
       availableMaterials,
       jobsites,
+      crews: [],
       regression,
     };
   }
@@ -633,5 +690,212 @@ export default class ProductivityBenchmarksResolver {
       .sort((a, b) => b.tonnesPerHour - a.tonnesPerHour);
 
     return { jobsites, overallTonnes, overallCrewHours, regression: { intercept, slope } };
+  }
+
+  /**
+   * Get shipments per daily report grouped by crew (for crew benchmark mode)
+   */
+  private async getCrewShipmentsPerReport(
+    startDate: Date,
+    endDate: Date,
+    materialNames: string[] | null
+  ) {
+    let query = db
+      .selectFrom("fact_material_shipment as ms")
+      .innerJoin("dim_daily_report as dr", "dr.id", "ms.daily_report_id")
+      .innerJoin("dim_crew as c", "c.id", "dr.crew_id")
+      .innerJoin(
+        "dim_jobsite_material as jm",
+        "jm.id",
+        "ms.jobsite_material_id"
+      )
+      .innerJoin("dim_material as m", "m.id", "jm.material_id")
+      .select([
+        "c.id as crew_id",
+        "c.name as crew_name",
+        "c.type as crew_type",
+        "ms.daily_report_id",
+        "ms.jobsite_id",
+        "m.name as material_name",
+        sql<number>`COALESCE(SUM(${getTonnesConversion()}), 0)`.as("tonnes"),
+        sql<number>`COUNT(*)`.as("shipment_count"),
+      ])
+      .where("ms.work_date", ">=", startDate)
+      .where("ms.work_date", "<=", endDate)
+      .where("ms.archived_at", "is", null)
+      .where("dr.approved", "=", true)
+      .where("dr.archived", "=", false)
+      .where((eb) =>
+        eb.or([
+          eb(sql`LOWER(ms.unit)`, "=", "tonnes"),
+          eb(sql`LOWER(ms.unit)`, "=", "m3"),
+          eb.and([
+            eb(sql`LOWER(ms.unit)`, "=", "loads"),
+            eb(sql`ms.vehicle_type`, "ilike", "%tandem%"),
+          ]),
+        ])
+      );
+
+    if (materialNames && materialNames.length > 0) {
+      query = query.where("m.name", "in", materialNames);
+    }
+
+    return query
+      .groupBy([
+        "c.id",
+        "c.name",
+        "c.type",
+        "ms.daily_report_id",
+        "ms.jobsite_id",
+        "m.name",
+      ])
+      .execute();
+  }
+
+  /**
+   * Aggregate crew shipments by crew
+   */
+  private aggregateByCrew(
+    shipmentsPerReport: Array<{
+      crew_id: string;
+      crew_name: string;
+      crew_type: string;
+      daily_report_id: string | null;
+      jobsite_id: string | null;
+      tonnes: number;
+      shipment_count: number;
+    }>,
+    crewHoursMap: Map<string, number>
+  ) {
+    interface CrewStats {
+      crewId: string;
+      crewName: string;
+      crewType: string;
+      totalTonnes: number;
+      totalCrewHours: number;
+      shipmentCount: number;
+      dailyReportIds: Set<string>;
+      jobsiteIds: Set<string>;
+    }
+
+    const crewStats = new Map<string, CrewStats>();
+
+    for (const row of shipmentsPerReport) {
+      const crewId = row.crew_id;
+      const tonnes = Number(row.tonnes);
+      const shipmentCount = Number(row.shipment_count);
+
+      const existing = crewStats.get(crewId) || {
+        crewId,
+        crewName: row.crew_name,
+        crewType: row.crew_type,
+        totalTonnes: 0,
+        totalCrewHours: 0,
+        shipmentCount: 0,
+        dailyReportIds: new Set<string>(),
+        jobsiteIds: new Set<string>(),
+      };
+
+      existing.totalTonnes += tonnes;
+      existing.shipmentCount += shipmentCount;
+      if (row.daily_report_id) {
+        existing.dailyReportIds.add(row.daily_report_id);
+      }
+      if (row.jobsite_id) {
+        existing.jobsiteIds.add(row.jobsite_id);
+      }
+
+      crewStats.set(crewId, existing);
+    }
+
+    // Calculate crew hours for each crew
+    for (const stats of crewStats.values()) {
+      let totalCrewHours = 0;
+      for (const dailyReportId of stats.dailyReportIds) {
+        totalCrewHours += crewHoursMap.get(dailyReportId) || 0;
+      }
+      stats.totalCrewHours = totalCrewHours;
+    }
+
+    return crewStats;
+  }
+
+  /**
+   * Build final crew benchmarks with percent from average
+   */
+  private buildCrewBenchmarks(
+    crewStats: Map<
+      string,
+      {
+        crewId: string;
+        crewName: string;
+        crewType: string;
+        totalTonnes: number;
+        totalCrewHours: number;
+        shipmentCount: number;
+        dailyReportIds: Set<string>;
+        jobsiteIds: Set<string>;
+      }
+    >
+  ) {
+    let overallTonnes = 0;
+    let overallCrewHours = 0;
+
+    const crewsWithData: Array<{
+      crewId: string;
+      crewName: string;
+      crewType: string;
+      totalTonnes: number;
+      totalCrewHours: number;
+      tonnesPerHour: number;
+      dayCount: number;
+      jobsiteCount: number;
+    }> = [];
+
+    for (const stats of crewStats.values()) {
+      if (stats.totalTonnes > 0 && stats.totalCrewHours > 0) {
+        const tonnesPerHour = stats.totalTonnes / stats.totalCrewHours;
+        crewsWithData.push({
+          crewId: stats.crewId,
+          crewName: stats.crewName,
+          crewType: stats.crewType,
+          totalTonnes: stats.totalTonnes,
+          totalCrewHours: stats.totalCrewHours,
+          tonnesPerHour,
+          dayCount: stats.dailyReportIds.size,
+          jobsiteCount: stats.jobsiteIds.size,
+        });
+        overallTonnes += stats.totalTonnes;
+        overallCrewHours += stats.totalCrewHours;
+      }
+    }
+
+    const averageTonnesPerHour =
+      overallCrewHours > 0 ? overallTonnes / overallCrewHours : 0;
+
+    const crews: CrewBenchmark[] = crewsWithData
+      .map((stats) => {
+        const percentFromAverage =
+          averageTonnesPerHour > 0
+            ? ((stats.tonnesPerHour - averageTonnesPerHour) /
+                averageTonnesPerHour) *
+              100
+            : 0;
+
+        return {
+          crewId: stats.crewId,
+          crewName: stats.crewName,
+          crewType: stats.crewType,
+          totalTonnes: stats.totalTonnes,
+          totalCrewHours: stats.totalCrewHours,
+          tonnesPerHour: stats.tonnesPerHour,
+          dayCount: stats.dayCount,
+          jobsiteCount: stats.jobsiteCount,
+          percentFromAverage,
+        };
+      })
+      .sort((a, b) => b.tonnesPerHour - a.tonnesPerHour);
+
+    return { crews, overallTonnes, overallCrewHours };
   }
 }
