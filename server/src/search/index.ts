@@ -57,7 +57,6 @@ export const searchMulti = async (
       return {
         indexUid: index,
         q: query,
-        showRankingScore: true,
       };
     }),
   });
