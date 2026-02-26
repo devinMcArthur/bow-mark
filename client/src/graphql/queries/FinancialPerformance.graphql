@@ -1,0 +1,28 @@
+query FinancialPerformance($input: FinancialPerformanceInput!) {
+  financialPerformance(input: $input) {
+    year
+    totalRevenue
+    totalDirectCost
+    totalNetIncome
+    averageNetMarginPercent
+    correlationResidualThMargin
+    jobsites {
+      jobsiteId
+      jobsiteName
+      jobcode
+      totalRevenue
+      employeeCost
+      vehicleCost
+      materialCost
+      truckingCost
+      totalDirectCost
+      netIncome
+      netMarginPercent
+      totalTonnes
+      totalCrewHours
+      tonnesPerHour
+      expectedTonnesPerHour
+      residualTonnesPerHourPercent
+    }
+  }
+}

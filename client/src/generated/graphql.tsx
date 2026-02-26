@@ -388,6 +388,21 @@ export type FileCreateData = {
   file: Scalars['Upload'];
 };
 
+export type FinancialPerformanceInput = {
+  year: Scalars['Int'];
+};
+
+export type FinancialPerformanceReport = {
+  __typename?: 'FinancialPerformanceReport';
+  averageNetMarginPercent?: Maybe<Scalars['Float']>;
+  correlationResidualThMargin?: Maybe<Scalars['Float']>;
+  jobsites: Array<JobsiteFinancialItem>;
+  totalDirectCost: Scalars['Float'];
+  totalNetIncome: Scalars['Float'];
+  totalRevenue: Scalars['Float'];
+  year: Scalars['Int'];
+};
+
 export type FluidAdded = {
   amount: Scalars['Float'];
   type: Scalars['String'];
@@ -561,6 +576,26 @@ export type JobsiteFileObjectClass = {
 
 export type JobsiteFileObjectData = {
   file: FileCreateData;
+};
+
+export type JobsiteFinancialItem = {
+  __typename?: 'JobsiteFinancialItem';
+  employeeCost: Scalars['Float'];
+  expectedTonnesPerHour: Scalars['Float'];
+  jobcode?: Maybe<Scalars['String']>;
+  jobsiteId: Scalars['ID'];
+  jobsiteName: Scalars['String'];
+  materialCost: Scalars['Float'];
+  netIncome: Scalars['Float'];
+  netMarginPercent?: Maybe<Scalars['Float']>;
+  residualTonnesPerHourPercent?: Maybe<Scalars['Float']>;
+  tonnesPerHour: Scalars['Float'];
+  totalCrewHours: Scalars['Float'];
+  totalDirectCost: Scalars['Float'];
+  totalRevenue: Scalars['Float'];
+  totalTonnes: Scalars['Float'];
+  truckingCost: Scalars['Float'];
+  vehicleCost: Scalars['Float'];
 };
 
 export type JobsiteInfoPg = {
@@ -1655,6 +1690,7 @@ export type Query = {
   employees: Array<EmployeeClass>;
   employeeSearch: Array<EmployeeClass>;
   file: FileClass;
+  financialPerformance: FinancialPerformanceReport;
   jobsite: JobsiteClass;
   jobsiteDayReports: Array<JobsiteDayReportClass>;
   jobsiteMasterExcelReportByDate: Scalars['String'];
@@ -1786,6 +1822,11 @@ export type QueryEmployeeSearchArgs = {
 
 export type QueryFileArgs = {
   id: Scalars['String'];
+};
+
+
+export type QueryFinancialPerformanceArgs = {
+  input: FinancialPerformanceInput;
 };
 
 
@@ -3363,6 +3404,13 @@ export type FileFullQueryVariables = Exact<{
 
 
 export type FileFullQuery = { __typename?: 'Query', file: { __typename?: 'FileClass', buffer: string, _id: string, mimetype: string, description?: string | null, downloadUrl: string } };
+
+export type FinancialPerformanceQueryVariables = Exact<{
+  input: FinancialPerformanceInput;
+}>;
+
+
+export type FinancialPerformanceQuery = { __typename?: 'Query', financialPerformance: { __typename?: 'FinancialPerformanceReport', year: number, totalRevenue: number, totalDirectCost: number, totalNetIncome: number, averageNetMarginPercent?: number | null, correlationResidualThMargin?: number | null, jobsites: Array<{ __typename?: 'JobsiteFinancialItem', jobsiteId: string, jobsiteName: string, jobcode?: string | null, totalRevenue: number, employeeCost: number, vehicleCost: number, materialCost: number, truckingCost: number, totalDirectCost: number, netIncome: number, netMarginPercent?: number | null, totalTonnes: number, totalCrewHours: number, tonnesPerHour: number, expectedTonnesPerHour: number, residualTonnesPerHourPercent?: number | null }> } };
 
 export type JobsiteDayReportsFetchQueryVariables = Exact<{
   ids: Array<Scalars['ID']> | Scalars['ID'];
@@ -8817,6 +8865,64 @@ export function useFileFullLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<F
 export type FileFullQueryHookResult = ReturnType<typeof useFileFullQuery>;
 export type FileFullLazyQueryHookResult = ReturnType<typeof useFileFullLazyQuery>;
 export type FileFullQueryResult = Apollo.QueryResult<FileFullQuery, FileFullQueryVariables>;
+export const FinancialPerformanceDocument = gql`
+    query FinancialPerformance($input: FinancialPerformanceInput!) {
+  financialPerformance(input: $input) {
+    year
+    totalRevenue
+    totalDirectCost
+    totalNetIncome
+    averageNetMarginPercent
+    correlationResidualThMargin
+    jobsites {
+      jobsiteId
+      jobsiteName
+      jobcode
+      totalRevenue
+      employeeCost
+      vehicleCost
+      materialCost
+      truckingCost
+      totalDirectCost
+      netIncome
+      netMarginPercent
+      totalTonnes
+      totalCrewHours
+      tonnesPerHour
+      expectedTonnesPerHour
+      residualTonnesPerHourPercent
+    }
+  }
+}
+    `;
+
+/**
+ * __useFinancialPerformanceQuery__
+ *
+ * To run a query within a React component, call `useFinancialPerformanceQuery` and pass it any options that fit your needs.
+ * When your component renders, `useFinancialPerformanceQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useFinancialPerformanceQuery({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useFinancialPerformanceQuery(baseOptions: Apollo.QueryHookOptions<FinancialPerformanceQuery, FinancialPerformanceQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<FinancialPerformanceQuery, FinancialPerformanceQueryVariables>(FinancialPerformanceDocument, options);
+      }
+export function useFinancialPerformanceLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<FinancialPerformanceQuery, FinancialPerformanceQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<FinancialPerformanceQuery, FinancialPerformanceQueryVariables>(FinancialPerformanceDocument, options);
+        }
+export type FinancialPerformanceQueryHookResult = ReturnType<typeof useFinancialPerformanceQuery>;
+export type FinancialPerformanceLazyQueryHookResult = ReturnType<typeof useFinancialPerformanceLazyQuery>;
+export type FinancialPerformanceQueryResult = Apollo.QueryResult<FinancialPerformanceQuery, FinancialPerformanceQueryVariables>;
 export const JobsiteDayReportsFetchDocument = gql`
     query JobsiteDayReportsFetch($ids: [ID!]!) {
   jobsiteDayReports(ids: $ids) {
