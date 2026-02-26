@@ -270,7 +270,7 @@ export default class FinancialPerformanceResolver {
       totalDirectCost,
       totalNetIncome,
       averageNetMarginPercent,
-      correlationResidualThMargin: correlationResidualThMargin ?? undefined,
+      correlationResidualThMargin,
       jobsites,
     };
   }
@@ -439,8 +439,8 @@ export default class FinancialPerformanceResolver {
 
   private pearsonCorrelation(
     pairs: Array<{ x: number; y: number }>
-  ): number | null {
-    if (pairs.length < 3) return null;
+  ): number | undefined {
+    if (pairs.length < 3) return undefined;
     const n = pairs.length;
     const meanX = pairs.reduce((s, p) => s + p.x, 0) / n;
     const meanY = pairs.reduce((s, p) => s + p.y, 0) / n;
@@ -455,7 +455,7 @@ export default class FinancialPerformanceResolver {
       denY += dy * dy;
     }
     const den = Math.sqrt(denX * denY);
-    if (den === 0) return null;
+    if (den === 0) return undefined;
     return num / den;
   }
 }
