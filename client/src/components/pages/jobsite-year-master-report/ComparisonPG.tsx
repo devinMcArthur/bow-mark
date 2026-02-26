@@ -182,6 +182,38 @@ const ComparisonPG = ({ mongoReport }: IComparisonPG) => {
       accrualRevenue: pgReport.summary.accrualRevenueInvoiceValue,
     };
 
+    // Financial summary with markup analysis
+    const operatingCost =
+      mongoTotals.employeeCost +
+      mongoTotals.vehicleCost +
+      mongoTotals.materialCost +
+      mongoTotals.truckingCost;
+    const otherExpenseInvoices =
+      mongoTotals.internalExpense + mongoTotals.accrualExpense;
+    const totalRevenue =
+      mongoTotals.externalRevenue +
+      mongoTotals.internalRevenue +
+      mongoTotals.accrualRevenue;
+    const totalExpensesRaw =
+      operatingCost + mongoTotals.externalExpense + otherExpenseInvoices;
+    const totalExpensesMarkedUp =
+      operatingCost * 1.15 +
+      mongoTotals.externalExpense * 1.03 +
+      otherExpenseInvoices;
+
+    const financialSummary = {
+      totalRevenue,
+      operatingCost,
+      externalExpense: mongoTotals.externalExpense,
+      otherExpenseInvoices,
+      markedUpOperating: operatingCost * 1.15,
+      markedUpExternalExpense: mongoTotals.externalExpense * 1.03,
+      totalExpensesRaw,
+      totalExpensesMarkedUp,
+      netIncomeRaw: totalRevenue - totalExpensesRaw,
+      netIncomeMarkedUp: totalRevenue - totalExpensesMarkedUp,
+    };
+
     return {
       jobsites: jobsiteDiffs.sort((a, b) => {
         // Sort by diff magnitude (largest first)
@@ -193,6 +225,7 @@ const ComparisonPG = ({ mongoReport }: IComparisonPG) => {
       pgTotals,
       mongoJobsiteCount: mongoReport.reports.length,
       pgJobsiteCount: pgReport.jobsites.length,
+      financialSummary,
     };
   }, [mongoReport, pgReport]);
 
@@ -322,6 +355,70 @@ const ComparisonPG = ({ mongoReport }: IComparisonPG) => {
           <strong>PostgreSQL</strong> ({comparison.pgJobsiteCount} jobsites) for {year}
         </Text>
       </Alert>
+
+      {/* Financial Summary */}
+      <Box bg="white" borderRadius="md" shadow="sm" p={4}>
+        <Heading size="sm" mb={4}>Financial Summary</Heading>
+        <Table size="sm">
+          <Thead>
+            <Tr>
+              <Th>Metric</Th>
+              <Th isNumeric>Raw</Th>
+              <Th isNumeric>Marked Up (×1.15 internal / ×1.03 external)</Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            <Tr>
+              <Td>Total Revenue</Td>
+              <Td isNumeric color="green.700">
+                ${formatNumber(comparison.financialSummary.totalRevenue)}
+              </Td>
+              <Td isNumeric color="gray.400">—</Td>
+            </Tr>
+            <Tr>
+              <Td>Operating Costs (internal)</Td>
+              <Td isNumeric>${formatNumber(comparison.financialSummary.operatingCost)}</Td>
+              <Td isNumeric>${formatNumber(comparison.financialSummary.markedUpOperating)}</Td>
+            </Tr>
+            <Tr>
+              <Td>External Expense Invoices</Td>
+              <Td isNumeric>${formatNumber(comparison.financialSummary.externalExpense)}</Td>
+              <Td isNumeric>${formatNumber(comparison.financialSummary.markedUpExternalExpense)}</Td>
+            </Tr>
+            {comparison.financialSummary.otherExpenseInvoices > 0 && (
+              <Tr>
+                <Td>Other Expense Invoices (internal/accrual)</Td>
+                <Td isNumeric>${formatNumber(comparison.financialSummary.otherExpenseInvoices)}</Td>
+                <Td isNumeric>${formatNumber(comparison.financialSummary.otherExpenseInvoices)}</Td>
+              </Tr>
+            )}
+            <Tr fontWeight="bold" borderTop="2px solid" borderColor="gray.200">
+              <Td>Total Expenses</Td>
+              <Td isNumeric color="red.600">
+                ${formatNumber(comparison.financialSummary.totalExpensesRaw)}
+              </Td>
+              <Td isNumeric color="red.600">
+                ${formatNumber(comparison.financialSummary.totalExpensesMarkedUp)}
+              </Td>
+            </Tr>
+            <Tr fontWeight="bold">
+              <Td>Net Income</Td>
+              <Td
+                isNumeric
+                color={comparison.financialSummary.netIncomeRaw >= 0 ? "green.700" : "red.600"}
+              >
+                ${formatNumber(comparison.financialSummary.netIncomeRaw)}
+              </Td>
+              <Td
+                isNumeric
+                color={comparison.financialSummary.netIncomeMarkedUp >= 0 ? "green.700" : "red.600"}
+              >
+                ${formatNumber(comparison.financialSummary.netIncomeMarkedUp)}
+              </Td>
+            </Tr>
+          </Tbody>
+        </Table>
+      </Box>
 
       {/* Global Totals */}
       <Box bg="white" borderRadius="md" shadow="sm" p={4}>
