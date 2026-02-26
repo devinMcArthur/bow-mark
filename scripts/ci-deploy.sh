@@ -10,31 +10,34 @@ export COMMIT_SHA1=$COMMIT_SHA1
 #  it's not possible to do in-place substitution, so we need to save the output to another file
 #  and overwrite the original with that one.
 
+# Only substitute $COMMIT_SHA1 — leave all other ${VAR} patterns (e.g. ${POSTGRES_USER}
+# in init container commands) intact for runtime shell expansion.
+
 # api servers
-envsubst <./k8s/server-deployment.yaml >./k8s/server-deployment.yaml.out
+envsubst '$COMMIT_SHA1' <./k8s/server-deployment.yaml >./k8s/server-deployment.yaml.out
 mv ./k8s/server-deployment.yaml.out ./k8s/server-deployment.yaml
 
-envsubst <./k8s/server-concrete-deployment.yaml >./k8s/server-concrete-deployment.yaml.out
+envsubst '$COMMIT_SHA1' <./k8s/server-concrete-deployment.yaml >./k8s/server-concrete-deployment.yaml.out
 mv ./k8s/server-concrete-deployment.yaml.out ./k8s/server-concrete-deployment.yaml
 
 # workers
-envsubst <./k8s/worker-deployment.yaml >./k8s/worker-deployment.yaml.out
+envsubst '$COMMIT_SHA1' <./k8s/worker-deployment.yaml >./k8s/worker-deployment.yaml.out
 mv ./k8s/worker-deployment.yaml.out ./k8s/worker-deployment.yaml
 
-envsubst <./k8s/worker-concrete-deployment.yaml >./k8s/worker-concrete-deployment.yaml.out
+envsubst '$COMMIT_SHA1' <./k8s/worker-concrete-deployment.yaml >./k8s/worker-concrete-deployment.yaml.out
 mv ./k8s/worker-concrete-deployment.yaml.out ./k8s/worker-concrete-deployment.yaml
 
 # consumers
-envsubst <./k8s/consumer-deployment.yaml >./k8s/consumer-deployment.yaml.out
+envsubst '$COMMIT_SHA1' <./k8s/consumer-deployment.yaml >./k8s/consumer-deployment.yaml.out
 mv ./k8s/consumer-deployment.yaml.out ./k8s/consumer-deployment.yaml
 
-envsubst <./k8s/consumer-concrete-deployment.yaml >./k8s/consumer-concrete-deployment.yaml.out
+envsubst '$COMMIT_SHA1' <./k8s/consumer-concrete-deployment.yaml >./k8s/consumer-concrete-deployment.yaml.out
 mv ./k8s/consumer-concrete-deployment.yaml.out ./k8s/consumer-concrete-deployment.yaml
 
-envsubst <./k8s/client-deployment.yaml >./k8s/client-deployment.yaml.out
+envsubst '$COMMIT_SHA1' <./k8s/client-deployment.yaml >./k8s/client-deployment.yaml.out
 mv ./k8s/client-deployment.yaml.out ./k8s/client-deployment.yaml
 
-envsubst <./k8s/client-concrete-deployment.yaml >./k8s/client-concrete-deployment.yaml.out
+envsubst '$COMMIT_SHA1' <./k8s/client-concrete-deployment.yaml >./k8s/client-concrete-deployment.yaml.out
 mv ./k8s/client-concrete-deployment.yaml.out ./k8s/client-concrete-deployment.yaml
 
 # Auth to DO and mint a short-lived kubeconfig
