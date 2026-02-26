@@ -54,7 +54,6 @@ type SortColumn =
   | "jobsiteName"
   | "totalRevenue"
   | "employeeCost"
-  | "vehicleCost"
   | "materialCost"
   | "truckingCost"
   | "totalDirectCost"
@@ -98,9 +97,33 @@ const FinancialPerformance = ({ year }: IFinancialPerformance) => {
           aVal = a.residualTonnesPerHourPercent ?? -Infinity;
           bVal = b.residualTonnesPerHourPercent ?? -Infinity;
           break;
+        case "totalRevenue":
+          aVal = a.totalRevenue;
+          bVal = b.totalRevenue;
+          break;
+        case "employeeCost":
+          aVal = a.employeeCost;
+          bVal = b.employeeCost;
+          break;
+        case "materialCost":
+          aVal = a.materialCost;
+          bVal = b.materialCost;
+          break;
+        case "truckingCost":
+          aVal = a.truckingCost;
+          bVal = b.truckingCost;
+          break;
+        case "totalDirectCost":
+          aVal = a.totalDirectCost;
+          bVal = b.totalDirectCost;
+          break;
+        case "netIncome":
+          aVal = a.netIncome;
+          bVal = b.netIncome;
+          break;
         default:
-          aVal = (a as unknown as Record<string, number>)[sortColumn] ?? 0;
-          bVal = (b as unknown as Record<string, number>)[sortColumn] ?? 0;
+          aVal = a.tonnesPerHour;
+          bVal = b.tonnesPerHour;
       }
       if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
       if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
@@ -329,9 +352,9 @@ const FinancialPerformance = ({ year }: IFinancialPerformance) => {
                   }}
                 />
                 <Scatter data={scatterData} name="Jobsites" cursor="pointer">
-                  {scatterData.map((entry, idx) => (
+                  {scatterData.map((entry) => (
                     <Cell
-                      key={idx}
+                      key={entry.jobsiteId}
                       fill={getDotColor(entry.netMarginPercent)}
                       r={6}
                     />
