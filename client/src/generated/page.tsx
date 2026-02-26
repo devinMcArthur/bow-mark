@@ -1004,6 +1004,41 @@ export const ssrFileFull = {
       withPage: withPageFileFull,
       usePage: useFileFull,
     }
+export async function getServerPageFinancialPerformance
+    (options: Omit<Apollo.QueryOptions<Types.FinancialPerformanceQueryVariables>, 'query'>, ctx: ApolloClientContext ){
+        const apolloClient = getApolloClient(ctx);
+        
+        const data = await apolloClient.query<Types.FinancialPerformanceQuery>({ ...options, query: Operations.FinancialPerformanceDocument });
+        
+        const apolloState = apolloClient.cache.extract();
+
+        return {
+            props: {
+                apolloState: apolloState,
+                data: data?.data,
+                error: data?.error ?? data?.errors ?? null,
+            },
+        };
+      }
+export const useFinancialPerformance = (
+  optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.FinancialPerformanceQuery, Types.FinancialPerformanceQueryVariables>) => {
+  const router = useRouter();
+  const options = optionsFunc ? optionsFunc(router) : {};
+  return useQuery(Operations.FinancialPerformanceDocument, options);
+};
+export type PageFinancialPerformanceComp = React.FC<{data?: Types.FinancialPerformanceQuery, error?: Apollo.ApolloError}>;
+export const withPageFinancialPerformance = (optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.FinancialPerformanceQuery, Types.FinancialPerformanceQueryVariables>) => (WrappedComponent:PageFinancialPerformanceComp) : NextPage  => (props) => {
+                const router = useRouter()
+                const options = optionsFunc ? optionsFunc(router) : {};
+                const {data, error } = useQuery(Operations.FinancialPerformanceDocument, options)    
+                return <WrappedComponent {...props} data={data} error={error} /> ;
+                   
+            }; 
+export const ssrFinancialPerformance = {
+      getServerPage: getServerPageFinancialPerformance,
+      withPage: withPageFinancialPerformance,
+      usePage: useFinancialPerformance,
+    }
 export async function getServerPageJobsiteDayReportsFetch
     (options: Omit<Apollo.QueryOptions<Types.JobsiteDayReportsFetchQueryVariables>, 'query'>, ctx: ApolloClientContext ){
         const apolloClient = getApolloClient(ctx);
