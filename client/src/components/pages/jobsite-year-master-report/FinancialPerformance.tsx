@@ -13,6 +13,11 @@ import {
   Box,
   Heading,
   HStack,
+  Popover,
+  PopoverArrow,
+  PopoverBody,
+  PopoverContent,
+  PopoverTrigger,
   SimpleGrid,
   Spinner,
   Stat,
@@ -293,9 +298,44 @@ const FinancialPerformance = ({ year }: IFinancialPerformance) => {
               <Heading size="md">
                 Productivity vs Profitability
               </Heading>
-              <Badge colorScheme="purple" fontSize="sm" px={2} py={1}>
-                {correlationLabel}
-              </Badge>
+              <Popover trigger="hover" placement="bottom-end">
+                <PopoverTrigger>
+                  <Badge
+                    colorScheme="purple"
+                    fontSize="sm"
+                    px={2}
+                    py={1}
+                    cursor="help"
+                  >
+                    {correlationLabel}
+                  </Badge>
+                </PopoverTrigger>
+                <PopoverContent maxW="300px">
+                  <PopoverArrow />
+                  <PopoverBody fontSize="sm">
+                    <Text fontWeight="bold" mb={1}>What does this mean?</Text>
+                    <Text mb={2}>
+                      This number shows whether jobs where the crew laid more
+                      tonnes per hour than expected also tended to be more
+                      profitable — or whether there's no real connection.
+                    </Text>
+                    <Text mb={2}>
+                      <strong>r closer to +1</strong> — crews that out-performed
+                      on productivity also had better margins. The two tend to go
+                      together.
+                    </Text>
+                    <Text mb={2}>
+                      <strong>r closer to −1</strong> — high-productivity jobs
+                      actually had worse margins (e.g. extra effort on
+                      low-revenue jobs).
+                    </Text>
+                    <Text>
+                      <strong>r near 0</strong> — no clear pattern; productivity
+                      and profit seem unrelated on this year's jobs.
+                    </Text>
+                  </PopoverBody>
+                </PopoverContent>
+              </Popover>
             </HStack>
           }
         >
