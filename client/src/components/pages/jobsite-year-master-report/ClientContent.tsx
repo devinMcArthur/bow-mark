@@ -13,6 +13,7 @@ import Loading from "../../Common/Loading";
 import Permission from "../../Common/Permission";
 import ComparisonPG from "./ComparisonPG";
 import ProductivityBenchmarks from "./ProductivityBenchmarks";
+import FinancialPerformance from "./FinancialPerformance";
 
 interface IJobsiteYearMasterReportClientContent {
   id: string;
@@ -32,7 +33,7 @@ const JobsiteYearMasterReportClientContent = ({
   React.useEffect(() => {
     if (router.isReady) {
       const tab = parseInt((router.query.tab as string) || "0", 10);
-      setTabIndex(isNaN(tab) || tab < 0 || tab > 2 ? 0 : tab);
+      setTabIndex(isNaN(tab) || tab < 0 || tab > 3 ? 0 : tab);
     }
   }, [router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -98,6 +99,7 @@ const JobsiteYearMasterReportClientContent = ({
                 <Tab>Report (MongoDB)</Tab>
                 <Tab>Compare with PostgreSQL</Tab>
                 <Tab>Productivity Benchmarks</Tab>
+                <Tab>Financial Performance</Tab>
               </TabList>
               <TabPanels>
                 <TabPanel px={0}>
@@ -108,6 +110,9 @@ const JobsiteYearMasterReportClientContent = ({
                 </TabPanel>
                 <TabPanel px={0}>
                   {year && <ProductivityBenchmarks year={year} />}
+                </TabPanel>
+                <TabPanel px={0}>
+                  {year && <FinancialPerformance year={year} />}
                 </TabPanel>
               </TabPanels>
             </Tabs>
