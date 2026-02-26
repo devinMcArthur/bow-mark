@@ -1013,7 +1013,20 @@ const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
                     legendType="line"
                   />
                   {/* Jobsite scatter points */}
-                  <Scatter data={scatterData} name="Jobsites">
+                  <Scatter
+                    data={scatterData}
+                    name="Jobsites"
+                    cursor="pointer"
+                    onClick={(data) => {
+                      if (data?.jobsiteId) {
+                        selectJobsite(
+                          data.jobsiteId === highlightedJobsiteId
+                            ? null
+                            : data.jobsiteId
+                        );
+                      }
+                    }}
+                  >
                     {scatterData.map((entry, index) => {
                       const isHighlighted = entry.jobsiteId === highlightedJobsiteId;
                       const baseColor =
