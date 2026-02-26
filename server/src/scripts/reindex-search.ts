@@ -25,8 +25,8 @@ async function main() {
   await mongoose.connect(process.env.MONGO_URI as string);
   console.log("MongoDB connected");
 
-  if (!process.env.SEARCH_HOST || !process.env.SEARCH_API_KEY) {
-    throw new Error("SEARCH_HOST and SEARCH_API_KEY environment variables are required");
+  if (!process.env.SEARCH_HOST || !process.env.SEARCH_API_KEY || !process.env.SEARCH_GROUP) {
+    throw new Error("SEARCH_HOST, SEARCH_API_KEY, and SEARCH_GROUP environment variables are required");
   }
 
   console.log("\nStarting MeiliSearch re-index...");
