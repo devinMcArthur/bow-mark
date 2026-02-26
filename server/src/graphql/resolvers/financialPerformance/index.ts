@@ -6,16 +6,17 @@
  *
  * Revenue = sum of revenue invoices for the year.
  * Direct cost = employee + vehicle + material + trucking costs from
- *   approved daily report fact tables.
+ *   approved daily report fact tables, PLUS Jobsite.expenseInvoices
+ *   (subcontractor payments, equipment rentals, etc.) from MongoDB.
+ *   expenseInvoices are queried from MongoDB directly rather than fact_invoice
+ *   to avoid double-counting materials with costType='invoice'.
  * Net income = revenue - direct cost.
- *
- * Note: expense invoices are NOT included in direct cost to avoid
- * double-counting materials with costType='invoice'.
  */
 
 import { Arg, Query, Resolver } from "type-graphql";
 import { db } from "../../../db";
 import { sql } from "kysely";
+import { Jobsite } from "@models";
 import {
   FinancialPerformanceInput,
   FinancialPerformanceReport,
@@ -48,8 +49,8 @@ export default class FinancialPerformanceResolver {
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
 
-    // Run all data fetches in parallel
-    const [revenueRows, employeeRows, vehicleRows, materialRows, truckingRows, tonnesRows, crewHoursRows] =
+    // Run all data fetches in parallel (PG + MongoDB)
+    const [revenueRows, employeeRows, vehicleRows, materialRows, truckingRows, tonnesRows, crewHoursRows, expenseInvoiceMap] =
       await Promise.all([
         this.getRevenue(startDate, endDate),
         this.getEmployeeCosts(startDate, endDate),
@@ -58,6 +59,7 @@ export default class FinancialPerformanceResolver {
         this.getTruckingCosts(startDate, endDate),
         this.getTonnesPerDailyReport(startDate, endDate),
         this.getCrewHoursPerDailyReport(startDate, endDate),
+        this.getExpenseInvoices(startDate, endDate),
       ]);
 
     // Build lookup maps keyed by PG jobsite UUID
@@ -158,6 +160,7 @@ export default class FinancialPerformanceResolver {
       vehicleCost: number;
       materialCost: number;
       truckingCost: number;
+      expenseInvoiceCost: number;
       totalTonnes: number;
       totalCrewHours: number;
       tonnesPerHour: number;
@@ -172,6 +175,7 @@ export default class FinancialPerformanceResolver {
       const vehicleCost = vehicleMap.get(pgId) ?? 0;
       const materialCost = materialMap.get(pgId) ?? 0;
       const truckingCost = truckingMap.get(pgId) ?? 0;
+      const expenseInvoiceCost = expenseInvoiceMap.get(meta.mongoId) ?? 0;
 
       let totalCrewHours = 0;
       for (const drId of meta.dailyReportIds) {
@@ -193,6 +197,7 @@ export default class FinancialPerformanceResolver {
         vehicleCost,
         materialCost,
         truckingCost,
+        expenseInvoiceCost,
         totalTonnes: meta.totalTonnes,
         totalCrewHours,
         tonnesPerHour,
@@ -207,7 +212,7 @@ export default class FinancialPerformanceResolver {
     // Build final JobsiteFinancialItem objects
     const jobsites: JobsiteFinancialItem[] = rawItems.map((item) => {
       const totalDirectCost =
-        item.employeeCost + item.vehicleCost + item.materialCost + item.truckingCost;
+        item.employeeCost + item.vehicleCost + item.materialCost + item.truckingCost + item.expenseInvoiceCost;
       const netIncome = item.totalRevenue - totalDirectCost;
       const netMarginPercent =
         item.totalRevenue > 0 ? (netIncome / item.totalRevenue) * 100 : undefined;
@@ -231,6 +236,7 @@ export default class FinancialPerformanceResolver {
         vehicleCost: item.vehicleCost,
         materialCost: item.materialCost,
         truckingCost: item.truckingCost,
+        expenseInvoiceCost: item.expenseInvoiceCost,
         totalDirectCost,
         netIncome,
         netMarginPercent,
@@ -276,6 +282,37 @@ export default class FinancialPerformanceResolver {
   }
 
   // ─── Private helpers ────────────────────────────────────────────────
+
+  /**
+   * Returns a map of MongoDB jobsite ID → total expense invoice cost for the period.
+   * Queries Jobsite.expenseInvoices directly from MongoDB to avoid double-counting
+   * materials with costType='invoice' that are already captured in fact_material_shipment.
+   */
+  private async getExpenseInvoices(
+    startDate: Date,
+    endDate: Date
+  ): Promise<Map<string, number>> {
+    const jobsites = await Jobsite.find({
+      expenseInvoices: { $exists: true, $ne: [] },
+    }).populate("expenseInvoices");
+
+    const map = new Map<string, number>();
+    for (const jobsite of jobsites) {
+      let total = 0;
+      for (const inv of jobsite.expenseInvoices) {
+        if (typeof inv === "object" && "cost" in inv && "date" in inv) {
+          const invoice = inv as { cost: number; date: Date };
+          if (invoice.date >= startDate && invoice.date <= endDate) {
+            total += invoice.cost;
+          }
+        }
+      }
+      if (total > 0) {
+        map.set(jobsite._id.toString(), total);
+      }
+    }
+    return map;
+  }
 
   private async getRevenue(startDate: Date, endDate: Date) {
     return db

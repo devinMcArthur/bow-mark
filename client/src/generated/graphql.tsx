@@ -582,6 +582,7 @@ export type JobsiteFinancialItem = {
   __typename?: 'JobsiteFinancialItem';
   employeeCost: Scalars['Float'];
   expectedTonnesPerHour: Scalars['Float'];
+  expenseInvoiceCost: Scalars['Float'];
   jobcode?: Maybe<Scalars['String']>;
   jobsiteId: Scalars['ID'];
   jobsiteName: Scalars['String'];
@@ -3410,7 +3411,7 @@ export type FinancialPerformanceQueryVariables = Exact<{
 }>;
 
 
-export type FinancialPerformanceQuery = { __typename?: 'Query', financialPerformance: { __typename?: 'FinancialPerformanceReport', year: number, totalRevenue: number, totalDirectCost: number, totalNetIncome: number, averageNetMarginPercent?: number | null, correlationResidualThMargin?: number | null, jobsites: Array<{ __typename?: 'JobsiteFinancialItem', jobsiteId: string, jobsiteName: string, jobcode?: string | null, totalRevenue: number, employeeCost: number, vehicleCost: number, materialCost: number, truckingCost: number, totalDirectCost: number, netIncome: number, netMarginPercent?: number | null, totalTonnes: number, totalCrewHours: number, tonnesPerHour: number, expectedTonnesPerHour: number, residualTonnesPerHourPercent?: number | null }> } };
+export type FinancialPerformanceQuery = { __typename?: 'Query', financialPerformance: { __typename?: 'FinancialPerformanceReport', year: number, totalRevenue: number, totalDirectCost: number, totalNetIncome: number, averageNetMarginPercent?: number | null, correlationResidualThMargin?: number | null, jobsites: Array<{ __typename?: 'JobsiteFinancialItem', jobsiteId: string, jobsiteName: string, jobcode?: string | null, totalRevenue: number, employeeCost: number, vehicleCost: number, materialCost: number, truckingCost: number, expenseInvoiceCost: number, totalDirectCost: number, netIncome: number, netMarginPercent?: number | null, totalTonnes: number, totalCrewHours: number, tonnesPerHour: number, expectedTonnesPerHour: number, residualTonnesPerHourPercent?: number | null }> } };
 
 export type JobsiteDayReportsFetchQueryVariables = Exact<{
   ids: Array<Scalars['ID']> | Scalars['ID'];
@@ -8883,6 +8884,7 @@ export const FinancialPerformanceDocument = gql`
       vehicleCost
       materialCost
       truckingCost
+      expenseInvoiceCost
       totalDirectCost
       netIncome
       netMarginPercent

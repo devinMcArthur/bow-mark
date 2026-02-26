@@ -44,8 +44,12 @@ export class JobsiteFinancialItem {
   @Field(() => Float)
   truckingCost!: number;
 
+  /** Sum of Jobsite.expenseInvoices within the year (subcontractors, equipment rentals, etc.) */
   @Field(() => Float)
-  totalDirectCost!: number; // sum of the four above
+  expenseInvoiceCost!: number;
+
+  @Field(() => Float)
+  totalDirectCost!: number; // sum of all five cost components above
 
   // --- Net ---
   @Field(() => Float)

@@ -54,8 +54,10 @@ type SortColumn =
   | "jobsiteName"
   | "totalRevenue"
   | "employeeCost"
+  | "vehicleCost"
   | "materialCost"
   | "truckingCost"
+  | "expenseInvoiceCost"
   | "totalDirectCost"
   | "netIncome"
   | "netMarginPercent"
@@ -105,6 +107,10 @@ const FinancialPerformance = ({ year }: IFinancialPerformance) => {
           aVal = a.employeeCost;
           bVal = b.employeeCost;
           break;
+        case "vehicleCost":
+          aVal = a.vehicleCost;
+          bVal = b.vehicleCost;
+          break;
         case "materialCost":
           aVal = a.materialCost;
           bVal = b.materialCost;
@@ -112,6 +118,10 @@ const FinancialPerformance = ({ year }: IFinancialPerformance) => {
         case "truckingCost":
           aVal = a.truckingCost;
           bVal = b.truckingCost;
+          break;
+        case "expenseInvoiceCost":
+          aVal = a.expenseInvoiceCost;
+          bVal = b.expenseInvoiceCost;
           break;
         case "totalDirectCost":
           aVal = a.totalDirectCost;
@@ -436,6 +446,14 @@ const FinancialPerformance = ({ year }: IFinancialPerformance) => {
                   <Th
                     isNumeric
                     cursor="pointer"
+                    onClick={() => handleSort("vehicleCost")}
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    Equipment{renderSortIndicator("vehicleCost")}
+                  </Th>
+                  <Th
+                    isNumeric
+                    cursor="pointer"
                     onClick={() => handleSort("materialCost")}
                     _hover={{ bg: "gray.100" }}
                   >
@@ -448,6 +466,14 @@ const FinancialPerformance = ({ year }: IFinancialPerformance) => {
                     _hover={{ bg: "gray.100" }}
                   >
                     Trucking{renderSortIndicator("truckingCost")}
+                  </Th>
+                  <Th
+                    isNumeric
+                    cursor="pointer"
+                    onClick={() => handleSort("expenseInvoiceCost")}
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    Invoices{renderSortIndicator("expenseInvoiceCost")}
                   </Th>
                   <Th
                     isNumeric
@@ -522,8 +548,10 @@ const FinancialPerformance = ({ year }: IFinancialPerformance) => {
                       {formatCurrency(j.totalRevenue)}
                     </Td>
                     <Td isNumeric>{formatCurrency(j.employeeCost)}</Td>
+                    <Td isNumeric>{formatCurrency(j.vehicleCost)}</Td>
                     <Td isNumeric>{formatCurrency(j.materialCost)}</Td>
                     <Td isNumeric>{formatCurrency(j.truckingCost)}</Td>
+                    <Td isNumeric>{formatCurrency(j.expenseInvoiceCost)}</Td>
                     <Td isNumeric color="red.600">
                       {formatCurrency(j.totalDirectCost)}
                     </Td>
@@ -590,8 +618,9 @@ const FinancialPerformance = ({ year }: IFinancialPerformance) => {
         <Text fontSize="xs" color="gray.500" mt={3}>
           <strong>Revenue:</strong> sum of revenue invoices.{" "}
           <strong>Direct Cost:</strong> employee + vehicle + material + trucking
-          from approved daily reports (expense invoices excluded to avoid
-          double-counting).{" "}
+          from approved daily reports, plus{" "}
+          <strong>Invoices</strong> (jobsite expense invoices — subcontractors,
+          equipment rentals, etc.).{" "}
           <strong>Residual T/H%:</strong> how much actual T/H exceeded or
           missed the size-adjusted expectation.
         </Text>
