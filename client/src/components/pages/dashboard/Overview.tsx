@@ -42,6 +42,7 @@ interface IOverview {
 }
 
 type SortColumn =
+  | "jobcode"
   | "jobsiteName"
   | "totalRevenue"
   | "netIncome"
@@ -81,6 +82,10 @@ const Overview = ({ startDate, endDate }: IOverview) => {
       let aVal: number | string;
       let bVal: number | string;
       switch (sortColumn) {
+        case "jobcode":
+          aVal = (a.jobcode ?? "").toLowerCase();
+          bVal = (b.jobcode ?? "").toLowerCase();
+          break;
         case "jobsiteName":
           aVal = a.jobsiteName.toLowerCase();
           bVal = b.jobsiteName.toLowerCase();
@@ -162,7 +167,7 @@ const Overview = ({ startDate, endDate }: IOverview) => {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortColumn(col);
-      setSortDirection(col === "jobsiteName" ? "asc" : "desc");
+      setSortDirection(col === "jobsiteName" || col === "jobcode" ? "asc" : "desc");
     }
   };
 
@@ -452,7 +457,14 @@ const Overview = ({ startDate, endDate }: IOverview) => {
             <Table size="sm">
               <Thead position="sticky" top={0} bg="white" zIndex={1}>
                 <Tr>
-                  <Th w="40px">#</Th>
+                  <Th
+                    cursor="pointer"
+                    onClick={() => handleSort("jobcode")}
+                    _hover={{ bg: "gray.100" }}
+                    w="90px"
+                  >
+                    Job Code{renderSortIndicator("jobcode")}
+                  </Th>
                   <Th
                     cursor="pointer"
                     onClick={() => handleSort("jobsiteName")}
@@ -504,15 +516,15 @@ const Overview = ({ startDate, endDate }: IOverview) => {
                 </Tr>
               </Thead>
               <Tbody>
-                {sortedJobsites.map((j, idx) => (
+                {sortedJobsites.map((j) => (
                   <Tr
                     key={j.jobsiteId}
                     _hover={{ bg: "gray.50" }}
                     cursor="pointer"
                     onClick={() => router.push(createLink.jobsiteYearReport(j.jobsiteId))}
                   >
-                    <Td fontWeight="bold" color="gray.500">
-                      {idx + 1}
+                    <Td fontWeight="medium" color="gray.600" fontSize="xs">
+                      {j.jobcode ?? "—"}
                     </Td>
                     <Td>
                       <NextLink
@@ -528,11 +540,6 @@ const Overview = ({ startDate, endDate }: IOverview) => {
                           {j.jobsiteName}
                         </Text>
                       </NextLink>
-                      {j.jobcode && (
-                        <Text fontSize="xs" color="gray.500">
-                          {j.jobcode}
-                        </Text>
-                      )}
                     </Td>
                     <Td isNumeric color="green.700">
                       {formatCurrency(j.totalRevenue)}

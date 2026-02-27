@@ -72,7 +72,6 @@ interface IProductivity {
 type ViewMode = "jobsite" | "crew";
 
 type JobsiteSortColumn =
-  | "jobcode"
   | "jobsiteName"
   | "totalTonnes"
   | "totalCrewHours"
@@ -206,10 +205,6 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
       let aVal: number | string;
       let bVal: number | string;
       switch (jobsiteSortCol) {
-        case "jobcode":
-          aVal = (a.jobcode ?? "").toLowerCase();
-          bVal = (b.jobcode ?? "").toLowerCase();
-          break;
         case "jobsiteName":
           aVal = a.jobsiteName.toLowerCase();
           bVal = b.jobsiteName.toLowerCase();
@@ -307,7 +302,7 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
       setJobsiteSortDir(jobsiteSortDir === "asc" ? "desc" : "asc");
     } else {
       setJobsiteSortCol(col);
-      setJobsiteSortDir(col === "jobsiteName" || col === "jobcode" ? "asc" : "desc");
+      setJobsiteSortDir(col === "jobsiteName" ? "asc" : "desc");
     }
   };
 
@@ -878,9 +873,7 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
                 <Table size="sm">
                   <Thead position="sticky" top={0} bg="white" zIndex={1}>
                     <Tr>
-                      <Th cursor="pointer" onClick={() => handleJobsiteSort("jobcode")} _hover={{ bg: "gray.100" }} w="80px">
-                        Job Code{renderJobsiteIndicator("jobcode")}
-                      </Th>
+                      <Th w="40px">#</Th>
                       <Th cursor="pointer" onClick={() => handleJobsiteSort("jobsiteName")} _hover={{ bg: "gray.100" }} minW="160px">
                         Jobsite{renderJobsiteIndicator("jobsiteName")}
                       </Th>
@@ -929,7 +922,7 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
                           cursor="pointer"
                           onClick={() => selectJobsite(isHighlighted ? null : j.jobsiteId)}
                         >
-                          <Td fontWeight="medium" color="gray.600" fontSize="xs">{j.jobcode ?? "—"}</Td>
+                          <Td fontWeight="bold" color="gray.500">{sortedJobsites.indexOf(j) + 1}</Td>
                           <Td>
                             <NextLink href={createLink.jobsite(j.jobsiteId)} passHref>
                               <Text
