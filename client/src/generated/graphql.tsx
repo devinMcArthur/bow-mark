@@ -290,6 +290,10 @@ export type DashboardOverviewReport = {
   avgTonnesPerHour?: Maybe<Scalars['Float']>;
   jobsites: Array<DashboardOverviewItem>;
   netIncomeChangePercent?: Maybe<Scalars['Float']>;
+  priorAvgTonnesPerHour?: Maybe<Scalars['Float']>;
+  priorNetIncome?: Maybe<Scalars['Float']>;
+  priorRevenue?: Maybe<Scalars['Float']>;
+  priorTonnes?: Maybe<Scalars['Float']>;
   revenueChangePercent?: Maybe<Scalars['Float']>;
   tonnesChangePercent?: Maybe<Scalars['Float']>;
   tonnesPerHourChangePercent?: Maybe<Scalars['Float']>;
@@ -3494,7 +3498,7 @@ export type DashboardOverviewQueryVariables = Exact<{
 }>;
 
 
-export type DashboardOverviewQuery = { __typename?: 'Query', dashboardOverview: { __typename?: 'DashboardOverviewReport', totalRevenue: number, totalNetIncome: number, avgNetMarginPercent?: number | null, totalTonnes: number, avgTonnesPerHour?: number | null, revenueChangePercent?: number | null, netIncomeChangePercent?: number | null, tonnesChangePercent?: number | null, tonnesPerHourChangePercent?: number | null, jobsites: Array<{ __typename?: 'DashboardOverviewItem', jobsiteId: string, jobsiteName: string, jobcode?: string | null, totalRevenue: number, totalDirectCost: number, netIncome: number, netMarginPercent?: number | null, totalTonnes: number, tonnesPerHour?: number | null }> } };
+export type DashboardOverviewQuery = { __typename?: 'Query', dashboardOverview: { __typename?: 'DashboardOverviewReport', totalRevenue: number, totalNetIncome: number, avgNetMarginPercent?: number | null, totalTonnes: number, avgTonnesPerHour?: number | null, revenueChangePercent?: number | null, netIncomeChangePercent?: number | null, tonnesChangePercent?: number | null, tonnesPerHourChangePercent?: number | null, priorRevenue?: number | null, priorNetIncome?: number | null, priorTonnes?: number | null, priorAvgTonnesPerHour?: number | null, jobsites: Array<{ __typename?: 'DashboardOverviewItem', jobsiteId: string, jobsiteName: string, jobcode?: string | null, totalRevenue: number, totalDirectCost: number, netIncome: number, netMarginPercent?: number | null, totalTonnes: number, tonnesPerHour?: number | null }> } };
 
 export type DashboardFinancialQueryVariables = Exact<{
   input: DashboardInput;
@@ -8783,6 +8787,10 @@ export const DashboardOverviewDocument = gql`
     netIncomeChangePercent
     tonnesChangePercent
     tonnesPerHourChangePercent
+    priorRevenue
+    priorNetIncome
+    priorTonnes
+    priorAvgTonnesPerHour
     jobsites {
       jobsiteId
       jobsiteName
