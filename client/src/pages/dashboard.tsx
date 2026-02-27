@@ -38,23 +38,27 @@ const DashboardPage: NextPage = () => {
   const [endDate, setEndDate] = React.useState(defaults.endDate);
   const [tabIndex, setTabIndex] = React.useState(0);
 
-  // Hydrate dates from URL query params once router is ready
+  // Hydrate state from URL query params once router is ready
   React.useEffect(() => {
     if (!router.isReady) return;
-    const { startDate: qs, endDate: qe } = router.query;
+    const { startDate: qs, endDate: qe, tab: qt } = router.query;
     if (typeof qs === "string") setStartDate(qs);
     if (typeof qe === "string") setEndDate(qe);
+    if (typeof qt === "string") {
+      const idx = parseInt(qt, 10);
+      if (idx >= 0 && idx <= 2) setTabIndex(idx);
+    }
   }, [router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Keep URL in sync with current date range
+  // Keep URL in sync with current state
   React.useEffect(() => {
     if (!router.isReady) return;
     router.replace(
-      { pathname: router.pathname, query: { startDate, endDate } },
+      { pathname: router.pathname, query: { startDate, endDate, tab: tabIndex } },
       undefined,
       { shallow: true }
     );
-  }, [startDate, endDate, router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [startDate, endDate, tabIndex, router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setThisYear = () => {
     const today = new Date();
