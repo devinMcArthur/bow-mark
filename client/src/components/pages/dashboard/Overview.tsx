@@ -28,6 +28,7 @@ import {
   Text,
   Th,
   Thead,
+  Tooltip,
   Tr,
 } from "@chakra-ui/react";
 import { FiChevronDown, FiChevronUp } from "react-icons/fi";
@@ -54,6 +55,13 @@ type SortDirection = "asc" | "desc";
 
 const formatCurrency = (val: number) => `$${formatNumber(val)}`;
 
+const formatDateShort = (iso: string) =>
+  new Date(iso + "T12:00:00").toLocaleDateString("en-CA", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
 const getMarginColor = (pct?: number | null): string => {
   if (pct == null) return "gray";
   if (pct >= 15) return "green";
@@ -67,6 +75,15 @@ const Overview = ({ startDate, endDate }: IOverview) => {
     React.useState<SortColumn>("netMarginPercent");
   const [sortDirection, setSortDirection] =
     React.useState<SortDirection>("desc");
+
+  const priorYearLabel = React.useMemo(() => {
+    const shiftYear = (iso: string, delta: number) => {
+      const d = new Date(iso + "T12:00:00");
+      d.setFullYear(d.getFullYear() + delta);
+      return d.toISOString().slice(0, 10);
+    };
+    return `${formatDateShort(shiftYear(startDate, -1))} – ${formatDateShort(shiftYear(endDate, -1))}`;
+  }, [startDate, endDate]);
 
   const { data, loading, error, previousData } = useDashboardOverviewQuery({
     variables: { input: { startDate, endDate } },
@@ -200,12 +217,14 @@ const Overview = ({ startDate, endDate }: IOverview) => {
               {formatCurrency(report.totalRevenue)}
             </StatNumber>
             {report.revenueChangePercent != null && (
-              <StatHelpText>
-                <StatArrow
-                  type={report.revenueChangePercent >= 0 ? "increase" : "decrease"}
-                />
-                {Math.abs(report.revenueChangePercent).toFixed(1)}% YoY
-              </StatHelpText>
+              <Tooltip label={priorYearLabel} fontSize="xs" placement="bottom">
+                <StatHelpText cursor="default">
+                  <StatArrow
+                    type={report.revenueChangePercent >= 0 ? "increase" : "decrease"}
+                  />
+                  {Math.abs(report.revenueChangePercent).toFixed(1)}% YoY
+                </StatHelpText>
+              </Tooltip>
             )}
           </Stat>
 
@@ -219,12 +238,14 @@ const Overview = ({ startDate, endDate }: IOverview) => {
               {formatCurrency(report.totalNetIncome)}
             </StatNumber>
             {report.netIncomeChangePercent != null && (
-              <StatHelpText>
-                <StatArrow
-                  type={report.netIncomeChangePercent >= 0 ? "increase" : "decrease"}
-                />
-                {Math.abs(report.netIncomeChangePercent).toFixed(1)}% YoY
-              </StatHelpText>
+              <Tooltip label={priorYearLabel} fontSize="xs" placement="bottom">
+                <StatHelpText cursor="default">
+                  <StatArrow
+                    type={report.netIncomeChangePercent >= 0 ? "increase" : "decrease"}
+                  />
+                  {Math.abs(report.netIncomeChangePercent).toFixed(1)}% YoY
+                </StatHelpText>
+              </Tooltip>
             )}
           </Stat>
 
@@ -251,12 +272,14 @@ const Overview = ({ startDate, endDate }: IOverview) => {
               {formatNumber(report.totalTonnes)}
             </StatNumber>
             {report.tonnesChangePercent != null && (
-              <StatHelpText>
-                <StatArrow
-                  type={report.tonnesChangePercent >= 0 ? "increase" : "decrease"}
-                />
-                {Math.abs(report.tonnesChangePercent).toFixed(1)}% YoY
-              </StatHelpText>
+              <Tooltip label={priorYearLabel} fontSize="xs" placement="bottom">
+                <StatHelpText cursor="default">
+                  <StatArrow
+                    type={report.tonnesChangePercent >= 0 ? "increase" : "decrease"}
+                  />
+                  {Math.abs(report.tonnesChangePercent).toFixed(1)}% YoY
+                </StatHelpText>
+              </Tooltip>
             )}
           </Stat>
 
@@ -269,16 +292,18 @@ const Overview = ({ startDate, endDate }: IOverview) => {
                 : "N/A"}
             </StatNumber>
             {report.tonnesPerHourChangePercent != null && (
-              <StatHelpText>
-                <StatArrow
-                  type={
-                    report.tonnesPerHourChangePercent >= 0
-                      ? "increase"
-                      : "decrease"
-                  }
-                />
-                {Math.abs(report.tonnesPerHourChangePercent).toFixed(1)}% YoY
-              </StatHelpText>
+              <Tooltip label={priorYearLabel} fontSize="xs" placement="bottom">
+                <StatHelpText cursor="default">
+                  <StatArrow
+                    type={
+                      report.tonnesPerHourChangePercent >= 0
+                        ? "increase"
+                        : "decrease"
+                    }
+                  />
+                  {Math.abs(report.tonnesPerHourChangePercent).toFixed(1)}% YoY
+                </StatHelpText>
+              </Tooltip>
             )}
           </Stat>
         </SimpleGrid>
