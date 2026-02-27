@@ -72,6 +72,32 @@ const getVsAverageColor = (pct: number): string => {
   return "gray";
 };
 
+function createSortHandlers<T extends string>(
+  sortCol: T,
+  setSortCol: (col: T) => void,
+  sortDir: "asc" | "desc",
+  setSortDir: (dir: "asc" | "desc") => void,
+  textColumns: T[]
+) {
+  const handleSort = (col: T) => {
+    if (col === sortCol) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortCol(col);
+      setSortDir(textColumns.includes(col) ? "asc" : "desc");
+    }
+  };
+  const renderIndicator = (col: T) => {
+    if (col !== sortCol) return null;
+    return sortDir === "asc" ? (
+      <FiChevronUp style={{ display: "inline", marginLeft: 4 }} />
+    ) : (
+      <FiChevronDown style={{ display: "inline", marginLeft: 4 }} />
+    );
+  };
+  return { handleSort, renderIndicator };
+}
+
 const Productivity = ({ startDate, endDate }: IProductivity) => {
   const router = useRouter();
   const [viewMode, setViewMode] = React.useState<ViewMode>("jobsite");
@@ -91,15 +117,17 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
   const [crewSortDirection, setCrewSortDirection] =
     React.useState<SortDirection>("desc");
 
-  const selectedArray = Array.from(selectedMaterials);
+  const selectedArray = React.useMemo(
+    () => (selectedMaterials.size > 0 ? Array.from(selectedMaterials) : undefined),
+    [selectedMaterials]
+  );
 
   const { data, loading, error, previousData } = useDashboardProductivityQuery({
     variables: {
       input: {
         startDate,
         endDate,
-        selectedMaterials:
-          selectedArray.length > 0 ? selectedArray : undefined,
+        selectedMaterials: selectedArray,
       },
     },
   });
@@ -232,45 +260,11 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
     });
   };
 
-  const handleJobsiteSort = (col: JobsiteSortColumn) => {
-    if (jobsiteSortColumn === col) {
-      setJobsiteSortDirection(
-        jobsiteSortDirection === "asc" ? "desc" : "asc"
-      );
-    } else {
-      setJobsiteSortColumn(col);
-      setJobsiteSortDirection(col === "jobsiteName" ? "asc" : "desc");
-    }
-  };
+  const { handleSort: handleJobsiteSort, renderIndicator: renderJobsiteSortIndicator } =
+    createSortHandlers(jobsiteSortColumn, setJobsiteSortColumn, jobsiteSortDirection, setJobsiteSortDirection, ["jobsiteName"] as JobsiteSortColumn[]);
 
-  const handleCrewSort = (col: CrewSortColumn) => {
-    if (crewSortColumn === col) {
-      setCrewSortDirection(crewSortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setCrewSortColumn(col);
-      setCrewSortDirection(
-        col === "crewName" || col === "crewType" ? "asc" : "desc"
-      );
-    }
-  };
-
-  const renderJobsiteSortIndicator = (col: JobsiteSortColumn) => {
-    if (jobsiteSortColumn !== col) return null;
-    return jobsiteSortDirection === "asc" ? (
-      <FiChevronUp style={{ display: "inline", marginLeft: 4 }} />
-    ) : (
-      <FiChevronDown style={{ display: "inline", marginLeft: 4 }} />
-    );
-  };
-
-  const renderCrewSortIndicator = (col: CrewSortColumn) => {
-    if (crewSortColumn !== col) return null;
-    return crewSortDirection === "asc" ? (
-      <FiChevronUp style={{ display: "inline", marginLeft: 4 }} />
-    ) : (
-      <FiChevronDown style={{ display: "inline", marginLeft: 4 }} />
-    );
-  };
+  const { handleSort: handleCrewSort, renderIndicator: renderCrewSortIndicator } =
+    createSortHandlers(crewSortColumn, setCrewSortColumn, crewSortDirection, setCrewSortDirection, ["crewName", "crewType"] as CrewSortColumn[]);
 
   return (
     <Box overflowY="auto" h="100%">

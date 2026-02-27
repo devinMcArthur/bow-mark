@@ -33,6 +33,7 @@ import {
 import { FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { useDashboardOverviewQuery } from "../../../generated/graphql";
 import formatNumber from "../../../utils/formatNumber";
+import createLink from "../../../utils/createLink";
 import Card from "../../Common/Card";
 
 interface IOverview {
@@ -311,7 +312,7 @@ const Overview = ({ startDate, endDate }: IOverview) => {
                       </Td>
                       <Td>
                         <NextLink
-                          href={`/jobsite-year-report/${j.jobsiteId}`}
+                          href={createLink.jobsiteYearReport(j.jobsiteId)}
                           passHref
                         >
                           <Text
@@ -380,7 +381,7 @@ const Overview = ({ startDate, endDate }: IOverview) => {
                       </Td>
                       <Td>
                         <NextLink
-                          href={`/jobsite-year-report/${j.jobsiteId}`}
+                          href={createLink.jobsiteYearReport(j.jobsiteId)}
                           passHref
                         >
                           <Text
@@ -508,14 +509,14 @@ const Overview = ({ startDate, endDate }: IOverview) => {
                     key={j.jobsiteId}
                     _hover={{ bg: "gray.50" }}
                     cursor="pointer"
-                    onClick={() => router.push(`/jobsite-year-report/${j.jobsiteId}`)}
+                    onClick={() => router.push(createLink.jobsiteYearReport(j.jobsiteId))}
                   >
                     <Td fontWeight="bold" color="gray.500">
                       {idx + 1}
                     </Td>
                     <Td>
                       <NextLink
-                        href={`/jobsite-year-report/${j.jobsiteId}`}
+                        href={createLink.jobsiteYearReport(j.jobsiteId)}
                         passHref
                       >
                         <Text
