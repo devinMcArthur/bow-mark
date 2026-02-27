@@ -873,7 +873,6 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
                 <Table size="sm">
                   <Thead position="sticky" top={0} bg="white" zIndex={1}>
                     <Tr>
-                      <Th w="40px">#</Th>
                       <Th cursor="pointer" onClick={() => handleJobsiteSort("jobsiteName")} _hover={{ bg: "gray.100" }} minW="160px">
                         Jobsite{renderJobsiteIndicator("jobsiteName")}
                       </Th>
@@ -922,7 +921,6 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
                           cursor="pointer"
                           onClick={() => selectJobsite(isHighlighted ? null : j.jobsiteId)}
                         >
-                          <Td fontWeight="bold" color="gray.500">{sortedJobsites.indexOf(j) + 1}</Td>
                           <Td>
                             <NextLink href={createLink.jobsite(j.jobsiteId)} passHref>
                               <Text
