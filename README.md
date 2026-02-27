@@ -78,15 +78,47 @@ Docker Hub references with your own Docker Hub images.
 
 ## App Deployment
 
-- Create CircleCI project and add necessary environment variables (DOCKERHUB_PASS, DOCKERHUB_USERNAME, KUBERNETES_CLUSTER_CERTIFICATE, KUBERNETES_SERVER, KUBERNETES_TOKEN)
+### Branch Strategy
 
-- Ensure .circleci/config.yaml has the correct Image Names for SERVER_IMAGE_NAME and CLIENT_IMAGE_NAME
+- `master` — active development. Every push triggers a CI build that compiles
+  all Docker images and pushes them to Docker Hub tagged with the commit SHA.
+  This pre-warms the build cache so production deploys are fast.
+- `production` — deployment branch. Pushing here triggers a deploy. If the
+  images for the current commit SHA were already built on `master`, they are
+  promoted to `:latest` instantly (no rebuild). Otherwise a full build runs
+  with a warm cache.
 
-- Create required secrets
+To deploy: `git push origin production` (or merge master → production via PR).
+
+### GitHub Actions Setup
+
+CI/CD runs via GitHub Actions (`.github/workflows/`):
+
+- `ci.yml` — runs on `master` push: builds server + paving client + concrete
+  client images in parallel, pushes as `:$SHA` to Docker Hub.
+- `build-deploy.yml` — runs on `production` push: promotes or rebuilds images,
+  then deploys to DigitalOcean Kubernetes.
+
+Add the following secrets in **GitHub → Settings → Secrets and variables →
+Actions → Repository secrets**:
+
+| Secret | Description |
+|--------|-------------|
+| `DOCKERHUB_USERNAME` | Docker Hub username |
+| `DOCKERHUB_PASS` | Docker Hub password or access token |
+| `DO_API_TOKEN` | DigitalOcean API token (generate at cloud.digitalocean.com/account/api/tokens) |
+| `DO_CLUSTER` | DigitalOcean Kubernetes cluster name (found at cloud.digitalocean.com/kubernetes) |
+
+### Why Two Client Images?
+
+`NEXT_PUBLIC_*` environment variables are baked into the JavaScript bundle at
+build time by webpack. They cannot be changed at runtime. The server reads
+`process.env` at runtime so one server image serves both apps (the k8s
+ConfigMap injects `MONGO_URI`, `POSTGRES_DB`, and `APP_NAME` per deployment).
+
+### Create Required Secrets
 
   - `kubectl create secret generic server-secrets --from-literal=mongoURI=<value> --from-literal=jwtSecret=<value> --from-literal=elasticsearchPassword=<value>`
-
-- Deploy to your branch and ensure CircleCI passes
 
 # Kubernetes Resources
 
