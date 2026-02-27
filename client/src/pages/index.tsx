@@ -8,7 +8,7 @@ import Loading from "../components/Common/Loading";
 import OperatorDailyReportFullPageList from "../components/Common/OperatorDailyReport/ListFullPage";
 import VehicleIssueFullPageList from "../components/Common/VehicleIssue/ListFullPage";
 import { useAuth } from "../contexts/Auth";
-import { UserRoles, UserTypes } from "../generated/graphql";
+import { UserHomeViewSettings, UserRoles, UserTypes } from "../generated/graphql";
 
 interface ITabCatalogItem {
   tab: React.ReactChild;
@@ -25,6 +25,22 @@ const Home = () => {
   } = useAuth();
 
   const router = useRouter();
+
+  /**
+   * --- Redirect to dashboard if home view setting is Reports and user has permission ---
+   */
+
+  React.useEffect(() => {
+    if (!user) return;
+    const hasDashboardPermission =
+      user.role === UserRoles.Admin || user.role === UserRoles.ProjectManager;
+    if (
+      user.settings.homeView === UserHomeViewSettings.GeneralReports &&
+      hasDashboardPermission
+    ) {
+      router.replace("/dashboard");
+    }
+  }, [user, router]);
 
   /**
    * --- Variables ---
