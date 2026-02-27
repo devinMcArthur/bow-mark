@@ -87,8 +87,31 @@ npm run lint            # ESLint + Next.js lint
 
 - **Development**: Tilt with Minikube for local Kubernetes (see `Tiltfile`)
 - **Production**: DigitalOcean Kubernetes with Nginx Ingress + Cert-Manager
-- **CI/CD**: CircleCI builds Docker images to Docker Hub
+- **CI/CD**: GitHub Actions (`.github/workflows/`) — see below
 - **Services**: MongoDB, PostgreSQL, RabbitMQ, Meilisearch
+
+### CI/CD (GitHub Actions)
+
+Two workflows, two branches:
+
+| Branch | Workflow | What it does |
+|--------|----------|--------------|
+| `master` | `ci.yml` | Builds server + paving client + concrete client images in parallel, pushes to Docker Hub as `:$SHA`. Warms the layer cache. |
+| `production` | `build-deploy.yml` | Checks if `:$SHA` images already exist on Docker Hub. If yes, re-tags as `:latest` instantly. If no, full parallel build. Then deploys to DigitalOcean k8s via `doctl` + `kubectl`. |
+
+**Why two client images, one server?**
+`NEXT_PUBLIC_*` vars are baked into the JS bundle at webpack build time — they
+can't change at runtime. The server reads `process.env` at runtime, so one
+image works for both paving and concrete (k8s ConfigMap injects `MONGO_URI`,
+`POSTGRES_DB`, `APP_NAME` per deployment).
+
+**To deploy to production:**
+```bash
+git push origin production
+```
+
+**Required GitHub repository secrets:** `DOCKERHUB_USERNAME`, `DOCKERHUB_PASS`,
+`DO_API_TOKEN`, `DO_CLUSTER` — see README.md for details.
 
 ### Data Sync Architecture
 
