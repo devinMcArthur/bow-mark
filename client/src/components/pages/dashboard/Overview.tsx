@@ -176,7 +176,7 @@ const Overview = ({ startDate, endDate }: IOverview) => {
   };
 
   return (
-    <Box overflowY="auto" h="100%">
+    <Box overflowY="auto" h="100%" w="100%">
       {/* KPI Stats */}
       <Card
         heading={

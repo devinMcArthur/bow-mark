@@ -5,10 +5,20 @@ import {
   TabPanels, Tabs, Text,
 } from "@chakra-ui/react";
 import { NextPage } from "next";
+import dynamic from "next/dynamic";
 
-const Overview = React.lazy(() => import("../components/pages/dashboard/Overview"));
-const Financial = React.lazy(() => import("../components/pages/dashboard/Financial"));
-const Productivity = React.lazy(() => import("../components/pages/dashboard/Productivity"));
+const Overview = dynamic<{ startDate: string; endDate: string }>(
+  () => import("../components/pages/dashboard/Overview"),
+  { ssr: false }
+);
+const Financial = dynamic<{ startDate: string; endDate: string }>(
+  () => import("../components/pages/dashboard/Financial"),
+  { ssr: false }
+);
+const Productivity = dynamic<{ startDate: string; endDate: string }>(
+  () => import("../components/pages/dashboard/Productivity"),
+  { ssr: false }
+);
 
 const toDateInput = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -68,27 +78,21 @@ const DashboardPage: NextPage = () => {
       </Flex>
 
       <Tabs variant="enclosed" index={tabIndex} onChange={setTabIndex}
-        display="flex" flexDirection="column" flex={1} minH={0}>
+        display="flex" flexDirection="column" flex={1} minH={0} w="100%">
         <TabList flexShrink={0}>
           <Tab>Overview</Tab>
           <Tab>Financial</Tab>
           <Tab>Productivity</Tab>
         </TabList>
-        <TabPanels flex={1} minH={0} overflow="hidden">
-          <TabPanel h="100%" p={0} pt={4} overflow="hidden">
-            <React.Suspense fallback={null}>
-              <Overview startDate={startDate} endDate={endDate} />
-            </React.Suspense>
+        <TabPanels flex={1} minH={0} overflow="hidden" w="100%">
+          <TabPanel h="100%" w="100%" p={0} pt={4} overflow="hidden">
+            <Overview startDate={startDate} endDate={endDate} />
           </TabPanel>
-          <TabPanel h="100%" p={0} pt={4} overflow="hidden">
-            <React.Suspense fallback={null}>
-              <Financial startDate={startDate} endDate={endDate} />
-            </React.Suspense>
+          <TabPanel h="100%" w="100%" p={0} pt={4} overflow="hidden">
+            <Financial startDate={startDate} endDate={endDate} />
           </TabPanel>
-          <TabPanel h="100%" p={0} pt={4} overflow="hidden">
-            <React.Suspense fallback={null}>
-              <Productivity startDate={startDate} endDate={endDate} />
-            </React.Suspense>
+          <TabPanel h="100%" w="100%" p={0} pt={4} overflow="hidden">
+            <Productivity startDate={startDate} endDate={endDate} />
           </TabPanel>
         </TabPanels>
       </Tabs>

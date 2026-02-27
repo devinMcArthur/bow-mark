@@ -267,7 +267,7 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
     createSortHandlers(crewSortColumn, setCrewSortColumn, crewSortDirection, setCrewSortDirection, ["crewName", "crewType"] as CrewSortColumn[]);
 
   return (
-    <Box overflowY="auto" h="100%">
+    <Box overflowY="auto" h="100%" w="100%">
       {/* Summary Stats */}
       <Card
         heading={

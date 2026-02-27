@@ -183,7 +183,7 @@ const Financial = ({ startDate, endDate }: IFinancial) => {
   };
 
   return (
-    <Box overflowY="auto" h="100%">
+    <Box overflowY="auto" h="100%" w="100%">
       {/* Summary KPI Stats */}
       <Card
         heading={
