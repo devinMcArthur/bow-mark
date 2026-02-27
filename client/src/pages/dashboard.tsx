@@ -7,6 +7,8 @@ import {
 import { NextPage } from "next";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
+import Permission from "../components/Common/Permission";
+import { UserRoles } from "../generated/graphql";
 
 const Overview = dynamic<{ startDate: string; endDate: string }>(
   () => import("../components/pages/dashboard/Overview"),
@@ -81,6 +83,7 @@ const DashboardPage: NextPage = () => {
   };
 
   return (
+    <Permission minRole={UserRoles.ProjectManager} type={null} showError>
     <Box p={4} h="100vh" w="100%" display="flex" flexDirection="column" overflow="hidden">
       <Flex align="center" justify="space-between" mb={4} wrap="wrap" gap={2} flexShrink={0}>
         <Heading size="lg">Business Dashboard</Heading>
@@ -121,6 +124,7 @@ const DashboardPage: NextPage = () => {
         </TabPanels>
       </Tabs>
     </Box>
+    </Permission>
   );
 };
 
