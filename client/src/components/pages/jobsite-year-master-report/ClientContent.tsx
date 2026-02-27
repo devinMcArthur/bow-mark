@@ -76,7 +76,7 @@ const JobsiteYearMasterReportClientContent = ({
     if (!data?.jobsiteYearMasterReport) return null;
     const startDate = dayjs(data.jobsiteYearMasterReport.startOfYear);
     return startDate.add(-startDate.utcOffset(), "minutes").year();
-  }, [data?.jobsiteYearMasterReport?.startOfYear]);
+  }, [data?.jobsiteYearMasterReport]);
 
   return React.useMemo(() => {
     if (data?.jobsiteYearMasterReport && !loading) {

@@ -313,7 +313,7 @@ const ProductivityAnalytics = ({
     }
 
     return grouped;
-  }, [productivity?.laborTypeHours]);
+  }, [productivity]);
 
   if (loading) {
     return (

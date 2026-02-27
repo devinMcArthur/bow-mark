@@ -158,8 +158,10 @@ const ProductivityBenchmarks = ({ year }: IProductivityBenchmarks) => {
   // Use current data, or fall back to previous data while loading to prevent flicker
   const currentData = data ?? previousData;
   const report = currentData?.productivityBenchmarks;
-  const availableMaterials =
-    materialsData?.productivityBenchmarks?.availableMaterials || [];
+  const availableMaterials = React.useMemo(
+    () => materialsData?.productivityBenchmarks?.availableMaterials || [],
+    [materialsData?.productivityBenchmarks?.availableMaterials]
+  );
 
   // Filter materials by search term
   const filteredMaterials = React.useMemo(() => {

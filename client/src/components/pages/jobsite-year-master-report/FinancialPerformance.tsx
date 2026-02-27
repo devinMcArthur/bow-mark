@@ -317,7 +317,7 @@ const FinancialPerformance = ({ year }: IFinancialPerformance) => {
                     <Text mb={2}>
                       This number shows whether jobs where the crew laid more
                       tonnes per hour than expected also tended to be more
-                      profitable — or whether there's no real connection.
+                      profitable — or whether there&rsquo;s no real connection.
                     </Text>
                     <Text mb={2}>
                       <strong>r closer to +1</strong> — crews that out-performed
@@ -331,7 +331,7 @@ const FinancialPerformance = ({ year }: IFinancialPerformance) => {
                     </Text>
                     <Text>
                       <strong>r near 0</strong> — no clear pattern; productivity
-                      and profit seem unrelated on this year's jobs.
+                      and profit seem unrelated on this year&rsquo;s jobs.
                     </Text>
                   </PopoverBody>
                 </PopoverContent>
