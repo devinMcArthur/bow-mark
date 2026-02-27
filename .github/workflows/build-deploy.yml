@@ -15,7 +15,43 @@ env:
 # (e.g. a direct push to production), we fall back to a full build.
 
 jobs:
+  wait-for-master-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for master CI to complete
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Checking master CI status..."
+          while true; do
+            RUN_JSON=$(gh run list \
+              --repo ${{ github.repository }} \
+              --branch master \
+              --workflow "CI" \
+              --limit 1 \
+              --json status,conclusion,databaseId)
+            STATUS=$(echo "$RUN_JSON" | jq -r '.[0].status // "none"')
+            if [ "$STATUS" = "none" ]; then
+              echo "No CI run found on master — proceeding"
+              break
+            fi
+            if [ "$STATUS" = "completed" ]; then
+              CONCLUSION=$(echo "$RUN_JSON" | jq -r '.[0].conclusion')
+              echo "Master CI completed with conclusion: $CONCLUSION"
+              if [ "$CONCLUSION" = "success" ]; then
+                break
+              else
+                echo "Master CI did not succeed (conclusion: $CONCLUSION) — aborting"
+                exit 1
+              fi
+            fi
+            RUN_ID=$(echo "$RUN_JSON" | jq -r '.[0].databaseId')
+            echo "Master CI run #$RUN_ID is still $STATUS — waiting 30s..."
+            sleep 30
+          done
+
   build-server:
+    needs: wait-for-master-ci
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +82,7 @@ jobs:
           fi
 
   build-client-paving:
+    needs: wait-for-master-ci
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -87,6 +124,7 @@ jobs:
           fi
 
   build-client-concrete:
+    needs: wait-for-master-ci
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
