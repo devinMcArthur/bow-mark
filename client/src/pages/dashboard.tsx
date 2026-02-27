@@ -6,6 +6,7 @@ import {
 } from "@chakra-ui/react";
 import { NextPage } from "next";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/router";
 
 const Overview = dynamic<{ startDate: string; endDate: string }>(
   () => import("../components/pages/dashboard/Overview"),
@@ -31,10 +32,29 @@ const getDefaultRange = () => {
 };
 
 const DashboardPage: NextPage = () => {
+  const router = useRouter();
   const defaults = getDefaultRange();
   const [startDate, setStartDate] = React.useState(defaults.startDate);
   const [endDate, setEndDate] = React.useState(defaults.endDate);
   const [tabIndex, setTabIndex] = React.useState(0);
+
+  // Hydrate dates from URL query params once router is ready
+  React.useEffect(() => {
+    if (!router.isReady) return;
+    const { startDate: qs, endDate: qe } = router.query;
+    if (typeof qs === "string") setStartDate(qs);
+    if (typeof qe === "string") setEndDate(qe);
+  }, [router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep URL in sync with current date range
+  React.useEffect(() => {
+    if (!router.isReady) return;
+    router.replace(
+      { pathname: router.pathname, query: { startDate, endDate } },
+      undefined,
+      { shallow: true }
+    );
+  }, [startDate, endDate, router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setThisYear = () => {
     const today = new Date();
@@ -57,7 +77,7 @@ const DashboardPage: NextPage = () => {
   };
 
   return (
-    <Box p={4} h="100vh" display="flex" flexDirection="column" overflow="hidden">
+    <Box p={4} h="100vh" w="100%" display="flex" flexDirection="column" overflow="hidden">
       <Flex align="center" justify="space-between" mb={4} wrap="wrap" gap={2} flexShrink={0}>
         <Heading size="lg">Business Dashboard</Heading>
         <HStack spacing={2} wrap="wrap">
