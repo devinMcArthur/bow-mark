@@ -50,14 +50,14 @@ const DashboardPage: NextPage = () => {
     }
   }, [router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Keep URL in sync with current state
+  // Keep URL in sync with current state.
+  // endDate is omitted when it equals today so that revisiting the URL
+  // on a future day automatically uses the new current date.
   React.useEffect(() => {
     if (!router.isReady) return;
-    router.replace(
-      { pathname: router.pathname, query: { startDate, endDate, tab: tabIndex } },
-      undefined,
-      { shallow: true }
-    );
+    const query: Record<string, string | number> = { startDate, tab: tabIndex };
+    if (endDate !== toDateInput(new Date())) query.endDate = endDate;
+    router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
   }, [startDate, endDate, tabIndex, router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setThisYear = () => {
