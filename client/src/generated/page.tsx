@@ -759,6 +759,111 @@ export const ssrDailyReportsForJobsite = {
       withPage: withPageDailyReportsForJobsite,
       usePage: useDailyReportsForJobsite,
     }
+export async function getServerPageDashboardOverview
+    (options: Omit<Apollo.QueryOptions<Types.DashboardOverviewQueryVariables>, 'query'>, ctx: ApolloClientContext ){
+        const apolloClient = getApolloClient(ctx);
+        
+        const data = await apolloClient.query<Types.DashboardOverviewQuery>({ ...options, query: Operations.DashboardOverviewDocument });
+        
+        const apolloState = apolloClient.cache.extract();
+
+        return {
+            props: {
+                apolloState: apolloState,
+                data: data?.data,
+                error: data?.error ?? data?.errors ?? null,
+            },
+        };
+      }
+export const useDashboardOverview = (
+  optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.DashboardOverviewQuery, Types.DashboardOverviewQueryVariables>) => {
+  const router = useRouter();
+  const options = optionsFunc ? optionsFunc(router) : {};
+  return useQuery(Operations.DashboardOverviewDocument, options);
+};
+export type PageDashboardOverviewComp = React.FC<{data?: Types.DashboardOverviewQuery, error?: Apollo.ApolloError}>;
+export const withPageDashboardOverview = (optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.DashboardOverviewQuery, Types.DashboardOverviewQueryVariables>) => (WrappedComponent:PageDashboardOverviewComp) : NextPage  => (props) => {
+                const router = useRouter()
+                const options = optionsFunc ? optionsFunc(router) : {};
+                const {data, error } = useQuery(Operations.DashboardOverviewDocument, options)    
+                return <WrappedComponent {...props} data={data} error={error} /> ;
+                   
+            }; 
+export const ssrDashboardOverview = {
+      getServerPage: getServerPageDashboardOverview,
+      withPage: withPageDashboardOverview,
+      usePage: useDashboardOverview,
+    }
+export async function getServerPageDashboardFinancial
+    (options: Omit<Apollo.QueryOptions<Types.DashboardFinancialQueryVariables>, 'query'>, ctx: ApolloClientContext ){
+        const apolloClient = getApolloClient(ctx);
+        
+        const data = await apolloClient.query<Types.DashboardFinancialQuery>({ ...options, query: Operations.DashboardFinancialDocument });
+        
+        const apolloState = apolloClient.cache.extract();
+
+        return {
+            props: {
+                apolloState: apolloState,
+                data: data?.data,
+                error: data?.error ?? data?.errors ?? null,
+            },
+        };
+      }
+export const useDashboardFinancial = (
+  optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.DashboardFinancialQuery, Types.DashboardFinancialQueryVariables>) => {
+  const router = useRouter();
+  const options = optionsFunc ? optionsFunc(router) : {};
+  return useQuery(Operations.DashboardFinancialDocument, options);
+};
+export type PageDashboardFinancialComp = React.FC<{data?: Types.DashboardFinancialQuery, error?: Apollo.ApolloError}>;
+export const withPageDashboardFinancial = (optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.DashboardFinancialQuery, Types.DashboardFinancialQueryVariables>) => (WrappedComponent:PageDashboardFinancialComp) : NextPage  => (props) => {
+                const router = useRouter()
+                const options = optionsFunc ? optionsFunc(router) : {};
+                const {data, error } = useQuery(Operations.DashboardFinancialDocument, options)    
+                return <WrappedComponent {...props} data={data} error={error} /> ;
+                   
+            }; 
+export const ssrDashboardFinancial = {
+      getServerPage: getServerPageDashboardFinancial,
+      withPage: withPageDashboardFinancial,
+      usePage: useDashboardFinancial,
+    }
+export async function getServerPageDashboardProductivity
+    (options: Omit<Apollo.QueryOptions<Types.DashboardProductivityQueryVariables>, 'query'>, ctx: ApolloClientContext ){
+        const apolloClient = getApolloClient(ctx);
+        
+        const data = await apolloClient.query<Types.DashboardProductivityQuery>({ ...options, query: Operations.DashboardProductivityDocument });
+        
+        const apolloState = apolloClient.cache.extract();
+
+        return {
+            props: {
+                apolloState: apolloState,
+                data: data?.data,
+                error: data?.error ?? data?.errors ?? null,
+            },
+        };
+      }
+export const useDashboardProductivity = (
+  optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.DashboardProductivityQuery, Types.DashboardProductivityQueryVariables>) => {
+  const router = useRouter();
+  const options = optionsFunc ? optionsFunc(router) : {};
+  return useQuery(Operations.DashboardProductivityDocument, options);
+};
+export type PageDashboardProductivityComp = React.FC<{data?: Types.DashboardProductivityQuery, error?: Apollo.ApolloError}>;
+export const withPageDashboardProductivity = (optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.DashboardProductivityQuery, Types.DashboardProductivityQueryVariables>) => (WrappedComponent:PageDashboardProductivityComp) : NextPage  => (props) => {
+                const router = useRouter()
+                const options = optionsFunc ? optionsFunc(router) : {};
+                const {data, error } = useQuery(Operations.DashboardProductivityDocument, options)    
+                return <WrappedComponent {...props} data={data} error={error} /> ;
+                   
+            }; 
+export const ssrDashboardProductivity = {
+      getServerPage: getServerPageDashboardProductivity,
+      withPage: withPageDashboardProductivity,
+      usePage: useDashboardProductivity,
+    }
 export async function getServerPageEmployeeHourReports
     (options: Omit<Apollo.QueryOptions<Types.EmployeeHourReportsQueryVariables>, 'query'>, ctx: ApolloClientContext ){
         const apolloClient = getApolloClient(ctx);
