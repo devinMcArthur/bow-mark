@@ -41,7 +41,7 @@ jobs:
               --tag ${{ env.SERVER_IMAGE_NAME }}:latest \
               --tag ${{ env.SERVER_IMAGE_NAME }}:${{ github.sha }} \
               --cache-from type=registry,ref=${{ env.SERVER_IMAGE_NAME }}:buildcache \
-              --cache-to type=registry,ref=${{ env.SERVER_IMAGE_NAME }}:buildcache,mode=max \
+              --cache-to type=registry,ref=${{ env.SERVER_IMAGE_NAME }}:buildcache,mode=min \
               ./server
           fi
 
@@ -82,7 +82,7 @@ jobs:
               --tag ${{ env.CLIENT_IMAGE_NAME }}:latest \
               --tag ${{ env.CLIENT_IMAGE_NAME }}:${{ github.sha }} \
               --cache-from type=registry,ref=${{ env.CLIENT_IMAGE_NAME }}:buildcache \
-              --cache-to type=registry,ref=${{ env.CLIENT_IMAGE_NAME }}:buildcache,mode=max \
+              --cache-to type=registry,ref=${{ env.CLIENT_IMAGE_NAME }}:buildcache,mode=min \
               ./client
           fi
 
@@ -123,7 +123,7 @@ jobs:
               --tag ${{ env.CLIENT_CONCRETE_IMAGE_NAME }}:latest \
               --tag ${{ env.CLIENT_CONCRETE_IMAGE_NAME }}:${{ github.sha }} \
               --cache-from type=registry,ref=${{ env.CLIENT_CONCRETE_IMAGE_NAME }}:buildcache \
-              --cache-to type=registry,ref=${{ env.CLIENT_CONCRETE_IMAGE_NAME }}:buildcache,mode=max \
+              --cache-to type=registry,ref=${{ env.CLIENT_CONCRETE_IMAGE_NAME }}:buildcache,mode=min \
               ./client
           fi
 

@@ -31,7 +31,7 @@ jobs:
           push: true
           tags: ${{ env.SERVER_IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=registry,ref=${{ env.SERVER_IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.SERVER_IMAGE_NAME }}:buildcache,mode=max
+          cache-to: type=registry,ref=${{ env.SERVER_IMAGE_NAME }}:buildcache,mode=min
 
   build-client-paving:
     runs-on: ubuntu-latest
@@ -62,7 +62,7 @@ jobs:
           push: true
           tags: ${{ env.CLIENT_IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=registry,ref=${{ env.CLIENT_IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.CLIENT_IMAGE_NAME }}:buildcache,mode=max
+          cache-to: type=registry,ref=${{ env.CLIENT_IMAGE_NAME }}:buildcache,mode=min
 
   build-client-concrete:
     runs-on: ubuntu-latest
@@ -93,4 +93,4 @@ jobs:
           push: true
           tags: ${{ env.CLIENT_CONCRETE_IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=registry,ref=${{ env.CLIENT_CONCRETE_IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.CLIENT_CONCRETE_IMAGE_NAME }}:buildcache,mode=max
+          cache-to: type=registry,ref=${{ env.CLIENT_CONCRETE_IMAGE_NAME }}:buildcache,mode=min
