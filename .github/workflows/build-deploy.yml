@@ -2,7 +2,7 @@ name: Build and Deploy
 
 on:
   push:
-    branches: [master]
+    branches: [production]
 
 env:
   SERVER_IMAGE_NAME: itsdevin/bow-mark-server
