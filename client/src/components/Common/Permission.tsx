@@ -40,8 +40,10 @@ const Permission: React.FC<IPermission> = ({
       </Alert>
     );
 
+  // Still loading
+  if (!user) return null;
   // User Admin
-  if (user?.role === UserRoles.Admin || otherCriteria) return <>{children}</>;
+  if (user.role === UserRoles.Admin || otherCriteria) return <>{children}</>;
   // Project Manager
   if (user?.role === UserRoles.ProjectManager) {
     if (

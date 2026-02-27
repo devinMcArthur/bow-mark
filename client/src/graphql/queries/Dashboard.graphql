@@ -1,0 +1,97 @@
+query DashboardOverview($input: DashboardInput!) {
+  dashboardOverview(input: $input) {
+    totalRevenue
+    totalNetIncome
+    avgNetMarginPercent
+    totalTonnes
+    avgTonnesPerHour
+    revenueChangePercent
+    netIncomeChangePercent
+    tonnesChangePercent
+    tonnesPerHourChangePercent
+    priorRevenue
+    priorNetIncome
+    priorTonnes
+    priorAvgTonnesPerHour
+    jobsites {
+      jobsiteId
+      jobsiteName
+      jobcode
+      totalRevenue
+      totalDirectCost
+      netIncome
+      netMarginPercent
+      totalTonnes
+      tonnesPerHour
+    }
+  }
+}
+
+query DashboardFinancial($input: DashboardInput!) {
+  dashboardFinancial(input: $input) {
+    totalRevenue
+    totalDirectCost
+    totalNetIncome
+    avgNetMarginPercent
+    jobsites {
+      jobsiteId
+      jobsiteName
+      jobcode
+      totalRevenue
+      employeeCost
+      vehicleCost
+      materialCost
+      truckingCost
+      expenseInvoiceCost
+      totalDirectCost
+      netIncome
+      netMarginPercent
+      totalTonnes
+      tonnesPerHour
+    }
+  }
+}
+
+query DashboardProductivity($input: DashboardProductivityInput!) {
+  dashboardProductivity(input: $input) {
+    averageTonnesPerHour
+    totalTonnes
+    totalCrewHours
+    jobsiteCount
+    availableMaterials {
+      materialName
+      crewType
+      jobTitle
+      key
+      totalTonnes
+      shipmentCount
+    }
+    jobsites {
+      jobsiteId
+      jobsiteName
+      jobcode
+      totalTonnes
+      totalCrewHours
+      tonnesPerHour
+      shipmentCount
+      percentFromAverage
+      expectedTonnesPerHour
+      percentFromExpected
+    }
+    crews {
+      crewId
+      crewName
+      crewType
+      totalTonnes
+      totalCrewHours
+      tonnesPerHour
+      dayCount
+      jobsiteCount
+      percentFromAverage
+    }
+    regression {
+      intercept
+      slope
+    }
+  }
+}

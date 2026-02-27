@@ -229,6 +229,127 @@ export type DailyReportUpdateData = {
   jobsiteId: Scalars['ID'];
 };
 
+export type DashboardFinancialItem = {
+  __typename?: 'DashboardFinancialItem';
+  employeeCost: Scalars['Float'];
+  expenseInvoiceCost: Scalars['Float'];
+  jobcode?: Maybe<Scalars['String']>;
+  jobsiteId: Scalars['ID'];
+  jobsiteName: Scalars['String'];
+  materialCost: Scalars['Float'];
+  netIncome: Scalars['Float'];
+  netMarginPercent?: Maybe<Scalars['Float']>;
+  tonnesPerHour?: Maybe<Scalars['Float']>;
+  totalDirectCost: Scalars['Float'];
+  totalRevenue: Scalars['Float'];
+  totalTonnes: Scalars['Float'];
+  truckingCost: Scalars['Float'];
+  vehicleCost: Scalars['Float'];
+};
+
+export type DashboardFinancialReport = {
+  __typename?: 'DashboardFinancialReport';
+  avgNetMarginPercent?: Maybe<Scalars['Float']>;
+  jobsites: Array<DashboardFinancialItem>;
+  totalDirectCost: Scalars['Float'];
+  totalNetIncome: Scalars['Float'];
+  totalRevenue: Scalars['Float'];
+};
+
+export type DashboardInput = {
+  endDate: Scalars['DateTime'];
+  startDate: Scalars['DateTime'];
+};
+
+export type DashboardMaterialOption = {
+  __typename?: 'DashboardMaterialOption';
+  crewType?: Maybe<Scalars['String']>;
+  jobTitle?: Maybe<Scalars['String']>;
+  key: Scalars['String'];
+  materialName: Scalars['String'];
+  shipmentCount: Scalars['Int'];
+  totalTonnes: Scalars['Float'];
+};
+
+export type DashboardOverviewItem = {
+  __typename?: 'DashboardOverviewItem';
+  jobcode?: Maybe<Scalars['String']>;
+  jobsiteId: Scalars['ID'];
+  jobsiteName: Scalars['String'];
+  netIncome: Scalars['Float'];
+  netMarginPercent?: Maybe<Scalars['Float']>;
+  tonnesPerHour?: Maybe<Scalars['Float']>;
+  totalDirectCost: Scalars['Float'];
+  totalRevenue: Scalars['Float'];
+  totalTonnes: Scalars['Float'];
+};
+
+export type DashboardOverviewReport = {
+  __typename?: 'DashboardOverviewReport';
+  avgNetMarginPercent?: Maybe<Scalars['Float']>;
+  avgTonnesPerHour?: Maybe<Scalars['Float']>;
+  jobsites: Array<DashboardOverviewItem>;
+  netIncomeChangePercent?: Maybe<Scalars['Float']>;
+  priorAvgTonnesPerHour?: Maybe<Scalars['Float']>;
+  priorNetIncome?: Maybe<Scalars['Float']>;
+  priorRevenue?: Maybe<Scalars['Float']>;
+  priorTonnes?: Maybe<Scalars['Float']>;
+  revenueChangePercent?: Maybe<Scalars['Float']>;
+  tonnesChangePercent?: Maybe<Scalars['Float']>;
+  tonnesPerHourChangePercent?: Maybe<Scalars['Float']>;
+  totalNetIncome: Scalars['Float'];
+  totalRevenue: Scalars['Float'];
+  totalTonnes: Scalars['Float'];
+};
+
+export type DashboardProductivityCrewItem = {
+  __typename?: 'DashboardProductivityCrewItem';
+  crewId: Scalars['ID'];
+  crewName: Scalars['String'];
+  crewType: Scalars['String'];
+  dayCount: Scalars['Int'];
+  jobsiteCount: Scalars['Int'];
+  percentFromAverage?: Maybe<Scalars['Float']>;
+  tonnesPerHour?: Maybe<Scalars['Float']>;
+  totalCrewHours: Scalars['Float'];
+  totalTonnes: Scalars['Float'];
+};
+
+export type DashboardProductivityInput = {
+  endDate: Scalars['DateTime'];
+  materialGrouping?: InputMaybe<MaterialGrouping>;
+  selectedMaterials?: InputMaybe<Array<Scalars['String']>>;
+  startDate: Scalars['DateTime'];
+};
+
+export type DashboardProductivityJobsiteItem = {
+  __typename?: 'DashboardProductivityJobsiteItem';
+  /** Expected T/H based on job size via log-linear regression */
+  expectedTonnesPerHour: Scalars['Float'];
+  jobcode?: Maybe<Scalars['String']>;
+  jobsiteId: Scalars['ID'];
+  jobsiteName: Scalars['String'];
+  percentFromAverage: Scalars['Float'];
+  /** Percent deviation from size-adjusted expected T/H */
+  percentFromExpected: Scalars['Float'];
+  shipmentCount: Scalars['Int'];
+  tonnesPerHour: Scalars['Float'];
+  totalCrewHours: Scalars['Float'];
+  totalTonnes: Scalars['Float'];
+};
+
+export type DashboardProductivityReport = {
+  __typename?: 'DashboardProductivityReport';
+  availableMaterials: Array<DashboardMaterialOption>;
+  averageTonnesPerHour: Scalars['Float'];
+  crews: Array<DashboardProductivityCrewItem>;
+  jobsiteCount: Scalars['Int'];
+  jobsites: Array<DashboardProductivityJobsiteItem>;
+  regression: RegressionCoefficients;
+  totalCrewHours: Scalars['Float'];
+  totalTonnes: Scalars['Float'];
+};
+
 export type DateRangeInput = {
   endDate: Scalars['DateTime'];
   startDate: Scalars['DateTime'];
@@ -1686,6 +1807,9 @@ export type Query = {
   dailyReports: Array<DailyReportClass>;
   dailyReportSearch: Array<DailyReportClass>;
   dailyReportsForJobsite: Array<DailyReportClass>;
+  dashboardFinancial: DashboardFinancialReport;
+  dashboardOverview: DashboardOverviewReport;
+  dashboardProductivity: DashboardProductivityReport;
   employee: EmployeeClass;
   employeeHourReports: EmployeeHoursReport;
   employees: Array<EmployeeClass>;
@@ -1795,6 +1919,21 @@ export type QueryDailyReportSearchArgs = {
 export type QueryDailyReportsForJobsiteArgs = {
   jobsiteId: Scalars['ID'];
   options?: InputMaybe<DailyReportListOptionData>;
+};
+
+
+export type QueryDashboardFinancialArgs = {
+  input: DashboardInput;
+};
+
+
+export type QueryDashboardOverviewArgs = {
+  input: DashboardInput;
+};
+
+
+export type QueryDashboardProductivityArgs = {
+  input: DashboardProductivityInput;
 };
 
 
@@ -3353,6 +3492,27 @@ export type DailyReportsForJobsiteQueryVariables = Exact<{
 
 
 export type DailyReportsForJobsiteQuery = { __typename?: 'Query', dailyReportsForJobsite: Array<{ __typename?: 'DailyReportClass', _id: string }> };
+
+export type DashboardOverviewQueryVariables = Exact<{
+  input: DashboardInput;
+}>;
+
+
+export type DashboardOverviewQuery = { __typename?: 'Query', dashboardOverview: { __typename?: 'DashboardOverviewReport', totalRevenue: number, totalNetIncome: number, avgNetMarginPercent?: number | null, totalTonnes: number, avgTonnesPerHour?: number | null, revenueChangePercent?: number | null, netIncomeChangePercent?: number | null, tonnesChangePercent?: number | null, tonnesPerHourChangePercent?: number | null, priorRevenue?: number | null, priorNetIncome?: number | null, priorTonnes?: number | null, priorAvgTonnesPerHour?: number | null, jobsites: Array<{ __typename?: 'DashboardOverviewItem', jobsiteId: string, jobsiteName: string, jobcode?: string | null, totalRevenue: number, totalDirectCost: number, netIncome: number, netMarginPercent?: number | null, totalTonnes: number, tonnesPerHour?: number | null }> } };
+
+export type DashboardFinancialQueryVariables = Exact<{
+  input: DashboardInput;
+}>;
+
+
+export type DashboardFinancialQuery = { __typename?: 'Query', dashboardFinancial: { __typename?: 'DashboardFinancialReport', totalRevenue: number, totalDirectCost: number, totalNetIncome: number, avgNetMarginPercent?: number | null, jobsites: Array<{ __typename?: 'DashboardFinancialItem', jobsiteId: string, jobsiteName: string, jobcode?: string | null, totalRevenue: number, employeeCost: number, vehicleCost: number, materialCost: number, truckingCost: number, expenseInvoiceCost: number, totalDirectCost: number, netIncome: number, netMarginPercent?: number | null, totalTonnes: number, tonnesPerHour?: number | null }> } };
+
+export type DashboardProductivityQueryVariables = Exact<{
+  input: DashboardProductivityInput;
+}>;
+
+
+export type DashboardProductivityQuery = { __typename?: 'Query', dashboardProductivity: { __typename?: 'DashboardProductivityReport', averageTonnesPerHour: number, totalTonnes: number, totalCrewHours: number, jobsiteCount: number, availableMaterials: Array<{ __typename?: 'DashboardMaterialOption', materialName: string, crewType?: string | null, jobTitle?: string | null, key: string, totalTonnes: number, shipmentCount: number }>, jobsites: Array<{ __typename?: 'DashboardProductivityJobsiteItem', jobsiteId: string, jobsiteName: string, jobcode?: string | null, totalTonnes: number, totalCrewHours: number, tonnesPerHour: number, shipmentCount: number, percentFromAverage: number, expectedTonnesPerHour: number, percentFromExpected: number }>, crews: Array<{ __typename?: 'DashboardProductivityCrewItem', crewId: string, crewName: string, crewType: string, totalTonnes: number, totalCrewHours: number, tonnesPerHour?: number | null, dayCount: number, jobsiteCount: number, percentFromAverage?: number | null }>, regression: { __typename?: 'RegressionCoefficients', intercept: number, slope: number } } };
 
 export type EmployeeHourReportsQueryVariables = Exact<{
   id: Scalars['ID'];
@@ -8615,6 +8775,191 @@ export function useDailyReportsForJobsiteLazyQuery(baseOptions?: Apollo.LazyQuer
 export type DailyReportsForJobsiteQueryHookResult = ReturnType<typeof useDailyReportsForJobsiteQuery>;
 export type DailyReportsForJobsiteLazyQueryHookResult = ReturnType<typeof useDailyReportsForJobsiteLazyQuery>;
 export type DailyReportsForJobsiteQueryResult = Apollo.QueryResult<DailyReportsForJobsiteQuery, DailyReportsForJobsiteQueryVariables>;
+export const DashboardOverviewDocument = gql`
+    query DashboardOverview($input: DashboardInput!) {
+  dashboardOverview(input: $input) {
+    totalRevenue
+    totalNetIncome
+    avgNetMarginPercent
+    totalTonnes
+    avgTonnesPerHour
+    revenueChangePercent
+    netIncomeChangePercent
+    tonnesChangePercent
+    tonnesPerHourChangePercent
+    priorRevenue
+    priorNetIncome
+    priorTonnes
+    priorAvgTonnesPerHour
+    jobsites {
+      jobsiteId
+      jobsiteName
+      jobcode
+      totalRevenue
+      totalDirectCost
+      netIncome
+      netMarginPercent
+      totalTonnes
+      tonnesPerHour
+    }
+  }
+}
+    `;
+
+/**
+ * __useDashboardOverviewQuery__
+ *
+ * To run a query within a React component, call `useDashboardOverviewQuery` and pass it any options that fit your needs.
+ * When your component renders, `useDashboardOverviewQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useDashboardOverviewQuery({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useDashboardOverviewQuery(baseOptions: Apollo.QueryHookOptions<DashboardOverviewQuery, DashboardOverviewQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<DashboardOverviewQuery, DashboardOverviewQueryVariables>(DashboardOverviewDocument, options);
+      }
+export function useDashboardOverviewLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<DashboardOverviewQuery, DashboardOverviewQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<DashboardOverviewQuery, DashboardOverviewQueryVariables>(DashboardOverviewDocument, options);
+        }
+export type DashboardOverviewQueryHookResult = ReturnType<typeof useDashboardOverviewQuery>;
+export type DashboardOverviewLazyQueryHookResult = ReturnType<typeof useDashboardOverviewLazyQuery>;
+export type DashboardOverviewQueryResult = Apollo.QueryResult<DashboardOverviewQuery, DashboardOverviewQueryVariables>;
+export const DashboardFinancialDocument = gql`
+    query DashboardFinancial($input: DashboardInput!) {
+  dashboardFinancial(input: $input) {
+    totalRevenue
+    totalDirectCost
+    totalNetIncome
+    avgNetMarginPercent
+    jobsites {
+      jobsiteId
+      jobsiteName
+      jobcode
+      totalRevenue
+      employeeCost
+      vehicleCost
+      materialCost
+      truckingCost
+      expenseInvoiceCost
+      totalDirectCost
+      netIncome
+      netMarginPercent
+      totalTonnes
+      tonnesPerHour
+    }
+  }
+}
+    `;
+
+/**
+ * __useDashboardFinancialQuery__
+ *
+ * To run a query within a React component, call `useDashboardFinancialQuery` and pass it any options that fit your needs.
+ * When your component renders, `useDashboardFinancialQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useDashboardFinancialQuery({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useDashboardFinancialQuery(baseOptions: Apollo.QueryHookOptions<DashboardFinancialQuery, DashboardFinancialQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<DashboardFinancialQuery, DashboardFinancialQueryVariables>(DashboardFinancialDocument, options);
+      }
+export function useDashboardFinancialLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<DashboardFinancialQuery, DashboardFinancialQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<DashboardFinancialQuery, DashboardFinancialQueryVariables>(DashboardFinancialDocument, options);
+        }
+export type DashboardFinancialQueryHookResult = ReturnType<typeof useDashboardFinancialQuery>;
+export type DashboardFinancialLazyQueryHookResult = ReturnType<typeof useDashboardFinancialLazyQuery>;
+export type DashboardFinancialQueryResult = Apollo.QueryResult<DashboardFinancialQuery, DashboardFinancialQueryVariables>;
+export const DashboardProductivityDocument = gql`
+    query DashboardProductivity($input: DashboardProductivityInput!) {
+  dashboardProductivity(input: $input) {
+    averageTonnesPerHour
+    totalTonnes
+    totalCrewHours
+    jobsiteCount
+    availableMaterials {
+      materialName
+      crewType
+      jobTitle
+      key
+      totalTonnes
+      shipmentCount
+    }
+    jobsites {
+      jobsiteId
+      jobsiteName
+      jobcode
+      totalTonnes
+      totalCrewHours
+      tonnesPerHour
+      shipmentCount
+      percentFromAverage
+      expectedTonnesPerHour
+      percentFromExpected
+    }
+    crews {
+      crewId
+      crewName
+      crewType
+      totalTonnes
+      totalCrewHours
+      tonnesPerHour
+      dayCount
+      jobsiteCount
+      percentFromAverage
+    }
+    regression {
+      intercept
+      slope
+    }
+  }
+}
+    `;
+
+/**
+ * __useDashboardProductivityQuery__
+ *
+ * To run a query within a React component, call `useDashboardProductivityQuery` and pass it any options that fit your needs.
+ * When your component renders, `useDashboardProductivityQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useDashboardProductivityQuery({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useDashboardProductivityQuery(baseOptions: Apollo.QueryHookOptions<DashboardProductivityQuery, DashboardProductivityQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<DashboardProductivityQuery, DashboardProductivityQueryVariables>(DashboardProductivityDocument, options);
+      }
+export function useDashboardProductivityLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<DashboardProductivityQuery, DashboardProductivityQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<DashboardProductivityQuery, DashboardProductivityQueryVariables>(DashboardProductivityDocument, options);
+        }
+export type DashboardProductivityQueryHookResult = ReturnType<typeof useDashboardProductivityQuery>;
+export type DashboardProductivityLazyQueryHookResult = ReturnType<typeof useDashboardProductivityLazyQuery>;
+export type DashboardProductivityQueryResult = Apollo.QueryResult<DashboardProductivityQuery, DashboardProductivityQueryVariables>;
 export const EmployeeHourReportsDocument = gql`
     query EmployeeHourReports($id: ID!, $startTime: DateTime!, $endTime: DateTime!) {
   employeeHourReports(id: $id, startTime: $startTime, endTime: $endTime) {
