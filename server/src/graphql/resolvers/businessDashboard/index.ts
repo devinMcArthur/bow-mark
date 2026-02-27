@@ -167,6 +167,10 @@ export default class BusinessDashboardResolver {
       netIncomeChangePercent: pctChange(totalNetIncome, priorNetIncome),
       tonnesChangePercent: pctChange(totalTonnes, priorTonnes),
       tonnesPerHourChangePercent: pctChange(currentTH, priorTH),
+      priorRevenue: priorRevenue > 0 ? priorRevenue : undefined,
+      priorNetIncome: priorRevenue > 0 ? priorNetIncome : undefined,
+      priorTonnes: priorTonnes > 0 ? priorTonnes : undefined,
+      priorAvgTonnesPerHour: priorTH > 0 ? priorTH : undefined,
       jobsites: items,
     };
   }

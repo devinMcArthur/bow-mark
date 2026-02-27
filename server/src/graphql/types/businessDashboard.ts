@@ -90,6 +90,19 @@ export class DashboardOverviewReport {
   @Field(() => Float, { nullable: true })
   tonnesPerHourChangePercent?: number;
 
+  // Prior year absolute values for tooltip display
+  @Field(() => Float, { nullable: true })
+  priorRevenue?: number;
+
+  @Field(() => Float, { nullable: true })
+  priorNetIncome?: number;
+
+  @Field(() => Float, { nullable: true })
+  priorTonnes?: number;
+
+  @Field(() => Float, { nullable: true })
+  priorAvgTonnesPerHour?: number;
+
   @Field(() => [DashboardOverviewItem])
   jobsites!: DashboardOverviewItem[];
 }

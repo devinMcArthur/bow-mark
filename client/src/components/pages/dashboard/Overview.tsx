@@ -55,8 +55,6 @@ type SortDirection = "asc" | "desc";
 
 const formatCurrency = (val: number) => `$${formatNumber(val)}`;
 
-const priorValue = (current: number, changePct: number) =>
-  current / (1 + changePct / 100);
 
 const getMarginColor = (pct?: number | null): string => {
   if (pct == null) return "gray";
@@ -204,7 +202,7 @@ const Overview = ({ startDate, endDate }: IOverview) => {
               {formatCurrency(report.totalRevenue)}
             </StatNumber>
             {report.revenueChangePercent != null && (
-              <Tooltip label={`Prior year: ${formatCurrency(priorValue(report.totalRevenue, report.revenueChangePercent))}`} fontSize="xs" placement="bottom">
+              <Tooltip label={report.priorRevenue != null ? `Prior year: ${formatCurrency(report.priorRevenue)}` : undefined} fontSize="xs" placement="bottom" isDisabled={report.priorRevenue == null}>
                 <StatHelpText cursor="default">
                   <StatArrow
                     type={report.revenueChangePercent >= 0 ? "increase" : "decrease"}
@@ -225,7 +223,7 @@ const Overview = ({ startDate, endDate }: IOverview) => {
               {formatCurrency(report.totalNetIncome)}
             </StatNumber>
             {report.netIncomeChangePercent != null && (
-              <Tooltip label={`Prior year: ${formatCurrency(priorValue(report.totalNetIncome, report.netIncomeChangePercent))}`} fontSize="xs" placement="bottom">
+              <Tooltip label={report.priorNetIncome != null ? `Prior year: ${formatCurrency(report.priorNetIncome)}` : undefined} fontSize="xs" placement="bottom" isDisabled={report.priorNetIncome == null}>
                 <StatHelpText cursor="default">
                   <StatArrow
                     type={report.netIncomeChangePercent >= 0 ? "increase" : "decrease"}
@@ -259,7 +257,7 @@ const Overview = ({ startDate, endDate }: IOverview) => {
               {formatNumber(report.totalTonnes)}
             </StatNumber>
             {report.tonnesChangePercent != null && (
-              <Tooltip label={`Prior year: ${formatNumber(priorValue(report.totalTonnes, report.tonnesChangePercent))} t`} fontSize="xs" placement="bottom">
+              <Tooltip label={report.priorTonnes != null ? `Prior year: ${formatNumber(report.priorTonnes)} t` : undefined} fontSize="xs" placement="bottom" isDisabled={report.priorTonnes == null}>
                 <StatHelpText cursor="default">
                   <StatArrow
                     type={report.tonnesChangePercent >= 0 ? "increase" : "decrease"}
@@ -278,8 +276,8 @@ const Overview = ({ startDate, endDate }: IOverview) => {
                 ? formatNumber(report.avgTonnesPerHour)
                 : "N/A"}
             </StatNumber>
-            {report.tonnesPerHourChangePercent != null && report.avgTonnesPerHour != null && (
-              <Tooltip label={`Prior year: ${formatNumber(priorValue(report.avgTonnesPerHour, report.tonnesPerHourChangePercent))} T/H`} fontSize="xs" placement="bottom">
+            {report.tonnesPerHourChangePercent != null && (
+              <Tooltip label={report.priorAvgTonnesPerHour != null ? `Prior year: ${formatNumber(report.priorAvgTonnesPerHour)} T/H` : undefined} fontSize="xs" placement="bottom" isDisabled={report.priorAvgTonnesPerHour == null}>
                 <StatHelpText cursor="default">
                   <StatArrow
                     type={

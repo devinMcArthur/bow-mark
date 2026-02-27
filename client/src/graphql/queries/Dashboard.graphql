@@ -9,6 +9,10 @@ query DashboardOverview($input: DashboardInput!) {
     netIncomeChangePercent
     tonnesChangePercent
     tonnesPerHourChangePercent
+    priorRevenue
+    priorNetIncome
+    priorTonnes
+    priorAvgTonnesPerHour
     jobsites {
       jobsiteId
       jobsiteName
