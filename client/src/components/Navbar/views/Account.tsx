@@ -30,6 +30,11 @@ const NavbarAccount = () => {
           <MenuList>
             <MenuGroup>
               <Permission minRole={UserRoles.ProjectManager}>
+                <MenuItem onClick={() => router.push("/dashboard")}>
+                  Dashboard
+                </MenuItem>
+              </Permission>
+              <Permission minRole={UserRoles.ProjectManager}>
                 <MenuItem onClick={() => router.push("/current-master")}>
                   Master Costing
                 </MenuItem>
