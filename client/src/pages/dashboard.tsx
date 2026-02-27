@@ -1,6 +1,6 @@
 import React from "react";
 import {
-  Box, Button, ButtonGroup, Flex, Heading,
+  Box, Button, ButtonGroup, Flex,
   HStack, Input, Tab, TabList, TabPanel,
   TabPanels, Tabs, Text,
 } from "@chakra-ui/react";
@@ -84,46 +84,53 @@ const DashboardPage: NextPage = () => {
 
   return (
     <Permission minRole={UserRoles.ProjectManager} type={null} showError>
-    <Box p={4} h="100vh" w="100%" display="flex" flexDirection="column" overflow="hidden">
-      <Flex align="center" justify="space-between" mb={4} wrap="wrap" gap={2} flexShrink={0}>
-        <Heading size="lg">Business Dashboard</Heading>
-        <HStack spacing={2} wrap="wrap">
-          <ButtonGroup size="sm" variant="outline">
-            <Button onClick={setThisYear}>This Year</Button>
-            <Button onClick={setLastYear}>Last Year</Button>
-            <Button onClick={setLast6Months}>Last 6 Months</Button>
-          </ButtonGroup>
-          <HStack spacing={1}>
-            <Text fontSize="sm" color="gray.500">From</Text>
-            <Input type="date" size="sm" w="150px" value={startDate}
-              onChange={e => setStartDate(e.target.value)} />
-            <Text fontSize="sm" color="gray.500">to</Text>
-            <Input type="date" size="sm" w="150px" value={endDate}
-              onChange={e => setEndDate(e.target.value)} />
-          </HStack>
-        </HStack>
-      </Flex>
-
-      <Tabs variant="enclosed" index={tabIndex} onChange={setTabIndex}
-        display="flex" flexDirection="column" flex={1} minH={0} w="100%">
-        <TabList flexShrink={0}>
-          <Tab>Overview</Tab>
-          <Tab>Financial</Tab>
-          <Tab>Productivity</Tab>
-        </TabList>
-        <TabPanels flex={1} minH={0} overflow="hidden" w="100%">
-          <TabPanel h="100%" w="100%" p={0} pt={4} overflow="hidden">
-            <Overview startDate={startDate} endDate={endDate} />
-          </TabPanel>
-          <TabPanel h="100%" w="100%" p={0} pt={4} overflow="hidden">
-            <Financial startDate={startDate} endDate={endDate} />
-          </TabPanel>
-          <TabPanel h="100%" w="100%" p={0} pt={4} overflow="hidden">
-            <Productivity startDate={startDate} endDate={endDate} />
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
-    </Box>
+      <Box p={4} h="100vh" w="100%" display="flex" flexDirection="column" overflow="hidden">
+        <Tabs variant="enclosed" index={tabIndex} onChange={setTabIndex}
+          display="flex" flexDirection="column" flex={1} minH={0} w="100%">
+          {/* Tabs and date controls on one line, sharing the bottom border */}
+          <Flex
+            align="flex-end"
+            justify="space-between"
+            borderBottom="1px solid"
+            borderColor="inherit"
+            flexShrink={0}
+            flexWrap="wrap"
+            gap={2}
+          >
+            <TabList borderBottom="none">
+              <Tab>Overview</Tab>
+              <Tab>Financial</Tab>
+              <Tab>Productivity</Tab>
+            </TabList>
+            <HStack spacing={2} wrap="wrap" pb="1px">
+              <ButtonGroup size="sm" variant="outline">
+                <Button onClick={setThisYear}>This Year</Button>
+                <Button onClick={setLastYear}>Last Year</Button>
+                <Button onClick={setLast6Months}>Last 6 Months</Button>
+              </ButtonGroup>
+              <HStack spacing={1}>
+                <Text fontSize="sm" color="gray.500">From</Text>
+                <Input type="date" size="sm" w="150px" value={startDate}
+                  onChange={e => setStartDate(e.target.value)} />
+                <Text fontSize="sm" color="gray.500">to</Text>
+                <Input type="date" size="sm" w="150px" value={endDate}
+                  onChange={e => setEndDate(e.target.value)} />
+              </HStack>
+            </HStack>
+          </Flex>
+          <TabPanels flex={1} minH={0} overflow="hidden" w="100%">
+            <TabPanel h="100%" w="100%" p={0} pt={4} overflow="hidden">
+              <Overview startDate={startDate} endDate={endDate} />
+            </TabPanel>
+            <TabPanel h="100%" w="100%" p={0} pt={4} overflow="hidden">
+              <Financial startDate={startDate} endDate={endDate} />
+            </TabPanel>
+            <TabPanel h="100%" w="100%" p={0} pt={4} overflow="hidden">
+              <Productivity startDate={startDate} endDate={endDate} />
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
+      </Box>
     </Permission>
   );
 };
