@@ -25,6 +25,25 @@ const Productivity = dynamic<{ startDate: string; endDate: string }>(
 
 const toDateInput = (d: Date) => d.toISOString().slice(0, 10);
 
+type ActivePreset = "thisYear" | "lastYear" | "last6Months" | null;
+
+const detectPreset = (start: string, end: string): ActivePreset => {
+  const today = new Date();
+  const todayStr = toDateInput(today);
+  if (
+    start === toDateInput(new Date(today.getFullYear(), 0, 1)) &&
+    end === todayStr
+  )
+    return "thisYear";
+  const y = today.getFullYear() - 1;
+  if (
+    start === toDateInput(new Date(y, 0, 1)) &&
+    end === toDateInput(new Date(y, 11, 31))
+  )
+    return "lastYear";
+  return null;
+};
+
 const getDefaultRange = () => {
   const today = new Date();
   return {
@@ -39,13 +58,17 @@ const DashboardPage: NextPage = () => {
   const [startDate, setStartDate] = React.useState(defaults.startDate);
   const [endDate, setEndDate] = React.useState(defaults.endDate);
   const [tabIndex, setTabIndex] = React.useState(0);
+  const [activePreset, setActivePreset] = React.useState<ActivePreset>("thisYear");
 
   // Hydrate state from URL query params once router is ready
   React.useEffect(() => {
     if (!router.isReady) return;
     const { startDate: qs, endDate: qe, tab: qt } = router.query;
-    if (typeof qs === "string") setStartDate(qs);
-    if (typeof qe === "string") setEndDate(qe);
+    const resolvedStart = typeof qs === "string" ? qs : defaults.startDate;
+    const resolvedEnd = typeof qe === "string" ? qe : toDateInput(new Date());
+    setStartDate(resolvedStart);
+    setEndDate(resolvedEnd);
+    setActivePreset(detectPreset(resolvedStart, resolvedEnd));
     if (typeof qt === "string") {
       const idx = parseInt(qt, 10);
       if (idx >= 0 && idx <= 2) setTabIndex(idx);
@@ -66,12 +89,14 @@ const DashboardPage: NextPage = () => {
     const today = new Date();
     setStartDate(toDateInput(new Date(today.getFullYear(), 0, 1)));
     setEndDate(toDateInput(today));
+    setActivePreset("thisYear");
   };
 
   const setLastYear = () => {
     const y = new Date().getFullYear() - 1;
     setStartDate(toDateInput(new Date(y, 0, 1)));
     setEndDate(toDateInput(new Date(y, 11, 31)));
+    setActivePreset("lastYear");
   };
 
   const setLast6Months = () => {
@@ -80,6 +105,7 @@ const DashboardPage: NextPage = () => {
     start.setMonth(start.getMonth() - 6);
     setStartDate(toDateInput(start));
     setEndDate(toDateInput(end));
+    setActivePreset("last6Months");
   };
 
   return (
@@ -103,18 +129,36 @@ const DashboardPage: NextPage = () => {
               <Tab>Productivity</Tab>
             </TabList>
             <HStack spacing={2} wrap="wrap" pb="1px">
-              <ButtonGroup size="sm" variant="outline">
-                <Button onClick={setThisYear}>This Year</Button>
-                <Button onClick={setLastYear}>Last Year</Button>
-                <Button onClick={setLast6Months}>Last 6 Months</Button>
+              <ButtonGroup size="sm" isAttached variant="outline">
+                <Button
+                  onClick={setThisYear}
+                  colorScheme={activePreset === "thisYear" ? "blue" : "gray"}
+                  variant={activePreset === "thisYear" ? "solid" : "outline"}
+                >
+                  This Year
+                </Button>
+                <Button
+                  onClick={setLastYear}
+                  colorScheme={activePreset === "lastYear" ? "blue" : "gray"}
+                  variant={activePreset === "lastYear" ? "solid" : "outline"}
+                >
+                  Last Year
+                </Button>
+                <Button
+                  onClick={setLast6Months}
+                  colorScheme={activePreset === "last6Months" ? "blue" : "gray"}
+                  variant={activePreset === "last6Months" ? "solid" : "outline"}
+                >
+                  Last 6 Months
+                </Button>
               </ButtonGroup>
               <HStack spacing={1}>
                 <Text fontSize="sm" color="gray.500">From</Text>
                 <Input type="date" size="sm" w="150px" value={startDate}
-                  onChange={e => setStartDate(e.target.value)} />
+                  onChange={e => { setStartDate(e.target.value); setActivePreset(null); }} />
                 <Text fontSize="sm" color="gray.500">to</Text>
                 <Input type="date" size="sm" w="150px" value={endDate}
-                  onChange={e => setEndDate(e.target.value)} />
+                  onChange={e => { setEndDate(e.target.value); setActivePreset(null); }} />
               </HStack>
             </HStack>
           </Flex>
