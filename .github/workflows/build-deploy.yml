@@ -10,17 +10,35 @@ env:
   CLIENT_CONCRETE_IMAGE_NAME: itsdevin/bow-mark-concrete-client
 
 jobs:
-  build-and-deploy:
+  build-server:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Docker images
-        run: |
-          docker build -t $SERVER_IMAGE_NAME:latest ./server
+      - uses: docker/setup-buildx-action@v3
 
-          touch ./client/.env.local
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASS }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          push: true
+          tags: |
+            ${{ env.SERVER_IMAGE_NAME }}:latest
+            ${{ env.SERVER_IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha,scope=server
+          cache-to: type=gha,mode=max,scope=server
+
+  build-client-paving:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare paving env
+        run: |
           echo "SSR_API_URL=https://paving.bowmark.ca/graphql" >> ./client/.env.local
           echo "NEXT_PUBLIC_APP_NAME=Paving" >> ./client/.env.local
           echo "NEXT_PUBLIC_API_URL=https://paving.bowmark.ca/graphql" >> ./client/.env.local
@@ -29,9 +47,31 @@ jobs:
           echo "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyAQHGi8N0C03ZpAWz6XhVTZI1xtxg31ag8" >> ./client/.env.local
           rm ./client/public/manifest.json
           cp ./client/public/manifest-paving.json ./client/public/manifest.json
-          docker build -t $CLIENT_IMAGE_NAME:latest ./client
 
-          > ./client/.env.local
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASS }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./client
+          push: true
+          tags: |
+            ${{ env.CLIENT_IMAGE_NAME }}:latest
+            ${{ env.CLIENT_IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha,scope=client-paving
+          cache-to: type=gha,mode=max,scope=client-paving
+
+  build-client-concrete:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare concrete env
+        run: |
           echo "SSR_API_URL=https://concrete.bowmark.ca/graphql" >> ./client/.env.local
           echo "NEXT_PUBLIC_APP_NAME=Concrete" >> ./client/.env.local
           echo "NEXT_PUBLIC_API_URL=https://concrete.bowmark.ca/graphql" >> ./client/.env.local
@@ -40,23 +80,29 @@ jobs:
           echo "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyAQHGi8N0C03ZpAWz6XhVTZI1xtxg31ag8" >> ./client/.env.local
           rm ./client/public/manifest.json
           cp ./client/public/manifest-concrete.json ./client/public/manifest.json
-          docker build -t $CLIENT_CONCRETE_IMAGE_NAME:latest ./client
 
-      - name: Push Docker images
-        run: |
-          echo "${{ secrets.DOCKERHUB_PASS }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+      - uses: docker/setup-buildx-action@v3
 
-          docker tag $SERVER_IMAGE_NAME:latest $SERVER_IMAGE_NAME:${{ github.sha }}
-          docker push $SERVER_IMAGE_NAME:latest
-          docker push $SERVER_IMAGE_NAME:${{ github.sha }}
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASS }}
 
-          docker tag $CLIENT_IMAGE_NAME:latest $CLIENT_IMAGE_NAME:${{ github.sha }}
-          docker push $CLIENT_IMAGE_NAME:latest
-          docker push $CLIENT_IMAGE_NAME:${{ github.sha }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./client
+          push: true
+          tags: |
+            ${{ env.CLIENT_CONCRETE_IMAGE_NAME }}:latest
+            ${{ env.CLIENT_CONCRETE_IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha,scope=client-concrete
+          cache-to: type=gha,mode=max,scope=client-concrete
 
-          docker tag $CLIENT_CONCRETE_IMAGE_NAME:latest $CLIENT_CONCRETE_IMAGE_NAME:${{ github.sha }}
-          docker push $CLIENT_CONCRETE_IMAGE_NAME:latest
-          docker push $CLIENT_CONCRETE_IMAGE_NAME:${{ github.sha }}
+  deploy:
+    needs: [build-server, build-client-paving, build-client-concrete]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Install tools
         run: |
