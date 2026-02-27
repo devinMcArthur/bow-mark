@@ -72,6 +72,7 @@ interface IProductivity {
 type ViewMode = "jobsite" | "crew";
 
 type JobsiteSortColumn =
+  | "jobcode"
   | "jobsiteName"
   | "totalTonnes"
   | "totalCrewHours"
@@ -205,6 +206,10 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
       let aVal: number | string;
       let bVal: number | string;
       switch (jobsiteSortCol) {
+        case "jobcode":
+          aVal = (a.jobcode ?? "").toLowerCase();
+          bVal = (b.jobcode ?? "").toLowerCase();
+          break;
         case "jobsiteName":
           aVal = a.jobsiteName.toLowerCase();
           bVal = b.jobsiteName.toLowerCase();
@@ -302,7 +307,7 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
       setJobsiteSortDir(jobsiteSortDir === "asc" ? "desc" : "asc");
     } else {
       setJobsiteSortCol(col);
-      setJobsiteSortDir(col === "jobsiteName" ? "asc" : "desc");
+      setJobsiteSortDir(col === "jobsiteName" || col === "jobcode" ? "asc" : "desc");
     }
   };
 
@@ -873,7 +878,9 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
                 <Table size="sm">
                   <Thead position="sticky" top={0} bg="white" zIndex={1}>
                     <Tr>
-                      <Th w="40px">#</Th>
+                      <Th cursor="pointer" onClick={() => handleJobsiteSort("jobcode")} _hover={{ bg: "gray.100" }} w="80px">
+                        Job Code{renderJobsiteIndicator("jobcode")}
+                      </Th>
                       <Th cursor="pointer" onClick={() => handleJobsiteSort("jobsiteName")} _hover={{ bg: "gray.100" }} minW="160px">
                         Jobsite{renderJobsiteIndicator("jobsiteName")}
                       </Th>
@@ -901,7 +908,7 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
                     </Tr>
                   </Thead>
                   <Tbody>
-                    {sortedJobsites.map((j, idx) => {
+                    {sortedJobsites.map((j) => {
                       const isHighlighted = j.jobsiteId === highlightedJobsiteId;
                       return (
                         <Tr
@@ -922,7 +929,7 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
                           cursor="pointer"
                           onClick={() => selectJobsite(isHighlighted ? null : j.jobsiteId)}
                         >
-                          <Td fontWeight="bold" color="gray.500">{idx + 1}</Td>
+                          <Td fontWeight="medium" color="gray.600" fontSize="xs">{j.jobcode ?? "—"}</Td>
                           <Td>
                             <NextLink href={createLink.jobsite(j.jobsiteId)} passHref>
                               <Text
