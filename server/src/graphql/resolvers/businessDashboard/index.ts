@@ -19,6 +19,11 @@ import {
   DashboardMaterialOption,
 } from "../../types/businessDashboard";
 
+/**
+ * Converts material shipment quantity to tonnes using unit + vehicle type.
+ * Same conversion logic as FinancialPerformanceResolver and ProductivityBenchmarksResolver.
+ * Tandem loads: 22 T/load. Cubic metres: 1.5 T/m³.
+ */
 const getTonnesConversion = () => sql<number>`
   CASE
     WHEN LOWER(ms.unit) = 'tonnes' THEN ms.quantity
@@ -127,6 +132,8 @@ export default class BusinessDashboardResolver {
     const totalTonnes = items.reduce((s, j) => s + j.totalTonnes, 0);
     const totalCrewHrs = crewHoursRows.reduce((s, r) => s + Number(r.total_hours), 0);
     const avgTonnesPerHour = totalCrewHrs > 0 ? totalTonnes / totalCrewHrs : undefined;
+    // Equal-weight average (one vote per jobsite, not revenue-weighted) —
+    // consistent with the design spec: "Avg margin across jobsites"
     const margined = items.filter(j => j.netMarginPercent != null);
     const avgNetMarginPercent = margined.length > 0
       ? margined.reduce((s, j) => s + (j.netMarginPercent ?? 0), 0) / margined.length
@@ -313,7 +320,7 @@ export default class BusinessDashboardResolver {
     const avgJobsiteTH = validJobsites.length > 0
       ? validJobsites.reduce((s, j) => s + (j.tonnesPerHour ?? 0), 0) / validJobsites.length
       : undefined;
-    if (avgJobsiteTH) {
+    if (avgJobsiteTH != null) {
       for (const item of jobsiteItems) {
         if (item.tonnesPerHour != null)
           item.percentFromAverage = ((item.tonnesPerHour - avgJobsiteTH) / avgJobsiteTH) * 100;
@@ -344,7 +351,7 @@ export default class BusinessDashboardResolver {
     const avgCrewTH = validCrews.length > 0
       ? validCrews.reduce((s, c) => s + (c.tonnesPerHour ?? 0), 0) / validCrews.length
       : undefined;
-    if (avgCrewTH) {
+    if (avgCrewTH != null) {
       for (const item of crewItems) {
         if (item.tonnesPerHour != null)
           item.percentFromAverage = ((item.tonnesPerHour - avgCrewTH) / avgCrewTH) * 100;
