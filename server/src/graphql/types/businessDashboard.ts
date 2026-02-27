@@ -1,14 +1,20 @@
+/**
+ * GraphQL types for the Business Dashboard page (/dashboard).
+ * Covers three query shapes: Overview, Financial, and Productivity,
+ * each accepting a date range (startDate + endDate) as input.
+ */
+
 import { Field, Float, ID, InputType, Int, ObjectType } from "type-graphql";
 
 // ─── Inputs ──────────────────────────────────────────────────────────────────
 
 @InputType()
 export class DashboardInput {
-  @Field()
-  startDate!: string; // ISO date string e.g. "2026-01-01"
+  @Field(() => Date)
+  startDate!: Date;
 
-  @Field()
-  endDate!: string; // ISO date string e.g. "2026-12-31"
+  @Field(() => Date)
+  endDate!: Date;
 }
 
 @InputType()
@@ -77,7 +83,7 @@ export class DashboardOverviewReport {
   tonnesChangePercent?: number;
 
   @Field(() => Float, { nullable: true })
-  thChangePercent?: number;
+  tonnesPerHourChangePercent?: number;
 
   @Field(() => [DashboardOverviewItem])
   jobsites!: DashboardOverviewItem[];
