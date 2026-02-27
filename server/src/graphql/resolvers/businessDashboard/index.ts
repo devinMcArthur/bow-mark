@@ -89,7 +89,12 @@ export default class BusinessDashboardResolver {
     const jobsiteMongoMap = new Map(jobsiteRows.map(j => [j.id, j]));
 
     // Only include jobsites with some activity in this period
-    const activeIds = new Set([...revenueMap.keys(), ...employeeMap.keys(), ...tonnesMap.keys()]);
+    const activeIds = new Set([
+      ...revenueMap.keys(), ...employeeMap.keys(),
+      ...vehicleMap.keys(), ...materialMap.keys(),
+      ...truckingMap.keys(), ...expenseMap.keys(),
+      ...tonnesMap.keys(),
+    ]);
 
     const items: DashboardOverviewItem[] = [];
     for (const pgId of activeIds) {
@@ -153,7 +158,7 @@ export default class BusinessDashboardResolver {
       revenueChangePercent: pctChange(totalRevenue, priorRevenue),
       netIncomeChangePercent: pctChange(totalNetIncome, priorNetIncome),
       tonnesChangePercent: pctChange(totalTonnes, priorTonnes),
-      tonnesPerHourChangePercent: priorTH !== 0 ? pctChange(currentTH, priorTH) : undefined,
+      tonnesPerHourChangePercent: pctChange(currentTH, priorTH),
       jobsites: items,
     };
   }
@@ -193,7 +198,12 @@ export default class BusinessDashboardResolver {
     const crewHoursMap = new Map(crewHoursRows.map(r => [r.jobsite_id, Number(r.total_hours)]));
     const jobsiteMongoMap = new Map(jobsiteRows.map(j => [j.id, j]));
 
-    const activeIds = new Set([...revenueMap.keys(), ...employeeMap.keys(), ...tonnesMap.keys()]);
+    const activeIds = new Set([
+      ...revenueMap.keys(), ...employeeMap.keys(),
+      ...vehicleMap.keys(), ...materialMap.keys(),
+      ...truckingMap.keys(), ...expenseMap.keys(),
+      ...tonnesMap.keys(),
+    ]);
 
     const items: DashboardFinancialItem[] = [];
     let totalRevenue = 0, totalDirectCost = 0, totalNetIncome = 0;
