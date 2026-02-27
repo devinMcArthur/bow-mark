@@ -97,22 +97,22 @@ const JobsiteYearMasterReportClientContent = ({
             <Tabs variant="enclosed" mt={4} index={tabIndex} onChange={handleTabChange}>
               <TabList>
                 <Tab>Report (MongoDB)</Tab>
-                <Tab>Compare with PostgreSQL</Tab>
                 <Tab>Productivity Benchmarks</Tab>
                 <Tab>Financial Performance</Tab>
+                <Tab>Compare with PostgreSQL</Tab>
               </TabList>
               <TabPanels>
                 <TabPanel px={0}>
                   <JobsiteMaster report={jobsiteYearMasterReport} />
                 </TabPanel>
                 <TabPanel px={0}>
-                  <ComparisonPG mongoReport={jobsiteYearMasterReport} />
-                </TabPanel>
-                <TabPanel px={0}>
                   {year && <ProductivityBenchmarks year={year} />}
                 </TabPanel>
                 <TabPanel px={0}>
                   {year && <FinancialPerformance year={year} />}
+                </TabPanel>
+                <TabPanel px={0}>
+                  <ComparisonPG mongoReport={jobsiteYearMasterReport} />
                 </TabPanel>
               </TabPanels>
             </Tabs>
