@@ -9,6 +9,11 @@ env:
   CLIENT_IMAGE_NAME: itsdevin/bow-mark-client
   CLIENT_CONCRETE_IMAGE_NAME: itsdevin/bow-mark-concrete-client
 
+# If the commit was already built by the CI workflow on master, images tagged
+# with :$SHA already exist on Docker Hub — we just re-tag them as :latest and
+# deploy without rebuilding anything. If for some reason they don't exist
+# (e.g. a direct push to production), we fall back to a full build.
+
 jobs:
   build-server:
     runs-on: ubuntu-latest
@@ -22,15 +27,23 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASS }}
 
-      - uses: docker/build-push-action@v6
-        with:
-          context: ./server
-          push: true
-          tags: |
-            ${{ env.SERVER_IMAGE_NAME }}:latest
-            ${{ env.SERVER_IMAGE_NAME }}:${{ github.sha }}
-          cache-from: type=gha,scope=server
-          cache-to: type=gha,mode=max,scope=server
+      - name: Promote or build server
+        run: |
+          if docker manifest inspect ${{ env.SERVER_IMAGE_NAME }}:${{ github.sha }} > /dev/null 2>&1; then
+            echo "Pre-built image found — promoting :${{ github.sha }} to :latest"
+            docker buildx imagetools create \
+              --tag ${{ env.SERVER_IMAGE_NAME }}:latest \
+              ${{ env.SERVER_IMAGE_NAME }}:${{ github.sha }}
+          else
+            echo "No pre-built image — running full build"
+            docker buildx build \
+              --push \
+              --tag ${{ env.SERVER_IMAGE_NAME }}:latest \
+              --tag ${{ env.SERVER_IMAGE_NAME }}:${{ github.sha }} \
+              --cache-from type=gha,scope=server \
+              --cache-to type=gha,mode=max,scope=server \
+              ./server
+          fi
 
   build-client-paving:
     runs-on: ubuntu-latest
@@ -55,15 +68,23 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASS }}
 
-      - uses: docker/build-push-action@v6
-        with:
-          context: ./client
-          push: true
-          tags: |
-            ${{ env.CLIENT_IMAGE_NAME }}:latest
-            ${{ env.CLIENT_IMAGE_NAME }}:${{ github.sha }}
-          cache-from: type=gha,scope=client-paving
-          cache-to: type=gha,mode=max,scope=client-paving
+      - name: Promote or build paving client
+        run: |
+          if docker manifest inspect ${{ env.CLIENT_IMAGE_NAME }}:${{ github.sha }} > /dev/null 2>&1; then
+            echo "Pre-built image found — promoting :${{ github.sha }} to :latest"
+            docker buildx imagetools create \
+              --tag ${{ env.CLIENT_IMAGE_NAME }}:latest \
+              ${{ env.CLIENT_IMAGE_NAME }}:${{ github.sha }}
+          else
+            echo "No pre-built image — running full build"
+            docker buildx build \
+              --push \
+              --tag ${{ env.CLIENT_IMAGE_NAME }}:latest \
+              --tag ${{ env.CLIENT_IMAGE_NAME }}:${{ github.sha }} \
+              --cache-from type=gha,scope=client-paving \
+              --cache-to type=gha,mode=max,scope=client-paving \
+              ./client
+          fi
 
   build-client-concrete:
     runs-on: ubuntu-latest
@@ -88,15 +109,23 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASS }}
 
-      - uses: docker/build-push-action@v6
-        with:
-          context: ./client
-          push: true
-          tags: |
-            ${{ env.CLIENT_CONCRETE_IMAGE_NAME }}:latest
-            ${{ env.CLIENT_CONCRETE_IMAGE_NAME }}:${{ github.sha }}
-          cache-from: type=gha,scope=client-concrete
-          cache-to: type=gha,mode=max,scope=client-concrete
+      - name: Promote or build concrete client
+        run: |
+          if docker manifest inspect ${{ env.CLIENT_CONCRETE_IMAGE_NAME }}:${{ github.sha }} > /dev/null 2>&1; then
+            echo "Pre-built image found — promoting :${{ github.sha }} to :latest"
+            docker buildx imagetools create \
+              --tag ${{ env.CLIENT_CONCRETE_IMAGE_NAME }}:latest \
+              ${{ env.CLIENT_CONCRETE_IMAGE_NAME }}:${{ github.sha }}
+          else
+            echo "No pre-built image — running full build"
+            docker buildx build \
+              --push \
+              --tag ${{ env.CLIENT_CONCRETE_IMAGE_NAME }}:latest \
+              --tag ${{ env.CLIENT_CONCRETE_IMAGE_NAME }}:${{ github.sha }} \
+              --cache-from type=gha,scope=client-concrete \
+              --cache-to type=gha,mode=max,scope=client-concrete \
+              ./client
+          fi
 
   deploy:
     needs: [build-server, build-client-paving, build-client-concrete]
