@@ -5,6 +5,8 @@
  */
 
 import { Field, Float, ID, InputType, Int, ObjectType } from "type-graphql";
+import { MaterialGrouping } from "./productivityAnalytics";
+import { RegressionCoefficients } from "./productivityBenchmarks";
 
 // ─── Inputs ──────────────────────────────────────────────────────────────────
 
@@ -19,8 +21,11 @@ export class DashboardInput {
 
 @InputType()
 export class DashboardProductivityInput extends DashboardInput {
+  @Field(() => MaterialGrouping, { nullable: true })
+  materialGrouping?: MaterialGrouping;
+
   @Field(() => [String], { nullable: true })
-  selectedMaterials?: string[]; // Filter by material name
+  selectedMaterials?: string[]; // Composite keys like "HL3|Paving" or just "HL3"
 }
 
 // ─── Overview ────────────────────────────────────────────────────────────────
@@ -173,11 +178,24 @@ export class DashboardProductivityJobsiteItem {
   @Field(() => Float)
   totalCrewHours!: number;
 
-  @Field(() => Float, { nullable: true })
-  tonnesPerHour?: number;
+  @Field(() => Float)
+  tonnesPerHour!: number; // non-nullable: only included when > 0
 
-  @Field(() => Float, { nullable: true })
-  percentFromAverage?: number;
+  @Field(() => Int)
+  shipmentCount!: number;
+
+  @Field(() => Float)
+  percentFromAverage!: number;
+
+  @Field(() => Float, {
+    description: "Expected T/H based on job size via log-linear regression",
+  })
+  expectedTonnesPerHour!: number;
+
+  @Field(() => Float, {
+    description: "Percent deviation from size-adjusted expected T/H",
+  })
+  percentFromExpected!: number;
 }
 
 @ObjectType()
@@ -215,14 +233,26 @@ export class DashboardMaterialOption {
   @Field()
   materialName!: string;
 
+  @Field({ nullable: true })
+  crewType?: string;
+
+  @Field({ nullable: true })
+  jobTitle?: string;
+
   @Field()
-  key!: string; // same as materialName — used as filter key
+  key!: string; // Composite key for selection (matches BenchmarkMaterial)
+
+  @Field(() => Float)
+  totalTonnes!: number;
+
+  @Field(() => Int)
+  shipmentCount!: number;
 }
 
 @ObjectType()
 export class DashboardProductivityReport {
-  @Field(() => Float, { nullable: true })
-  avgTonnesPerHour?: number;
+  @Field(() => Float)
+  averageTonnesPerHour!: number;
 
   @Field(() => Float)
   totalTonnes!: number;
@@ -241,4 +271,7 @@ export class DashboardProductivityReport {
 
   @Field(() => [DashboardProductivityCrewItem])
   crews!: DashboardProductivityCrewItem[];
+
+  @Field(() => RegressionCoefficients)
+  regression!: RegressionCoefficients;
 }

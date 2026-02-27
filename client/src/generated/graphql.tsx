@@ -263,8 +263,12 @@ export type DashboardInput = {
 
 export type DashboardMaterialOption = {
   __typename?: 'DashboardMaterialOption';
+  crewType?: Maybe<Scalars['String']>;
+  jobTitle?: Maybe<Scalars['String']>;
   key: Scalars['String'];
   materialName: Scalars['String'];
+  shipmentCount: Scalars['Int'];
+  totalTonnes: Scalars['Float'];
 };
 
 export type DashboardOverviewItem = {
@@ -309,17 +313,23 @@ export type DashboardProductivityCrewItem = {
 
 export type DashboardProductivityInput = {
   endDate: Scalars['DateTime'];
+  materialGrouping?: InputMaybe<MaterialGrouping>;
   selectedMaterials?: InputMaybe<Array<Scalars['String']>>;
   startDate: Scalars['DateTime'];
 };
 
 export type DashboardProductivityJobsiteItem = {
   __typename?: 'DashboardProductivityJobsiteItem';
+  /** Expected T/H based on job size via log-linear regression */
+  expectedTonnesPerHour: Scalars['Float'];
   jobcode?: Maybe<Scalars['String']>;
   jobsiteId: Scalars['ID'];
   jobsiteName: Scalars['String'];
-  percentFromAverage?: Maybe<Scalars['Float']>;
-  tonnesPerHour?: Maybe<Scalars['Float']>;
+  percentFromAverage: Scalars['Float'];
+  /** Percent deviation from size-adjusted expected T/H */
+  percentFromExpected: Scalars['Float'];
+  shipmentCount: Scalars['Int'];
+  tonnesPerHour: Scalars['Float'];
   totalCrewHours: Scalars['Float'];
   totalTonnes: Scalars['Float'];
 };
@@ -327,10 +337,11 @@ export type DashboardProductivityJobsiteItem = {
 export type DashboardProductivityReport = {
   __typename?: 'DashboardProductivityReport';
   availableMaterials: Array<DashboardMaterialOption>;
-  avgTonnesPerHour?: Maybe<Scalars['Float']>;
+  averageTonnesPerHour: Scalars['Float'];
   crews: Array<DashboardProductivityCrewItem>;
   jobsiteCount: Scalars['Int'];
   jobsites: Array<DashboardProductivityJobsiteItem>;
+  regression: RegressionCoefficients;
   totalCrewHours: Scalars['Float'];
   totalTonnes: Scalars['Float'];
 };
@@ -3497,7 +3508,7 @@ export type DashboardProductivityQueryVariables = Exact<{
 }>;
 
 
-export type DashboardProductivityQuery = { __typename?: 'Query', dashboardProductivity: { __typename?: 'DashboardProductivityReport', avgTonnesPerHour?: number | null, totalTonnes: number, totalCrewHours: number, jobsiteCount: number, availableMaterials: Array<{ __typename?: 'DashboardMaterialOption', materialName: string, key: string }>, jobsites: Array<{ __typename?: 'DashboardProductivityJobsiteItem', jobsiteId: string, jobsiteName: string, jobcode?: string | null, totalTonnes: number, totalCrewHours: number, tonnesPerHour?: number | null, percentFromAverage?: number | null }>, crews: Array<{ __typename?: 'DashboardProductivityCrewItem', crewId: string, crewName: string, crewType: string, totalTonnes: number, totalCrewHours: number, tonnesPerHour?: number | null, dayCount: number, jobsiteCount: number, percentFromAverage?: number | null }> } };
+export type DashboardProductivityQuery = { __typename?: 'Query', dashboardProductivity: { __typename?: 'DashboardProductivityReport', averageTonnesPerHour: number, totalTonnes: number, totalCrewHours: number, jobsiteCount: number, availableMaterials: Array<{ __typename?: 'DashboardMaterialOption', materialName: string, crewType?: string | null, jobTitle?: string | null, key: string, totalTonnes: number, shipmentCount: number }>, jobsites: Array<{ __typename?: 'DashboardProductivityJobsiteItem', jobsiteId: string, jobsiteName: string, jobcode?: string | null, totalTonnes: number, totalCrewHours: number, tonnesPerHour: number, shipmentCount: number, percentFromAverage: number, expectedTonnesPerHour: number, percentFromExpected: number }>, crews: Array<{ __typename?: 'DashboardProductivityCrewItem', crewId: string, crewName: string, crewType: string, totalTonnes: number, totalCrewHours: number, tonnesPerHour?: number | null, dayCount: number, jobsiteCount: number, percentFromAverage?: number | null }>, regression: { __typename?: 'RegressionCoefficients', intercept: number, slope: number } } };
 
 export type EmployeeHourReportsQueryVariables = Exact<{
   id: Scalars['ID'];
@@ -8871,13 +8882,17 @@ export type DashboardFinancialQueryResult = Apollo.QueryResult<DashboardFinancia
 export const DashboardProductivityDocument = gql`
     query DashboardProductivity($input: DashboardProductivityInput!) {
   dashboardProductivity(input: $input) {
-    avgTonnesPerHour
+    averageTonnesPerHour
     totalTonnes
     totalCrewHours
     jobsiteCount
     availableMaterials {
       materialName
+      crewType
+      jobTitle
       key
+      totalTonnes
+      shipmentCount
     }
     jobsites {
       jobsiteId
@@ -8886,7 +8901,10 @@ export const DashboardProductivityDocument = gql`
       totalTonnes
       totalCrewHours
       tonnesPerHour
+      shipmentCount
       percentFromAverage
+      expectedTonnesPerHour
+      percentFromExpected
     }
     crews {
       crewId
@@ -8898,6 +8916,10 @@ export const DashboardProductivityDocument = gql`
       dayCount
       jobsiteCount
       percentFromAverage
+    }
+    regression {
+      intercept
+      slope
     }
   }
 }

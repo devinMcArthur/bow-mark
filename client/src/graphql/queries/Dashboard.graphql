@@ -50,13 +50,17 @@ query DashboardFinancial($input: DashboardInput!) {
 
 query DashboardProductivity($input: DashboardProductivityInput!) {
   dashboardProductivity(input: $input) {
-    avgTonnesPerHour
+    averageTonnesPerHour
     totalTonnes
     totalCrewHours
     jobsiteCount
     availableMaterials {
       materialName
+      crewType
+      jobTitle
       key
+      totalTonnes
+      shipmentCount
     }
     jobsites {
       jobsiteId
@@ -65,7 +69,10 @@ query DashboardProductivity($input: DashboardProductivityInput!) {
       totalTonnes
       totalCrewHours
       tonnesPerHour
+      shipmentCount
       percentFromAverage
+      expectedTonnesPerHour
+      percentFromExpected
     }
     crews {
       crewId
@@ -77,6 +84,10 @@ query DashboardProductivity($input: DashboardProductivityInput!) {
       dayCount
       jobsiteCount
       percentFromAverage
+    }
+    regression {
+      intercept
+      slope
     }
   }
 }
