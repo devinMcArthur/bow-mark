@@ -7,6 +7,7 @@
 
 import React from "react";
 import NextLink from "next/link";
+import { useRouter } from "next/router";
 import {
   Alert,
   AlertIcon,
@@ -59,6 +60,7 @@ const getMarginColor = (pct?: number | null): string => {
 };
 
 const Overview = ({ startDate, endDate }: IOverview) => {
+  const router = useRouter();
   const [sortColumn, setSortColumn] =
     React.useState<SortColumn>("netMarginPercent");
   const [sortDirection, setSortDirection] =
@@ -502,7 +504,12 @@ const Overview = ({ startDate, endDate }: IOverview) => {
               </Thead>
               <Tbody>
                 {sortedJobsites.map((j, idx) => (
-                  <Tr key={j.jobsiteId} _hover={{ bg: "gray.50" }}>
+                  <Tr
+                    key={j.jobsiteId}
+                    _hover={{ bg: "gray.50" }}
+                    cursor="pointer"
+                    onClick={() => router.push(`/jobsite-year-report/${j.jobsiteId}`)}
+                  >
                     <Td fontWeight="bold" color="gray.500">
                       {idx + 1}
                     </Td>
