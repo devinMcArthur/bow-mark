@@ -838,6 +838,20 @@ export type JobsiteProductivityReport = {
   totalTonnes: Scalars['Float'];
 };
 
+export type JobsiteReportPg = {
+  __typename?: 'JobsiteReportPG';
+  _id: Scalars['ID'];
+  crewTypes: Array<Scalars['String']>;
+  dayReports: Array<JobsiteDayReportPg>;
+  endDate: Scalars['DateTime'];
+  expenseInvoices: Array<InvoiceReportPg>;
+  issues: Array<ReportIssuePg>;
+  jobsite: JobsiteInfoPg;
+  revenueInvoices: Array<InvoiceReportPg>;
+  startDate: Scalars['DateTime'];
+  summary: InvoiceSummaryPg;
+};
+
 export type JobsiteUpdateData = {
   name: Scalars['String'];
 };
@@ -1822,6 +1836,7 @@ export type Query = {
   jobsiteMaterial: JobsiteMaterialClass;
   jobsiteMonthReport?: Maybe<JobsiteMonthReportClass>;
   jobsiteProductivity?: Maybe<JobsiteProductivityReport>;
+  jobsiteReport?: Maybe<JobsiteReportPg>;
   jobsites: Array<JobsiteClass>;
   jobsiteSearch: Array<JobsiteClass>;
   jobsiteYearMasterReport?: Maybe<JobsiteYearMasterReportClass>;
@@ -2001,6 +2016,13 @@ export type QueryJobsiteProductivityArgs = {
   includeCrewHoursDetail?: InputMaybe<Scalars['Boolean']>;
   jobsiteMongoId: Scalars['String'];
   materialGrouping?: InputMaybe<MaterialGrouping>;
+};
+
+
+export type QueryJobsiteReportArgs = {
+  endDate: Scalars['DateTime'];
+  jobsiteMongoId: Scalars['String'];
+  startDate: Scalars['DateTime'];
 };
 
 
@@ -3618,6 +3640,15 @@ export type JobsiteProductivityQueryVariables = Exact<{
 
 
 export type JobsiteProductivityQuery = { __typename?: 'Query', jobsiteProductivity?: { __typename?: 'JobsiteProductivityReport', jobsiteId: string, jobsiteName: string, jobcode?: string | null, startDate: any, endDate: any, overallTonnesPerHour: number, totalTonnes: number, totalCrewHours: number, laborTypeHours: Array<{ __typename?: 'LaborTypeHours', jobTitle: string, crewType: string, totalManHours: number, avgHoursPerDay: number, dayCount: number, employeeCount: number }>, materialProductivity: Array<{ __typename?: 'MaterialProductivity', materialName: string, crewType?: string | null, jobTitle?: string | null, totalTonnes: number, totalCrewHours: number, tonnesPerHour: number, shipmentCount: number, dailyReports: Array<{ __typename?: 'DailyReportReference', id: string, date: any }>, dailyBreakdown: Array<{ __typename?: 'MaterialDailyBreakdown', date: any, dailyReportId: string, tonnes: number, crewHours: number, tonnesPerHour: number }> }>, crewHoursDetail?: Array<{ __typename?: 'CrewHoursDetail', date: any, crewType: string, avgCrewHours: number, totalManHours: number, totalEmployees: number, crewCount: number }> | null } | null };
+
+export type JobsiteReportQueryVariables = Exact<{
+  jobsiteMongoId: Scalars['String'];
+  startDate: Scalars['DateTime'];
+  endDate: Scalars['DateTime'];
+}>;
+
+
+export type JobsiteReportQuery = { __typename?: 'Query', jobsiteReport?: { __typename?: 'JobsiteReportPG', _id: string, startDate: any, endDate: any, crewTypes: Array<string>, jobsite: { __typename?: 'JobsiteInfoPG', _id: string, name: string, jobcode?: string | null }, summary: { __typename?: 'InvoiceSummaryPG', externalExpenseInvoiceValue: number, internalExpenseInvoiceValue: number, accrualExpenseInvoiceValue: number, externalRevenueInvoiceValue: number, internalRevenueInvoiceValue: number, accrualRevenueInvoiceValue: number }, dayReports: Array<{ __typename?: 'JobsiteDayReportPG', id: string, date: any, crewTypes: Array<string>, summary: { __typename?: 'OnSiteSummaryPG', employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number, crewTypeSummaries: Array<{ __typename?: 'CrewTypeSummaryPG', crewType: string, employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number }> }, employees: Array<{ __typename?: 'EmployeeReportPG', id: string, employeeId: string, employeeName: string, hours: number, cost: number, crewType: string }>, vehicles: Array<{ __typename?: 'VehicleReportPG', id: string, vehicleId: string, vehicleName: string, vehicleCode: string, hours: number, cost: number, crewType: string }>, materials: Array<{ __typename?: 'MaterialReportPG', id: string, materialName: string, supplierName: string, quantity: number, unit: string, rate: number, cost: number, estimated: boolean, crewType: string }>, nonCostedMaterials: Array<{ __typename?: 'NonCostedMaterialReportPG', id: string, materialName: string, supplierName: string, quantity: number, unit?: string | null, crewType: string }>, trucking: Array<{ __typename?: 'TruckingReportPG', id: string, truckingType: string, quantity: number, hours?: number | null, rate: number, rateType: string, cost: number, crewType: string }> }>, expenseInvoices: Array<{ __typename?: 'InvoiceReportPG', id: string, invoiceNumber: string, companyName: string, amount: number, description?: string | null, invoiceType: string, date: any }>, revenueInvoices: Array<{ __typename?: 'InvoiceReportPG', id: string, invoiceNumber: string, companyName: string, amount: number, description?: string | null, invoiceType: string, date: any }>, issues: Array<{ __typename?: 'ReportIssuePG', type: ReportIssueTypePg, entityId?: string | null, entityName?: string | null, count: number }> } | null };
 
 export type JobsiteSearchQueryVariables = Exact<{
   searchString: Scalars['String'];
@@ -9530,6 +9561,163 @@ export function useJobsiteProductivityLazyQuery(baseOptions?: Apollo.LazyQueryHo
 export type JobsiteProductivityQueryHookResult = ReturnType<typeof useJobsiteProductivityQuery>;
 export type JobsiteProductivityLazyQueryHookResult = ReturnType<typeof useJobsiteProductivityLazyQuery>;
 export type JobsiteProductivityQueryResult = Apollo.QueryResult<JobsiteProductivityQuery, JobsiteProductivityQueryVariables>;
+export const JobsiteReportDocument = gql`
+    query JobsiteReport($jobsiteMongoId: String!, $startDate: DateTime!, $endDate: DateTime!) {
+  jobsiteReport(
+    jobsiteMongoId: $jobsiteMongoId
+    startDate: $startDate
+    endDate: $endDate
+  ) {
+    _id
+    startDate
+    endDate
+    jobsite {
+      _id
+      name
+      jobcode
+    }
+    crewTypes
+    summary {
+      externalExpenseInvoiceValue
+      internalExpenseInvoiceValue
+      accrualExpenseInvoiceValue
+      externalRevenueInvoiceValue
+      internalRevenueInvoiceValue
+      accrualRevenueInvoiceValue
+    }
+    dayReports {
+      id
+      date
+      crewTypes
+      summary {
+        employeeHours
+        employeeCost
+        vehicleHours
+        vehicleCost
+        materialQuantity
+        materialCost
+        nonCostedMaterialQuantity
+        truckingQuantity
+        truckingHours
+        truckingCost
+        crewTypeSummaries {
+          crewType
+          employeeHours
+          employeeCost
+          vehicleHours
+          vehicleCost
+          materialQuantity
+          materialCost
+          nonCostedMaterialQuantity
+          truckingQuantity
+          truckingHours
+          truckingCost
+        }
+      }
+      employees {
+        id
+        employeeId
+        employeeName
+        hours
+        cost
+        crewType
+      }
+      vehicles {
+        id
+        vehicleId
+        vehicleName
+        vehicleCode
+        hours
+        cost
+        crewType
+      }
+      materials {
+        id
+        materialName
+        supplierName
+        quantity
+        unit
+        rate
+        cost
+        estimated
+        crewType
+      }
+      nonCostedMaterials {
+        id
+        materialName
+        supplierName
+        quantity
+        unit
+        crewType
+      }
+      trucking {
+        id
+        truckingType
+        quantity
+        hours
+        rate
+        rateType
+        cost
+        crewType
+      }
+    }
+    expenseInvoices {
+      id
+      invoiceNumber
+      companyName
+      amount
+      description
+      invoiceType
+      date
+    }
+    revenueInvoices {
+      id
+      invoiceNumber
+      companyName
+      amount
+      description
+      invoiceType
+      date
+    }
+    issues {
+      type
+      entityId
+      entityName
+      count
+    }
+  }
+}
+    `;
+
+/**
+ * __useJobsiteReportQuery__
+ *
+ * To run a query within a React component, call `useJobsiteReportQuery` and pass it any options that fit your needs.
+ * When your component renders, `useJobsiteReportQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useJobsiteReportQuery({
+ *   variables: {
+ *      jobsiteMongoId: // value for 'jobsiteMongoId'
+ *      startDate: // value for 'startDate'
+ *      endDate: // value for 'endDate'
+ *   },
+ * });
+ */
+export function useJobsiteReportQuery(baseOptions: Apollo.QueryHookOptions<JobsiteReportQuery, JobsiteReportQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<JobsiteReportQuery, JobsiteReportQueryVariables>(JobsiteReportDocument, options);
+      }
+export function useJobsiteReportLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<JobsiteReportQuery, JobsiteReportQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<JobsiteReportQuery, JobsiteReportQueryVariables>(JobsiteReportDocument, options);
+        }
+export type JobsiteReportQueryHookResult = ReturnType<typeof useJobsiteReportQuery>;
+export type JobsiteReportLazyQueryHookResult = ReturnType<typeof useJobsiteReportLazyQuery>;
+export type JobsiteReportQueryResult = Apollo.QueryResult<JobsiteReportQuery, JobsiteReportQueryVariables>;
 export const JobsiteSearchDocument = gql`
     query JobsiteSearch($searchString: String!, $options: SearchOptions) {
   jobsiteSearch(searchString: $searchString, options: $options) {

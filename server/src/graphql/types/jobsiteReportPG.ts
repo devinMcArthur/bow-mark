@@ -380,6 +380,42 @@ export class JobsiteYearReportPG {
 }
 
 /**
+ * Date-range report from PostgreSQL — supports arbitrary start/end date
+ */
+@ObjectType()
+export class JobsiteReportPG {
+  @Field(() => ID)
+  _id!: string;
+
+  @Field(() => JobsiteInfoPG)
+  jobsite!: JobsiteInfoPG;
+
+  @Field(() => Date)
+  startDate!: Date;
+
+  @Field(() => Date)
+  endDate!: Date;
+
+  @Field(() => [String])
+  crewTypes!: string[];
+
+  @Field(() => InvoiceSummaryPG)
+  summary!: InvoiceSummaryPG;
+
+  @Field(() => [JobsiteDayReportPG])
+  dayReports!: JobsiteDayReportPG[];
+
+  @Field(() => [InvoiceReportPG])
+  expenseInvoices!: InvoiceReportPG[];
+
+  @Field(() => [InvoiceReportPG])
+  revenueInvoices!: InvoiceReportPG[];
+
+  @Field(() => [ReportIssuePG])
+  issues!: ReportIssuePG[];
+}
+
+/**
  * Master report jobsite item - per-jobsite summary for master reports
  */
 @ObjectType()

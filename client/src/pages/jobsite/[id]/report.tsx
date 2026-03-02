@@ -1,29 +1,48 @@
 import React from "react";
 import {
-  Box, Button, ButtonGroup, Flex,
-  HStack, Input, Menu, MenuButton, MenuItem, MenuList,
-  Tab, TabList, TabPanel,
-  TabPanels, Tabs, Text,
+  Box,
+  Button,
+  ButtonGroup,
+  Flex,
+  HStack,
+  Input,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  Tab,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Tabs,
+  Text,
 } from "@chakra-ui/react";
 import { NextPage } from "next";
 import dynamic from "next/dynamic";
+import NextLink from "next/link";
 import { useRouter } from "next/router";
 import { FiChevronDown } from "react-icons/fi";
-import Permission from "../components/Common/Permission";
-import { UserRoles } from "../generated/graphql";
+import Permission from "../../../components/Common/Permission";
+import { UserRoles } from "../../../generated/graphql";
 
-const Overview = dynamic<{ startDate: string; endDate: string }>(
-  () => import("../components/pages/dashboard/Overview"),
-  { ssr: false }
-);
-const Financial = dynamic<{ startDate: string; endDate: string }>(
-  () => import("../components/pages/dashboard/Financial"),
-  { ssr: false }
-);
-const Productivity = dynamic<{ startDate: string; endDate: string }>(
-  () => import("../components/pages/dashboard/Productivity"),
-  { ssr: false }
-);
+const Summary = dynamic<{
+  jobsiteMongoId: string;
+  startDate: string;
+  endDate: string;
+  onJobsiteName: (name: string) => void;
+}>(() => import("../../../components/pages/jobsite-report/Summary"), { ssr: false });
+
+const Breakdown = dynamic<{
+  jobsiteMongoId: string;
+  startDate: string;
+  endDate: string;
+}>(() => import("../../../components/pages/jobsite-report/Breakdown"), { ssr: false });
+
+const Productivity = dynamic<{
+  jobsiteMongoId: string;
+  startDate: string;
+  endDate: string;
+}>(() => import("../../../components/pages/jobsite-report/Productivity"), { ssr: false });
 
 const toDateInput = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -58,13 +77,15 @@ const getDefaultRange = () => {
   };
 };
 
-const DashboardPage: NextPage = () => {
+const JobsiteReportPage: NextPage = () => {
   const router = useRouter();
+  const jobsiteMongoId = router.query.id as string | undefined;
   const defaults = getDefaultRange();
   const [startDate, setStartDate] = React.useState(defaults.startDate);
   const [endDate, setEndDate] = React.useState(defaults.endDate);
   const [tabIndex, setTabIndex] = React.useState(0);
   const [activePreset, setActivePreset] = React.useState<ActivePreset>(String(THIS_YEAR));
+  const [jobsiteName, setJobsiteName] = React.useState<string>("");
 
   // Hydrate state from URL query params once router is ready
   React.useEffect(() => {
@@ -81,14 +102,18 @@ const DashboardPage: NextPage = () => {
     }
   }, [router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Keep URL in sync with current state.
-  // endDate is omitted when it equals today so that revisiting the URL
-  // on a future day automatically uses the new current date.
+  // Keep URL in sync
   React.useEffect(() => {
-    if (!router.isReady) return;
-    const query: Record<string, string | number> = { startDate, tab: tabIndex };
+    if (!router.isReady || !jobsiteMongoId) return;
+    const query: Record<string, string | number> = {
+      id: jobsiteMongoId,
+      startDate,
+      tab: tabIndex,
+    };
     if (endDate !== toDateInput(new Date())) query.endDate = endDate;
-    router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
+    router.replace({ pathname: router.pathname, query }, undefined, {
+      shallow: true,
+    });
   }, [startDate, endDate, tabIndex, router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setYear = (year: number) => {
@@ -100,10 +125,41 @@ const DashboardPage: NextPage = () => {
 
   return (
     <Permission minRole={UserRoles.ProjectManager} type={null} showError>
-      <Box p={4} h="100vh" w="100%" display="flex" flexDirection="column" overflow="hidden">
-        <Tabs variant="enclosed" index={tabIndex} onChange={setTabIndex}
-          display="flex" flexDirection="column" flex={1} minH={0} w="100%">
-          {/* Tabs and date controls on one line, sharing the bottom border */}
+      <Box
+        p={4}
+        h="100vh"
+        w="100%"
+        display="flex"
+        flexDirection="column"
+        overflow="hidden"
+      >
+        {/* Breadcrumb */}
+        <HStack spacing={1} mb={2} fontSize="sm" color="gray.500">
+          <NextLink href="/dashboard" passHref>
+            <Text
+              as="a"
+              color="blue.500"
+              _hover={{ textDecoration: "underline" }}
+            >
+              Dashboard
+            </Text>
+          </NextLink>
+          <Text>›</Text>
+          <Text color="gray.700" fontWeight="medium">
+            {jobsiteName || "Jobsite"}
+          </Text>
+        </HStack>
+
+        <Tabs
+          variant="enclosed"
+          index={tabIndex}
+          onChange={setTabIndex}
+          display="flex"
+          flexDirection="column"
+          flex={1}
+          minH={0}
+          w="100%"
+        >
           <Flex
             align="flex-end"
             justify="space-between"
@@ -114,8 +170,8 @@ const DashboardPage: NextPage = () => {
             gap={2}
           >
             <TabList borderBottom="none">
-              <Tab>Overview</Tab>
-              <Tab>Financial</Tab>
+              <Tab>Summary</Tab>
+              <Tab>Breakdown</Tab>
               <Tab>Productivity</Tab>
             </TabList>
             <HStack spacing={2} wrap="wrap" pb="1px">
@@ -146,24 +202,64 @@ const DashboardPage: NextPage = () => {
                 </Menu>
               </ButtonGroup>
               <HStack spacing={1}>
-                <Text fontSize="sm" color="gray.500">From</Text>
-                <Input type="date" size="sm" w="150px" value={startDate}
-                  onChange={e => { setStartDate(e.target.value); setActivePreset(null); }} />
-                <Text fontSize="sm" color="gray.500">to</Text>
-                <Input type="date" size="sm" w="150px" value={endDate}
-                  onChange={e => { setEndDate(e.target.value); setActivePreset(null); }} />
+                <Text fontSize="sm" color="gray.500">
+                  From
+                </Text>
+                <Input
+                  type="date"
+                  size="sm"
+                  w="150px"
+                  value={startDate}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setStartDate(e.target.value);
+                    setActivePreset(null);
+                  }}
+                />
+                <Text fontSize="sm" color="gray.500">
+                  to
+                </Text>
+                <Input
+                  type="date"
+                  size="sm"
+                  w="150px"
+                  value={endDate}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setEndDate(e.target.value);
+                    setActivePreset(null);
+                  }}
+                />
               </HStack>
             </HStack>
           </Flex>
+
           <TabPanels flex={1} minH={0} overflow="hidden" w="100%">
             <TabPanel h="100%" w="100%" p={0} pt={4} overflow="hidden">
-              <Overview startDate={startDate} endDate={endDate} />
+              {jobsiteMongoId && (
+                <Summary
+                  jobsiteMongoId={jobsiteMongoId}
+                  startDate={startDate}
+                  endDate={endDate}
+                  onJobsiteName={setJobsiteName}
+                />
+              )}
             </TabPanel>
             <TabPanel h="100%" w="100%" p={0} pt={4} overflow="hidden">
-              <Financial startDate={startDate} endDate={endDate} />
+              {jobsiteMongoId && (
+                <Breakdown
+                  jobsiteMongoId={jobsiteMongoId}
+                  startDate={startDate}
+                  endDate={endDate}
+                />
+              )}
             </TabPanel>
             <TabPanel h="100%" w="100%" p={0} pt={4} overflow="hidden">
-              <Productivity startDate={startDate} endDate={endDate} />
+              {jobsiteMongoId && (
+                <Productivity
+                  jobsiteMongoId={jobsiteMongoId}
+                  startDate={startDate}
+                  endDate={endDate}
+                />
+              )}
             </TabPanel>
           </TabPanels>
         </Tabs>
@@ -172,4 +268,4 @@ const DashboardPage: NextPage = () => {
   );
 };
 
-export default DashboardPage;
+export default JobsiteReportPage;

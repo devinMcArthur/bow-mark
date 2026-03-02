@@ -125,7 +125,7 @@ const Overview = ({ startDate, endDate }: IOverview) => {
   const topPerformers = React.useMemo(() => {
     if (!report?.jobsites) return [];
     return [...report.jobsites]
-      .filter((j) => j.netMarginPercent != null)
+      .filter((j) => j.netMarginPercent != null && j.totalDirectCost > 0)
       .sort((a, b) => (b.netMarginPercent ?? -Infinity) - (a.netMarginPercent ?? -Infinity))
       .slice(0, 5);
   }, [report?.jobsites]);
@@ -194,10 +194,10 @@ const Overview = ({ startDate, endDate }: IOverview) => {
         }
         mb={4}
       >
-        <SimpleGrid columns={[2, 3, 5]} spacing={4}>
+        <SimpleGrid columns={[2, 4]} spacing={4} textAlign="center">
           {/* Total Revenue */}
           <Stat>
-            <StatLabel>Total Revenue</StatLabel>
+            <StatLabel fontWeight="bold">Total Revenue</StatLabel>
             <StatNumber color="green.600" fontSize="lg">
               {formatCurrency(report.totalRevenue)}
             </StatNumber>
@@ -215,7 +215,7 @@ const Overview = ({ startDate, endDate }: IOverview) => {
 
           {/* Net Income */}
           <Stat>
-            <StatLabel>Net Income</StatLabel>
+            <StatLabel fontWeight="bold">Net Income</StatLabel>
             <StatNumber
               color={report.totalNetIncome >= 0 ? "green.600" : "red.500"}
               fontSize="lg"
@@ -236,7 +236,7 @@ const Overview = ({ startDate, endDate }: IOverview) => {
 
           {/* Avg Net Margin */}
           <Stat>
-            <StatLabel>Avg Net Margin</StatLabel>
+            <StatLabel fontWeight="bold">Avg Net Margin</StatLabel>
             <StatNumber
               color={
                 (report.avgNetMarginPercent ?? 0) >= 0 ? "green.600" : "red.500"
@@ -252,7 +252,7 @@ const Overview = ({ startDate, endDate }: IOverview) => {
 
           {/* Total Tonnes */}
           <Stat>
-            <StatLabel>Total Tonnes</StatLabel>
+            <StatLabel fontWeight="bold">Total Tonnes</StatLabel>
             <StatNumber color="blue.600" fontSize="lg">
               {formatNumber(report.totalTonnes)}
             </StatNumber>
@@ -268,29 +268,6 @@ const Overview = ({ startDate, endDate }: IOverview) => {
             )}
           </Stat>
 
-          {/* Avg T/H */}
-          <Stat>
-            <StatLabel>Avg T/H</StatLabel>
-            <StatNumber color="purple.600" fontSize="lg">
-              {report.avgTonnesPerHour != null
-                ? formatNumber(report.avgTonnesPerHour)
-                : "N/A"}
-            </StatNumber>
-            {report.tonnesPerHourChangePercent != null && (
-              <Tooltip label={report.priorAvgTonnesPerHour != null ? `Prior year: ${formatNumber(report.priorAvgTonnesPerHour)} T/H` : undefined} fontSize="xs" placement="bottom" isDisabled={report.priorAvgTonnesPerHour == null}>
-                <StatHelpText cursor="default">
-                  <StatArrow
-                    type={
-                      report.tonnesPerHourChangePercent >= 0
-                        ? "increase"
-                        : "decrease"
-                    }
-                  />
-                  {Math.abs(report.tonnesPerHourChangePercent).toFixed(1)}% YoY
-                </StatHelpText>
-              </Tooltip>
-            )}
-          </Stat>
         </SimpleGrid>
       </Card>
 
@@ -327,7 +304,7 @@ const Overview = ({ startDate, endDate }: IOverview) => {
                       </Td>
                       <Td>
                         <NextLink
-                          href={createLink.jobsiteYearReport(j.jobsiteId)}
+                          href={createLink.jobsiteReport(j.jobsiteId, startDate, endDate)}
                           passHref
                         >
                           <Text
@@ -396,7 +373,7 @@ const Overview = ({ startDate, endDate }: IOverview) => {
                       </Td>
                       <Td>
                         <NextLink
-                          href={createLink.jobsiteYearReport(j.jobsiteId)}
+                          href={createLink.jobsiteReport(j.jobsiteId, startDate, endDate)}
                           passHref
                         >
                           <Text
@@ -531,14 +508,14 @@ const Overview = ({ startDate, endDate }: IOverview) => {
                     key={j.jobsiteId}
                     _hover={{ bg: "gray.50" }}
                     cursor="pointer"
-                    onClick={() => router.push(createLink.jobsiteYearReport(j.jobsiteId))}
+                    onClick={() => router.push(createLink.jobsiteReport(j.jobsiteId, startDate, endDate))}
                   >
                     <Td fontWeight="medium" color="gray.600" fontSize="xs">
                       {j.jobcode ?? "—"}
                     </Td>
                     <Td>
                       <NextLink
-                        href={createLink.jobsiteYearReport(j.jobsiteId)}
+                        href={createLink.jobsiteReport(j.jobsiteId, startDate, endDate)}
                         passHref
                       >
                         <Text
