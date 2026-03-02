@@ -134,20 +134,20 @@ const JobsiteReportPage: NextPage = () => {
         overflow="hidden"
       >
         {/* Breadcrumb */}
-        <HStack spacing={1} mb={2} fontSize="sm" color="gray.500">
-          <NextLink href="/dashboard" passHref>
-            <Text
-              as="a"
-              color="blue.500"
-              _hover={{ textDecoration: "underline" }}
-            >
+        <HStack spacing={1} mb={2} fontSize="sm" color="gray.500" pl={4}>
+          <NextLink href={`/dashboard?startDate=${startDate}&endDate=${endDate}`} passHref>
+            <Text as="a" color="blue.500" _hover={{ textDecoration: "underline" }}>
               Dashboard
             </Text>
           </NextLink>
           <Text>›</Text>
-          <Text color="gray.700" fontWeight="medium">
-            {jobsiteName || "Jobsite"}
-          </Text>
+          <NextLink href={`/jobsite/${jobsiteMongoId}`} passHref>
+            <Text as="a" color="blue.500" _hover={{ textDecoration: "underline" }}>
+              {jobsiteName || "Jobsite"}
+            </Text>
+          </NextLink>
+          <Text>›</Text>
+          <Text color="gray.700" fontWeight="medium">Report</Text>
         </HStack>
 
         <Tabs

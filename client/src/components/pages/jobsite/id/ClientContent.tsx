@@ -13,9 +13,10 @@ import {
   Tooltip,
   useDisclosure,
 } from "@chakra-ui/react";
+import NextLink from "next/link";
 import { useRouter } from "next/router";
 import React from "react";
-import { FiArchive, FiEdit, FiMap, FiTrash, FiUnlock } from "react-icons/fi";
+import { FiArchive, FiBarChart2, FiEdit, FiMap, FiTrash, FiUnlock } from "react-icons/fi";
 import {
   useJobsiteAllDataLazyQuery,
   useJobsiteArchiveMutation,
@@ -182,6 +183,16 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
                 />
               </Box>
               <Flex flexDir="row" spacing={2}>
+                <Tooltip label="View Report">
+                  <NextLink href={`/jobsite/${jobsite._id}/report`} passHref>
+                    <IconButton
+                      as="a"
+                      aria-label="report"
+                      icon={<FiBarChart2 />}
+                      backgroundColor="transparent"
+                    />
+                  </NextLink>
+                </Tooltip>
                 <IconButton
                   aria-label="location"
                   icon={<FiMap />}
