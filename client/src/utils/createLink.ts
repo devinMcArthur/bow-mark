@@ -53,6 +53,14 @@ const jobsiteYearReport = (reportId: string) => {
   return `/jobsite-year-report/${reportId}`;
 };
 
+const jobsiteReport = (
+  jobsiteMongoId: string,
+  startDate: string,
+  endDate: string
+) => {
+  return `/jobsite/${jobsiteMongoId}/report?startDate=${startDate}&endDate=${endDate}`;
+};
+
 const jobsiteYearMasterReport = (reportId: string) => {
   return `/jobsite-year-master-report/${reportId}`;
 };
@@ -136,6 +144,7 @@ const createLink = {
   jobsiteStory,
   jobsiteMonthReport,
   jobsiteYearReport,
+  jobsiteReport,
   jobsiteYearMasterReport,
   dailyReport,
   operatorDailyReport,

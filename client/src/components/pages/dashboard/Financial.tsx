@@ -32,6 +32,7 @@ import {
 import { FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { useDashboardFinancialQuery } from "../../../generated/graphql";
 import formatNumber from "../../../utils/formatNumber";
+import createLink from "../../../utils/createLink";
 import Card from "../../Common/Card";
 
 interface IFinancial {
@@ -371,12 +372,12 @@ const Financial = ({ startDate, endDate }: IFinancial) => {
                     _hover={{ bg: "gray.50" }}
                     cursor="pointer"
                     onClick={() =>
-                      router.push(`/jobsite-year-report/${j.jobsiteId}`)
+                      router.push(createLink.jobsiteReport(j.jobsiteId, startDate, endDate))
                     }
                   >
                     <Td>
                       <NextLink
-                        href={`/jobsite-year-report/${j.jobsiteId}`}
+                        href={createLink.jobsiteReport(j.jobsiteId, startDate, endDate)}
                         passHref
                       >
                         <Text

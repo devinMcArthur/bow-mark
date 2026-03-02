@@ -15,6 +15,7 @@ import { db } from "../../../db";
 import { sql } from "kysely";
 import {
   JobsiteYearReportPG,
+  JobsiteReportPG,
   JobsiteDayReportPG,
   OnSiteSummaryPG,
   CrewTypeSummaryPG,
@@ -83,6 +84,59 @@ export default class JobsiteReportPGResolver {
       _id: `${jobsite.mongo_id}_${year}`,
       jobsite: jobsiteInfo,
       startOfYear,
+      crewTypes,
+      summary: invoiceSummary,
+      dayReports,
+      expenseInvoices,
+      revenueInvoices,
+      issues,
+    };
+  }
+
+  /**
+   * Get a date-range report for a jobsite from PostgreSQL.
+   * Accepts arbitrary startDate/endDate instead of a fixed year.
+   * Reuses all existing private helper methods.
+   */
+  @Query(() => JobsiteReportPG, { nullable: true })
+  async jobsiteReport(
+    @Arg("jobsiteMongoId") jobsiteMongoId: string,
+    @Arg("startDate", () => Date) startDate: Date,
+    @Arg("endDate", () => Date) endDate: Date
+  ): Promise<JobsiteReportPG | null> {
+    const jobsite = await db
+      .selectFrom("dim_jobsite")
+      .select(["id", "mongo_id", "name", "jobcode"])
+      .where("mongo_id", "=", jobsiteMongoId)
+      .executeTakeFirst();
+
+    if (!jobsite) return null;
+
+    const [
+      dayReports,
+      invoiceSummary,
+      expenseInvoices,
+      revenueInvoices,
+      issues,
+      crewTypes,
+    ] = await Promise.all([
+      this.getDayReports(jobsite.id, startDate, endDate),
+      this.getInvoiceSummary(jobsite.id, startDate, endDate),
+      this.getInvoices(jobsite.id, startDate, endDate, "expense"),
+      this.getInvoices(jobsite.id, startDate, endDate, "revenue"),
+      this.getIssues(jobsite.id, startDate, endDate),
+      this.getCrewTypes(jobsite.id, startDate, endDate),
+    ]);
+
+    return {
+      _id: `${jobsite.mongo_id}_${startDate.toISOString()}_${endDate.toISOString()}`,
+      jobsite: {
+        _id: jobsite.mongo_id,
+        name: jobsite.name,
+        jobcode: jobsite.jobcode || undefined,
+      },
+      startDate,
+      endDate,
       crewTypes,
       summary: invoiceSummary,
       dayReports,
