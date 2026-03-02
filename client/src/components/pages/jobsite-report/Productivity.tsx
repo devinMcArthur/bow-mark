@@ -346,7 +346,8 @@ const Productivity = ({
   const hasLaborData = productivity.laborTypeHours.length > 0;
 
   return (
-    <Stack spacing={4}>
+    <Box overflowY="auto" h="100%" w="100%">
+    <Stack spacing={4} pb={4}>
       {/* Overall Productivity Summary */}
       <Card heading={<Heading size="md">Productivity Summary</Heading>}>
         <SimpleGrid columns={[2, 4]} spacing={4}>
@@ -642,6 +643,7 @@ const Productivity = ({
         </Alert>
       )}
     </Stack>
+    </Box>
   );
 };
 

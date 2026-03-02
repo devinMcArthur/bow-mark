@@ -209,10 +209,18 @@ const formatCurrency = (n: number) =>
 interface ICrewCard {
   crewType: string;
   crew: CrewData;
-  dates: string[];
 }
 
-const CrewCard = ({ crewType, crew, dates }: ICrewCard) => {
+const CrewCard = ({ crewType, crew }: ICrewCard) => {
+  const dates = React.useMemo(() => {
+    const dateSet = new Set<string>();
+    Array.from(crew.employees.values()).forEach((e) => e.byDate.forEach((_, d) => dateSet.add(d)));
+    Array.from(crew.vehicles.values()).forEach((v) => v.byDate.forEach((_, d) => dateSet.add(d)));
+    Array.from(crew.materials.values()).forEach((m) => m.byDate.forEach((_, d) => dateSet.add(d)));
+    Array.from(crew.nonCostedMaterials.values()).forEach((n) => n.byDate.forEach((_, d) => dateSet.add(d)));
+    Array.from(crew.trucking.values()).forEach((t) => t.byDate.forEach((_, d) => dateSet.add(d)));
+    return Array.from(dateSet).sort();
+  }, [crew]);
   const [open, setOpen] = React.useState(false);
 
   return (
@@ -467,7 +475,7 @@ const Breakdown = ({ jobsiteMongoId, startDate, endDate }: IBreakdown) => {
 
   const report = data?.jobsiteReport;
 
-  const { crewMap, dates } = React.useMemo(() => {
+  const { crewMap } = React.useMemo(() => {
     if (!report) return { crewMap: new Map<string, CrewData>(), dates: [] };
     return aggregateDayReports(report.dayReports);
   }, [report]);
@@ -509,7 +517,6 @@ const Breakdown = ({ jobsiteMongoId, startDate, endDate }: IBreakdown) => {
               key={crewType}
               crewType={crewType}
               crew={crew}
-              dates={dates}
             />
           );
         })}
