@@ -15,6 +15,9 @@ import {
   Box,
   Heading,
   HStack,
+  Input,
+  InputGroup,
+  InputLeftElement,
   SimpleGrid,
   Spinner,
   Stat,
@@ -31,7 +34,7 @@ import {
   Tooltip,
   Tr,
 } from "@chakra-ui/react";
-import { FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiChevronDown, FiChevronUp, FiSearch } from "react-icons/fi";
 import { useDashboardOverviewQuery } from "../../../generated/graphql";
 import formatNumber from "../../../utils/formatNumber";
 import createLink from "../../../utils/createLink";
@@ -69,6 +72,7 @@ const Overview = ({ startDate, endDate }: IOverview) => {
     React.useState<SortColumn>("netMarginPercent");
   const [sortDirection, setSortDirection] =
     React.useState<SortDirection>("desc");
+  const [searchQuery, setSearchQuery] = React.useState("");
 
   const { data, loading, error, previousData } = useDashboardOverviewQuery({
     variables: { input: { startDate, endDate } },
@@ -121,6 +125,16 @@ const Overview = ({ startDate, endDate }: IOverview) => {
       return 0;
     });
   }, [report?.jobsites, sortColumn, sortDirection]);
+
+  const filteredJobsites = React.useMemo(() => {
+    if (!searchQuery.trim()) return sortedJobsites;
+    const q = searchQuery.toLowerCase();
+    return sortedJobsites.filter(
+      (j) =>
+        j.jobsiteName.toLowerCase().includes(q) ||
+        (j.jobcode ?? "").toLowerCase().includes(q)
+    );
+  }, [sortedJobsites, searchQuery]);
 
   const topPerformers = React.useMemo(() => {
     if (!report?.jobsites) return [];
@@ -417,27 +431,45 @@ const Overview = ({ startDate, endDate }: IOverview) => {
       {/* All Jobs Table */}
       <Card
         heading={
-          <HStack>
-            <Heading size="md">
-              All Jobs
-              <Badge
-                ml={2}
-                colorScheme="gray"
-                fontSize="sm"
-                fontWeight="normal"
-              >
-                {sortedJobsites.length} jobsites
-              </Badge>
-            </Heading>
-            {loading && <Spinner size="sm" color="blue.500" />}
+          <HStack justify="space-between" w="100%" flexWrap="wrap" gap={2}>
+            <HStack>
+              <Heading size="md">
+                All Jobs
+                <Badge
+                  ml={2}
+                  colorScheme="gray"
+                  fontSize="sm"
+                  fontWeight="normal"
+                >
+                  {searchQuery.trim()
+                    ? `${filteredJobsites.length} of ${sortedJobsites.length}`
+                    : sortedJobsites.length}{" "}
+                  jobsites
+                </Badge>
+              </Heading>
+              {loading && <Spinner size="sm" color="blue.500" />}
+            </HStack>
+            <InputGroup size="sm" w="220px">
+              <InputLeftElement pointerEvents="none">
+                <FiSearch color="gray" />
+              </InputLeftElement>
+              <Input
+                placeholder="Search jobs..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                borderRadius="md"
+              />
+            </InputGroup>
           </HStack>
         }
         mb={4}
       >
-        {sortedJobsites.length === 0 ? (
+        {filteredJobsites.length === 0 ? (
           <Alert status="info">
             <AlertIcon />
-            No jobsite data for the selected date range.
+            {searchQuery.trim()
+              ? `No jobsites match "${searchQuery}".`
+              : "No jobsite data for the selected date range."}
           </Alert>
         ) : (
           <Box overflowX="auto" maxH="450px" overflowY="auto">
@@ -503,7 +535,7 @@ const Overview = ({ startDate, endDate }: IOverview) => {
                 </Tr>
               </Thead>
               <Tbody>
-                {sortedJobsites.map((j) => (
+                {filteredJobsites.map((j) => (
                   <Tr
                     key={j.jobsiteId}
                     _hover={{ bg: "gray.50" }}
