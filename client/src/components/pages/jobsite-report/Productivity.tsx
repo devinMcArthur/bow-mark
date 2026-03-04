@@ -356,7 +356,12 @@ const Productivity = ({
             <StatNumber color="blue.500">
               {formatNumber(productivity.overallTonnesPerHour)}
             </StatNumber>
-            <StatHelpText>Tonnes per crew hour</StatHelpText>
+            <StatHelpText>
+              Tonnes per crew hour
+              <Text as="div" color="gray.500" fontSize="xs" mt={0.5}>
+                {formatNumber(productivity.overallTonnesPerManHour)} t/mh
+              </Text>
+            </StatHelpText>
           </Stat>
 
           <Stat>
@@ -368,7 +373,12 @@ const Productivity = ({
           <Stat>
             <StatLabel>Total Crew Hours</StatLabel>
             <StatNumber>{formatNumber(productivity.totalCrewHours)}</StatNumber>
-            <StatHelpText>Based on max shift per crew</StatHelpText>
+            <StatHelpText>
+              Avg shift length per day
+              <Text as="div" color="gray.400" fontSize="xs" mt={0.5}>
+                {formatNumber(productivity.totalManHours)} man-hrs
+              </Text>
+            </StatHelpText>
           </Stat>
 
           <Stat>
@@ -532,6 +542,9 @@ const Productivity = ({
                         <Td isNumeric>{formatNumber(mat.totalCrewHours)}</Td>
                         <Td isNumeric fontWeight="bold" color="blue.600">
                           {formatNumber(mat.tonnesPerHour)}
+                          <Text as="div" fontSize="xs" color="gray.400" fontWeight="normal">
+                            {formatNumber(mat.tonnesPerManHour)} t/mh
+                          </Text>
                         </Td>
                         <Td isNumeric>{mat.shipmentCount}</Td>
                       </Tr>

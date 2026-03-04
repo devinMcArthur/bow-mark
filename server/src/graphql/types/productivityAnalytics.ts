@@ -109,6 +109,12 @@ export class MaterialDailyBreakdown {
 
   @Field(() => Float)
   tonnesPerHour!: number;
+
+  @Field(() => Float)
+  manHours!: number;
+
+  @Field(() => Float)
+  tonnesPerManHour!: number;
 }
 
 @ObjectType()
@@ -130,6 +136,12 @@ export class MaterialProductivity {
 
   @Field(() => Float)
   tonnesPerHour!: number;
+
+  @Field(() => Float)
+  totalManHours!: number;
+
+  @Field(() => Float)
+  tonnesPerManHour!: number;
 
   @Field(() => Int)
   shipmentCount!: number;
@@ -199,6 +211,12 @@ export class JobsiteProductivityReport {
 
   @Field(() => Float)
   totalCrewHours!: number;
+
+  @Field(() => Float)
+  totalManHours!: number;
+
+  @Field(() => Float)
+  overallTonnesPerManHour!: number;
 
   @Field(() => [CrewHoursDetail], { nullable: true })
   crewHoursDetail?: CrewHoursDetail[];

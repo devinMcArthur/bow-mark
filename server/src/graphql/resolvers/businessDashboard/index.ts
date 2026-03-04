@@ -298,38 +298,53 @@ export default class BusinessDashboardResolver {
       availableMaterials,
       shipmentsPerReport,
       crewHoursPerReport,
+      manHoursPerReport,
       crewRows,
       tonnesPerCrewRows,
       crewHoursPerCrewRows,
+      manHoursPerCrewRows,
     ] = await Promise.all([
       this.getAvailableMaterials(startDate, endDate, materialGrouping),
       this.getShipmentsPerReport(startDate, endDate, materialGrouping, filterCriteria),
       this.getCrewHoursPerReport(startDate, endDate),
+      this.getManHoursPerReport(startDate, endDate),
       this.getCrews(),
       this.getTonnesPerCrew(startDate, endDate, crewMaterialNames),
       this.getCrewHoursPerCrew(startDate, endDate),
+      this.getManHoursPerCrew(startDate, endDate),
     ]);
 
-    // Build daily-report → crew_hours map for benchmarks aggregation
+    // Build daily-report lookup maps for benchmarks aggregation
     const crewHoursDailyMap = new Map<string, number>();
     for (const row of crewHoursPerReport) {
       if (row.daily_report_id) {
         crewHoursDailyMap.set(row.daily_report_id, Number(row.crew_hours || 0));
       }
     }
+    const manHoursDailyMap = new Map<string, number>();
+    for (const row of manHoursPerReport) {
+      if (row.daily_report_id) {
+        manHoursDailyMap.set(row.daily_report_id, Number(row.man_hours || 0));
+      }
+    }
 
     // Jobsite benchmarks (benchmarks pattern: per-report aggregation)
-    const jobsiteStats = this.aggregateByJobsite(shipmentsPerReport, crewHoursDailyMap);
-    const { jobsites, overallTonnes, overallCrewHours, regression } =
+    const jobsiteStats = this.aggregateByJobsite(shipmentsPerReport, crewHoursDailyMap, manHoursDailyMap);
+    const { jobsites, overallTonnes, overallCrewHours, overallManHours, regression } =
       this.buildJobsiteBenchmarks(jobsiteStats);
 
     const averageTonnesPerHour =
       overallCrewHours > 0 ? overallTonnes / overallCrewHours : 0;
+    const averageTonnesPerManHour =
+      overallManHours > 0 ? overallTonnes / overallManHours : 0;
 
     // Crew items (existing simple aggregation pattern)
     const crewMap = new Map(crewRows.map((c) => [c.id, c]));
     const crewHoursCrewMap = new Map(
       crewHoursPerCrewRows.map((r) => [r.crew_id, Number(r.total_hours)])
+    );
+    const manHoursCrewMap = new Map(
+      manHoursPerCrewRows.map((r) => [r.crew_id, Number(r.total_man_hours)])
     );
 
     const crewItems: DashboardProductivityCrewItem[] = [];
@@ -338,6 +353,7 @@ export default class BusinessDashboardResolver {
       if (!c) continue;
       const tonnes = Number(row.total_tonnes ?? 0);
       const crewHrs = crewHoursCrewMap.get(row.crew_id) ?? 0;
+      const manHrs = manHoursCrewMap.get(row.crew_id) ?? 0;
       crewItems.push({
         crewId: row.crew_id,
         crewName: c.name,
@@ -345,6 +361,8 @@ export default class BusinessDashboardResolver {
         totalTonnes: tonnes,
         totalCrewHours: crewHrs,
         tonnesPerHour: crewHrs > 0 ? tonnes / crewHrs : undefined,
+        totalManHours: manHrs,
+        tonnesPerManHour: manHrs > 0 ? tonnes / manHrs : undefined,
         dayCount: Number(row.day_count),
         jobsiteCount: Number(row.jobsite_count),
         percentFromAverage: undefined,
@@ -366,8 +384,10 @@ export default class BusinessDashboardResolver {
 
     return {
       averageTonnesPerHour,
+      averageTonnesPerManHour,
       totalTonnes: overallTonnes,
       totalCrewHours: overallCrewHours,
+      totalManHours: overallManHours,
       jobsiteCount: jobsites.length,
       availableMaterials,
       jobsites,
@@ -654,7 +674,26 @@ export default class BusinessDashboardResolver {
       .execute();
   }
 
-  /** Aggregate per-report shipments by jobsite, accumulating crew hours */
+  /** Man hours per daily report (SUM of all employee hours in that report) */
+  private async getManHoursPerReport(startDate: Date, endDate: Date) {
+    return db
+      .selectFrom("fact_employee_work as ew")
+      .innerJoin("dim_daily_report as dr", "dr.id", "ew.daily_report_id")
+      .select([
+        "ew.daily_report_id",
+        "ew.jobsite_id",
+        sql<number>`SUM(ew.hours)`.as("man_hours"),
+      ])
+      .where("ew.work_date", ">=", startDate)
+      .where("ew.work_date", "<=", endDate)
+      .where("ew.archived_at", "is", null)
+      .where("dr.approved", "=", true)
+      .where("dr.archived", "=", false)
+      .groupBy(["ew.daily_report_id", "ew.jobsite_id"])
+      .execute();
+  }
+
+  /** Aggregate per-report shipments by jobsite, accumulating crew and man hours */
   private aggregateByJobsite(
     shipmentsPerReport: Array<{
       jobsite_id: string;
@@ -665,7 +704,8 @@ export default class BusinessDashboardResolver {
       tonnes: number;
       shipment_count: number;
     }>,
-    crewHoursMap: Map<string, number>
+    crewHoursMap: Map<string, number>,
+    manHoursMap: Map<string, number>
   ) {
     interface JobsiteStats {
       jobsiteId: string;
@@ -674,6 +714,7 @@ export default class BusinessDashboardResolver {
       jobcode: string | null;
       totalTonnes: number;
       totalCrewHours: number;
+      totalManHours: number;
       shipmentCount: number;
       dailyReportIds: Set<string>;
     }
@@ -692,6 +733,7 @@ export default class BusinessDashboardResolver {
         jobcode: row.jobcode,
         totalTonnes: 0,
         totalCrewHours: 0,
+        totalManHours: 0,
         shipmentCount: 0,
         dailyReportIds: new Set<string>(),
       };
@@ -705,10 +747,13 @@ export default class BusinessDashboardResolver {
 
     for (const stats of jobsiteStats.values()) {
       let totalCrewHours = 0;
+      let totalManHours = 0;
       for (const drId of stats.dailyReportIds) {
         totalCrewHours += crewHoursMap.get(drId) || 0;
+        totalManHours += manHoursMap.get(drId) || 0;
       }
       stats.totalCrewHours = totalCrewHours;
+      stats.totalManHours = totalManHours;
     }
 
     return jobsiteStats;
@@ -725,6 +770,7 @@ export default class BusinessDashboardResolver {
         jobcode: string | null;
         totalTonnes: number;
         totalCrewHours: number;
+        totalManHours: number;
         shipmentCount: number;
       }
     >
@@ -732,10 +778,12 @@ export default class BusinessDashboardResolver {
     jobsites: DashboardProductivityJobsiteItem[];
     overallTonnes: number;
     overallCrewHours: number;
+    overallManHours: number;
     regression: { intercept: number; slope: number };
   } {
     let overallTonnes = 0;
     let overallCrewHours = 0;
+    let overallManHours = 0;
 
     const jobsitesWithData: Array<{
       jobsiteMongoId: string;
@@ -743,6 +791,7 @@ export default class BusinessDashboardResolver {
       jobcode: string | null;
       totalTonnes: number;
       totalCrewHours: number;
+      totalManHours: number;
       shipmentCount: number;
       tonnesPerHour: number;
     }> = [];
@@ -753,6 +802,7 @@ export default class BusinessDashboardResolver {
         jobsitesWithData.push({ ...stats, tonnesPerHour });
         overallTonnes += stats.totalTonnes;
         overallCrewHours += stats.totalCrewHours;
+        overallManHours += stats.totalManHours;
       }
     }
 
@@ -785,6 +835,10 @@ export default class BusinessDashboardResolver {
           totalTonnes: stats.totalTonnes,
           totalCrewHours: stats.totalCrewHours,
           tonnesPerHour: stats.tonnesPerHour,
+          totalManHours: stats.totalManHours,
+          tonnesPerManHour: stats.totalManHours > 0
+            ? stats.totalTonnes / stats.totalManHours
+            : undefined,
           shipmentCount: stats.shipmentCount,
           percentFromAverage,
           expectedTonnesPerHour,
@@ -797,6 +851,7 @@ export default class BusinessDashboardResolver {
       jobsites,
       overallTonnes,
       overallCrewHours,
+      overallManHours,
       regression: { intercept, slope },
     };
   }
@@ -980,6 +1035,24 @@ export default class BusinessDashboardResolver {
       .selectFrom(sub.as("crew_daily"))
       .select(["crew_daily.crew_id", sql<number>`SUM(crew_daily.crew_day_hours)`.as("total_hours")])
       .groupBy("crew_daily.crew_id")
+      .execute();
+  }
+
+  /** Man hours per crew (SUM of all employee hours — not MAX-based) */
+  private async getManHoursPerCrew(startDate: Date, endDate: Date) {
+    return db
+      .selectFrom("fact_employee_work as ew")
+      .innerJoin("dim_daily_report as dr", "dr.id", "ew.daily_report_id")
+      .select([
+        "ew.crew_id",
+        sql<number>`SUM(ew.hours)`.as("total_man_hours"),
+      ])
+      .where("ew.work_date", ">=", startDate)
+      .where("ew.work_date", "<=", endDate)
+      .where("ew.archived_at", "is", null)
+      .where("dr.approved", "=", true)
+      .where("dr.archived", "=", false)
+      .groupBy("ew.crew_id")
       .execute();
   }
 

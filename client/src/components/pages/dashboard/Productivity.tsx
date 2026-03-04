@@ -520,6 +520,9 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
               </StatNumber>
               <StatHelpText>
                 {viewMode === "crew" ? "All crews" : "All jobsites"}
+                <Text as="div" color="gray.500" fontSize="xs" mt={0.5}>
+                  {formatNumber(report.averageTonnesPerManHour)} t/mh
+                </Text>
               </StatHelpText>
             </Stat>
 
@@ -534,7 +537,12 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
             <Stat>
               <StatLabel>Total Crew Hours</StatLabel>
               <StatNumber>{formatNumber(report.totalCrewHours)}</StatNumber>
-              <StatHelpText>Combined</StatHelpText>
+              <StatHelpText>
+                Combined
+                <Text as="div" color="gray.400" fontSize="xs" mt={0.5}>
+                  {formatNumber(report.totalManHours)} man-hrs
+                </Text>
+              </StatHelpText>
             </Stat>
 
             {viewMode === "jobsite" ? (
@@ -665,6 +673,9 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
                         <Td isNumeric>{formatNumber(crew.totalCrewHours)}</Td>
                         <Td isNumeric fontWeight="bold" color="blue.600">
                           {crew.tonnesPerHour != null ? formatNumber(crew.tonnesPerHour) : "—"}
+                          <Text as="div" fontSize="xs" color="gray.400" fontWeight="normal">
+                            {crew.tonnesPerManHour != null ? `${formatNumber(crew.tonnesPerManHour)} t/mh` : "—"}
+                          </Text>
                         </Td>
                         <Td isNumeric>{crew.jobsiteCount}</Td>
                         <Td isNumeric>{crew.dayCount}</Td>
@@ -937,7 +948,12 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
                           </Td>
                           <Td isNumeric>{formatNumber(j.totalTonnes)}</Td>
                           <Td isNumeric>{formatNumber(j.totalCrewHours)}</Td>
-                          <Td isNumeric fontWeight="bold" color="blue.600">{formatNumber(j.tonnesPerHour)}</Td>
+                          <Td isNumeric fontWeight="bold" color="blue.600">
+                            {formatNumber(j.tonnesPerHour)}
+                            <Text as="div" fontSize="xs" color="gray.400" fontWeight="normal">
+                              {j.tonnesPerManHour != null ? `${formatNumber(j.tonnesPerManHour)} t/mh` : "—"}
+                            </Text>
+                          </Td>
                           <Td isNumeric color="gray.500">{formatNumber(j.expectedTonnesPerHour)}</Td>
                           <Td isNumeric>{j.shipmentCount}</Td>
                           <Td isNumeric>{getDeviationBadge(j.percentFromAverage)}</Td>
