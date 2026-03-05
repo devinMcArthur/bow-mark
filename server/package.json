@@ -10,6 +10,8 @@
     "start:playground": "ts-node -r tsconfig-paths/register src/playground/index.ts",
     "start:consumer": "ts-node -r tsconfig-paths/register src/consumer/index.ts",
     "start:consumer-dev": "nodemon --watch src --ext ts,js --exec 'npx ts-node -r tsconfig-paths/register src/consumer/index.ts'",
+    "start:mcp": "node dist/mcp-server.js",
+    "start:mcp-dev": "nodemon --watch src --ext ts,js --exec 'npx ts-node -r tsconfig-paths/register src/mcp-server.ts'",
     "test": "jest",
     "lint": "npm run lint:eslint && npm run lint:prettier",
     "lint:prettier": "prettier --check \"src/**/**/!(*.d).{ts,json,md}\"",
@@ -25,6 +27,7 @@
     "@aws-sdk/s3-request-presigner": "^3.94.0",
     "@elastic/elasticsearch": "^7.16.0",
     "@graphql-tools/schema": "^8.3.8",
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "@pdfme/common": "^2.2.0",
     "@pdfme/generator": "^2.2.0",
     "@typegoose/typegoose": "7.4.5",
@@ -62,7 +65,8 @@
     "validator": "^13.7.0",
     "winston": "^3.3.3",
     "winston-elasticsearch": "^0.16.0",
-    "ws": "^8.5.0"
+    "ws": "^8.5.0",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@babel/core": "7.12.10",

@@ -318,8 +318,10 @@ k8s_yaml([
     'k8s-dev/server-deployment.yaml',
     'k8s-dev/worker-deployment.yaml',
     'k8s-dev/consumer-deployment.yaml',
+    'k8s-dev/mcp-server-deployment.yaml',
     'k8s-dev/client-deployment.yaml',
     'k8s-dev/server-cluster-ip-service.yaml',
+    'k8s-dev/mcp-server-service.yaml',
     'k8s-dev/client-cluster-ip-service.yaml',
     'k8s-dev/ingress.yaml',
 ])
@@ -343,6 +345,14 @@ k8s_resource(
 k8s_resource(
     'consumer-deployment',
     resource_deps=['mongo', 'postgres', 'rabbitmq', 'db-migrate', 'restore-mongo', 'restore-postgres'],
+    labels=['app'],
+)
+
+# MCP Analytics server - pure PG, no MongoDB or RabbitMQ needed
+k8s_resource(
+    'mcp-analytics-deployment',
+    resource_deps=['postgres', 'db-migrate', 'restore-postgres'],
+    port_forwards=['8081:8081'],
     labels=['app'],
 )
 
