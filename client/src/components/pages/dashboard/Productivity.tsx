@@ -249,6 +249,7 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
   }, [report?.crews, crewSortCol, crewSortDir]);
 
   const m3Stats = React.useMemo(() => {
+    if (selectedMaterials.size === 0) return null;
     type M3Item = { totalM3: number; totalCrewHours: number; totalManHours: number };
     const items: M3Item[] = (viewMode === "crew" ? report?.crews : report?.jobsites) ?? [];
     const m3Items = items.filter(i => i.totalM3 > 0);
@@ -261,7 +262,7 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
       m3PerHour: totalCrewHours > 0 ? totalM3 / totalCrewHours : 0,
       m3PerManHour: totalManHours > 0 ? totalM3 / totalManHours : 0,
     };
-  }, [report?.jobsites, report?.crews, viewMode]);
+  }, [report?.jobsites, report?.crews, viewMode, selectedMaterials]);
 
   // Jobsite search for scatter highlight
   const filteredJobsitesForSearch = React.useMemo(() => {
