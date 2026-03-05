@@ -249,8 +249,8 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
   }, [report?.crews, crewSortCol, crewSortDir]);
 
   const m3Stats = React.useMemo(() => {
-    const items = viewMode === "crew" ? report?.crews : report?.jobsites;
-    if (!items) return null;
+    type M3Item = { totalM3: number; totalCrewHours: number; totalManHours: number };
+    const items: M3Item[] = (viewMode === "crew" ? report?.crews : report?.jobsites) ?? [];
     const m3Items = items.filter(i => i.totalM3 > 0);
     if (m3Items.length === 0) return null;
     const totalM3 = m3Items.reduce((sum, i) => sum + i.totalM3, 0);
