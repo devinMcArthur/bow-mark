@@ -676,6 +676,11 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
                           <Text as="div" fontSize="xs" color="gray.400" fontWeight="normal">
                             {crew.tonnesPerManHour != null ? `${formatNumber(crew.tonnesPerManHour)} t/mh` : "—"}
                           </Text>
+                          {crew.totalM3 > 0 && (
+                            <Text as="div" fontSize="xs" color="teal.500" fontWeight="normal">
+                              {crew.m3PerHour != null ? `${formatNumber(crew.m3PerHour)} m³/h` : "—"}
+                            </Text>
+                          )}
                         </Td>
                         <Td isNumeric>{crew.jobsiteCount}</Td>
                         <Td isNumeric>{crew.dayCount}</Td>
@@ -953,6 +958,11 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
                             <Text as="div" fontSize="xs" color="gray.400" fontWeight="normal">
                               {j.tonnesPerManHour != null ? `${formatNumber(j.tonnesPerManHour)} t/mh` : "—"}
                             </Text>
+                            {j.totalM3 > 0 && (
+                              <Text as="div" fontSize="xs" color="teal.500" fontWeight="normal">
+                                {j.m3PerHour != null ? `${formatNumber(j.m3PerHour)} m³/h` : "—"}
+                              </Text>
+                            )}
                           </Td>
                           <Td isNumeric color="gray.500">{formatNumber(j.expectedTonnesPerHour)}</Td>
                           <Td isNumeric>{j.shipmentCount}</Td>

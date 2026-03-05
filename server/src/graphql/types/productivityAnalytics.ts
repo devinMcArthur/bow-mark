@@ -115,6 +115,12 @@ export class MaterialDailyBreakdown {
 
   @Field(() => Float)
   tonnesPerManHour!: number;
+
+  @Field(() => Float)
+  rawM3!: number;
+
+  @Field(() => Float)
+  m3PerHour!: number;
 }
 
 @ObjectType()
@@ -142,6 +148,12 @@ export class MaterialProductivity {
 
   @Field(() => Float)
   tonnesPerManHour!: number;
+
+  @Field(() => Float)
+  totalM3!: number;
+
+  @Field(() => Float)
+  m3PerHour!: number;
 
   @Field(() => Int)
   shipmentCount!: number;

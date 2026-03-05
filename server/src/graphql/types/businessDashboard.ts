@@ -200,6 +200,12 @@ export class DashboardProductivityJobsiteItem {
   @Field(() => Float, { nullable: true })
   tonnesPerManHour?: number;
 
+  @Field(() => Float)
+  totalM3!: number;
+
+  @Field(() => Float, { nullable: true })
+  m3PerHour?: number;
+
   @Field(() => Int)
   shipmentCount!: number;
 
@@ -242,6 +248,12 @@ export class DashboardProductivityCrewItem {
 
   @Field(() => Float, { nullable: true })
   tonnesPerManHour?: number;
+
+  @Field(() => Float)
+  totalM3!: number;
+
+  @Field(() => Float, { nullable: true })
+  m3PerHour?: number;
 
   @Field(() => Int)
   dayCount!: number;

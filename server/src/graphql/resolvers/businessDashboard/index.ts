@@ -346,6 +346,9 @@ export default class BusinessDashboardResolver {
     const manHoursCrewMap = new Map(
       manHoursPerCrewRows.map((r) => [r.crew_id, Number(r.total_man_hours)])
     );
+    const m3CrewMap = new Map(
+      tonnesPerCrewRows.map((r) => [r.crew_id, Number((r as any).total_m3 || 0)])
+    );
 
     const crewItems: DashboardProductivityCrewItem[] = [];
     for (const row of tonnesPerCrewRows) {
@@ -354,6 +357,7 @@ export default class BusinessDashboardResolver {
       const tonnes = Number(row.total_tonnes ?? 0);
       const crewHrs = crewHoursCrewMap.get(row.crew_id) ?? 0;
       const manHrs = manHoursCrewMap.get(row.crew_id) ?? 0;
+      const totalM3 = m3CrewMap.get(row.crew_id) ?? 0;
       crewItems.push({
         crewId: row.crew_id,
         crewName: c.name,
@@ -366,6 +370,8 @@ export default class BusinessDashboardResolver {
         dayCount: Number(row.day_count),
         jobsiteCount: Number(row.jobsite_count),
         percentFromAverage: undefined,
+        totalM3,
+        m3PerHour: totalM3 > 0 && crewHrs > 0 ? totalM3 / crewHrs : undefined,
       });
     }
 
@@ -593,6 +599,7 @@ export default class BusinessDashboardResolver {
         "ms.crew_type",
         sql<number>`COALESCE(SUM(${getTonnesConversion()}), 0)`.as("tonnes"),
         sql<number>`COUNT(*)`.as("shipment_count"),
+        sql<number>`COALESCE(SUM(CASE WHEN LOWER(ms.unit) = 'm3' THEN ms.quantity ELSE 0 END), 0)`.as("raw_m3"),
       ])
       .where("ms.work_date", ">=", startDate)
       .where("ms.work_date", "<=", endDate)
@@ -703,6 +710,7 @@ export default class BusinessDashboardResolver {
       daily_report_id: string | null;
       tonnes: number;
       shipment_count: number;
+      raw_m3: number;
     }>,
     crewHoursMap: Map<string, number>,
     manHoursMap: Map<string, number>
@@ -715,6 +723,7 @@ export default class BusinessDashboardResolver {
       totalTonnes: number;
       totalCrewHours: number;
       totalManHours: number;
+      totalM3: number;
       shipmentCount: number;
       dailyReportIds: Set<string>;
     }
@@ -734,11 +743,13 @@ export default class BusinessDashboardResolver {
         totalTonnes: 0,
         totalCrewHours: 0,
         totalManHours: 0,
+        totalM3: 0,
         shipmentCount: 0,
         dailyReportIds: new Set<string>(),
       };
 
       existing.totalTonnes += tonnes;
+      existing.totalM3 += Number(row.raw_m3 || 0);
       existing.shipmentCount += shipmentCount;
       if (row.daily_report_id) existing.dailyReportIds.add(row.daily_report_id);
 
@@ -771,6 +782,7 @@ export default class BusinessDashboardResolver {
         totalTonnes: number;
         totalCrewHours: number;
         totalManHours: number;
+        totalM3: number;
         shipmentCount: number;
       }
     >
@@ -792,6 +804,7 @@ export default class BusinessDashboardResolver {
       totalTonnes: number;
       totalCrewHours: number;
       totalManHours: number;
+      totalM3: number;
       shipmentCount: number;
       tonnesPerHour: number;
     }> = [];
@@ -843,6 +856,10 @@ export default class BusinessDashboardResolver {
           percentFromAverage,
           expectedTonnesPerHour,
           percentFromExpected,
+          totalM3: stats.totalM3,
+          m3PerHour: stats.totalM3 > 0 && stats.totalCrewHours > 0
+            ? stats.totalM3 / stats.totalCrewHours
+            : undefined,
         };
       })
       .sort((a, b) => b.tonnesPerHour - a.tonnesPerHour);
@@ -1086,6 +1103,7 @@ export default class BusinessDashboardResolver {
         sql<number>`SUM(${getTonnesConversion()})`.as("total_tonnes"),
         sql<number>`COUNT(DISTINCT ms.work_date)`.as("day_count"),
         sql<number>`COUNT(DISTINCT ms.jobsite_id)`.as("jobsite_count"),
+        sql<number>`COALESCE(SUM(CASE WHEN LOWER(ms.unit) = 'm3' THEN ms.quantity ELSE 0 END), 0)`.as("total_m3"),
       ])
       .where("ms.work_date", ">=", startDate)
       .where("ms.work_date", "<=", endDate)

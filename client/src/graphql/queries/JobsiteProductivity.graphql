@@ -32,6 +32,8 @@ query JobsiteProductivity(
       tonnesPerHour
       totalManHours
       tonnesPerManHour
+      totalM3
+      m3PerHour
       shipmentCount
       dailyReports {
         id
@@ -45,6 +47,8 @@ query JobsiteProductivity(
         tonnesPerHour
         manHours
         tonnesPerManHour
+        rawM3
+        m3PerHour
       }
     }
     overallTonnesPerHour

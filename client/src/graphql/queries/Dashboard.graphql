@@ -77,6 +77,8 @@ query DashboardProductivity($input: DashboardProductivityInput!) {
       tonnesPerHour
       totalManHours
       tonnesPerManHour
+      totalM3
+      m3PerHour
       shipmentCount
       percentFromAverage
       expectedTonnesPerHour
@@ -91,6 +93,8 @@ query DashboardProductivity($input: DashboardProductivityInput!) {
       tonnesPerHour
       totalManHours
       tonnesPerManHour
+      totalM3
+      m3PerHour
       dayCount
       jobsiteCount
       percentFromAverage

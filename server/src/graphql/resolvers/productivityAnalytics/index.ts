@@ -268,6 +268,7 @@ export default class ProductivityAnalyticsResolver {
         "ms.crew_type",
         sql<number>`COALESCE(SUM(${tonnesConversion}), 0)`.as("tonnes"),
         sql<number>`COUNT(*)`.as("shipment_count"),
+        sql<number>`COALESCE(SUM(CASE WHEN LOWER(ms.unit) = 'm3' THEN ms.quantity ELSE 0 END), 0)`.as("raw_m3"),
       ])
       .where("ms.jobsite_id", "=", jobsiteId)
       .where("ms.work_date", ">=", startDate)
@@ -395,6 +396,7 @@ export default class ProductivityAnalyticsResolver {
       tonnes: number;
       crewHours: number;
       manHours: number;
+      rawM3: number;
     }
     interface MaterialStats {
       materialName: string;
@@ -403,6 +405,7 @@ export default class ProductivityAnalyticsResolver {
       totalTonnes: number;
       totalProportionalHours: number;
       totalProportionalManHours: number;
+      totalRawM3: number;
       shipmentCount: number;
       dailyReportIds: Set<string>;
       dailyData: Map<string, DailyData>;
@@ -422,6 +425,7 @@ export default class ProductivityAnalyticsResolver {
         totalCrewTonnes > 0 ? (tonnes / totalCrewTonnes) * crewHours : 0;
       const proportionalManHours =
         totalCrewTonnes > 0 ? (tonnes / totalCrewTonnes) * manHours : 0;
+      const rawM3 = Number(row.raw_m3 || 0);
 
       // Build grouping key based on selected dimension
       let groupKey: string;
@@ -450,6 +454,7 @@ export default class ProductivityAnalyticsResolver {
         totalTonnes: 0,
         totalProportionalHours: 0,
         totalProportionalManHours: 0,
+        totalRawM3: 0,
         shipmentCount: 0,
         dailyReportIds: new Set<string>(),
         dailyData: new Map<string, DailyData>(),
@@ -462,11 +467,13 @@ export default class ProductivityAnalyticsResolver {
         tonnes: 0,
         crewHours: 0,
         manHours: 0,
+        rawM3: 0,
       };
       existing.dailyData.set(row.daily_report_id, {
         tonnes: existingDaily.tonnes + tonnes,
         crewHours: existingDaily.crewHours + proportionalHours,
         manHours: existingDaily.manHours + proportionalManHours,
+        rawM3: existingDaily.rawM3 + rawM3,
       });
 
       materialStats.set(groupKey, {
@@ -474,6 +481,7 @@ export default class ProductivityAnalyticsResolver {
         totalTonnes: existing.totalTonnes + tonnes,
         totalProportionalHours: existing.totalProportionalHours + proportionalHours,
         totalProportionalManHours: existing.totalProportionalManHours + proportionalManHours,
+        totalRawM3: existing.totalRawM3 + rawM3,
         shipmentCount: existing.shipmentCount + Number(row.shipment_count),
       });
     }
@@ -522,6 +530,8 @@ export default class ProductivityAnalyticsResolver {
             tonnesPerHour: data.crewHours > 0 ? data.tonnes / data.crewHours : 0,
             manHours: data.manHours,
             tonnesPerManHour: data.manHours > 0 ? data.tonnes / data.manHours : 0,
+            rawM3: data.rawM3,
+            m3PerHour: data.rawM3 > 0 && data.crewHours > 0 ? data.rawM3 / data.crewHours : 0,
           };
         })
         .sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -540,6 +550,11 @@ export default class ProductivityAnalyticsResolver {
         tonnesPerManHour:
           stats.totalProportionalManHours > 0
             ? stats.totalTonnes / stats.totalProportionalManHours
+            : 0,
+        totalM3: stats.totalRawM3,
+        m3PerHour:
+          stats.totalRawM3 > 0 && stats.totalProportionalHours > 0
+            ? stats.totalRawM3 / stats.totalProportionalHours
             : 0,
         shipmentCount: stats.shipmentCount,
         dailyReports,

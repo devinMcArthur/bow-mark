@@ -545,6 +545,11 @@ const Productivity = ({
                           <Text as="div" fontSize="xs" color="gray.400" fontWeight="normal">
                             {formatNumber(mat.tonnesPerManHour)} t/mh
                           </Text>
+                          {mat.totalM3 > 0 && (
+                            <Text as="div" fontSize="xs" color="teal.500" fontWeight="normal">
+                              {formatNumber(mat.m3PerHour)} m³/h
+                            </Text>
+                          )}
                         </Td>
                         <Td isNumeric>{mat.shipmentCount}</Td>
                       </Tr>
@@ -575,6 +580,11 @@ const Productivity = ({
                                         <Td isNumeric>{formatNumber(day.crewHours)}</Td>
                                         <Td isNumeric fontWeight="medium" color="blue.600">
                                           {formatNumber(day.tonnesPerHour)}
+                                          {day.rawM3 > 0 && (
+                                            <Text as="div" fontSize="xs" color="teal.500" fontWeight="normal">
+                                              {formatNumber(day.m3PerHour)} m³/h
+                                            </Text>
+                                          )}
                                         </Td>
                                         <Td>
                                           <NextLink
