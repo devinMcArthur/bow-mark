@@ -18,6 +18,7 @@ import {
   IconButton,
   Link,
   Select,
+  Divider,
   SimpleGrid,
   Spinner,
   Stack,
@@ -278,6 +279,20 @@ const Productivity = ({
     };
   }, [productivity?.materialProductivity, selectedMaterials, getSelectionKey, getDisplayLabel]);
 
+  const m3Stats = React.useMemo(() => {
+    if (!productivity?.materialProductivity) return null;
+    const m3Materials = productivity.materialProductivity.filter(m => m.totalM3 > 0);
+    if (m3Materials.length === 0) return null;
+    const totalM3 = m3Materials.reduce((sum, m) => sum + m.totalM3, 0);
+    const totalCrewHours = m3Materials.reduce((sum, m) => sum + m.totalCrewHours, 0);
+    const totalManHours = m3Materials.reduce((sum, m) => sum + m.totalManHours, 0);
+    return {
+      totalM3,
+      m3PerHour: totalCrewHours > 0 ? totalM3 / totalCrewHours : 0,
+      m3PerManHour: totalManHours > 0 ? totalM3 / totalManHours : 0,
+    };
+  }, [productivity?.materialProductivity]);
+
   const toggleMaterial = (key: string) => {
     setSelectedMaterials((prev) => {
       const next = new Set(prev);
@@ -387,6 +402,28 @@ const Productivity = ({
             <StatHelpText>With tonnes unit</StatHelpText>
           </Stat>
         </SimpleGrid>
+        {m3Stats && (
+          <>
+            <Divider my={3} />
+            <SimpleGrid columns={[2, 3]} spacing={4}>
+              <Stat>
+                <StatLabel>Avg m³/h</StatLabel>
+                <StatNumber color="teal.500">{formatNumber(m3Stats.m3PerHour)}</StatNumber>
+                <StatHelpText>m³ per crew hour</StatHelpText>
+              </Stat>
+              <Stat>
+                <StatLabel>Total m³</StatLabel>
+                <StatNumber>{formatNumber(m3Stats.totalM3)}</StatNumber>
+                <StatHelpText>All m³ materials</StatHelpText>
+              </Stat>
+              <Stat>
+                <StatLabel>m³/mh</StatLabel>
+                <StatNumber>{formatNumber(m3Stats.m3PerManHour)}</StatNumber>
+                <StatHelpText>m³ per man-hour</StatHelpText>
+              </Stat>
+            </SimpleGrid>
+          </>
+        )}
       </Card>
 
       {/* Material Productivity (T/H) */}

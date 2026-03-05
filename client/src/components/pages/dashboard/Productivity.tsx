@@ -20,6 +20,7 @@ import {
   Button,
   ButtonGroup,
   Checkbox,
+  Divider,
   Heading,
   HStack,
   Input,
@@ -246,6 +247,21 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
       return 0;
     });
   }, [report?.crews, crewSortCol, crewSortDir]);
+
+  const m3Stats = React.useMemo(() => {
+    const items = viewMode === "crew" ? report?.crews : report?.jobsites;
+    if (!items) return null;
+    const m3Items = items.filter(i => i.totalM3 > 0);
+    if (m3Items.length === 0) return null;
+    const totalM3 = m3Items.reduce((sum, i) => sum + i.totalM3, 0);
+    const totalCrewHours = m3Items.reduce((sum, i) => sum + i.totalCrewHours, 0);
+    const totalManHours = m3Items.reduce((sum, i) => sum + i.totalManHours, 0);
+    return {
+      totalM3,
+      m3PerHour: totalCrewHours > 0 ? totalM3 / totalCrewHours : 0,
+      m3PerManHour: totalManHours > 0 ? totalM3 / totalManHours : 0,
+    };
+  }, [report?.jobsites, report?.crews, viewMode]);
 
   // Jobsite search for scatter highlight
   const filteredJobsitesForSearch = React.useMemo(() => {
@@ -586,6 +602,28 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
               </Stat>
             )}
           </SimpleGrid>
+          {m3Stats && (
+            <>
+              <Divider my={3} />
+              <SimpleGrid columns={[2, 3]} spacing={4}>
+                <Stat>
+                  <StatLabel>Avg m³/h</StatLabel>
+                  <StatNumber color="teal.500">{formatNumber(m3Stats.m3PerHour)}</StatNumber>
+                  <StatHelpText>m³ per crew hour</StatHelpText>
+                </Stat>
+                <Stat>
+                  <StatLabel>Total m³</StatLabel>
+                  <StatNumber>{formatNumber(m3Stats.totalM3)}</StatNumber>
+                  <StatHelpText>All m³ materials</StatHelpText>
+                </Stat>
+                <Stat>
+                  <StatLabel>m³/mh</StatLabel>
+                  <StatNumber>{formatNumber(m3Stats.m3PerManHour)}</StatNumber>
+                  <StatHelpText>m³ per man-hour</StatHelpText>
+                </Stat>
+              </SimpleGrid>
+            </>
+          )}
         </Card>
 
         {/* Crew Rankings (crew mode) */}
