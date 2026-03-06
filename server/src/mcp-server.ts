@@ -39,14 +39,13 @@ function createMcpServer(): McpServer {
   });
 
   // ── search_jobsites ──────────────────────────────────────────────────────────
-  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
-  server.tool(
+  // @ts-ignore — TS2589: zod chained validators cause deep type instantiation
+  server.registerTool(
     "search_jobsites",
-    "Search for jobsites by name or jobcode. Returns matching jobsites with their IDs.",
-    {
+    { description: "Search for jobsites by name or jobcode. Returns matching jobsites with their IDs.", inputSchema: {
       query: z.string().describe("Name or jobcode to search for (partial match supported)"),
       limit: z.number().int().min(1).max(50).optional().default(10).describe("Max results to return"),
-    },
+    }},
     async ({ query, limit }) => {
       const rows = await db
         .selectFrom("dim_jobsite as j")
@@ -82,13 +81,11 @@ function createMcpServer(): McpServer {
   );
 
   // ── list_jobsites ────────────────────────────────────────────────────────────
-  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
-  server.tool(
+  server.registerTool(
     "list_jobsites",
-    "List all jobsites with summary metrics (revenue, cost, net income, tonnes) for a given year.",
-    {
+    { description: "List all jobsites with summary metrics (revenue, cost, net income, tonnes) for a given year.", inputSchema: {
       year: z.number().int().describe("Calendar year, e.g. 2025"),
-    },
+    }},
     async ({ year }) => {
       const startDate = new Date(year, 0, 1);
       const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
@@ -150,15 +147,13 @@ function createMcpServer(): McpServer {
   );
 
   // ── get_jobsite_performance ─────────────────────────────────────────────────
-  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
-  server.tool(
+  server.registerTool(
     "get_jobsite_performance",
-    "Get detailed financial and productivity performance for a specific jobsite over a date range.",
-    {
+    { description: "Get detailed financial and productivity performance for a specific jobsite over a date range.", inputSchema: {
       jobsiteMongoId: z.string().describe("MongoDB ID of the jobsite (from search_jobsites)"),
       startDate: z.string().describe("Start date in YYYY-MM-DD format"),
       endDate: z.string().describe("End date in YYYY-MM-DD format"),
-    },
+    }},
     async ({ jobsiteMongoId, startDate: startStr, endDate: endStr }) => {
       const jobsite = await db
         .selectFrom("dim_jobsite")
@@ -235,14 +230,12 @@ function createMcpServer(): McpServer {
   );
 
   // ── get_dashboard_overview ───────────────────────────────────────────────────
-  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
-  server.tool(
+  server.registerTool(
     "get_dashboard_overview",
-    "Get company-wide KPIs: total revenue, net income, tonnes, and T/H for a date range with year-over-year comparison.",
-    {
+    { description: "Get company-wide KPIs: total revenue, net income, tonnes, and T/H for a date range with year-over-year comparison.", inputSchema: {
       startDate: z.string().describe("Start date in YYYY-MM-DD format"),
       endDate: z.string().describe("End date in YYYY-MM-DD format"),
-    },
+    }},
     async ({ startDate: startStr, endDate: endStr }) => {
       const startDate = new Date(startStr);
       const endDate = new Date(endStr);
@@ -345,13 +338,11 @@ function createMcpServer(): McpServer {
   );
 
   // ── get_financial_performance ────────────────────────────────────────────────
-  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
-  server.tool(
+  server.registerTool(
     "get_financial_performance",
-    "Get revenue, costs breakdown, net income and margin for all jobsites for a given year.",
-    {
+    { description: "Get revenue, costs breakdown, net income and margin for all jobsites for a given year.", inputSchema: {
       year: z.number().int().describe("Calendar year, e.g. 2025"),
-    },
+    }},
     async ({ year }) => {
       const startDate = new Date(year, 0, 1);
       const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
@@ -421,14 +412,12 @@ function createMcpServer(): McpServer {
   );
 
   // ── get_crew_benchmarks ──────────────────────────────────────────────────────
-  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
-  server.tool(
+  server.registerTool(
     "get_crew_benchmarks",
-    "Get tonnes-per-hour and tonnes-per-man-hour rankings by crew for a date range.",
-    {
+    { description: "Get tonnes-per-hour and tonnes-per-man-hour rankings by crew for a date range.", inputSchema: {
       startDate: z.string().describe("Start date in YYYY-MM-DD format"),
       endDate: z.string().describe("End date in YYYY-MM-DD format"),
-    },
+    }},
     async ({ startDate: startStr, endDate: endStr }) => {
       const startDate = new Date(startStr);
       const endDate = new Date(endStr);
@@ -494,14 +483,12 @@ function createMcpServer(): McpServer {
   );
 
   // ── get_material_breakdown ───────────────────────────────────────────────────
-  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
-  server.tool(
+  server.registerTool(
     "get_material_breakdown",
-    "Get cost breakdown by material type and supplier for a given year.",
-    {
+    { description: "Get cost breakdown by material type and supplier for a given year.", inputSchema: {
       year: z.number().int().describe("Calendar year, e.g. 2025"),
       jobsiteMongoId: z.string().optional().describe("Filter to a specific jobsite (optional)"),
-    },
+    }},
     async ({ year, jobsiteMongoId }) => {
       const startDate = new Date(year, 0, 1);
       const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
@@ -564,14 +551,12 @@ function createMcpServer(): McpServer {
   );
 
   // ── get_vehicle_utilization ──────────────────────────────────────────────────
-  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
-  server.tool(
+  server.registerTool(
     "get_vehicle_utilization",
-    "Get vehicle hours and costs for a date range.",
-    {
+    { description: "Get vehicle hours and costs for a date range.", inputSchema: {
       startDate: z.string().describe("Start date in YYYY-MM-DD format"),
       endDate: z.string().describe("End date in YYYY-MM-DD format"),
-    },
+    }},
     async ({ startDate: startStr, endDate: endStr }) => {
       const startDate = new Date(startStr);
       const endDate = new Date(endStr);
@@ -622,15 +607,13 @@ function createMcpServer(): McpServer {
   );
 
   // ── get_daily_report_activity ─────────────────────────────────────────────
-  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
-  server.tool(
+  server.registerTool(
     "get_daily_report_activity",
-    "Get daily report activity for a date range, optionally scoped to a single jobsite. Returns quantitative metrics and foreman notes for each report day.",
-    {
+    { description: "Get daily report activity for a date range, optionally scoped to a single jobsite. Returns quantitative metrics and foreman notes for each report day.", inputSchema: {
       startDate: z.string().describe("Start date in YYYY-MM-DD format"),
       endDate: z.string().describe("End date in YYYY-MM-DD format"),
       jobsiteMongoId: z.string().optional().describe("Filter to a specific jobsite (optional — omit for all jobsites)"),
-    },
+    }},
     async ({ startDate: startStr, endDate: endStr, jobsiteMongoId }) => {
       const startDate = new Date(startStr);
       const endDate = new Date(endStr);
@@ -794,15 +777,13 @@ function createMcpServer(): McpServer {
   );
 
   // ── get_employee_productivity ─────────────────────────────────────────────
-  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
-  server.tool(
+  server.registerTool(
     "get_employee_productivity",
-    "Get per-employee breakdown of hours, cost, job title, and approximate tonnes-per-hour for a date range. Optionally filter to a single jobsite.",
-    {
+    { description: "Get per-employee breakdown of hours, cost, job title, and approximate tonnes-per-hour for a date range. Optionally filter to a single jobsite.", inputSchema: {
       startDate: z.string().describe("Start date in YYYY-MM-DD format"),
       endDate: z.string().describe("End date in YYYY-MM-DD format"),
       jobsiteMongoId: z.string().optional().describe("Filter to a specific jobsite (optional)"),
-    },
+    }},
     async ({ startDate: startStr, endDate: endStr, jobsiteMongoId }) => {
       const startDate = new Date(startStr);
       const endDate = new Date(endStr);
