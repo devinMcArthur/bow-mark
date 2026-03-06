@@ -571,7 +571,7 @@ const ChatPage: NextPage = () => {
 
   return (
     <Permission minRole={UserRoles.Admin} type={null} showError>
-      <Flex h={`calc(100vh - ${navbarHeight})`} overflow="hidden">
+      <Flex h={`calc(100vh - ${navbarHeight})`} overflow="hidden" w="100%">
         {/* ── Sidebar ─────────────────────────────────────────────────────── */}
         <Flex
           direction="column"
@@ -654,8 +654,7 @@ const ChatPage: NextPage = () => {
           </Box>
 
           {/* Messages area */}
-          <Box flex={1} overflowY="auto" px={4} py={6}>
-            <Box maxW="800px" mx="auto">
+          <Box flex={1} overflowY="auto" px={6} py={6}>
               {isEmpty && (
                 <VStack spacing={6} mt={16} align="center">
                   <VStack spacing={1}>
@@ -777,7 +776,6 @@ const ChatPage: NextPage = () => {
               </VStack>
 
               <Box ref={bottomRef} />
-            </Box>
           </Box>
 
           {/* Input area */}
@@ -785,12 +783,11 @@ const ChatPage: NextPage = () => {
             bg="white"
             borderTop="1px solid"
             borderColor="gray.200"
-            px={4}
+            px={6}
             py={4}
             flexShrink={0}
           >
-            <Box maxW="800px" mx="auto">
-              <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit}>
                 <HStack spacing={2}>
                   <Input
                     ref={inputRef}
@@ -816,8 +813,7 @@ const ChatPage: NextPage = () => {
                     size="md"
                   />
                 </HStack>
-              </form>
-            </Box>
+            </form>
           </Box>
         </Flex>
       </Flex>
