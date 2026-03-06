@@ -33,6 +33,7 @@ yarn-error.log*
 /client/build
 /client/.eslintcache
 /client/.next
+/client/tsconfig.tsbuildinfo
 
 # K8s
 /secrets
@@ -41,3 +42,4 @@ yarn-error.log*
 
 # Git worktrees
 /.worktrees
+
