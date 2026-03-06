@@ -794,6 +794,113 @@ function createMcpServer(): McpServer {
     }
   );
 
+  // ── get_employee_productivity ─────────────────────────────────────────────
+  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
+  server.tool(
+    "get_employee_productivity",
+    "Get per-employee breakdown of hours, cost, job title, and approximate tonnes-per-hour for a date range. Optionally filter to a single jobsite.",
+    {
+      startDate: z.string().describe("Start date in YYYY-MM-DD format"),
+      endDate: z.string().describe("End date in YYYY-MM-DD format"),
+      jobsiteMongoId: z.string().optional().describe("Filter to a specific jobsite (optional)"),
+    },
+    async ({ startDate: startStr, endDate: endStr, jobsiteMongoId }) => {
+      const startDate = new Date(startStr);
+      const endDate = new Date(endStr);
+      endDate.setHours(23, 59, 59, 999);
+
+      let pgJobsiteId: string | undefined;
+      if (jobsiteMongoId) {
+        const j = await db.selectFrom("dim_jobsite").select("id")
+          .where("mongo_id", "=", jobsiteMongoId).executeTakeFirst();
+        if (!j) return { content: [{ type: "text" as const, text: `Jobsite not found: ${jobsiteMongoId}` }] };
+        pgJobsiteId = j.id;
+      }
+
+      // ── Per-employee hours, cost, job title ───────────────────────────────────
+      let empQuery = db
+        .selectFrom("fact_employee_work as ew")
+        .innerJoin("dim_employee as e", "e.id", "ew.employee_id")
+        .select([
+          "ew.employee_id",
+          "e.name as employee_name",
+          sql<string>`MAX(ew.job_title)`.as("job_title"),
+          sql<number>`SUM(ew.hours)`.as("total_hours"),
+          sql<number>`SUM(ew.total_cost)`.as("total_cost"),
+          sql<number>`COUNT(DISTINCT ew.work_date)`.as("day_count"),
+          sql<number>`COUNT(DISTINCT ew.jobsite_id)`.as("jobsite_count"),
+          sql<string[]>`array_agg(DISTINCT ew.daily_report_id::text)`.as("daily_report_ids"),
+        ])
+        .where("ew.work_date", ">=", startDate)
+        .where("ew.work_date", "<=", endDate)
+        .where("ew.archived_at", "is", null);
+
+      if (pgJobsiteId) {
+        empQuery = empQuery.where("ew.jobsite_id", "=", pgJobsiteId);
+      }
+
+      const empRows = await empQuery.groupBy(["ew.employee_id", "e.name"]).execute();
+
+      if (empRows.length === 0) {
+        return { content: [{ type: "text" as const, text: JSON.stringify({ period: { startDate: startStr, endDate: endStr }, employees: [] }, null, 2) }] };
+      }
+
+      // ── Tonnes per daily report (for T/H approximation) ───────────────────────
+      const allDailyReportIds = [...new Set(empRows.flatMap((r) => r.daily_report_ids ?? []))] as string[];
+
+      const tonnesRows = allDailyReportIds.length > 0
+        ? await db
+          .selectFrom("fact_material_shipment as ms")
+          .innerJoin("dim_jobsite_material as jm", "jm.id", "ms.jobsite_material_id")
+          .innerJoin("dim_material as m", "m.id", "jm.material_id")
+          .select([
+            "ms.daily_report_id",
+            sql<number>`COALESCE(SUM(${getTonnesConversion()}), 0)`.as("total_tonnes"),
+          ])
+          .where("ms.daily_report_id", "in", allDailyReportIds)
+          .where("ms.archived_at", "is", null)
+          .groupBy("ms.daily_report_id")
+          .execute()
+        : [];
+
+      const tonnesByReport = new Map(tonnesRows.map((r) => [r.daily_report_id, Number(r.total_tonnes)]));
+
+      // ── Assemble response ─────────────────────────────────────────────────────
+      const employees = empRows.map((r) => {
+        const totalHours = Number(r.total_hours ?? 0);
+        const reportIds = r.daily_report_ids ?? [];
+        const totalTonnes = reportIds.reduce((sum, id) => sum + (tonnesByReport.get(id) ?? 0), 0);
+
+        return {
+          name: r.employee_name,
+          jobTitle: r.job_title,
+          totalHours: Math.round(totalHours * 10) / 10,
+          totalCost: Math.round(Number(r.total_cost ?? 0)),
+          dayCount: Number(r.day_count),
+          jobsiteCount: Number(r.jobsite_count),
+          totalTonnes: Math.round(totalTonnes * 10) / 10,
+          tonnesPerHour: totalHours > 0 && totalTonnes > 0
+            ? Math.round((totalTonnes / totalHours) * 100) / 100
+            : null,
+        };
+      });
+
+      employees.sort((a, b) => b.totalHours - a.totalHours);
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({
+            period: { startDate: startStr, endDate: endStr },
+            jobsiteMongoId: jobsiteMongoId ?? null,
+            employeeCount: employees.length,
+            employees,
+          }, null, 2),
+        }],
+      };
+    }
+  );
+
   return server;
 }
 
