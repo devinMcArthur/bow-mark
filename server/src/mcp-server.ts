@@ -620,6 +620,143 @@ function createMcpServer(): McpServer {
     }
   );
 
+  // ── get_daily_report_activity ─────────────────────────────────────────────
+  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
+  server.tool(
+    "get_daily_report_activity",
+    "Get daily report activity for a date range, optionally scoped to a single jobsite. Returns quantitative metrics and foreman notes for each report day.",
+    {
+      startDate: z.string().describe("Start date in YYYY-MM-DD format"),
+      endDate: z.string().describe("End date in YYYY-MM-DD format"),
+      jobsiteMongoId: z.string().optional().describe("Filter to a specific jobsite (optional — omit for all jobsites)"),
+    },
+    async ({ startDate: startStr, endDate: endStr, jobsiteMongoId }) => {
+      const startDate = new Date(startStr);
+      const endDate = new Date(endStr);
+      endDate.setHours(23, 59, 59, 999);
+
+      // ── Resolve optional jobsite filter ──────────────────────────────────────
+      let pgJobsiteId: string | undefined;
+      if (jobsiteMongoId) {
+        const j = await db.selectFrom("dim_jobsite").select("id")
+          .where("mongo_id", "=", jobsiteMongoId).executeTakeFirst();
+        if (!j) return { content: [{ type: "text" as const, text: `Jobsite not found: ${jobsiteMongoId}` }] };
+        pgJobsiteId = j.id;
+      }
+
+      // ── Fetch daily reports ───────────────────────────────────────────────────
+      let reportsQuery = db
+        .selectFrom("dim_daily_report as dr")
+        .innerJoin("dim_jobsite as j", "j.id", "dr.jobsite_id")
+        .innerJoin("dim_crew as c", "c.id", "dr.crew_id")
+        .select([
+          "dr.id", "dr.mongo_id", "dr.report_date", "dr.approved",
+          "j.mongo_id as jobsite_mongo_id", "j.name as jobsite_name", "j.jobcode",
+          "c.name as crew_name", "c.type as crew_type",
+        ])
+        .where("dr.report_date", ">=", startDate)
+        .where("dr.report_date", "<=", endDate)
+        .where("dr.archived", "=", false);
+
+      if (pgJobsiteId) {
+        reportsQuery = reportsQuery.where("dr.jobsite_id", "=", pgJobsiteId);
+      }
+
+      const reports = await reportsQuery.orderBy("dr.report_date", "desc").execute();
+
+      if (reports.length === 0) {
+        return { content: [{ type: "text" as const, text: JSON.stringify({ period: { startDate: startStr, endDate: endStr }, reports: [] }, null, 2) }] };
+      }
+
+      const pgIds = reports.map((r) => r.id);
+
+      // ── Aggregate metrics per report ──────────────────────────────────────────
+      const [empRows, matRows, vehRows, truckRows] = await Promise.all([
+        db.selectFrom("fact_employee_work as ew")
+          .select([
+            "ew.daily_report_id",
+            sql<number>`COUNT(DISTINCT ew.employee_id)`.as("employee_count"),
+            sql<number>`MAX(ew.hours)`.as("crew_hours"),
+            sql<number>`SUM(ew.hours)`.as("man_hours"),
+            sql<number>`SUM(ew.total_cost)`.as("employee_cost"),
+          ])
+          .where("ew.daily_report_id", "in", pgIds)
+          .where("ew.archived_at", "is", null)
+          .groupBy("ew.daily_report_id").execute(),
+
+        db.selectFrom("fact_material_shipment as ms")
+          .innerJoin("dim_jobsite_material as jm", "jm.id", "ms.jobsite_material_id")
+          .innerJoin("dim_material as m", "m.id", "jm.material_id")
+          .select([
+            "ms.daily_report_id",
+            sql<number>`COALESCE(SUM(${getTonnesConversion()}), 0)`.as("total_tonnes"),
+            sql<number>`COALESCE(SUM(ms.total_cost), 0)`.as("material_cost"),
+          ])
+          .where("ms.daily_report_id", "in", pgIds)
+          .where("ms.archived_at", "is", null)
+          .groupBy("ms.daily_report_id").execute(),
+
+        db.selectFrom("fact_vehicle_work as vw")
+          .select([
+            "vw.daily_report_id",
+            sql<number>`COALESCE(SUM(vw.hours), 0)`.as("vehicle_hours"),
+            sql<number>`COALESCE(SUM(vw.total_cost), 0)`.as("vehicle_cost"),
+          ])
+          .where("vw.daily_report_id", "in", pgIds)
+          .where("vw.archived_at", "is", null)
+          .groupBy("vw.daily_report_id").execute(),
+
+        db.selectFrom("fact_trucking as t")
+          .select([
+            "t.daily_report_id",
+            sql<number>`COALESCE(SUM(t.total_cost), 0)`.as("trucking_cost"),
+          ])
+          .where("t.daily_report_id", "in", pgIds)
+          .where("t.archived_at", "is", null)
+          .groupBy("t.daily_report_id").execute(),
+      ]);
+
+      const empMap = new Map(empRows.map((r) => [r.daily_report_id, r]));
+      const matMap = new Map(matRows.map((r) => [r.daily_report_id, r]));
+      const vehMap = new Map(vehRows.map((r) => [r.daily_report_id, r]));
+      const truckMap = new Map(truckRows.map((r) => [r.daily_report_id, r]));
+
+      // ── Fetch notes from MongoDB ──────────────────────────────────────────────
+      // (populated in Task 3 — placeholder for now)
+      const noteMap = new Map<string, string>();
+
+      // ── Assemble response ─────────────────────────────────────────────────────
+      const result = reports.map((r) => {
+        const emp = empMap.get(r.id);
+        const mat = matMap.get(r.id);
+        const veh = vehMap.get(r.id);
+        const truck = truckMap.get(r.id);
+        return {
+          date: r.report_date,
+          jobsite: { id: r.jobsite_mongo_id, name: r.jobsite_name, jobcode: r.jobcode },
+          crew: { name: r.crew_name, type: r.crew_type },
+          approved: r.approved,
+          metrics: {
+            employeeCount: Number(emp?.employee_count ?? 0),
+            crewHours: Math.round(Number(emp?.crew_hours ?? 0) * 10) / 10,
+            manHours: Math.round(Number(emp?.man_hours ?? 0) * 10) / 10,
+            employeeCost: Math.round(Number(emp?.employee_cost ?? 0)),
+            totalTonnes: Math.round(Number(mat?.total_tonnes ?? 0) * 10) / 10,
+            materialCost: Math.round(Number(mat?.material_cost ?? 0)),
+            vehicleHours: Math.round(Number(veh?.vehicle_hours ?? 0) * 10) / 10,
+            vehicleCost: Math.round(Number(veh?.vehicle_cost ?? 0)),
+            truckingCost: Math.round(Number(truck?.trucking_cost ?? 0)),
+          },
+          note: noteMap.get(r.mongo_id) ?? "",
+        };
+      });
+
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ period: { startDate: startStr, endDate: endStr }, reportCount: result.length, reports: result }, null, 2) }],
+      };
+    }
+  );
+
   return server;
 }
 
