@@ -92,6 +92,10 @@ router.patch("/:id/title", auth, async (req: any, res) => {
       res.status(400).json({ error: "title required" });
       return;
     }
+    if (title.trim().length > 200) {
+      res.status(400).json({ error: "title too long (max 200 characters)" });
+      return;
+    }
     if (!mongoose.isValidObjectId(req.params.id)) {
       res.status(404).json({ error: "Not found" });
       return;

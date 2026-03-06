@@ -3,6 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 import { ChatConversation } from "../models/ChatConversation";
 
 const router = Router();
@@ -73,22 +74,32 @@ router.post("/", async (req, res) => {
   let convo: Awaited<ReturnType<typeof ChatConversation.findById>> | null = null;
   let isNewConversation = false;
 
-  if (conversationId) {
-    convo = await ChatConversation.findById(conversationId);
-    if (!convo || convo.user.toString() !== userId) {
-      res.status(403).json({ error: "Forbidden" });
-      return;
+  try {
+    if (conversationId) {
+      if (!mongoose.isValidObjectId(conversationId)) {
+        res.status(400).json({ error: "Invalid conversationId" });
+        return;
+      }
+      convo = await ChatConversation.findById(conversationId);
+      if (!convo || convo.user.toString() !== userId) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
+    } else {
+      convo = await ChatConversation.create({
+        user: userId,
+        title: "New conversation",
+        model: MODEL,
+        messages: [],
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+      });
+      isNewConversation = true;
     }
-  } else {
-    convo = await ChatConversation.create({
-      user: userId,
-      title: "New conversation",
-      model: MODEL,
-      messages: [],
-      totalInputTokens: 0,
-      totalOutputTokens: 0,
-    });
-    isNewConversation = true;
+  } catch (err) {
+    console.error("Conversation load/create error:", err);
+    res.status(500).json({ error: "Internal server error" });
+    return;
   }
 
   // ── Connect to MCP server ────────────────────────────────────────────────
@@ -99,6 +110,9 @@ router.post("/", async (req, res) => {
     await mcpClient.connect(transport);
   } catch (err) {
     console.error("Failed to connect to MCP server:", err);
+    if (isNewConversation && convo) {
+      await convo.deleteOne().catch(() => {});
+    }
     res.status(503).json({ error: "Analytics server unavailable" });
     return;
   }
@@ -110,6 +124,9 @@ router.post("/", async (req, res) => {
   } catch (err) {
     console.error("Failed to load MCP tools:", err);
     await mcpClient.close();
+    if (isNewConversation && convo) {
+      await convo.deleteOne().catch(() => {});
+    }
     res.status(503).json({ error: "Failed to load analytics tools" });
     return;
   }
