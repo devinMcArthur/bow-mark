@@ -287,6 +287,7 @@ const ChatPage: NextPage = () => {
   const [loading, setLoading] = React.useState(false);
   const [conversationId, setConversationId] = React.useState<string | null>(null);
   const [conversations, setConversations] = React.useState<ConversationSummary[]>([]);
+  const [conversationModel, setConversationModel] = React.useState(ACTIVE_MODEL);
   const [inputTokens, setInputTokens] = React.useState(0);
   const [outputTokens, setOutputTokens] = React.useState(0);
   const bottomRef = React.useRef<HTMLDivElement>(null);
@@ -317,6 +318,7 @@ const ChatPage: NextPage = () => {
   const startNewChat = () => {
     setMessages([]);
     setConversationId(null);
+    setConversationModel(ACTIVE_MODEL);
     setInputTokens(0);
     setOutputTokens(0);
     setTimeout(() => inputRef.current?.focus(), 50);
@@ -330,6 +332,7 @@ const ChatPage: NextPage = () => {
       if (!res.ok) return;
       const data = await res.json();
       setConversationId(data.id);
+      setConversationModel(data.model ?? ACTIVE_MODEL);
       setInputTokens(data.totalInputTokens);
       setOutputTokens(data.totalOutputTokens);
       setMessages(
@@ -491,8 +494,8 @@ const ChatPage: NextPage = () => {
                 setInputTokens((prev) => prev + (event.inputTokens ?? 0));
                 setOutputTokens((prev) => prev + (event.outputTokens ?? 0));
                 if (currentConvoId) {
-                  setConversations((prev) =>
-                    prev.map((c) =>
+                  setConversations((prev) => {
+                    const updated = prev.map((c) =>
                       c.id === currentConvoId
                         ? {
                             ...c,
@@ -501,8 +504,11 @@ const ChatPage: NextPage = () => {
                             updatedAt: new Date().toISOString(),
                           }
                         : c
-                    )
-                  );
+                    );
+                    return updated.sort(
+                      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+                    );
+                  });
                 }
               } else if (event.type === "title" && event.title && currentConvoId) {
                 setConversations((prev) =>
@@ -561,7 +567,7 @@ const ChatPage: NextPage = () => {
   };
 
   const isEmpty = messages.length === 0;
-  const cost = calcCost(inputTokens, outputTokens, ACTIVE_MODEL);
+  const cost = calcCost(inputTokens, outputTokens, conversationModel);
 
   return (
     <Permission minRole={UserRoles.Admin} type={null} showError>
