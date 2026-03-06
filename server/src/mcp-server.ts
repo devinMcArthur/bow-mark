@@ -669,7 +669,6 @@ function createMcpServer(): McpServer {
         return { content: [{ type: "text" as const, text: JSON.stringify({ period: { startDate: startStr, endDate: endStr }, reports: [] }, null, 2) }] };
       }
 
-      const pgIds = reports.map((r) => r.id);
       const approvedPgIds = reports.filter((r) => r.approved).map((r) => r.id);
 
       // ── Aggregate metrics per report ──────────────────────────────────────────
@@ -679,7 +678,7 @@ function createMcpServer(): McpServer {
             .select([
               "ew.daily_report_id",
               sql<number>`COUNT(DISTINCT ew.employee_id)`.as("employee_count"),
-              sql<number>`MAX(ew.hours)`.as("crew_hours"),
+              sql<number>`MAX(ew.hours)`.as("crew_hours"), // proxy for shift length — matches pattern in other MCP tools
               sql<number>`SUM(ew.hours)`.as("man_hours"),
               sql<number>`SUM(ew.total_cost)`.as("employee_cost"),
             ])
