@@ -39,6 +39,13 @@ mv ./k8s/client-deployment.yaml.out ./k8s/client-deployment.yaml
 envsubst '$COMMIT_SHA1' <./k8s/client-concrete-deployment.yaml >./k8s/client-concrete-deployment.yaml.out
 mv ./k8s/client-concrete-deployment.yaml.out ./k8s/client-concrete-deployment.yaml
 
+# mcp analytics servers
+envsubst '$COMMIT_SHA1' <./k8s/mcp-server-deployment.yaml >./k8s/mcp-server-deployment.yaml.out
+mv ./k8s/mcp-server-deployment.yaml.out ./k8s/mcp-server-deployment.yaml
+
+envsubst '$COMMIT_SHA1' <./k8s/mcp-server-concrete-deployment.yaml >./k8s/mcp-server-concrete-deployment.yaml.out
+mv ./k8s/mcp-server-concrete-deployment.yaml.out ./k8s/mcp-server-concrete-deployment.yaml
+
 # Auth to DO and mint a short-lived kubeconfig
 ./doctl auth init -t "$DO_API_TOKEN"
 ./doctl kubernetes cluster kubeconfig save --expiry-seconds 600 "$DO_CLUSTER"

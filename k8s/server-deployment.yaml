@@ -155,3 +155,8 @@ spec:
                 secretKeyRef:
                   name: rabbitmq
                   key: vhost
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: anthropic
+                  key: apiKey
