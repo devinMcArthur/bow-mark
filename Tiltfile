@@ -460,6 +460,48 @@ local_resource(
     labels=['utilities'],
 )
 
+# Reindex MeiliSearch from MongoDB (runs automatically on startup since
+# Meilisearch uses ephemeral storage and loses data on every restart)
+local_resource(
+    'reindex-search',
+    cmd='''
+        echo "Waiting for server pod to be ready..."
+        kubectl wait --for=condition=ready pod -l component=server --timeout=120s
+
+        POD=$(kubectl get pods -l component=server -o jsonpath='{.items[0].metadata.name}')
+        if [ -z "$POD" ]; then
+            echo "Error: Could not find server pod"
+            exit 1
+        fi
+
+        echo "Running MeiliSearch reindex on pod $POD..."
+        kubectl exec "$POD" -- node dist/scripts/reindex-search.js
+        echo "MeiliSearch reindex complete!"
+    ''',
+    resource_deps=['server-deployment', 'restore-mongo', 'meilisearch'],
+    labels=['setup'],
+)
+
+# Force reindex MeiliSearch (manual trigger)
+local_resource(
+    'reindex-search-force',
+    cmd='''
+        POD=$(kubectl get pods -l component=server -o jsonpath='{.items[0].metadata.name}')
+        if [ -z "$POD" ]; then
+            echo "Error: Could not find server pod"
+            exit 1
+        fi
+
+        echo "Force reindexing MeiliSearch on pod $POD..."
+        kubectl exec "$POD" -- node dist/scripts/reindex-search.js
+        echo "MeiliSearch reindex complete!"
+    ''',
+    resource_deps=['server-deployment', 'meilisearch'],
+    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL,
+    labels=['setup'],
+)
+
 # Save MongoDB state to dump files (for committing)
 local_resource(
     'save-db-state',
