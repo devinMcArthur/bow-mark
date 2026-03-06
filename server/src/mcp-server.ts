@@ -14,6 +14,7 @@ import { z } from "zod";
 import { db } from "./db";
 import { sql } from "kysely";
 import mongoose from "mongoose";
+import { DailyReport, ReportNote } from "@models";
 import { CUBIC_METERS_TO_TONNES, TANDEM_TONNES_PER_LOAD } from "@constants/UnitConversions";
 
 // ─── Unit conversion helper (matches businessDashboard) ───────────────────────
@@ -725,8 +726,41 @@ function createMcpServer(): McpServer {
       const truckMap = new Map(truckRows.map((r) => [r.daily_report_id, r]));
 
       // ── Fetch notes from MongoDB ──────────────────────────────────────────────
-      // (populated in Task 3 — placeholder for now)
       const noteMap = new Map<string, string>();
+      if (mongoose.connection.readyState === 1) {
+        try {
+          const mongoIds = reports.map((r) => r.mongo_id);
+          const dailyReportDocs = await DailyReport.find(
+            { _id: { $in: mongoIds } },
+            { _id: 1, reportNote: 1 }
+          ).lean();
+
+          const noteIds = (dailyReportDocs as any[])
+            .filter((d) => d.reportNote)
+            .map((d) => d.reportNote);
+
+          const noteDocs =
+            noteIds.length > 0
+              ? await ReportNote.find(
+                  { _id: { $in: noteIds } },
+                  { note: 1 }
+                ).lean()
+              : [];
+
+          const noteById = new Map(
+            (noteDocs as any[]).map((n) => [String(n._id), n.note as string])
+          );
+
+          for (const doc of dailyReportDocs as any[]) {
+            if (doc.reportNote) {
+              const note = noteById.get(String(doc.reportNote));
+              if (note) noteMap.set(String(doc._id), note);
+            }
+          }
+        } catch (err) {
+          console.error("MCP: failed to fetch report notes from MongoDB", err);
+        }
+      }
 
       // ── Assemble response ─────────────────────────────────────────────────────
       const result = reports.map((r) => {
