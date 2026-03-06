@@ -1,0 +1,175 @@
+import Anthropic from "@anthropic-ai/sdk";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { Router } from "express";
+import jwt from "jsonwebtoken";
+
+const router = Router();
+
+const MCP_SERVER_URL = process.env.MCP_SERVER_URL || "http://mcp-analytics:8081";
+
+const SYSTEM_PROMPT = `You are an analytics assistant for Bow-Mark, a construction and paving company.
+You have access to tools that query the company's PostgreSQL reporting database and MongoDB.
+Use these tools to answer questions about jobsite financial performance, productivity metrics, crew benchmarks, material costs, daily activity, and employee productivity.
+
+Guidelines:
+- Always use tools to fetch real data before answering. Do not make up numbers.
+- When asked about a jobsite, use search_jobsites to find its ID first, then fetch performance data.
+- For questions about "what happened" or "recent activity" on a jobsite, use get_daily_report_activity.
+- For questions about specific employees, hours worked, or who was on site, use get_employee_productivity.
+- Format currency values as dollars with commas (e.g. $1,234,567).
+- Format percentages to one decimal place.
+- Format tonnes/hour to two decimal places.
+- If asked about "this year" or "current year", use the current calendar year (${new Date().getFullYear()}).
+- If asked about multiple jobsites, compare them clearly in a table or list format.
+- When report notes are present in daily activity, summarize qualitative themes alongside the numbers.
+- Be concise and direct. Lead with the key numbers, then provide context.`;
+
+router.post("/", async (req, res) => {
+  // ── Auth check ──────────────────────────────────────────────────────────────
+  const token = req.headers.authorization;
+  if (!token || !process.env.JWT_SECRET) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    jwt.verify(token, process.env.JWT_SECRET);
+  } catch {
+    res.status(401).json({ error: "Invalid token" });
+    return;
+  }
+
+  const { messages } = req.body as { messages: Anthropic.MessageParam[] };
+  if (!messages || !Array.isArray(messages)) {
+    res.status(400).json({ error: "messages array required" });
+    return;
+  }
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    res.status(500).json({ error: "ANTHROPIC_API_KEY not configured" });
+    return;
+  }
+
+  // ── Connect to MCP server ───────────────────────────────────────────────────
+  const mcpClient = new Client({ name: "bow-mark-chat", version: "1.0.0" });
+  const transport = new StreamableHTTPClientTransport(new URL(`${MCP_SERVER_URL}/mcp`));
+
+  try {
+    await mcpClient.connect(transport);
+  } catch (err) {
+    console.error("Failed to connect to MCP server:", err);
+    res.status(503).json({ error: "Analytics server unavailable" });
+    return;
+  }
+
+  // ── Load tools from MCP server ──────────────────────────────────────────────
+  let mcpTools: Awaited<ReturnType<typeof mcpClient.listTools>>["tools"];
+  try {
+    const toolsResult = await mcpClient.listTools();
+    mcpTools = toolsResult.tools;
+  } catch (err) {
+    console.error("Failed to load MCP tools:", err);
+    await mcpClient.close();
+    res.status(503).json({ error: "Failed to load analytics tools" });
+    return;
+  }
+
+  const anthropicTools: Anthropic.Tool[] = mcpTools.map((t) => ({
+    name: t.name,
+    description: t.description ?? "",
+    input_schema: (t.inputSchema as Anthropic.Tool["input_schema"]) ?? {
+      type: "object" as const,
+      properties: {},
+    },
+  }));
+
+  // ── Streaming response setup ────────────────────────────────────────────────
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("Transfer-Encoding", "chunked");
+
+  const sendEvent = (data: object) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const conversationMessages: Anthropic.MessageParam[] = [...messages];
+
+  // ── Agentic loop with streaming ─────────────────────────────────────────────
+  try {
+    let continueLoop = true;
+
+    while (continueLoop) {
+      const stream = anthropic.messages.stream({
+        model: "claude-opus-4-6",
+        max_tokens: 4096,
+        system: SYSTEM_PROMPT,
+        tools: anthropicTools,
+        messages: conversationMessages,
+      });
+
+      stream.on("text", (delta: string) => {
+        sendEvent({ type: "text_delta", delta });
+      });
+
+      const message = await stream.finalMessage();
+
+      if (message.stop_reason === "end_turn") {
+        sendEvent({ type: "done" });
+        continueLoop = false;
+      } else if (message.stop_reason === "tool_use") {
+        conversationMessages.push({ role: "assistant", content: message.content });
+
+        const toolResults: Anthropic.ToolResultBlockParam[] = [];
+
+        for (const block of message.content) {
+          if (block.type !== "tool_use") continue;
+
+          sendEvent({ type: "tool_call", toolName: block.name });
+
+          try {
+            const mcpResult = await mcpClient.callTool({
+              name: block.name,
+              arguments: block.input as Record<string, unknown>,
+            });
+
+            const resultText =
+              (mcpResult.content as Array<{ type: string; text?: string }>)
+                .filter((c) => c.type === "text")
+                .map((c) => c.text ?? "")
+                .join("\n") || "No result";
+
+            toolResults.push({
+              type: "tool_result",
+              tool_use_id: block.id,
+              content: resultText,
+            });
+          } catch (toolErr) {
+            console.error(`Tool call failed: ${block.name}`, toolErr);
+            toolResults.push({
+              type: "tool_result",
+              tool_use_id: block.id,
+              content: `Error: ${toolErr instanceof Error ? toolErr.message : "Tool execution failed"}`,
+              is_error: true,
+            });
+          }
+        }
+
+        conversationMessages.push({ role: "user", content: toolResults });
+      } else {
+        sendEvent({ type: "done" });
+        continueLoop = false;
+      }
+    }
+  } catch (err) {
+    console.error("Claude API error:", err);
+    sendEvent({ type: "error", message: err instanceof Error ? err.message : "Unknown error" });
+  } finally {
+    await mcpClient.close();
+    res.end();
+  }
+});
+
+export default router;
