@@ -821,6 +821,7 @@ function createMcpServer(): McpServer {
       let empQuery = db
         .selectFrom("fact_employee_work as ew")
         .innerJoin("dim_employee as e", "e.id", "ew.employee_id")
+        .innerJoin("dim_daily_report as dr", "dr.id", "ew.daily_report_id")
         .select([
           "ew.employee_id",
           "e.name as employee_name",
@@ -833,7 +834,9 @@ function createMcpServer(): McpServer {
         ])
         .where("ew.work_date", ">=", startDate)
         .where("ew.work_date", "<=", endDate)
-        .where("ew.archived_at", "is", null);
+        .where("ew.archived_at", "is", null)
+        .where("dr.approved", "=", true)
+        .where("dr.archived", "=", false);
 
       if (pgJobsiteId) {
         empQuery = empQuery.where("ew.jobsite_id", "=", pgJobsiteId);
@@ -855,17 +858,20 @@ function createMcpServer(): McpServer {
           .selectFrom("fact_material_shipment as ms")
           .innerJoin("dim_jobsite_material as jm", "jm.id", "ms.jobsite_material_id")
           .innerJoin("dim_material as m", "m.id", "jm.material_id")
+          .innerJoin("dim_daily_report as dr", "dr.id", "ms.daily_report_id")
           .select([
-            "ms.daily_report_id",
+            sql<string>`ms.daily_report_id::text`.as("daily_report_id"),
             sql<number>`COALESCE(SUM(${getTonnesConversion()}), 0)`.as("total_tonnes"),
           ])
           .where("ms.daily_report_id", "in", allDailyReportIds)
           .where("ms.archived_at", "is", null)
+          .where("dr.approved", "=", true)
+          .where("dr.archived", "=", false)
           .groupBy("ms.daily_report_id")
           .execute()
         : [];
 
-      const tonnesByReport = new Map(tonnesRows.map((r) => [r.daily_report_id, Number(r.total_tonnes)]));
+      const tonnesByReport = new Map((tonnesRows as Array<{ daily_report_id: string; total_tonnes: number }>).map((r) => [r.daily_report_id, Number(r.total_tonnes)]));
 
       // ── Assemble response ─────────────────────────────────────────────────────
       const employees = empRows.map((r) => {
