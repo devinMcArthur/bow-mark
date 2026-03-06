@@ -8,7 +8,7 @@ export interface IChatMessage {
 export interface IChatConversation extends Document {
   user: mongoose.Types.ObjectId;
   title: string;
-  model: string;
+  aiModel: string;
   messages: IChatMessage[];
   totalInputTokens: number;
   totalOutputTokens: number;
@@ -28,7 +28,7 @@ const ChatConversationSchema = new Schema<IChatConversation>(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     title: { type: String, required: true, default: "New conversation" },
-    model: { type: String, required: true },
+    aiModel: { type: String, required: true },
     messages: { type: [ChatMessageSchema], default: [] },
     totalInputTokens: { type: Number, default: 0 },
     totalOutputTokens: { type: Number, default: 0 },

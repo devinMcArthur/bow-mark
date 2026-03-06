@@ -89,7 +89,7 @@ router.post("/", async (req, res) => {
       convo = await ChatConversation.create({
         user: userId,
         title: "New conversation",
-        model: MODEL,
+        aiModel: MODEL,
         messages: [],
         totalInputTokens: 0,
         totalOutputTokens: 0,

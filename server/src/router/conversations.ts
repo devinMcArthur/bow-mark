@@ -30,7 +30,7 @@ router.get("/", auth, async (req: any, res) => {
   try {
     const convos = await ChatConversation.find(
       { user: req.userId },
-      "title model totalInputTokens totalOutputTokens updatedAt createdAt"
+      "title aiModel totalInputTokens totalOutputTokens updatedAt createdAt"
     )
       .sort({ updatedAt: -1 })
       .lean();
@@ -39,7 +39,7 @@ router.get("/", auth, async (req: any, res) => {
       convos.map((c) => ({
         id: c._id.toString(),
         title: c.title,
-        model: c.model,
+        model: c.aiModel,
         totalInputTokens: c.totalInputTokens,
         totalOutputTokens: c.totalOutputTokens,
         updatedAt: c.updatedAt,
@@ -71,7 +71,7 @@ router.get("/:id", auth, async (req: any, res) => {
     res.json({
       id: convo._id.toString(),
       title: convo.title,
-      model: convo.model,
+      model: convo.aiModel,
       messages: convo.messages,
       totalInputTokens: convo.totalInputTokens,
       totalOutputTokens: convo.totalOutputTokens,
