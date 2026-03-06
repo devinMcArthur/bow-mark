@@ -13,6 +13,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { z } from "zod";
 import { db } from "./db";
 import { sql } from "kysely";
+import mongoose from "mongoose";
 import { CUBIC_METERS_TO_TONNES, TANDEM_TONNES_PER_LOAD } from "@constants/UnitConversions";
 
 // ─── Unit conversion helper (matches businessDashboard) ───────────────────────
@@ -37,6 +38,7 @@ function createMcpServer(): McpServer {
   });
 
   // ── search_jobsites ──────────────────────────────────────────────────────────
+  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
   server.tool(
     "search_jobsites",
     "Search for jobsites by name or jobcode. Returns matching jobsites with their IDs.",
@@ -79,6 +81,7 @@ function createMcpServer(): McpServer {
   );
 
   // ── list_jobsites ────────────────────────────────────────────────────────────
+  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
   server.tool(
     "list_jobsites",
     "List all jobsites with summary metrics (revenue, cost, net income, tonnes) for a given year.",
@@ -146,6 +149,7 @@ function createMcpServer(): McpServer {
   );
 
   // ── get_jobsite_performance ─────────────────────────────────────────────────
+  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
   server.tool(
     "get_jobsite_performance",
     "Get detailed financial and productivity performance for a specific jobsite over a date range.",
@@ -230,6 +234,7 @@ function createMcpServer(): McpServer {
   );
 
   // ── get_dashboard_overview ───────────────────────────────────────────────────
+  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
   server.tool(
     "get_dashboard_overview",
     "Get company-wide KPIs: total revenue, net income, tonnes, and T/H for a date range with year-over-year comparison.",
@@ -339,6 +344,7 @@ function createMcpServer(): McpServer {
   );
 
   // ── get_financial_performance ────────────────────────────────────────────────
+  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
   server.tool(
     "get_financial_performance",
     "Get revenue, costs breakdown, net income and margin for all jobsites for a given year.",
@@ -414,6 +420,7 @@ function createMcpServer(): McpServer {
   );
 
   // ── get_crew_benchmarks ──────────────────────────────────────────────────────
+  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
   server.tool(
     "get_crew_benchmarks",
     "Get tonnes-per-hour and tonnes-per-man-hour rankings by crew for a date range.",
@@ -486,6 +493,7 @@ function createMcpServer(): McpServer {
   );
 
   // ── get_material_breakdown ───────────────────────────────────────────────────
+  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
   server.tool(
     "get_material_breakdown",
     "Get cost breakdown by material type and supplier for a given year.",
@@ -555,6 +563,7 @@ function createMcpServer(): McpServer {
   );
 
   // ── get_vehicle_utilization ──────────────────────────────────────────────────
+  // @ts-ignore — Zod 3.22.4/MCP SDK type mismatch
   server.tool(
     "get_vehicle_utilization",
     "Get vehicle hours and costs for a date range.",
@@ -674,6 +683,24 @@ app.get("/health", (_req, res) => {
 });
 
 const PORT = process.env.MCP_PORT || 8081;
-app.listen(PORT, () => {
-  console.log(`MCP Analytics server running on port ${PORT}`);
-});
+
+const start = async () => {
+  if (process.env.MONGO_URI) {
+    try {
+      await mongoose.connect(process.env.MONGO_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        useFindAndModify: false,
+      });
+      console.log("MCP: MongoDB connected");
+    } catch (err) {
+      console.error("MCP: MongoDB connection failed — notes unavailable", err);
+    }
+  }
+
+  app.listen(PORT, () => {
+    console.log(`MCP Analytics server running on port ${PORT}`);
+  });
+};
+
+start();
