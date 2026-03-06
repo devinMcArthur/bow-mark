@@ -846,7 +846,9 @@ function createMcpServer(): McpServer {
       }
 
       // ── Tonnes per daily report (for T/H approximation) ───────────────────────
-      const allDailyReportIds = [...new Set(empRows.flatMap((r) => r.daily_report_ids ?? []))] as string[];
+      const allDailyReportIds = [...new Set(
+        ([] as string[]).concat(...empRows.map((r: any) => r.daily_report_ids ?? []))
+      )] as string[];
 
       const tonnesRows = allDailyReportIds.length > 0
         ? await db
