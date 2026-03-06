@@ -3,6 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
+import { ChatConversation } from "../models/ChatConversation";
 
 const router = Router();
 
@@ -23,24 +24,40 @@ Guidelines:
 - If asked about "this year" or "current year", use the current calendar year (${new Date().getFullYear()}).
 - If asked about multiple jobsites, compare them clearly in a table or list format.
 - When report notes are present in daily activity, summarize qualitative themes alongside the numbers.
-- Be concise and direct. Lead with the key numbers, then provide context.`;
+- Be concise and direct. Lead with the key numbers, then provide context.
+- When mentioning named entities that have dedicated pages, embed relative markdown links using their ID from tool results:
+  - Jobsite: [Jobsite Name](/jobsite/{mongo_id})
+  - Daily report: [date](/daily-report/{mongo_id})
+  - Employee: [Employee Name](/employee/{mongo_id})
+  - Crew: [Crew Name](/crew/{mongo_id})
+  - Vehicle: [Vehicle Name](/vehicle/{mongo_id})
+- Only link entities when their ID is known from tool results. Never guess or fabricate IDs.`;
 
 router.post("/", async (req, res) => {
-  // ── Auth check ──────────────────────────────────────────────────────────────
+  // ── Auth ─────────────────────────────────────────────────────────────────
   const token = req.headers.authorization;
   if (!token || !process.env.JWT_SECRET) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
 
+  let userId: string;
   try {
-    jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET) as jwt.JwtPayload;
+    userId = decoded?.userId;
+    if (!userId) {
+      res.status(401).json({ error: "Invalid token payload" });
+      return;
+    }
   } catch {
     res.status(401).json({ error: "Invalid token" });
     return;
   }
 
-  const { messages } = req.body as { messages: Anthropic.MessageParam[] };
+  const { messages, conversationId } = req.body as {
+    messages: Anthropic.MessageParam[];
+    conversationId?: string;
+  };
   if (!messages || !Array.isArray(messages)) {
     res.status(400).json({ error: "messages array required" });
     return;
@@ -51,7 +68,30 @@ router.post("/", async (req, res) => {
     return;
   }
 
-  // ── Connect to MCP server ───────────────────────────────────────────────────
+  // ── Load or create conversation ──────────────────────────────────────────
+  const MODEL = "claude-opus-4-6";
+  let convo: Awaited<ReturnType<typeof ChatConversation.findById>> | null = null;
+  let isNewConversation = false;
+
+  if (conversationId) {
+    convo = await ChatConversation.findById(conversationId);
+    if (!convo || convo.user.toString() !== userId) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+  } else {
+    convo = await ChatConversation.create({
+      user: userId,
+      title: "New conversation",
+      model: MODEL,
+      messages: [],
+      totalInputTokens: 0,
+      totalOutputTokens: 0,
+    });
+    isNewConversation = true;
+  }
+
+  // ── Connect to MCP server ────────────────────────────────────────────────
   const mcpClient = new Client({ name: "bow-mark-chat", version: "1.0.0" });
   const transport = new StreamableHTTPClientTransport(new URL(`${MCP_SERVER_URL}/mcp`));
 
@@ -63,7 +103,6 @@ router.post("/", async (req, res) => {
     return;
   }
 
-  // ── Load tools from MCP server ──────────────────────────────────────────────
   let mcpTools: Awaited<ReturnType<typeof mcpClient.listTools>>["tools"];
   try {
     const toolsResult = await mcpClient.listTools();
@@ -84,7 +123,7 @@ router.post("/", async (req, res) => {
     },
   }));
 
-  // ── Streaming response setup ────────────────────────────────────────────────
+  // ── Streaming response setup ─────────────────────────────────────────────
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -94,16 +133,26 @@ router.post("/", async (req, res) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
 
+  // Emit conversation_id for new conversations immediately
+  if (isNewConversation) {
+    sendEvent({ type: "conversation_id", id: convo!._id.toString() });
+  }
+
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const conversationMessages: Anthropic.MessageParam[] = [...messages];
 
-  // ── Agentic loop with streaming ─────────────────────────────────────────────
+  // Track whether this is the first turn (no saved messages yet)
+  const isFirstTurn = convo!.messages.length === 0;
+  // Capture the first user message content for title generation
+  const firstUserMessage = messages.find((m) => m.role === "user")?.content;
+
+  // ── Agentic loop ─────────────────────────────────────────────────────────
   try {
     let continueLoop = true;
 
     while (continueLoop) {
       const stream = anthropic.messages.stream({
-        model: "claude-opus-4-6",
+        model: MODEL,
         max_tokens: 4096,
         system: SYSTEM_PROMPT,
         tools: anthropicTools,
@@ -115,6 +164,17 @@ router.post("/", async (req, res) => {
       });
 
       const message = await stream.finalMessage();
+
+      // Emit usage after each turn
+      sendEvent({
+        type: "usage",
+        inputTokens: message.usage.input_tokens,
+        outputTokens: message.usage.output_tokens,
+      });
+
+      // Accumulate tokens on conversation document
+      convo!.totalInputTokens += message.usage.input_tokens;
+      convo!.totalOutputTokens += message.usage.output_tokens;
 
       if (message.stop_reason === "end_turn") {
         sendEvent({ type: "done" });
@@ -161,6 +221,57 @@ router.post("/", async (req, res) => {
       } else {
         sendEvent({ type: "done" });
         continueLoop = false;
+      }
+    }
+
+    // ── Persist messages + token counts ────────────────────────────────────
+    // Append new user message from the incoming request
+    const lastUserMsg = messages[messages.length - 1];
+    if (lastUserMsg?.role === "user" && typeof lastUserMsg.content === "string") {
+      convo!.messages.push({ role: "user", content: lastUserMsg.content });
+    }
+
+    // Find the last assistant turn (skip tool_use blocks, get text only)
+    const lastAssistantTurn = [...conversationMessages].reverse().find(
+      (m) => m.role === "assistant"
+    );
+    if (lastAssistantTurn) {
+      const content = lastAssistantTurn.content;
+      const text =
+        typeof content === "string"
+          ? content
+          : (content as Anthropic.ContentBlock[])
+              .filter((b): b is Anthropic.TextBlock => b.type === "text")
+              .map((b) => b.text)
+              .join("");
+      if (text) convo!.messages.push({ role: "assistant", content: text });
+    }
+
+    await convo!.save();
+
+    // ── Title generation (first turn only) ─────────────────────────────────
+    if (isFirstTurn && firstUserMessage && typeof firstUserMessage === "string") {
+      try {
+        const titleResponse = await anthropic.messages.create({
+          model: "claude-haiku-4-5",
+          max_tokens: 30,
+          messages: [
+            {
+              role: "user",
+              content: `Generate a concise 4-6 word title for a conversation that starts with this message:\n\n"${firstUserMessage}"\n\nRespond with only the title. No quotes, no punctuation at the end.`,
+            },
+          ],
+        });
+        const title =
+          titleResponse.content[0]?.type === "text"
+            ? titleResponse.content[0].text.trim()
+            : "New conversation";
+        convo!.title = title;
+        await convo!.save();
+        sendEvent({ type: "title", title });
+      } catch (err) {
+        console.error("Title generation failed:", err);
+        // Non-fatal: conversation still works without a generated title
       }
     }
   } catch (err) {
