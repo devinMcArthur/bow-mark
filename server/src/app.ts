@@ -9,6 +9,8 @@ import { createServer } from "http";
 import jwt from "jsonwebtoken";
 import { buildTypeDefsAndResolvers } from "type-graphql";
 import { Server } from "ws";
+import chatRouter from "./router/chat";
+import conversationsRouter from "./router/conversations";
 import fileRouter from "./router/files";
 
 import { IContext } from "@typescript/graphql";
@@ -208,6 +210,8 @@ const createApp = async () => {
   );
 
   app.use("/file", fileRouter);
+  app.use("/chat", chatRouter);
+  app.use("/conversations", conversationsRouter);
 
   await apolloServer.start();
 
