@@ -10,6 +10,7 @@ import useMounted from "../../hooks/useMounted";
 import NavbarAccount from "./views/Account";
 import NavbarSearch from "./views/Search";
 import NavbarCreate from "./views/Create";
+import NavbarChat from "./views/Chat";
 import Development from "./views/Development";
 
 const Navbar = () => {
@@ -70,6 +71,7 @@ const Navbar = () => {
           pt={isLarger ? 1 : 1}
         >
           <Development />
+          <NavbarChat />
           <NavbarCreate />
 
           <NavbarAccount />

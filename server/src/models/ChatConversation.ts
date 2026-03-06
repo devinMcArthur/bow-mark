@@ -3,6 +3,9 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface IChatMessage {
   role: "user" | "assistant";
   content: string;
+  model?: string;
+  inputTokens?: number;
+  outputTokens?: number;
 }
 
 export interface IChatConversation extends Document {
@@ -20,6 +23,9 @@ const ChatMessageSchema = new Schema<IChatMessage>(
   {
     role: { type: String, enum: ["user", "assistant"], required: true },
     content: { type: String, required: true },
+    model: { type: String },
+    inputTokens: { type: Number },
+    outputTokens: { type: Number },
   },
   { _id: false }
 );

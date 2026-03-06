@@ -23,6 +23,7 @@
   "author": "Devin McArthur",
   "license": "ISC",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@aws-sdk/client-s3": "^3.94.0",
     "@aws-sdk/s3-request-presigner": "^3.94.0",
     "@elastic/elasticsearch": "^7.16.0",

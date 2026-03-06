@@ -70,7 +70,6 @@ router.post("/", async (req, res) => {
   }
 
   // ── Load or create conversation ──────────────────────────────────────────
-  const MODEL = "claude-opus-4-6";
   let convo: Awaited<ReturnType<typeof ChatConversation.findById>> | null = null;
   let isNewConversation = false;
 
@@ -89,7 +88,7 @@ router.post("/", async (req, res) => {
       convo = await ChatConversation.create({
         user: userId,
         title: "New conversation",
-        aiModel: MODEL,
+        aiModel: "claude-opus-4-6", // updated after routing below
         messages: [],
         totalInputTokens: 0,
         totalOutputTokens: 0,
@@ -101,6 +100,44 @@ router.post("/", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
     return;
   }
+
+  // ── Instantiate Anthropic client early (needed for parallel classification) ──
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  // ── Start query complexity classification in background ──────────────────
+  // Run in parallel with MCP connect to add no meaningful latency.
+  // Default to Opus (the more capable model) on any failure or uncertainty.
+  const lastUserContent = [...messages].reverse().find((m) => m.role === "user")?.content;
+  const queryText = typeof lastUserContent === "string" ? lastUserContent : null;
+
+  const classificationPromise: Promise<"simple" | "complex"> = queryText
+    ? anthropic.messages
+        .create({
+          model: "claude-haiku-4-5",
+          max_tokens: 10,
+          messages: [
+            {
+              role: "user",
+              content: `Classify this analytics query for a construction company as SIMPLE or COMPLEX.
+
+SIMPLE: A single direct lookup — one jobsite, one time period, one specific number or fact (e.g. "What is jobsite X's revenue this year?").
+COMPLEX: Comparisons, rankings, multiple entities, trends, year-over-year, aggregations, anything requiring multi-step reasoning, or anything involving financial summaries.
+
+Err towards COMPLEX when uncertain. Financial accuracy is critical.
+
+Query: "${queryText}"
+
+Reply with exactly one word: SIMPLE or COMPLEX`,
+            },
+          ],
+        })
+        .then((r) => {
+          const text =
+            r.content[0]?.type === "text" ? r.content[0].text.trim().toUpperCase() : "";
+          return text === "SIMPLE" ? "simple" : "complex";
+        })
+        .catch(() => "complex" as const)
+    : Promise.resolve("complex" as const);
 
   // ── Connect to MCP server ────────────────────────────────────────────────
   const mcpClient = new Client({ name: "bow-mark-chat", version: "1.0.0" });
@@ -140,6 +177,14 @@ router.post("/", async (req, res) => {
     },
   }));
 
+  // ── Await classification result → choose model ───────────────────────────
+  const complexity = await classificationPromise;
+  const MODEL = complexity === "simple" ? "claude-sonnet-4-6" : "claude-opus-4-6";
+  console.log(`[chat] complexity=${complexity} → model=${MODEL}`);
+
+  // Update stored model to reflect what was actually used this turn
+  convo!.aiModel = MODEL;
+
   // ── Streaming response setup ─────────────────────────────────────────────
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -155,7 +200,6 @@ router.post("/", async (req, res) => {
     sendEvent({ type: "conversation_id", id: convo!._id.toString() });
   }
 
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const conversationMessages: Anthropic.MessageParam[] = [...messages];
 
   // Track whether this is the first turn (no saved messages yet)
@@ -164,6 +208,12 @@ router.post("/", async (req, res) => {
   const firstUserMessage = messages.find((m) => m.role === "user")?.content;
 
   // ── Agentic loop ─────────────────────────────────────────────────────────
+  // Snapshot tokens before loop so we can compute this request's total usage
+  const tokensBefore = {
+    input: convo!.totalInputTokens,
+    output: convo!.totalOutputTokens,
+  };
+
   try {
     let continueLoop = true;
 
@@ -187,6 +237,7 @@ router.post("/", async (req, res) => {
         type: "usage",
         inputTokens: message.usage.input_tokens,
         outputTokens: message.usage.output_tokens,
+        model: MODEL,
       });
 
       // Accumulate tokens on conversation document
@@ -194,6 +245,7 @@ router.post("/", async (req, res) => {
       convo!.totalOutputTokens += message.usage.output_tokens;
 
       if (message.stop_reason === "end_turn") {
+        conversationMessages.push({ role: "assistant", content: message.content });
         sendEvent({ type: "done" });
         continueLoop = false;
       } else if (message.stop_reason === "tool_use") {
@@ -261,7 +313,15 @@ router.post("/", async (req, res) => {
               .filter((b): b is Anthropic.TextBlock => b.type === "text")
               .map((b) => b.text)
               .join("");
-      if (text) convo!.messages.push({ role: "assistant", content: text });
+      if (text) {
+        convo!.messages.push({
+          role: "assistant",
+          content: text,
+          model: MODEL,
+          inputTokens: convo!.totalInputTokens - tokensBefore.input,
+          outputTokens: convo!.totalOutputTokens - tokensBefore.output,
+        });
+      }
     }
 
     await convo!.save();

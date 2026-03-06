@@ -6,11 +6,13 @@ import {
   HStack,
   IconButton,
   Input,
+  Portal,
   Spinner,
   Text,
   VStack,
   Tooltip,
   useDisclosure,
+  useMediaQuery,
   Popover,
   PopoverTrigger,
   PopoverContent,
@@ -21,7 +23,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { NextPage } from "next";
-import { FiSend, FiPlus, FiEdit2, FiTrash2 } from "react-icons/fi";
+import { FiSend, FiPlus, FiEdit2, FiTrash2, FiArrowDown, FiMenu } from "react-icons/fi";
 import Permission from "../components/Common/Permission";
 import { UserRoles } from "../generated/graphql";
 import { localStorageTokenKey } from "../contexts/Auth";
@@ -37,6 +39,7 @@ interface ChatMessage {
   content: string;
   toolCalls?: string[];
   isStreaming?: boolean;
+  model?: string;
 }
 
 interface ConversationSummary {
@@ -58,9 +61,18 @@ const MODEL_RATES: Record<string, { input: number; output: number }> = {
 
 const ACTIVE_MODEL = "claude-opus-4-6";
 
-function calcCost(inputTokens: number, outputTokens: number, model: string): number {
-  const rate = MODEL_RATES[model] ?? MODEL_RATES["claude-opus-4-6"];
-  return (inputTokens / 1e6) * rate.input + (outputTokens / 1e6) * rate.output;
+function modelLabel(model: string): string {
+  if (model.includes("opus")) return "Opus 4.6";
+  if (model.includes("sonnet")) return "Sonnet 4.6";
+  if (model.includes("haiku")) return "Haiku 4.5";
+  return model;
+}
+
+function calcTotalCost(modelTokens: Record<string, { input: number; output: number }>): number {
+  return Object.entries(modelTokens).reduce((sum, [model, tokens]) => {
+    const rate = MODEL_RATES[model] ?? MODEL_RATES[ACTIVE_MODEL];
+    return sum + (tokens.input / 1e6) * rate.input + (tokens.output / 1e6) * rate.output;
+  }, 0);
 }
 
 // ─── Markdown renderer ────────────────────────────────────────────────────────
@@ -119,8 +131,8 @@ const MarkdownContent = ({ content }: { content: string }) => (
           color="blue.600"
           textDecoration="underline"
           _hover={{ color: "blue.800" }}
-          target={href?.startsWith("/") ? "_self" : "_blank"}
-          rel={href?.startsWith("/") ? undefined : "noopener noreferrer"}
+          target="_blank"
+          rel="noopener noreferrer"
         >
           {children}
         </Box>
@@ -243,7 +255,7 @@ const ConversationItem = ({
                 onClick={startEdit}
               />
             </Tooltip>
-            <Popover isOpen={deleteOpen} onClose={closeDelete} placement="right">
+            <Popover isOpen={deleteOpen} onClose={closeDelete} placement="bottom-end">
               <PopoverTrigger>
                 <IconButton
                   aria-label="Delete"
@@ -254,23 +266,25 @@ const ConversationItem = ({
                   onClick={openDelete}
                 />
               </PopoverTrigger>
-              <PopoverContent w="200px">
-                <PopoverBody>
-                  <Text fontSize="xs">Delete this conversation?</Text>
-                </PopoverBody>
-                <PopoverFooter>
-                  <HStack spacing={2}>
-                    <Button size="xs" variant="ghost" onClick={closeDelete}>Cancel</Button>
-                    <Button
-                      size="xs"
-                      colorScheme="red"
-                      onClick={() => { closeDelete(); onDelete(); }}
-                    >
-                      Delete
-                    </Button>
-                  </HStack>
-                </PopoverFooter>
-              </PopoverContent>
+              <Portal>
+                <PopoverContent w="200px" zIndex={9999}>
+                  <PopoverBody>
+                    <Text fontSize="xs">Delete this conversation?</Text>
+                  </PopoverBody>
+                  <PopoverFooter>
+                    <HStack spacing={2}>
+                      <Button size="xs" variant="ghost" onClick={closeDelete}>Cancel</Button>
+                      <Button
+                        size="xs"
+                        colorScheme="red"
+                        onClick={() => { closeDelete(); onDelete(); }}
+                      >
+                        Delete
+                      </Button>
+                    </HStack>
+                  </PopoverFooter>
+                </PopoverContent>
+              </Portal>
             </Popover>
           </HStack>
         </>
@@ -287,10 +301,13 @@ const ChatPage: NextPage = () => {
   const [loading, setLoading] = React.useState(false);
   const [conversationId, setConversationId] = React.useState<string | null>(null);
   const [conversations, setConversations] = React.useState<ConversationSummary[]>([]);
-  const [conversationModel, setConversationModel] = React.useState(ACTIVE_MODEL);
-  const [inputTokens, setInputTokens] = React.useState(0);
-  const [outputTokens, setOutputTokens] = React.useState(0);
+  const [modelTokens, setModelTokens] = React.useState<Record<string, { input: number; output: number }>>({});
+  const [showScrollButton, setShowScrollButton] = React.useState(false);
+  const [isDesktop] = useMediaQuery("(min-width: 640px)");
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const bottomRef = React.useRef<HTMLDivElement>(null);
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const isAtBottomRef = React.useRef(true);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   const serverBase = (process.env.NEXT_PUBLIC_API_URL as string).replace("/graphql", "");
@@ -310,17 +327,17 @@ const ChatPage: NextPage = () => {
     load();
   }, []);
 
-  // Scroll to bottom whenever messages update
+  // Scroll to bottom whenever messages update, but only if already near the bottom
   React.useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (isAtBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   const startNewChat = () => {
     setMessages([]);
     setConversationId(null);
-    setConversationModel(ACTIVE_MODEL);
-    setInputTokens(0);
-    setOutputTokens(0);
+    setModelTokens({});
     setTimeout(() => inputRef.current?.focus(), 50);
   };
 
@@ -332,14 +349,28 @@ const ChatPage: NextPage = () => {
       if (!res.ok) return;
       const data = await res.json();
       setConversationId(data.id);
-      setConversationModel(data.model ?? ACTIVE_MODEL);
-      setInputTokens(data.totalInputTokens);
-      setOutputTokens(data.totalOutputTokens);
+      // Build per-model token totals from persisted per-message counts
+      const perModel: Record<string, { input: number; output: number }> = {};
+      for (const m of data.messages) {
+        if (m.model && m.inputTokens != null) {
+          perModel[m.model] = {
+            input: (perModel[m.model]?.input ?? 0) + m.inputTokens,
+            output: (perModel[m.model]?.output ?? 0) + (m.outputTokens ?? 0),
+          };
+        }
+      }
+      // Fall back to conversation-level totals attributed to stored model
+      if (Object.keys(perModel).length === 0) {
+        const storedModel = data.model ?? ACTIVE_MODEL;
+        perModel[storedModel] = { input: data.totalInputTokens, output: data.totalOutputTokens };
+      }
+      setModelTokens(perModel);
       setMessages(
-        data.messages.map((m: { role: Role; content: string }) => ({
+        data.messages.map((m: { role: Role; content: string; model?: string }) => ({
           id: genId(),
           role: m.role,
           content: m.content,
+          model: m.model,
         }))
       );
     } catch {}
@@ -457,6 +488,7 @@ const ChatPage: NextPage = () => {
                 id?: string;
                 inputTokens?: number;
                 outputTokens?: number;
+                model?: string;
                 title?: string;
               };
 
@@ -491,8 +523,21 @@ const ChatPage: NextPage = () => {
                   ...prev,
                 ]);
               } else if (event.type === "usage") {
-                setInputTokens((prev) => prev + (event.inputTokens ?? 0));
-                setOutputTokens((prev) => prev + (event.outputTokens ?? 0));
+                const usageModel = event.model ?? ACTIVE_MODEL;
+                // Tag the assistant message with the model that generated it
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantId ? { ...m, model: usageModel } : m
+                  )
+                );
+                // Accumulate per-model token counts for accurate cost
+                setModelTokens((prev) => ({
+                  ...prev,
+                  [usageModel]: {
+                    input: (prev[usageModel]?.input ?? 0) + (event.inputTokens ?? 0),
+                    output: (prev[usageModel]?.output ?? 0) + (event.outputTokens ?? 0),
+                  },
+                }));
                 if (currentConvoId) {
                   setConversations((prev) => {
                     const updated = prev.map((c) =>
@@ -567,12 +612,24 @@ const ChatPage: NextPage = () => {
   };
 
   const isEmpty = messages.length === 0;
-  const cost = calcCost(inputTokens, outputTokens, conversationModel);
+  const cost = calcTotalCost(modelTokens);
+  const totalInputTokens = Object.values(modelTokens).reduce((s, t) => s + t.input, 0);
+  const totalOutputTokens = Object.values(modelTokens).reduce((s, t) => s + t.output, 0);
 
   return (
-    <Permission minRole={UserRoles.Admin} type={null} showError>
+    <Permission minRole={UserRoles.ProjectManager} type={null} showError>
       <Flex h={`calc(100vh - ${navbarHeight})`} overflow="hidden" w="100%">
         {/* ── Sidebar ─────────────────────────────────────────────────────── */}
+        {/* Mobile backdrop */}
+        {!isDesktop && sidebarOpen && (
+          <Box
+            position="absolute"
+            inset={0}
+            bg="blackAlpha.400"
+            zIndex={10}
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
         <Flex
           direction="column"
           w="240px"
@@ -580,7 +637,13 @@ const ChatPage: NextPage = () => {
           bg="white"
           borderRight="1px solid"
           borderColor="gray.200"
-          overflow="hidden"
+          position={isDesktop ? "relative" : "absolute"}
+          top={0}
+          left={0}
+          h="100%"
+          zIndex={isDesktop ? undefined : 11}
+          transform={isDesktop || sidebarOpen ? "translateX(0)" : "translateX(-100%)"}
+          transition="transform 0.2s ease"
         >
           <Box px={3} py={3} borderBottom="1px solid" borderColor="gray.100">
             <Button
@@ -589,7 +652,7 @@ const ChatPage: NextPage = () => {
               w="full"
               variant="outline"
               colorScheme="blue"
-              onClick={startNewChat}
+              onClick={() => { startNewChat(); setSidebarOpen(false); }}
             >
               New Chat
             </Button>
@@ -601,7 +664,7 @@ const ChatPage: NextPage = () => {
                   key={c.id}
                   convo={c}
                   isActive={c.id === conversationId}
-                  onSelect={() => loadConversation(c.id)}
+                  onSelect={() => { loadConversation(c.id); setSidebarOpen(false); }}
                   onRename={(title) => renameConversation(c.id, title)}
                   onDelete={() => deleteConversation(c.id)}
                 />
@@ -611,7 +674,7 @@ const ChatPage: NextPage = () => {
         </Flex>
 
         {/* ── Chat area ───────────────────────────────────────────────────── */}
-        <Flex direction="column" flex={1} bg="gray.50" overflow="hidden">
+        <Flex direction="column" flex={1} bg="gray.50" overflow="hidden" position="relative">
           {/* Header */}
           <Box
             px={6}
@@ -623,18 +686,38 @@ const ChatPage: NextPage = () => {
           >
             <HStack spacing={3} justify="space-between">
               <HStack spacing={3}>
+                {!isDesktop && (
+                  <IconButton
+                    aria-label="Open conversations"
+                    icon={<FiMenu />}
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setSidebarOpen(true)}
+                  />
+                )}
                 <Box w={2} h={2} borderRadius="full" bg="green.400" />
-                <Text fontSize="sm" fontWeight="600" color="gray.700" letterSpacing="wide">
-                  Analytics Assistant
+                <Text fontSize="sm" fontWeight="600" color="gray.700" letterSpacing="wide" noOfLines={1}>
+                  {conversationId
+                    ? (conversations.find((c) => c.id === conversationId)?.title ?? "Analytics Assistant")
+                    : "Analytics Assistant"}
                 </Text>
-                <Text fontSize="xs" color="gray.400">
-                  Powered by Claude
-                </Text>
+                {isDesktop && (
+                  <Text fontSize="xs" color="gray.400">
+                    Powered by Claude
+                  </Text>
+                )}
               </HStack>
-              {(inputTokens > 0 || outputTokens > 0) && (
+              {(totalInputTokens > 0 || totalOutputTokens > 0) && (
                 <Tooltip
-                  label={`${inputTokens.toLocaleString()} input + ${outputTokens.toLocaleString()} output tokens`}
+                  label={[
+                    `${totalInputTokens.toLocaleString()} in + ${totalOutputTokens.toLocaleString()} out tokens`,
+                    ...Object.entries(modelTokens).map(
+                      ([m, t]) =>
+                        `${modelLabel(m)}: ${t.input.toLocaleString()} in / ${t.output.toLocaleString()} out`
+                    ),
+                  ].join("\n")}
                   placement="bottom"
+                  whiteSpace="pre"
                 >
                   <Text
                     fontSize="xs"
@@ -654,7 +737,20 @@ const ChatPage: NextPage = () => {
           </Box>
 
           {/* Messages area */}
-          <Box flex={1} overflowY="auto" px={6} py={6}>
+          <Box
+            ref={scrollContainerRef}
+            flex={1}
+            overflowY="auto"
+            px={6}
+            py={6}
+            onScroll={() => {
+              const el = scrollContainerRef.current;
+              if (!el) return;
+              const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 100;
+              isAtBottomRef.current = atBottom;
+              setShowScrollButton(!atBottom);
+            }}
+          >
               {isEmpty && (
                 <VStack spacing={6} mt={16} align="center">
                   <VStack spacing={1}>
@@ -766,6 +862,17 @@ const ChatPage: NextPage = () => {
                                   }}
                                 />
                               )}
+                              {msg.model && !msg.isStreaming && (
+                                <Text
+                                  fontSize="10px"
+                                  color="gray.400"
+                                  textAlign="right"
+                                  mt={1}
+                                  fontFamily="mono"
+                                >
+                                  {modelLabel(msg.model)}
+                                </Text>
+                              )}
                             </>
                           )}
                         </Box>
@@ -777,6 +884,25 @@ const ChatPage: NextPage = () => {
 
               <Box ref={bottomRef} />
           </Box>
+
+          {/* Scroll to bottom button */}
+          {showScrollButton && (
+            <Box position="absolute" bottom="80px" left="50%" transform="translateX(-50%)">
+              <IconButton
+                aria-label="Scroll to bottom"
+                icon={<FiArrowDown />}
+                size="sm"
+                borderRadius="full"
+                colorScheme="blue"
+                shadow="md"
+                onClick={() => {
+                  bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+                  isAtBottomRef.current = true;
+                  setShowScrollButton(false);
+                }}
+              />
+            </Box>
+          )}
 
           {/* Input area */}
           <Box
