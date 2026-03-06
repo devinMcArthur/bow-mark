@@ -676,7 +676,7 @@ function createMcpServer(): McpServer {
           .select([
             "ew.daily_report_id",
             sql<number>`COUNT(DISTINCT ew.employee_id)`.as("employee_count"),
-            sql<number>`MAX(ew.hours)`.as("crew_hours"),
+            sql<number>`AVG(ew.hours)`.as("crew_hours"),
             sql<number>`SUM(ew.hours)`.as("man_hours"),
             sql<number>`SUM(ew.total_cost)`.as("employee_cost"),
           ])
