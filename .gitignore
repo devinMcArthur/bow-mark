@@ -38,3 +38,6 @@ yarn-error.log*
 /secrets
 
 /backups
+
+# Git worktrees
+/.worktrees

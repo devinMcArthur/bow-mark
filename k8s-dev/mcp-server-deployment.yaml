@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-analytics-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: mcp-analytics
+  template:
+    metadata:
+      labels:
+        component: mcp-analytics
+    spec:
+      containers:
+        - name: mcp-analytics
+          image: itsdevin/bow-mark-server
+          command: ["npm", "run", "start:mcp-dev"]
+          ports:
+            - containerPort: 8081
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1000Mi"
+          envFrom:
+            - configMapRef:
+                name: app-config
+          env:
+            - name: NODE_ENV
+              value: development
+            - name: MCP_PORT
+              value: "8081"

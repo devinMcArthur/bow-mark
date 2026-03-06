@@ -22,6 +22,23 @@ tilt down
 skaffold dev
 ```
 
+### Checking Service Health During Development
+
+**Always check k8s pod logs after making server-side changes** to confirm the server started successfully. A TypeScript compile error or runtime crash will show up here, not in the local terminal.
+
+```bash
+# Check pod status
+kubectl get pods
+
+# Tail server logs (replace pod name with current)
+kubectl logs -f $(kubectl get pods -l app=server -o jsonpath='{.items[0].metadata.name}')
+
+# Quick one-liner to check for errors
+kubectl logs $(kubectl get pods -l app=server -o jsonpath='{.items[0].metadata.name}') --tail=30
+```
+
+The server runs with `nodemon` + `ts-node` in dev, so TypeScript errors surface as crash loops. If the pod is in `CrashLoopBackOff` or logs show `TSError`, fix the compile error before continuing.
+
 ### Server (`/server`)
 
 ```bash

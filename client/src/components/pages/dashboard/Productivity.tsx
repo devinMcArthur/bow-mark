@@ -20,6 +20,7 @@ import {
   Button,
   ButtonGroup,
   Checkbox,
+  Divider,
   Heading,
   HStack,
   Input,
@@ -246,6 +247,22 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
       return 0;
     });
   }, [report?.crews, crewSortCol, crewSortDir]);
+
+  const m3Stats = React.useMemo(() => {
+    if (selectedMaterials.size === 0) return null;
+    type M3Item = { totalM3: number; totalCrewHours: number; totalManHours: number };
+    const items: M3Item[] = (viewMode === "crew" ? report?.crews : report?.jobsites) ?? [];
+    const m3Items = items.filter(i => i.totalM3 > 0);
+    if (m3Items.length === 0) return null;
+    const totalM3 = m3Items.reduce((sum, i) => sum + i.totalM3, 0);
+    const totalCrewHours = m3Items.reduce((sum, i) => sum + i.totalCrewHours, 0);
+    const totalManHours = m3Items.reduce((sum, i) => sum + i.totalManHours, 0);
+    return {
+      totalM3,
+      m3PerHour: totalCrewHours > 0 ? totalM3 / totalCrewHours : 0,
+      m3PerManHour: totalManHours > 0 ? totalM3 / totalManHours : 0,
+    };
+  }, [report?.jobsites, report?.crews, viewMode, selectedMaterials]);
 
   // Jobsite search for scatter highlight
   const filteredJobsitesForSearch = React.useMemo(() => {
@@ -520,6 +537,9 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
               </StatNumber>
               <StatHelpText>
                 {viewMode === "crew" ? "All crews" : "All jobsites"}
+                <Text as="div" color="gray.500" fontSize="xs" mt={0.5}>
+                  {formatNumber(report.averageTonnesPerManHour)} t/mh
+                </Text>
               </StatHelpText>
             </Stat>
 
@@ -534,7 +554,12 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
             <Stat>
               <StatLabel>Total Crew Hours</StatLabel>
               <StatNumber>{formatNumber(report.totalCrewHours)}</StatNumber>
-              <StatHelpText>Combined</StatHelpText>
+              <StatHelpText>
+                Combined
+                <Text as="div" color="gray.400" fontSize="xs" mt={0.5}>
+                  {formatNumber(report.totalManHours)} man-hrs
+                </Text>
+              </StatHelpText>
             </Stat>
 
             {viewMode === "jobsite" ? (
@@ -578,6 +603,28 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
               </Stat>
             )}
           </SimpleGrid>
+          {m3Stats && (
+            <>
+              <Divider my={3} />
+              <SimpleGrid columns={[2, 3]} spacing={4}>
+                <Stat>
+                  <StatLabel>Avg m³/h</StatLabel>
+                  <StatNumber color="teal.500">{formatNumber(m3Stats.m3PerHour)}</StatNumber>
+                  <StatHelpText>m³ per crew hour</StatHelpText>
+                </Stat>
+                <Stat>
+                  <StatLabel>Total m³</StatLabel>
+                  <StatNumber>{formatNumber(m3Stats.totalM3)}</StatNumber>
+                  <StatHelpText>All m³ materials</StatHelpText>
+                </Stat>
+                <Stat>
+                  <StatLabel>m³/mh</StatLabel>
+                  <StatNumber>{formatNumber(m3Stats.m3PerManHour)}</StatNumber>
+                  <StatHelpText>m³ per man-hour</StatHelpText>
+                </Stat>
+              </SimpleGrid>
+            </>
+          )}
         </Card>
 
         {/* Crew Rankings (crew mode) */}
@@ -665,6 +712,14 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
                         <Td isNumeric>{formatNumber(crew.totalCrewHours)}</Td>
                         <Td isNumeric fontWeight="bold" color="blue.600">
                           {crew.tonnesPerHour != null ? formatNumber(crew.tonnesPerHour) : "—"}
+                          <Text as="div" fontSize="xs" color="gray.400" fontWeight="normal">
+                            {crew.tonnesPerManHour != null ? `${formatNumber(crew.tonnesPerManHour)} t/mh` : "—"}
+                          </Text>
+                          {crew.totalM3 > 0 && (
+                            <Text as="div" fontSize="xs" color="teal.500" fontWeight="normal">
+                              {crew.m3PerHour != null ? `${formatNumber(crew.m3PerHour)} m³/h` : "—"}
+                            </Text>
+                          )}
                         </Td>
                         <Td isNumeric>{crew.jobsiteCount}</Td>
                         <Td isNumeric>{crew.dayCount}</Td>
@@ -937,7 +992,17 @@ const Productivity = ({ startDate, endDate }: IProductivity) => {
                           </Td>
                           <Td isNumeric>{formatNumber(j.totalTonnes)}</Td>
                           <Td isNumeric>{formatNumber(j.totalCrewHours)}</Td>
-                          <Td isNumeric fontWeight="bold" color="blue.600">{formatNumber(j.tonnesPerHour)}</Td>
+                          <Td isNumeric fontWeight="bold" color="blue.600">
+                            {formatNumber(j.tonnesPerHour)}
+                            <Text as="div" fontSize="xs" color="gray.400" fontWeight="normal">
+                              {j.tonnesPerManHour != null ? `${formatNumber(j.tonnesPerManHour)} t/mh` : "—"}
+                            </Text>
+                            {j.totalM3 > 0 && (
+                              <Text as="div" fontSize="xs" color="teal.500" fontWeight="normal">
+                                {j.m3PerHour != null ? `${formatNumber(j.m3PerHour)} m³/h` : "—"}
+                              </Text>
+                            )}
+                          </Td>
                           <Td isNumeric color="gray.500">{formatNumber(j.expectedTonnesPerHour)}</Td>
                           <Td isNumeric>{j.shipmentCount}</Td>
                           <Td isNumeric>{getDeviationBadge(j.percentFromAverage)}</Td>

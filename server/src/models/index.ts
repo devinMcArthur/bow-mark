@@ -381,3 +381,5 @@ export type VehicleWorkModel = ReturnModelType<typeof VehicleWorkClass>;
 export const VehicleWork = getModelForClass(VehicleWorkClass, {
   schemaOptions: { collection: "vehicleworks" },
 });
+
+export * from "./ChatConversation";

@@ -55,8 +55,10 @@ query DashboardFinancial($input: DashboardInput!) {
 query DashboardProductivity($input: DashboardProductivityInput!) {
   dashboardProductivity(input: $input) {
     averageTonnesPerHour
+    averageTonnesPerManHour
     totalTonnes
     totalCrewHours
+    totalManHours
     jobsiteCount
     availableMaterials {
       materialName
@@ -73,6 +75,10 @@ query DashboardProductivity($input: DashboardProductivityInput!) {
       totalTonnes
       totalCrewHours
       tonnesPerHour
+      totalManHours
+      tonnesPerManHour
+      totalM3
+      m3PerHour
       shipmentCount
       percentFromAverage
       expectedTonnesPerHour
@@ -85,6 +91,10 @@ query DashboardProductivity($input: DashboardProductivityInput!) {
       totalTonnes
       totalCrewHours
       tonnesPerHour
+      totalManHours
+      tonnesPerManHour
+      totalM3
+      m3PerHour
       dayCount
       jobsiteCount
       percentFromAverage

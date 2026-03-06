@@ -318,8 +318,10 @@ k8s_yaml([
     'k8s-dev/server-deployment.yaml',
     'k8s-dev/worker-deployment.yaml',
     'k8s-dev/consumer-deployment.yaml',
+    'k8s-dev/mcp-server-deployment.yaml',
     'k8s-dev/client-deployment.yaml',
     'k8s-dev/server-cluster-ip-service.yaml',
+    'k8s-dev/mcp-server-service.yaml',
     'k8s-dev/client-cluster-ip-service.yaml',
     'k8s-dev/ingress.yaml',
 ])
@@ -343,6 +345,14 @@ k8s_resource(
 k8s_resource(
     'consumer-deployment',
     resource_deps=['mongo', 'postgres', 'rabbitmq', 'db-migrate', 'restore-mongo', 'restore-postgres'],
+    labels=['app'],
+)
+
+# MCP Analytics server - pure PG, no MongoDB or RabbitMQ needed
+k8s_resource(
+    'mcp-analytics-deployment',
+    resource_deps=['postgres', 'db-migrate', 'restore-postgres'],
+    port_forwards=['8081:8081'],
     labels=['app'],
 )
 
@@ -471,24 +481,26 @@ local_resource(
 )
 
 # Run PostgreSQL backfill from MongoDB (for initial PG data population)
-# Uses the CURRENT app-type's database. After backfill, use save-pg-state to persist.
+# Reads the CURRENT app-type from the live ConfigMap so it works correctly after
+# a hot-switch (switch-to-concrete / switch-to-paving) without restarting Tilt.
 local_resource(
     'run-backfill',
     cmd='''
-        echo "=== Running PostgreSQL Backfill for {app_type} ==="
+        CURRENT_APP_TYPE=$(kubectl get configmap app-config -o jsonpath='{{.data.APP_NAME}}' 2>/dev/null || echo "{default_app_type}")
+        echo "=== Running PostgreSQL Backfill for $CURRENT_APP_TYPE ==="
         echo "This may take 10-20 minutes..."
         cd server && \
-        MONGO_URI="mongodb://localhost:27017/{app_type}" \
+        MONGO_URI="mongodb://localhost:27017/$CURRENT_APP_TYPE" \
         POSTGRES_HOST="localhost" \
         POSTGRES_PORT="5432" \
         POSTGRES_USER="bowmark" \
         POSTGRES_PASSWORD="devpassword" \
-        POSTGRES_DB="bowmark_reports_{app_type}" \
-        DATABASE_URL="postgres://bowmark:devpassword@localhost:5432/bowmark_reports_{app_type}?sslmode=disable" \
+        POSTGRES_DB="bowmark_reports_$CURRENT_APP_TYPE" \
+        DATABASE_URL="postgres://bowmark:devpassword@localhost:5432/bowmark_reports_$CURRENT_APP_TYPE?sslmode=disable" \
         npm run db:backfill
         echo ""
         echo "Backfill complete! Run save-pg-state to persist this data."
-    '''.format(app_type=APP_TYPE),
+    '''.format(default_app_type=APP_TYPE),
     resource_deps=['mongo', 'postgres', 'db-migrate', 'restore-mongo'],
     auto_init=False,
     trigger_mode=TRIGGER_MODE_MANUAL,

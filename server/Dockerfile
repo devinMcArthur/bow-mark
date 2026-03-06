@@ -1,9 +1,9 @@
-FROM node:16-alpine
+FROM node:18-alpine
 
 WORKDIR /usr/app
 
 COPY package*.json ./
-RUN npm install -qy
+RUN npm install -qy --legacy-peer-deps
 
 COPY . .
 RUN npm run build

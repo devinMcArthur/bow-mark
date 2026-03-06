@@ -30,6 +30,10 @@ query JobsiteProductivity(
       totalTonnes
       totalCrewHours
       tonnesPerHour
+      totalManHours
+      tonnesPerManHour
+      totalM3
+      m3PerHour
       shipmentCount
       dailyReports {
         id
@@ -41,11 +45,17 @@ query JobsiteProductivity(
         tonnes
         crewHours
         tonnesPerHour
+        manHours
+        tonnesPerManHour
+        rawM3
+        m3PerHour
       }
     }
     overallTonnesPerHour
     totalTonnes
     totalCrewHours
+    totalManHours
+    overallTonnesPerManHour
     crewHoursDetail {
       date
       crewType

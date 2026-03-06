@@ -18,6 +18,7 @@ import {
   IconButton,
   Link,
   Select,
+  Divider,
   SimpleGrid,
   Spinner,
   Stack,
@@ -278,6 +279,20 @@ const Productivity = ({
     };
   }, [productivity?.materialProductivity, selectedMaterials, getSelectionKey, getDisplayLabel]);
 
+  const m3Stats = React.useMemo(() => {
+    if (!productivity?.materialProductivity) return null;
+    const m3Materials = productivity.materialProductivity.filter(m => m.totalM3 > 0);
+    if (m3Materials.length === 0) return null;
+    const totalM3 = m3Materials.reduce((sum, m) => sum + m.totalM3, 0);
+    const totalCrewHours = m3Materials.reduce((sum, m) => sum + m.totalCrewHours, 0);
+    const totalManHours = m3Materials.reduce((sum, m) => sum + m.totalManHours, 0);
+    return {
+      totalM3,
+      m3PerHour: totalCrewHours > 0 ? totalM3 / totalCrewHours : 0,
+      m3PerManHour: totalManHours > 0 ? totalM3 / totalManHours : 0,
+    };
+  }, [productivity?.materialProductivity]);
+
   const toggleMaterial = (key: string) => {
     setSelectedMaterials((prev) => {
       const next = new Set(prev);
@@ -356,7 +371,12 @@ const Productivity = ({
             <StatNumber color="blue.500">
               {formatNumber(productivity.overallTonnesPerHour)}
             </StatNumber>
-            <StatHelpText>Tonnes per crew hour</StatHelpText>
+            <StatHelpText>
+              Tonnes per crew hour
+              <Text as="div" color="gray.500" fontSize="xs" mt={0.5}>
+                {formatNumber(productivity.overallTonnesPerManHour)} t/mh
+              </Text>
+            </StatHelpText>
           </Stat>
 
           <Stat>
@@ -368,7 +388,12 @@ const Productivity = ({
           <Stat>
             <StatLabel>Total Crew Hours</StatLabel>
             <StatNumber>{formatNumber(productivity.totalCrewHours)}</StatNumber>
-            <StatHelpText>Based on max shift per crew</StatHelpText>
+            <StatHelpText>
+              Avg shift length per day
+              <Text as="div" color="gray.400" fontSize="xs" mt={0.5}>
+                {formatNumber(productivity.totalManHours)} man-hrs
+              </Text>
+            </StatHelpText>
           </Stat>
 
           <Stat>
@@ -377,6 +402,28 @@ const Productivity = ({
             <StatHelpText>With tonnes unit</StatHelpText>
           </Stat>
         </SimpleGrid>
+        {m3Stats && (
+          <>
+            <Divider my={3} />
+            <SimpleGrid columns={[2, 3]} spacing={4}>
+              <Stat>
+                <StatLabel>Avg m³/h</StatLabel>
+                <StatNumber color="teal.500">{formatNumber(m3Stats.m3PerHour)}</StatNumber>
+                <StatHelpText>m³ per crew hour</StatHelpText>
+              </Stat>
+              <Stat>
+                <StatLabel>Total m³</StatLabel>
+                <StatNumber>{formatNumber(m3Stats.totalM3)}</StatNumber>
+                <StatHelpText>All m³ materials</StatHelpText>
+              </Stat>
+              <Stat>
+                <StatLabel>m³/mh</StatLabel>
+                <StatNumber>{formatNumber(m3Stats.m3PerManHour)}</StatNumber>
+                <StatHelpText>m³ per man-hour</StatHelpText>
+              </Stat>
+            </SimpleGrid>
+          </>
+        )}
       </Card>
 
       {/* Material Productivity (T/H) */}
@@ -532,6 +579,14 @@ const Productivity = ({
                         <Td isNumeric>{formatNumber(mat.totalCrewHours)}</Td>
                         <Td isNumeric fontWeight="bold" color="blue.600">
                           {formatNumber(mat.tonnesPerHour)}
+                          <Text as="div" fontSize="xs" color="gray.400" fontWeight="normal">
+                            {formatNumber(mat.tonnesPerManHour)} t/mh
+                          </Text>
+                          {mat.totalM3 > 0 && (
+                            <Text as="div" fontSize="xs" color="teal.500" fontWeight="normal">
+                              {formatNumber(mat.m3PerHour)} m³/h
+                            </Text>
+                          )}
                         </Td>
                         <Td isNumeric>{mat.shipmentCount}</Td>
                       </Tr>
@@ -562,6 +617,11 @@ const Productivity = ({
                                         <Td isNumeric>{formatNumber(day.crewHours)}</Td>
                                         <Td isNumeric fontWeight="medium" color="blue.600">
                                           {formatNumber(day.tonnesPerHour)}
+                                          {day.rawM3 > 0 && (
+                                            <Text as="div" fontSize="xs" color="teal.500" fontWeight="normal">
+                                              {formatNumber(day.m3PerHour)} m³/h
+                                            </Text>
+                                          )}
                                         </Td>
                                         <Td>
                                           <NextLink

@@ -75,7 +75,7 @@ export default class ProductivityAnalyticsResolver {
     ]);
 
     // Use overall productivity metrics (correctly calculated)
-    const { totalTonnes, totalCrewHours, overallTonnesPerHour } =
+    const { totalTonnes, totalCrewHours, overallTonnesPerHour, totalManHours, overallTonnesPerManHour } =
       overallProductivity;
 
     return {
@@ -89,6 +89,8 @@ export default class ProductivityAnalyticsResolver {
       overallTonnesPerHour,
       totalTonnes,
       totalCrewHours,
+      totalManHours,
+      overallTonnesPerManHour,
       crewHoursDetail,
     };
   }
@@ -266,6 +268,7 @@ export default class ProductivityAnalyticsResolver {
         "ms.crew_type",
         sql<number>`COALESCE(SUM(${tonnesConversion}), 0)`.as("tonnes"),
         sql<number>`COUNT(*)`.as("shipment_count"),
+        sql<number>`COALESCE(SUM(CASE WHEN LOWER(ms.unit) = 'm3' THEN ms.quantity ELSE 0 END), 0)`.as("raw_m3"),
       ])
       .where("ms.jobsite_id", "=", jobsiteId)
       .where("ms.work_date", ">=", startDate)
@@ -320,6 +323,7 @@ export default class ProductivityAnalyticsResolver {
       .select([
         "ew.daily_report_id",
         sql<number>`AVG(ew.hours)`.as("crew_hours"),
+        sql<number>`SUM(ew.hours)`.as("man_hours"),
       ])
       .where("ew.jobsite_id", "=", jobsiteId)
       .where("ew.work_date", ">=", startDate)
@@ -379,9 +383,11 @@ export default class ProductivityAnalyticsResolver {
     }
 
     const crewHoursMap = new Map<string, number>();
+    const manHoursMap = new Map<string, number>();
     for (const row of crewHoursPerReport) {
       if (row.daily_report_id) {
         crewHoursMap.set(row.daily_report_id, Number(row.crew_hours || 0));
+        manHoursMap.set(row.daily_report_id, Number(row.man_hours || 0));
       }
     }
 
@@ -389,6 +395,8 @@ export default class ProductivityAnalyticsResolver {
     interface DailyData {
       tonnes: number;
       crewHours: number;
+      manHours: number;
+      rawM3: number;
     }
     interface MaterialStats {
       materialName: string;
@@ -396,6 +404,8 @@ export default class ProductivityAnalyticsResolver {
       jobTitle?: string;
       totalTonnes: number;
       totalProportionalHours: number;
+      totalProportionalManHours: number;
+      totalRawM3: number;
       shipmentCount: number;
       dailyReportIds: Set<string>;
       dailyData: Map<string, DailyData>;
@@ -408,10 +418,14 @@ export default class ProductivityAnalyticsResolver {
       const tonnes = Number(row.tonnes);
       const totalCrewTonnes = totalTonnesMap.get(row.daily_report_id) || 0;
       const crewHours = crewHoursMap.get(row.daily_report_id) || 0;
+      const manHours = manHoursMap.get(row.daily_report_id) || 0;
 
       // Proportional hours = (material tonnes / total crew tonnes) * crew hours
       const proportionalHours =
         totalCrewTonnes > 0 ? (tonnes / totalCrewTonnes) * crewHours : 0;
+      const proportionalManHours =
+        totalCrewTonnes > 0 ? (tonnes / totalCrewTonnes) * manHours : 0;
+      const rawM3 = Number(row.raw_m3 || 0);
 
       // Build grouping key based on selected dimension
       let groupKey: string;
@@ -439,6 +453,8 @@ export default class ProductivityAnalyticsResolver {
         jobTitle,
         totalTonnes: 0,
         totalProportionalHours: 0,
+        totalProportionalManHours: 0,
+        totalRawM3: 0,
         shipmentCount: 0,
         dailyReportIds: new Set<string>(),
         dailyData: new Map<string, DailyData>(),
@@ -450,16 +466,22 @@ export default class ProductivityAnalyticsResolver {
       const existingDaily = existing.dailyData.get(row.daily_report_id) || {
         tonnes: 0,
         crewHours: 0,
+        manHours: 0,
+        rawM3: 0,
       };
       existing.dailyData.set(row.daily_report_id, {
         tonnes: existingDaily.tonnes + tonnes,
         crewHours: existingDaily.crewHours + proportionalHours,
+        manHours: existingDaily.manHours + proportionalManHours,
+        rawM3: existingDaily.rawM3 + rawM3,
       });
 
       materialStats.set(groupKey, {
         ...existing,
         totalTonnes: existing.totalTonnes + tonnes,
         totalProportionalHours: existing.totalProportionalHours + proportionalHours,
+        totalProportionalManHours: existing.totalProportionalManHours + proportionalManHours,
+        totalRawM3: existing.totalRawM3 + rawM3,
         shipmentCount: existing.shipmentCount + Number(row.shipment_count),
       });
     }
@@ -506,6 +528,10 @@ export default class ProductivityAnalyticsResolver {
             tonnes: data.tonnes,
             crewHours: data.crewHours,
             tonnesPerHour: data.crewHours > 0 ? data.tonnes / data.crewHours : 0,
+            manHours: data.manHours,
+            tonnesPerManHour: data.manHours > 0 ? data.tonnes / data.manHours : 0,
+            rawM3: data.rawM3,
+            m3PerHour: data.rawM3 > 0 && data.crewHours > 0 ? data.rawM3 / data.crewHours : 0,
           };
         })
         .sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -519,6 +545,16 @@ export default class ProductivityAnalyticsResolver {
         tonnesPerHour:
           stats.totalProportionalHours > 0
             ? stats.totalTonnes / stats.totalProportionalHours
+            : 0,
+        totalManHours: stats.totalProportionalManHours,
+        tonnesPerManHour:
+          stats.totalProportionalManHours > 0
+            ? stats.totalTonnes / stats.totalProportionalManHours
+            : 0,
+        totalM3: stats.totalRawM3,
+        m3PerHour:
+          stats.totalRawM3 > 0 && stats.totalProportionalHours > 0
+            ? stats.totalRawM3 / stats.totalProportionalHours
             : 0,
         shipmentCount: stats.shipmentCount,
         dailyReports,
@@ -550,6 +586,8 @@ export default class ProductivityAnalyticsResolver {
     totalTonnes: number;
     totalCrewHours: number;
     overallTonnesPerHour: number;
+    totalManHours: number;
+    overallTonnesPerManHour: number;
   }> {
     // SQL CASE expression for converting various units to tonnes
     // Conversion constants defined in @constants/UnitConversions
@@ -621,6 +659,7 @@ export default class ProductivityAnalyticsResolver {
       .select([
         "ew.daily_report_id",
         sql<number>`AVG(ew.hours)`.as("crew_hours"),
+        sql<number>`SUM(ew.hours)`.as("man_hours"),
       ])
       .where("ew.jobsite_id", "=", jobsiteId)
       .where("ew.work_date", ">=", startDate)
@@ -631,26 +670,32 @@ export default class ProductivityAnalyticsResolver {
       .groupBy(["ew.daily_report_id"])
       .execute();
 
-    // Build lookup map
+    // Build lookup maps
     const crewHoursMap = new Map<string, number>();
+    const manHoursMap = new Map<string, number>();
     for (const row of crewHoursPerReport) {
       if (row.daily_report_id) {
         crewHoursMap.set(row.daily_report_id, Number(row.crew_hours || 0));
+        manHoursMap.set(row.daily_report_id, Number(row.man_hours || 0));
       }
     }
 
     // Sum only hours from crews that ordered materials
     let totalCrewHours = 0;
+    let totalManHours = 0;
     for (const row of materialCrews) {
       if (row.daily_report_id) {
         totalCrewHours += crewHoursMap.get(row.daily_report_id) || 0;
+        totalManHours += manHoursMap.get(row.daily_report_id) || 0;
       }
     }
 
     const overallTonnesPerHour =
       totalCrewHours > 0 ? totalTonnes / totalCrewHours : 0;
+    const overallTonnesPerManHour =
+      totalManHours > 0 ? totalTonnes / totalManHours : 0;
 
-    return { totalTonnes, totalCrewHours, overallTonnesPerHour };
+    return { totalTonnes, totalCrewHours, overallTonnesPerHour, totalManHours, overallTonnesPerManHour };
   }
 
   /**
