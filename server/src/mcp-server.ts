@@ -669,52 +669,55 @@ function createMcpServer(): McpServer {
       }
 
       const pgIds = reports.map((r) => r.id);
+      const approvedPgIds = reports.filter((r) => r.approved).map((r) => r.id);
 
       // ── Aggregate metrics per report ──────────────────────────────────────────
-      const [empRows, matRows, vehRows, truckRows] = await Promise.all([
-        db.selectFrom("fact_employee_work as ew")
-          .select([
-            "ew.daily_report_id",
-            sql<number>`COUNT(DISTINCT ew.employee_id)`.as("employee_count"),
-            sql<number>`AVG(ew.hours)`.as("crew_hours"),
-            sql<number>`SUM(ew.hours)`.as("man_hours"),
-            sql<number>`SUM(ew.total_cost)`.as("employee_cost"),
-          ])
-          .where("ew.daily_report_id", "in", pgIds)
-          .where("ew.archived_at", "is", null)
-          .groupBy("ew.daily_report_id").execute(),
+      const [empRows, matRows, vehRows, truckRows] = approvedPgIds.length > 0
+        ? await Promise.all([
+          db.selectFrom("fact_employee_work as ew")
+            .select([
+              "ew.daily_report_id",
+              sql<number>`COUNT(DISTINCT ew.employee_id)`.as("employee_count"),
+              sql<number>`MAX(ew.hours)`.as("crew_hours"),
+              sql<number>`SUM(ew.hours)`.as("man_hours"),
+              sql<number>`SUM(ew.total_cost)`.as("employee_cost"),
+            ])
+            .where("ew.daily_report_id", "in", approvedPgIds)
+            .where("ew.archived_at", "is", null)
+            .groupBy("ew.daily_report_id").execute(),
 
-        db.selectFrom("fact_material_shipment as ms")
-          .innerJoin("dim_jobsite_material as jm", "jm.id", "ms.jobsite_material_id")
-          .innerJoin("dim_material as m", "m.id", "jm.material_id")
-          .select([
-            "ms.daily_report_id",
-            sql<number>`COALESCE(SUM(${getTonnesConversion()}), 0)`.as("total_tonnes"),
-            sql<number>`COALESCE(SUM(ms.total_cost), 0)`.as("material_cost"),
-          ])
-          .where("ms.daily_report_id", "in", pgIds)
-          .where("ms.archived_at", "is", null)
-          .groupBy("ms.daily_report_id").execute(),
+          db.selectFrom("fact_material_shipment as ms")
+            .innerJoin("dim_jobsite_material as jm", "jm.id", "ms.jobsite_material_id")
+            .innerJoin("dim_material as m", "m.id", "jm.material_id")
+            .select([
+              "ms.daily_report_id",
+              sql<number>`COALESCE(SUM(${getTonnesConversion()}), 0)`.as("total_tonnes"),
+              sql<number>`COALESCE(SUM(ms.total_cost), 0)`.as("material_cost"),
+            ])
+            .where("ms.daily_report_id", "in", approvedPgIds)
+            .where("ms.archived_at", "is", null)
+            .groupBy("ms.daily_report_id").execute(),
 
-        db.selectFrom("fact_vehicle_work as vw")
-          .select([
-            "vw.daily_report_id",
-            sql<number>`COALESCE(SUM(vw.hours), 0)`.as("vehicle_hours"),
-            sql<number>`COALESCE(SUM(vw.total_cost), 0)`.as("vehicle_cost"),
-          ])
-          .where("vw.daily_report_id", "in", pgIds)
-          .where("vw.archived_at", "is", null)
-          .groupBy("vw.daily_report_id").execute(),
+          db.selectFrom("fact_vehicle_work as vw")
+            .select([
+              "vw.daily_report_id",
+              sql<number>`COALESCE(SUM(vw.hours), 0)`.as("vehicle_hours"),
+              sql<number>`COALESCE(SUM(vw.total_cost), 0)`.as("vehicle_cost"),
+            ])
+            .where("vw.daily_report_id", "in", approvedPgIds)
+            .where("vw.archived_at", "is", null)
+            .groupBy("vw.daily_report_id").execute(),
 
-        db.selectFrom("fact_trucking as t")
-          .select([
-            "t.daily_report_id",
-            sql<number>`COALESCE(SUM(t.total_cost), 0)`.as("trucking_cost"),
-          ])
-          .where("t.daily_report_id", "in", pgIds)
-          .where("t.archived_at", "is", null)
-          .groupBy("t.daily_report_id").execute(),
-      ]);
+          db.selectFrom("fact_trucking as t")
+            .select([
+              "t.daily_report_id",
+              sql<number>`COALESCE(SUM(t.total_cost), 0)`.as("trucking_cost"),
+            ])
+            .where("t.daily_report_id", "in", approvedPgIds)
+            .where("t.archived_at", "is", null)
+            .groupBy("t.daily_report_id").execute(),
+        ])
+        : [[], [], [], []];
 
       const empMap = new Map(empRows.map((r) => [r.daily_report_id, r]));
       const matMap = new Map(matRows.map((r) => [r.daily_report_id, r]));
