@@ -14,7 +14,6 @@ import { Company, System } from "@models";
 import mongoose from "mongoose";
 import createApp from "./app";
 import { bindEventEmitters } from "@events";
-import saveAll from "@testing/saveAll";
 
 let workerEnabled = true,
   apiEnabled = true;
@@ -37,10 +36,6 @@ const main = async () => {
         useFindAndModify: false,
       });
       console.log("MongoDB Connected");
-
-      if (!production) {
-        // await seedDatabase();
-      }
     }
 
     // Bind Event Emitters
@@ -56,22 +51,11 @@ const main = async () => {
         console.log(`Server running on port: ${port}`)
       );
 
-      // if (process.env.NODE_ENV === "development")
-      //   saveAll();
-
       // Set timeout to 10 minutes
       server.setTimeout(10 * 60 * 1000);
     }
 
     if (process.env.NODE_ENV !== "test") {
-      if (apiEnabled) {
-        if (production) {
-          // await saveAll();
-        } else {
-          // await saveAll();
-        }
-      }
-
       await System.validateSystem();
       await Company.validateCompanies();
 
