@@ -48,7 +48,7 @@ spec:
                 name: server-cluster-ip-service
                 port:
                   number: 8080
-          - path: /chat/?(.*)
+          - path: /chat/.+
             pathType: Prefix
             backend:
               service:
@@ -86,7 +86,7 @@ spec:
                 name: server-cluster-ip-service
                 port:
                   number: 8080
-          - path: /chat/?(.*)
+          - path: /chat/.+
             pathType: Prefix
             backend:
               service:
@@ -124,7 +124,7 @@ spec:
                 name: server-concrete-cluster-ip-service
                 port:
                   number: 8080
-          - path: /chat/?(.*)
+          - path: /chat/.+
             pathType: Prefix
             backend:
               service:

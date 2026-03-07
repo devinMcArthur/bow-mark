@@ -437,7 +437,7 @@ const ChatPage: NextPage = () => {
         const body: Record<string, unknown> = { messages: history };
         if (conversationId) body.conversationId = conversationId;
 
-        const response = await fetch(`${serverBase}/chat`, {
+        const response = await fetch(`${serverBase}/chat/message`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

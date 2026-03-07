@@ -34,7 +34,7 @@ Guidelines:
   - Vehicle: [Vehicle Name](/vehicle/{mongo_id})
 - Only link entities when their ID is known from tool results. Never guess or fabricate IDs.`;
 
-router.post("/", async (req, res) => {
+router.post("/message", async (req, res) => {
   // ── Auth ─────────────────────────────────────────────────────────────────
   const token = req.headers.authorization;
   if (!token || !process.env.JWT_SECRET) {
