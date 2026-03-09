@@ -296,16 +296,19 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
             sendEvent({ type: "tool_result", toolName: block.name, result: resultText });
           } catch (toolErr) {
             console.error(`Tool call failed: ${block.name}`, toolErr);
+            const errorText = `Error: ${
+              toolErr instanceof Error
+                ? toolErr.message
+                : "Tool execution failed"
+            }`;
             toolResults.push({
               type: "tool_result",
               tool_use_id: block.id,
-              content: `Error: ${
-                toolErr instanceof Error
-                  ? toolErr.message
-                  : "Tool execution failed"
-              }`,
+              content: errorText,
               is_error: true,
             });
+            turnToolResults.push({ toolName: block.name, result: errorText });
+            sendEvent({ type: "tool_result", toolName: block.name, result: errorText });
           }
         }
 
