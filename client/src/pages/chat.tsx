@@ -33,11 +33,17 @@ import { navbarHeight } from "../constants/styles";
 
 type Role = "user" | "assistant";
 
+interface ToolResult {
+  toolName: string;
+  result: string;
+}
+
 interface ChatMessage {
   id: string;
   role: Role;
   content: string;
   toolCalls?: string[];
+  toolResults?: ToolResult[];
   isStreaming?: boolean;
   model?: string;
 }
@@ -366,11 +372,12 @@ const ChatPage: NextPage = () => {
       }
       setModelTokens(perModel);
       setMessages(
-        data.messages.map((m: { role: Role; content: string; model?: string }) => ({
+        data.messages.map((m: { role: Role; content: string; model?: string; toolResults?: ToolResult[] }) => ({
           id: genId(),
           role: m.role,
           content: m.content,
           model: m.model,
+          toolResults: m.toolResults,
         }))
       );
     } catch {}
@@ -484,6 +491,7 @@ const ChatPage: NextPage = () => {
                 type: string;
                 delta?: string;
                 toolName?: string;
+                result?: string;
                 message?: string;
                 id?: string;
                 inputTokens?: number;
@@ -505,6 +513,20 @@ const ChatPage: NextPage = () => {
                   prev.map((m) =>
                     m.id === assistantId
                       ? { ...m, toolCalls: [...(m.toolCalls ?? []), event.toolName!] }
+                      : m
+                  )
+                );
+              } else if (event.type === "tool_result" && event.toolName) {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantId
+                      ? {
+                          ...m,
+                          toolResults: [
+                            ...(m.toolResults ?? []),
+                            { toolName: event.toolName!, result: event.result ?? "" },
+                          ],
+                        }
                       : m
                   )
                 );
