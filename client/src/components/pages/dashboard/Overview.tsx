@@ -58,7 +58,6 @@ type SortDirection = "asc" | "desc";
 
 const formatCurrency = (val: number) => `$${formatNumber(val)}`;
 
-
 const getMarginColor = (pct?: number | null): string => {
   if (pct == null) return "gray";
   if (pct >= 15) return "green";
@@ -135,22 +134,6 @@ const Overview = ({ startDate, endDate }: IOverview) => {
         (j.jobcode ?? "").toLowerCase().includes(q)
     );
   }, [sortedJobsites, searchQuery]);
-
-  const topPerformers = React.useMemo(() => {
-    if (!report?.jobsites) return [];
-    return [...report.jobsites]
-      .filter((j) => j.netMarginPercent != null && j.totalDirectCost > 0)
-      .sort((a, b) => (b.netMarginPercent ?? -Infinity) - (a.netMarginPercent ?? -Infinity))
-      .slice(0, 5);
-  }, [report?.jobsites]);
-
-  const needsAttention = React.useMemo(() => {
-    if (!report?.jobsites) return [];
-    return [...report.jobsites]
-      .filter((j) => j.netMarginPercent != null)
-      .sort((a, b) => (a.netMarginPercent ?? Infinity) - (b.netMarginPercent ?? Infinity))
-      .slice(0, 5);
-  }, [report?.jobsites]);
 
   if (isInitialLoading) {
     return (
@@ -284,149 +267,6 @@ const Overview = ({ startDate, endDate }: IOverview) => {
 
         </SimpleGrid>
       </Card>
-
-      {/* Top Performers + Needs Attention panels */}
-      {(topPerformers.length > 0 || needsAttention.length > 0) && (
-        <SimpleGrid columns={[1, 2]} spacing={4} mb={4}>
-          {/* Top Performers */}
-          <Card
-            heading={
-              <Heading size="sm" color="green.700">
-                Top Performers (by Margin %)
-              </Heading>
-            }
-          >
-            {topPerformers.length === 0 ? (
-              <Text fontSize="sm" color="gray.500">
-                No data
-              </Text>
-            ) : (
-              <Table size="sm">
-                <Thead>
-                  <Tr>
-                    <Th>#</Th>
-                    <Th>Jobsite</Th>
-                    <Th isNumeric>Margin %</Th>
-                    <Th isNumeric>Net Income</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {topPerformers.map((j, idx) => (
-                    <Tr key={j.jobsiteId} _hover={{ bg: "gray.50" }}>
-                      <Td fontWeight="bold" color="gray.500">
-                        {idx + 1}
-                      </Td>
-                      <Td>
-                        <NextLink
-                          href={createLink.jobsiteReport(j.jobsiteId, startDate, endDate)}
-                          passHref
-                        >
-                          <Text
-                            as="a"
-                            fontWeight="medium"
-                            color="blue.600"
-                            _hover={{ textDecoration: "underline" }}
-                            fontSize="sm"
-                          >
-                            {j.jobsiteName}
-                          </Text>
-                        </NextLink>
-                      </Td>
-                      <Td isNumeric>
-                        <Badge
-                          colorScheme={getMarginColor(j.netMarginPercent)}
-                          fontSize="xs"
-                        >
-                          {j.netMarginPercent != null
-                            ? `${j.netMarginPercent >= 0 ? "+" : ""}${j.netMarginPercent.toFixed(1)}%`
-                            : "—"}
-                        </Badge>
-                      </Td>
-                      <Td
-                        isNumeric
-                        fontWeight="bold"
-                        color={j.netIncome >= 0 ? "green.700" : "red.600"}
-                        fontSize="sm"
-                      >
-                        {formatCurrency(j.netIncome)}
-                      </Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
-            )}
-          </Card>
-
-          {/* Needs Attention */}
-          <Card
-            heading={
-              <Heading size="sm" color="red.600">
-                Needs Attention (lowest Margin %)
-              </Heading>
-            }
-          >
-            {needsAttention.length === 0 ? (
-              <Text fontSize="sm" color="gray.500">
-                No data
-              </Text>
-            ) : (
-              <Table size="sm">
-                <Thead>
-                  <Tr>
-                    <Th>#</Th>
-                    <Th>Jobsite</Th>
-                    <Th isNumeric>Margin %</Th>
-                    <Th isNumeric>Net Income</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {needsAttention.map((j, idx) => (
-                    <Tr key={j.jobsiteId} _hover={{ bg: "gray.50" }}>
-                      <Td fontWeight="bold" color="gray.500">
-                        {idx + 1}
-                      </Td>
-                      <Td>
-                        <NextLink
-                          href={createLink.jobsiteReport(j.jobsiteId, startDate, endDate)}
-                          passHref
-                        >
-                          <Text
-                            as="a"
-                            fontWeight="medium"
-                            color="blue.600"
-                            _hover={{ textDecoration: "underline" }}
-                            fontSize="sm"
-                          >
-                            {j.jobsiteName}
-                          </Text>
-                        </NextLink>
-                      </Td>
-                      <Td isNumeric>
-                        <Badge
-                          colorScheme={getMarginColor(j.netMarginPercent)}
-                          fontSize="xs"
-                        >
-                          {j.netMarginPercent != null
-                            ? `${j.netMarginPercent >= 0 ? "+" : ""}${j.netMarginPercent.toFixed(1)}%`
-                            : "—"}
-                        </Badge>
-                      </Td>
-                      <Td
-                        isNumeric
-                        fontWeight="bold"
-                        color={j.netIncome >= 0 ? "green.700" : "red.600"}
-                        fontSize="sm"
-                      >
-                        {formatCurrency(j.netIncome)}
-                      </Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
-            )}
-          </Card>
-        </SimpleGrid>
-      )}
 
       {/* All Jobs Table */}
       <Card
