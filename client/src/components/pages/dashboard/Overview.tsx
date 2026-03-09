@@ -180,7 +180,7 @@ const Overview = ({ startDate, endDate }: IOverview) => {
   };
 
   return (
-    <Box overflowY="auto" h="100%" w="100%">
+    <Box w="100%">
       {/* KPI Stats */}
       <Card
         heading={
@@ -312,7 +312,7 @@ const Overview = ({ startDate, endDate }: IOverview) => {
               : "No jobsite data for the selected date range."}
           </Alert>
         ) : (
-          <Box overflowX="auto" maxH="450px" overflowY="auto">
+          <Box overflowX="auto" overflowY="auto" maxH="450px">
             <Table size="sm">
               <Thead position="sticky" top={0} bg="white" zIndex={1}>
                 <Tr>

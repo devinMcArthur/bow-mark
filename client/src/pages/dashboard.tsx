@@ -11,6 +11,7 @@ import { useRouter } from "next/router";
 import { FiChevronDown } from "react-icons/fi";
 import Permission from "../components/Common/Permission";
 import { UserRoles } from "../generated/graphql";
+import { navbarHeight } from "../constants/styles";
 
 const Overview = dynamic<{ startDate: string; endDate: string }>(
   () => import("../components/pages/dashboard/Overview"),
@@ -100,7 +101,7 @@ const DashboardPage: NextPage = () => {
 
   return (
     <Permission minRole={UserRoles.ProjectManager} type={null} showError>
-      <Box p={4} h="100vh" w="100%" display="flex" flexDirection="column" overflow="hidden">
+      <Box p={4} h={`calc(100vh - ${navbarHeight})`} w="100%" display="flex" flexDirection="column" overflow="hidden">
         <Tabs variant="enclosed" index={tabIndex} onChange={setTabIndex}
           display="flex" flexDirection="column" flex={1} minH={0} w="100%">
           {/* Tabs and date controls on one line, sharing the bottom border */}
@@ -155,14 +156,14 @@ const DashboardPage: NextPage = () => {
               </HStack>
             </HStack>
           </Flex>
-          <TabPanels flex={1} minH={0} overflow="hidden" w="100%">
-            <TabPanel h="100%" w="100%" p={0} pt={4} overflow="hidden">
+          <TabPanels flex={1} minH={0} overflowY="auto" w="100%">
+            <TabPanel w="100%" p={0} pt={4}>
               <Overview startDate={startDate} endDate={endDate} />
             </TabPanel>
-            <TabPanel h="100%" w="100%" p={0} pt={4} overflow="hidden">
+            <TabPanel w="100%" p={0} pt={4}>
               <Financial startDate={startDate} endDate={endDate} />
             </TabPanel>
-            <TabPanel h="100%" w="100%" p={0} pt={4} overflow="hidden">
+            <TabPanel w="100%" p={0} pt={4}>
               <Productivity startDate={startDate} endDate={endDate} />
             </TabPanel>
           </TabPanels>
