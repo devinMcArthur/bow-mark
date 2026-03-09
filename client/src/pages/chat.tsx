@@ -32,6 +32,7 @@ import { NextPage } from "next";
 import { FiSend, FiPlus, FiEdit2, FiTrash2, FiArrowDown, FiMenu } from "react-icons/fi";
 import Permission from "../components/Common/Permission";
 import { SourcesDrawer } from "../components/Chat/SourcesDrawer";
+import { CopyableTable } from "../components/Chat/CopyableTable";
 import { UserRoles } from "../generated/graphql";
 import { localStorageTokenKey } from "../contexts/Auth";
 import { navbarHeight } from "../constants/styles";
@@ -119,11 +120,7 @@ const MarkdownContent = ({ content }: { content: string }) => (
         ) : (
           <Code fontSize="xs" px={1} py={0.5} borderRadius="sm" bg="gray.100">{children}</Code>
         ),
-      table: ({ children }) => (
-        <Box overflowX="auto" mb={2}>
-          <Box as="table" w="full" fontSize="sm" sx={{ borderCollapse: "collapse" }}>{children}</Box>
-        </Box>
-      ),
+      table: (props) => <CopyableTable {...props} />,
       thead: ({ children }) => <Box as="thead" bg="gray.50">{children}</Box>,
       th: ({ children }) => (
         <Box as="th" px={3} py={1.5} textAlign="left" fontWeight="600" borderBottom="2px solid" borderColor="gray.200" whiteSpace="nowrap">{children}</Box>
