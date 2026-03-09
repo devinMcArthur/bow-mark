@@ -353,7 +353,11 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
     }
   } catch (err) {
     console.error("Claude API error:", err);
-    sendEvent({ type: "error", message: err instanceof Error ? err.message : "Unknown error" });
+    let userMessage = err instanceof Error ? err.message : "Unknown error";
+    if (err instanceof Anthropic.BadRequestError && err.message.toLowerCase().includes("too long")) {
+      userMessage = "The request exceeded the context limit — the tool results returned too much data. Try narrowing the date range or filtering to a specific jobsite.";
+    }
+    sendEvent({ type: "error", message: userMessage });
   } finally {
     await mcpClient.close();
     res.end();
