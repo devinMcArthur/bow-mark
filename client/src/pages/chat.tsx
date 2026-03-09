@@ -19,6 +19,12 @@ import {
   PopoverBody,
   PopoverFooter,
   Button,
+  Drawer,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerHeader,
+  DrawerBody,
+  DrawerCloseButton,
 } from "@chakra-ui/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -309,6 +315,7 @@ const ChatPage: NextPage = () => {
   const [conversations, setConversations] = React.useState<ConversationSummary[]>([]);
   const [modelTokens, setModelTokens] = React.useState<Record<string, { input: number; output: number }>>({});
   const [showScrollButton, setShowScrollButton] = React.useState(false);
+  const [sourcesMessage, setSourcesMessage] = React.useState<ChatMessage | null>(null);
   const [isDesktop] = useMediaQuery("(min-width: 640px)");
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const bottomRef = React.useRef<HTMLDivElement>(null);
@@ -898,6 +905,18 @@ const ChatPage: NextPage = () => {
                             </>
                           )}
                         </Box>
+                        {msg.toolResults && msg.toolResults.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="xs"
+                            mt={1}
+                            color="gray.500"
+                            fontWeight="normal"
+                            onClick={() => setSourcesMessage(msg)}
+                          >
+                            Sources ({msg.toolResults.length})
+                          </Button>
+                        )}
                       </Box>
                     )}
                   </Box>
@@ -965,6 +984,21 @@ const ChatPage: NextPage = () => {
           </Box>
         </Flex>
       </Flex>
+      <Drawer
+        isOpen={sourcesMessage !== null}
+        placement="right"
+        onClose={() => setSourcesMessage(null)}
+        size="md"
+      >
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerHeader>Sources</DrawerHeader>
+          <DrawerBody>
+            {/* SourcesDrawer content will go here in Task 5 */}
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
     </Permission>
   );
 };
