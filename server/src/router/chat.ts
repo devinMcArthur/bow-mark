@@ -5,6 +5,7 @@ import { Router } from "express";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { ChatConversation, IToolResult } from "../models/ChatConversation";
+import { User } from "@models";
 
 const router = Router();
 
@@ -55,6 +56,11 @@ router.post("/message", async (req, res) => {
     res.status(401).json({ error: "Invalid token" });
     return;
   }
+
+  const user = await User.findById(userId);
+  const systemPrompt = user?.name
+    ? `The user's name is ${user.name}.\n\n${SYSTEM_PROMPT}`
+    : SYSTEM_PROMPT;
 
   const { messages, conversationId } = req.body as {
     messages: Anthropic.MessageParam[];
@@ -232,7 +238,7 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
       const stream = anthropic.messages.stream({
         model: MODEL,
         max_tokens: 4096,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         tools: anthropicTools,
         messages: conversationMessages,
       });
