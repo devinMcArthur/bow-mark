@@ -16,6 +16,7 @@ import {
   Button,
   Code,
 } from "@chakra-ui/react";
+import { useCsvCopy } from "../../hooks/useCsvCopy";
 
 interface ToolResult {
   toolName: string;
@@ -44,6 +45,39 @@ function ToolResultPanel({ result }: { result: string }) {
     parseError = true;
   }
 
+  // Find top-level array property
+  let rows: Record<string, unknown>[] | null = null;
+  if (!parseError && typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+    for (const key of Object.keys(parsed as Record<string, unknown>)) {
+      const val = (parsed as Record<string, unknown>)[key];
+      if (Array.isArray(val) && val.length > 0) {
+        rows = val as Record<string, unknown>[];
+        break;
+      }
+    }
+  } else if (!parseError && Array.isArray(parsed) && parsed.length > 0) {
+    rows = parsed as Record<string, unknown>[];
+  }
+
+  // Render table if we have rows with at least one item
+  const renderTable = rows !== null && rows.length > 0;
+  const columns = renderTable ? Object.keys(rows![0]) : [];
+
+  const renderValue = (val: unknown): string => {
+    if (val === null || val === undefined) return "";
+    if (Array.isArray(val)) return "[array]";
+    if (typeof val === "object") return "[object]";
+    return String(val);
+  };
+
+  // Hooks called unconditionally before any early return (rules of hooks)
+  const csvHeaders = renderTable ? columns : [];
+  const csvRows = renderTable
+    ? rows!.map((row) => columns.map((col) => renderValue(row[col])))
+    : [];
+  const { onCopy, hasCopied } = useCsvCopy(csvHeaders, csvRows);
+
+  // Non-JSON / parse error: render raw text (no early return before hooks)
   if (parseError || parsed === null) {
     return (
       <Box>
@@ -65,57 +99,39 @@ function ToolResultPanel({ result }: { result: string }) {
     );
   }
 
-  // Find top-level array property
-  let rows: Record<string, unknown>[] | null = null;
-  if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-    for (const key of Object.keys(parsed as Record<string, unknown>)) {
-      const val = (parsed as Record<string, unknown>)[key];
-      if (Array.isArray(val) && val.length > 0) {
-        rows = val as Record<string, unknown>[];
-        break;
-      }
-    }
-  } else if (Array.isArray(parsed) && parsed.length > 0) {
-    rows = parsed as Record<string, unknown>[];
-  }
-
-  // Render table if we have rows with at least one item
-  const renderTable = rows !== null && rows.length > 0;
-  const columns = renderTable ? Object.keys(rows![0]) : [];
-
-  const renderValue = (val: unknown): string => {
-    if (val === null || val === undefined) return "";
-    if (Array.isArray(val)) return "[array]";
-    if (typeof val === "object") return "[object]";
-    return String(val);
-  };
-
   return (
     <Box>
       {renderTable ? (
-        <Box overflowX="auto" mb={3}>
-          <Table size="sm" variant="simple">
-            <Thead>
-              <Tr>
-                {columns.map((col) => (
-                  <Th key={col} fontSize="xs" textTransform="none" fontFamily="mono">
-                    {col}
-                  </Th>
-                ))}
-              </Tr>
-            </Thead>
-            <Tbody>
-              {rows!.map((row, i) => (
-                <Tr key={i}>
+        <Box mb={3}>
+          <Box display="flex" justifyContent="flex-end" mb={1}>
+            <Button size="xs" variant="ghost" onClick={onCopy}>
+              {hasCopied ? "Copied ✓" : "Copy CSV"}
+            </Button>
+          </Box>
+          <Box overflowX="auto">
+            <Table size="sm" variant="simple">
+              <Thead>
+                <Tr>
                   {columns.map((col) => (
-                    <Td key={col} fontSize="xs" fontFamily="mono" whiteSpace="nowrap">
-                      {renderValue(row[col])}
-                    </Td>
+                    <Th key={col} fontSize="xs" textTransform="none" fontFamily="mono">
+                      {col}
+                    </Th>
                   ))}
                 </Tr>
-              ))}
-            </Tbody>
-          </Table>
+              </Thead>
+              <Tbody>
+                {rows!.map((row, i) => (
+                  <Tr key={i}>
+                    {columns.map((col) => (
+                      <Td key={col} fontSize="xs" fontFamily="mono" whiteSpace="nowrap">
+                        {renderValue(row[col])}
+                      </Td>
+                    ))}
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </Box>
         </Box>
       ) : (
         // Key-value rendering
