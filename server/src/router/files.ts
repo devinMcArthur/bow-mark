@@ -24,7 +24,8 @@ router.get("/daily-report/:dailyReportId", async (req, res) => {
   res.setHeader("Content-Type", SupportedMimeTypes.XLSX);
   res.setHeader(
     "Content-Disposition",
-    `attachment; filename=${dayjs(dailyReport.date).format("YYYY-MM-DD")}-(${jobsite.jobcode
+    `attachment; filename=${dayjs(dailyReport.date).format("YYYY-MM-DD")}-(${
+      jobsite.jobcode
     })-${crew.name}.xlsx`
   );
 
@@ -61,8 +62,9 @@ router.get("/crew/:crewId", async (req, res) => {
     const buffer = await getWorkbookBuffer(workbook);
 
     archive.append(buffer, {
-      name: `${dayjs(dailyReports[i].date).format("YYYY-MM-DD")}-${crew.name}-${jobsite.jobcode
-        }.xlsx`,
+      name: `${dayjs(dailyReports[i].date).format("YYYY-MM-DD")}-${crew.name}-${
+        jobsite.jobcode
+      }.xlsx`,
     });
   }
 
@@ -93,22 +95,29 @@ router.get("/employees", async (_req, res) => {
   return res.send(await getWorkbookBuffer(workbook));
 });
 
-router.get("/operator-daily-report/:operatorDailyReportId/pdf", async (req, res) => {
-  const operatorDailyReport = await OperatorDailyReport.getById(req.params.operatorDailyReportId);
+router.get(
+  "/operator-daily-report/:operatorDailyReportId/pdf",
+  async (req, res) => {
+    const operatorDailyReport = await OperatorDailyReport.getById(
+      req.params.operatorDailyReportId
+    );
 
-  if (!operatorDailyReport) return res.status(404);
+    if (!operatorDailyReport) return res.status(404);
 
-  const vehicle = await operatorDailyReport.getVehicle();
+    const vehicle = await operatorDailyReport.getVehicle();
 
-  const pdf = await operatorDailyReport.generatePDF();
-  res.setHeader("Content-Type", SupportedMimeTypes.PDF);
-  res.setHeader(
-    "Content-Disposition",
-    `inline; filename=${vehicle.vehicleCode}-${dayjs(operatorDailyReport.createdAt).format("YYYY-MM-DD")}.pdf`
-  );
+    const pdf = await operatorDailyReport.generatePDF();
+    res.setHeader("Content-Type", SupportedMimeTypes.PDF);
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename=${vehicle.vehicleCode}-${dayjs(
+        operatorDailyReport.createdAt
+      ).format("YYYY-MM-DD")}.pdf`
+    );
 
-  return res.send(Buffer.from(pdf));
-});
+    return res.send(Buffer.from(pdf));
+  }
+);
 
 router.get("/company/:companyId/material-report/:year", async (req, res) => {
   const companyId = req.params.companyId;

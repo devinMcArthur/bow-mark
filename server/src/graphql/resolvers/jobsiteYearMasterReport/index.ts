@@ -58,7 +58,10 @@ export default class JobsiteYearMasterReportResolver {
     @Arg("startTime", () => Date) startTime: Date,
     @Arg("endTime", () => Date) endTime: Date
   ) {
-    const workbook = await generateForDateRange(dayjs(startTime).startOf("day").toDate(), dayjs(endTime).endOf("day").toDate());
+    const workbook = await generateForDateRange(
+      dayjs(startTime).startOf("day").toDate(),
+      dayjs(endTime).endOf("day").toDate()
+    );
 
     const buffer = await getWorkbookBuffer(workbook);
 

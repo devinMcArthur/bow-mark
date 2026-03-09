@@ -1,4 +1,9 @@
-import { DailyReportClass, FileClass, ReportNoteClass, ReportNoteDocument } from "@models";
+import {
+  DailyReportClass,
+  FileClass,
+  ReportNoteClass,
+  ReportNoteDocument,
+} from "@models";
 import {
   Arg,
   Authorized,
@@ -20,7 +25,7 @@ export default class ReportNoteResolver {
     return reportNote.getFiles();
   }
 
-  @FieldResolver(() => DailyReportClass, {nullable: true})
+  @FieldResolver(() => DailyReportClass, { nullable: true })
   async dailyReport(@Root() reportNote: ReportNoteDocument) {
     return reportNote.getDailyReport();
   }

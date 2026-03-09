@@ -297,7 +297,7 @@ const generateTable = async (
       onSiteExpenses *
       (1 +
         (getRateForTime(system.internalExpenseOverheadRate, startTime) || 10) /
-        100);
+          100);
 
     const totalExpenses =
       overhead + externalExpenseValue * 1.03 + internalExpenseValue;
@@ -332,7 +332,7 @@ const generateTable = async (
       lastDayReport &&
       lastRevenueInvoice &&
       new Date(lastDayReport.date).getTime() >
-      new Date(lastRevenueInvoice.date).getTime()
+        new Date(lastRevenueInvoice.date).getTime()
     ) {
       extraWork = true;
     }

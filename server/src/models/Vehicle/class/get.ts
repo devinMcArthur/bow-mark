@@ -169,7 +169,7 @@ const vehicleIssues = async (vehicle: VehicleDocument) => {
 };
 
 const vehicleHourReports = async (
-  vehicle: VehicleDocument,
+  vehicle: VehicleDocument
 ): Promise<VehicleHoursReport> => {
   const report: VehicleHoursReport = {
     years: [],
@@ -191,7 +191,9 @@ const vehicleHourReports = async (
     );
 
     // Check for existing day index
-    const existingIndex = report.years.findIndex((year) => year.year === jobsiteDayReport.date.getFullYear());
+    const existingIndex = report.years.findIndex(
+      (year) => year.year === jobsiteDayReport.date.getFullYear()
+    );
 
     if (existingIndex === -1) {
       report.years.push({
@@ -215,5 +217,5 @@ export default {
   rateForTime,
   operatorDailyReports,
   vehicleIssues,
-  vehicleHourReports
+  vehicleHourReports,
 };

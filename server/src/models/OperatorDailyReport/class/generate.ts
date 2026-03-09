@@ -3,23 +3,24 @@ import { BLANK_PDF, Template, generate } from "@pdfme/generator";
 import dayjs from "dayjs";
 
 const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
-  const redColor = "#822727", greenColor = "#22543D";
+  const redColor = "#822727",
+    greenColor = "#22543D";
   /**
-    * Title: Vehicle - Date
-    * Author
-    * General:
-    *  - Usage: 112 hours / km
-    *  - Start Time
-    * Checklist
-    * Function Checks
-    * Issue Checks
-    * Leaks:
-    *  - type
-    *  - location
-    * Fluids Added
-    *  - type
-    *  - amount
-    */
+   * Title: Vehicle - Date
+   * Author
+   * General:
+   *  - Usage: 112 hours / km
+   *  - Start Time
+   * Checklist
+   * Function Checks
+   * Issue Checks
+   * Leaks:
+   *  - type
+   *  - location
+   * Fluids Added
+   *  - type
+   *  - amount
+   */
 
   const leaksTemplate: Record<string, unknown> = {};
   const leaksInput: Record<string, unknown> = {};
@@ -40,21 +41,21 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
       height: 5,
       dynamicFontSize: {
         min: 8,
-        max: 13
-      }
+        max: 13,
+      },
     };
     leaksTemplate[locationIndex] = {
       type: "text",
       position: {
         x: 15,
-        y: leakStartY + 6
+        y: leakStartY + 6,
       },
       width: 60,
       height: 5,
       dynamicFontSize: {
         min: 8,
-        max: 13
-      }
+        max: 13,
+      },
     };
 
     leaksInput[typeIndex] = `Type: ${leak.type}`;
@@ -62,7 +63,6 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
 
     leakStartY += 20;
   }
-
 
   const fluidsTemplate: Record<string, unknown> = {};
   const fluidsInput: Record<string, unknown> = {};
@@ -83,25 +83,27 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
       height: 5,
       dynamicFontSize: {
         min: 8,
-        max: 13
-      }
+        max: 13,
+      },
     };
     fluidsTemplate[amountIndex] = {
       type: "text",
       position: {
         x: 80,
-        y: fluidStartY + 6
+        y: fluidStartY + 6,
       },
       width: 60,
       height: 5,
       dynamicFontSize: {
         min: 8,
-        max: 13
-      }
+        max: 13,
+      },
     };
 
     fluidsInput[typeIndex] = `Type: ${fluid.type}`;
-    fluidsInput[amountIndex] = `Amount: ${fluid.amount.toLocaleString("en-US")} Litres`;
+    fluidsInput[amountIndex] = `Amount: ${fluid.amount.toLocaleString(
+      "en-US"
+    )} Litres`;
 
     fluidStartY += 20;
   }
@@ -127,7 +129,7 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           type: "text",
           position: {
             x: 10,
-            y: 20
+            y: 20,
           },
           width: 200,
           height: 5,
@@ -139,7 +141,7 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
             y: 25,
           },
           width: 90,
-          height: 5
+          height: 5,
         },
         /**
          * General Section
@@ -152,7 +154,7 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           },
           width: 200,
           height: 10,
-          fontSize: 20
+          fontSize: 20,
         },
         usageTitle: {
           type: "text",
@@ -163,17 +165,17 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           width: 50,
           height: 10,
           fontSize: 15,
-          verticalAlignment: "bottom"
+          verticalAlignment: "bottom",
         },
         usage: {
           type: "text",
           position: {
             x: 32,
-            y: 40
+            y: 40,
           },
           width: 50,
           height: 10,
-          verticalAlignment: "bottom"
+          verticalAlignment: "bottom",
         },
         startTimeTitle: {
           type: "text",
@@ -184,17 +186,17 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           width: 50,
           height: 10,
           fontSize: 15,
-          verticalAlignment: "bottom"
+          verticalAlignment: "bottom",
         },
         startTime: {
           type: "text",
           position: {
             x: 107,
-            y: 40
+            y: 40,
           },
           width: 50,
           height: 10,
-          verticalAlignment: "bottom"
+          verticalAlignment: "bottom",
         },
         /**
          * Checklist Section
@@ -207,7 +209,7 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           },
           width: 200,
           height: 10,
-          fontSize: 20
+          fontSize: 20,
         },
         walkAroundTitle: {
           type: "text",
@@ -218,18 +220,20 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           width: 50,
           height: 10,
           fontSize: 15,
-          verticalAlignment: "bottom"
+          verticalAlignment: "bottom",
         },
         walkAround: {
           type: "text",
           position: {
             x: 53,
-            y: 62
+            y: 62,
           },
           width: 50,
           height: 10,
           verticalAlignment: "bottom",
-          fontColor: operatorDailyReport.checklist.walkaroundComplete ? greenColor : redColor
+          fontColor: operatorDailyReport.checklist.walkaroundComplete
+            ? greenColor
+            : redColor,
         },
         visualInspectionTitle: {
           type: "text",
@@ -240,18 +244,20 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           width: 50,
           height: 10,
           fontSize: 15,
-          verticalAlignment: "bottom"
+          verticalAlignment: "bottom",
         },
         visualInspection: {
           type: "text",
           position: {
             x: 123,
-            y: 62
+            y: 62,
           },
           width: 50,
           height: 10,
           verticalAlignment: "bottom",
-          fontColor: operatorDailyReport.checklist.visualInspectionComplete ? greenColor : redColor
+          fontColor: operatorDailyReport.checklist.visualInspectionComplete
+            ? greenColor
+            : redColor,
         },
         oilTitle: {
           type: "text",
@@ -262,18 +268,20 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           width: 50,
           height: 10,
           fontSize: 15,
-          verticalAlignment: "bottom"
+          verticalAlignment: "bottom",
         },
         oil: {
           type: "text",
           position: {
             x: 53,
-            y: 72
+            y: 72,
           },
           width: 50,
           height: 10,
           verticalAlignment: "bottom",
-          fontColor: operatorDailyReport.checklist.oilChecked ? greenColor : redColor
+          fontColor: operatorDailyReport.checklist.oilChecked
+            ? greenColor
+            : redColor,
         },
         coolantTitle: {
           type: "text",
@@ -284,18 +292,20 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           width: 50,
           height: 10,
           fontSize: 15,
-          verticalAlignment: "bottom"
+          verticalAlignment: "bottom",
         },
         coolant: {
           type: "text",
           position: {
             x: 123,
-            y: 72
+            y: 72,
           },
           width: 50,
           height: 10,
           verticalAlignment: "bottom",
-          fontColor: operatorDailyReport.checklist.coolantChecked ? greenColor : redColor
+          fontColor: operatorDailyReport.checklist.coolantChecked
+            ? greenColor
+            : redColor,
         },
         fluidTitle: {
           type: "text",
@@ -306,18 +316,20 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           width: 50,
           height: 10,
           fontSize: 15,
-          verticalAlignment: "bottom"
+          verticalAlignment: "bottom",
         },
         fluid: {
           type: "text",
           position: {
             x: 53,
-            y: 82
+            y: 82,
           },
           width: 50,
           height: 10,
           verticalAlignment: "bottom",
-          fontColor: operatorDailyReport.checklist.fluidsChecked ? greenColor : redColor
+          fontColor: operatorDailyReport.checklist.fluidsChecked
+            ? greenColor
+            : redColor,
         },
         /**
          * Function Check Section
@@ -330,7 +342,7 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           },
           width: 200,
           height: 10,
-          fontSize: 20
+          fontSize: 20,
         },
         backupAlarmTitle: {
           type: "text",
@@ -341,18 +353,20 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           width: 50,
           height: 10,
           fontSize: 15,
-          verticalAlignment: "bottom"
+          verticalAlignment: "bottom",
         },
         backupAlarm: {
           type: "text",
           position: {
             x: 53,
-            y: 102
+            y: 102,
           },
           width: 50,
           height: 10,
           verticalAlignment: "bottom",
-          fontColor: operatorDailyReport.functionChecks.backupAlarm ? greenColor : redColor
+          fontColor: operatorDailyReport.functionChecks.backupAlarm
+            ? greenColor
+            : redColor,
         },
         lightsTitle: {
           type: "text",
@@ -363,18 +377,20 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           width: 50,
           height: 10,
           fontSize: 15,
-          verticalAlignment: "bottom"
+          verticalAlignment: "bottom",
         },
         lights: {
           type: "text",
           position: {
             x: 123,
-            y: 102
+            y: 102,
           },
           width: 50,
           height: 10,
           verticalAlignment: "bottom",
-          fontColor: operatorDailyReport.functionChecks.lights ? greenColor : redColor
+          fontColor: operatorDailyReport.functionChecks.lights
+            ? greenColor
+            : redColor,
         },
         licensePlateTitle: {
           type: "text",
@@ -385,18 +401,20 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           width: 50,
           height: 10,
           fontSize: 15,
-          verticalAlignment: "bottom"
+          verticalAlignment: "bottom",
         },
         licensePlate: {
           type: "text",
           position: {
             x: 53,
-            y: 112
+            y: 112,
           },
           width: 50,
           height: 10,
           verticalAlignment: "bottom",
-          fontColor: operatorDailyReport.functionChecks.licensePlate ? greenColor : redColor
+          fontColor: operatorDailyReport.functionChecks.licensePlate
+            ? greenColor
+            : redColor,
         },
         fireExtinguisherTitle: {
           type: "text",
@@ -407,18 +425,20 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           width: 50,
           height: 10,
           fontSize: 15,
-          verticalAlignment: "bottom"
+          verticalAlignment: "bottom",
         },
         fireExtinguisher: {
           type: "text",
           position: {
             x: 123,
-            y: 112
+            y: 112,
           },
           width: 50,
           height: 10,
           verticalAlignment: "bottom",
-          fontColor: operatorDailyReport.functionChecks.fireExtinguisher ? greenColor : redColor
+          fontColor: operatorDailyReport.functionChecks.fireExtinguisher
+            ? greenColor
+            : redColor,
         },
         /**
          * Issue Check Section
@@ -431,7 +451,7 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           },
           width: 200,
           height: 10,
-          fontSize: 20
+          fontSize: 20,
         },
         damageTitle: {
           type: "text",
@@ -442,18 +462,18 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           width: 50,
           height: 10,
           fontSize: 15,
-          verticalAlignment: "bottom"
+          verticalAlignment: "bottom",
         },
         damage: {
           type: "text",
           position: {
             x: 53,
-            y: 132
+            y: 132,
           },
           width: 50,
           height: 10,
           verticalAlignment: "bottom",
-          fontColor: operatorDailyReport.damageObserved ? greenColor : redColor
+          fontColor: operatorDailyReport.damageObserved ? greenColor : redColor,
         },
         malfunctionTitle: {
           type: "text",
@@ -464,18 +484,18 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           width: 50,
           height: 10,
           fontSize: 15,
-          verticalAlignment: "bottom"
+          verticalAlignment: "bottom",
         },
         malfunction: {
           type: "text",
           position: {
             x: 123,
-            y: 132
+            y: 132,
           },
           width: 50,
           height: 10,
           verticalAlignment: "bottom",
-          fontColor: operatorDailyReport.malfunction ? greenColor : redColor
+          fontColor: operatorDailyReport.malfunction ? greenColor : redColor,
         },
         /**
          * Leaks
@@ -488,7 +508,7 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           },
           width: 100,
           height: 10,
-          fontSize: 20
+          fontSize: 20,
         },
         ...fluidsTemplate,
         /**
@@ -502,11 +522,11 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
           },
           width: 100,
           height: 10,
-          fontSize: 20
+          fontSize: 20,
         },
-        ...leaksTemplate
+        ...leaksTemplate,
       },
-    ]
+    ],
   };
 
   const employee = await operatorDailyReport.getAuthor();
@@ -519,29 +539,45 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
       author: employee.name,
       generalTitle: "General",
       usageTitle: "Usage:",
-      usage: `${operatorDailyReport.equipmentUsage.usage.toLocaleString("en-US")} ${operatorDailyReport.equipmentUsage.unit}`,
+      usage: `${operatorDailyReport.equipmentUsage.usage.toLocaleString(
+        "en-US"
+      )} ${operatorDailyReport.equipmentUsage.unit}`,
       startTimeTitle: "Start Time:",
       startTime: dayjs(operatorDailyReport.startTime).format("hh:mm a"),
       checklistTitle: "Checklist",
       walkAroundTitle: "Walk Around:",
-      walkAround: operatorDailyReport.checklist.walkaroundComplete ? "Finished" : "Not Done",
+      walkAround: operatorDailyReport.checklist.walkaroundComplete
+        ? "Finished"
+        : "Not Done",
       visualInspectionTitle: "Visual Inspection:",
-      visualInspection: operatorDailyReport.checklist.walkaroundComplete ? "Finished" : "Not Done",
+      visualInspection: operatorDailyReport.checklist.walkaroundComplete
+        ? "Finished"
+        : "Not Done",
       oilTitle: "Oil Checked:",
       oil: operatorDailyReport.checklist.oilChecked ? "Finished" : "Not Done",
       coolantTitle: "Coolant Checked:",
-      coolant: operatorDailyReport.checklist.coolantChecked ? "Finished" : "Not Done",
+      coolant: operatorDailyReport.checklist.coolantChecked
+        ? "Finished"
+        : "Not Done",
       fluidTitle: "Fluids Checked:",
-      fluid: operatorDailyReport.checklist.fluidsChecked ? "Finished" : "Not Done",
+      fluid: operatorDailyReport.checklist.fluidsChecked
+        ? "Finished"
+        : "Not Done",
       functionCheckTitle: "Function Check",
       backupAlarmTitle: "Backup Alarm:",
-      backupAlarm: operatorDailyReport.functionChecks.backupAlarm ? "Proper" : "Improper",
+      backupAlarm: operatorDailyReport.functionChecks.backupAlarm
+        ? "Proper"
+        : "Improper",
       lightsTitle: "Lights:",
       lights: operatorDailyReport.functionChecks.lights ? "Proper" : "Improper",
       licensePlateTitle: "License Plate:",
-      licensePlate: operatorDailyReport.functionChecks.licensePlate ? "Proper" : "Improper",
+      licensePlate: operatorDailyReport.functionChecks.licensePlate
+        ? "Proper"
+        : "Improper",
       fireExtinguisherTitle: "Fire Extinguisher:",
-      fireExtinguisher: operatorDailyReport.functionChecks.fireExtinguisher ? "Proper" : "Improper",
+      fireExtinguisher: operatorDailyReport.functionChecks.fireExtinguisher
+        ? "Proper"
+        : "Improper",
       issueCheckTitle: "Issue Checks",
       damageTitle: "Damage Found:",
       damage: operatorDailyReport.damageObserved ? "Yes" : "No",
@@ -550,8 +586,8 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
       leaksTitle: "Leaks",
       ...leaksInput,
       fluidsAddedTitle: "Fluids Added",
-      ...fluidsInput
-    }
+      ...fluidsInput,
+    },
   ];
 
   const pdf = await generate({ template, inputs });
@@ -560,5 +596,5 @@ const pdf = async (operatorDailyReport: OperatorDailyReportDocument) => {
 };
 
 export default {
-  pdf
+  pdf,
 };

@@ -1,5 +1,5 @@
 import {
-    DailyReportClass,
+  DailyReportClass,
   Jobsite,
   JobsiteDayReport,
   JobsiteDayReportClass,
@@ -130,7 +130,7 @@ const lastDayReport = async (
 };
 
 const reportNotes = async (
-    jobsiteYearReport: JobsiteYearReportDocument
+  jobsiteYearReport: JobsiteYearReportDocument
 ): Promise<ReportNoteDocument[]> => {
   const populatedMonthReport = await jobsiteYearReport
     .populate({
@@ -138,19 +138,24 @@ const reportNotes = async (
       populate: {
         path: "dailyReports",
         populate: {
-          path: "reportNote"
-        }
-      }
+          path: "reportNote",
+        },
+      },
     })
     .execPopulate();
-  
+
   const notes: ReportNoteDocument[] = [];
-  for (const dayReport of (populatedMonthReport as JobsiteMonthReportDocument).dayReports) {
+  for (const dayReport of (populatedMonthReport as JobsiteMonthReportDocument)
+    .dayReports) {
     // Typeguard the populated DayReports
     if (dayReport && isDocument<JobsiteDayReportClass, Id>(dayReport)) {
       for (const dailyReport of dayReport.dailyReports) {
         // Typeguard the populated DailyReports
-        if (dailyReport && isDocument<DailyReportClass, Id>(dailyReport) && dailyReport.reportNote) {
+        if (
+          dailyReport &&
+          isDocument<DailyReportClass, Id>(dailyReport) &&
+          dailyReport.reportNote
+        ) {
           notes.push(dailyReport.reportNote as ReportNoteDocument);
         }
       }

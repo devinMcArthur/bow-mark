@@ -3,7 +3,9 @@ import ExcelJS from "exceljs";
 import { CompanyMaterialReport } from "@typescript/company";
 import { Material } from "@models";
 
-const generateCompanyMaterialReportExcel = async (report: CompanyMaterialReport[]) => {
+const generateCompanyMaterialReportExcel = async (
+  report: CompanyMaterialReport[]
+) => {
   const workbook = new ExcelJS.Workbook();
 
   const worksheet = workbook.addWorksheet("Material Report");
@@ -22,11 +24,15 @@ const generateCompanyMaterialReportExcel = async (report: CompanyMaterialReport[
     }
   });
 
-  const sortedDates = Array.from(uniqueDates).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-  await Promise.all(Array.from(materialNames.keys()).map(async (materialId) => {
-    const material = await Material.getById(materialId);
-    if (material) materialNames.set(materialId, material.name);
-  }));
+  const sortedDates = Array.from(uniqueDates).sort(
+    (a, b) => new Date(a).getTime() - new Date(b).getTime()
+  );
+  await Promise.all(
+    Array.from(materialNames.keys()).map(async (materialId) => {
+      const material = await Material.getById(materialId);
+      if (material) materialNames.set(materialId, material.name);
+    })
+  );
 
   // Step 2: Create the Data Matrix
   const dataMatrix: (string | number)[][] = [];
@@ -35,7 +41,9 @@ const generateCompanyMaterialReportExcel = async (report: CompanyMaterialReport[
 
     materialNames.forEach((_, materialId) => {
       // 1. Find the report for this specific material
-      const materialReport = report.find((r) => r.material?.toString() === materialId);
+      const materialReport = report.find(
+        (r) => r.material?.toString() === materialId
+      );
 
       // 2. If report exists, SUM all quantities that match the target date
       let quantity = 0;
@@ -66,9 +74,11 @@ const generateCompanyMaterialReportExcel = async (report: CompanyMaterialReport[
     columns: [
       { name: "Dates", filterButton: true },
       // @ts-expect-error - TS doesn't like the spread operator here for totalRowFunction
-      ...Array.from(materialNames.values()).map((name) => (
-        { name: name, filterButton: true, totalsRowFunction: "sum" }
-      )),
+      ...Array.from(materialNames.values()).map((name) => ({
+        name: name,
+        filterButton: true,
+        totalsRowFunction: "sum",
+      })),
     ],
     rows: dataMatrix,
   });

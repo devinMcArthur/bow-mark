@@ -52,7 +52,7 @@ const testMaterialReportExcel = async () => {
   let quantitySum = 0;
   materialReport.forEach((group) => {
     group.jobDays.forEach((item) => {
-      quantitySum += (item.quantity || 0);
+      quantitySum += item.quantity || 0;
     });
   });
 
@@ -60,10 +60,13 @@ const testMaterialReportExcel = async () => {
   const totalMaterialsWithQuantity: Map<string, number> = new Map();
   materialReport.forEach((group) => {
     if (group.material) {
-      totalMaterialsWithDays.set(group.material.toString(), group.jobDays.length);
+      totalMaterialsWithDays.set(
+        group.material.toString(),
+        group.jobDays.length
+      );
       let totalQuantity = 0;
       group.jobDays.forEach((item) => {
-        totalQuantity += (item.quantity || 0);
+        totalQuantity += item.quantity || 0;
       });
       totalMaterialsWithQuantity.set(group.material.toString(), totalQuantity);
     }

@@ -39,7 +39,9 @@ export interface ProductionSyncContext {
 class ProductionSyncHandler extends SyncHandler<ProductionDocument> {
   readonly entityName = "Production";
 
-  protected async fetchFromMongo(mongoId: string): Promise<ProductionDocument | null> {
+  protected async fetchFromMongo(
+    mongoId: string
+  ): Promise<ProductionDocument | null> {
     return Production.findById(mongoId).exec();
   }
 
@@ -48,7 +50,9 @@ class ProductionSyncHandler extends SyncHandler<ProductionDocument> {
     return true;
   }
 
-  protected async syncToPostgres(production: ProductionDocument): Promise<void> {
+  protected async syncToPostgres(
+    production: ProductionDocument
+  ): Promise<void> {
     // Find the parent DailyReport
     const dailyReport = await DailyReport.findOne({
       production: production._id,
@@ -79,7 +83,11 @@ class ProductionSyncHandler extends SyncHandler<ProductionDocument> {
     // Upsert dimension records
     const jobsiteId = await upsertDimJobsite(typedDailyReport.jobsite);
     const crewId = await upsertDimCrew(typedDailyReport.crew);
-    const dailyReportId = await upsertDimDailyReport(typedDailyReport, jobsiteId, crewId);
+    const dailyReportId = await upsertDimDailyReport(
+      typedDailyReport,
+      jobsiteId,
+      crewId
+    );
 
     // Sync the fact record
     await upsertFactProduction({
@@ -103,7 +111,9 @@ class ProductionSyncHandler extends SyncHandler<ProductionDocument> {
 /**
  * Upsert a fact_production record
  */
-export async function upsertFactProduction(ctx: ProductionSyncContext): Promise<void> {
+export async function upsertFactProduction(
+  ctx: ProductionSyncContext
+): Promise<void> {
   const { production, dailyReport, dailyReportId, jobsiteId, crewId } = ctx;
   const mongoId = production._id.toString();
   const workDate = dailyReport.date;

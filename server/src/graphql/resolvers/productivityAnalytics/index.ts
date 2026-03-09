@@ -67,7 +67,12 @@ export default class ProductivityAnalyticsResolver {
       crewHoursDetail,
     ] = await Promise.all([
       this.getLaborTypeHours(jobsite.id, startDate, endDate),
-      this.getMaterialProductivity(jobsite.id, startDate, endDate, materialGrouping),
+      this.getMaterialProductivity(
+        jobsite.id,
+        startDate,
+        endDate,
+        materialGrouping
+      ),
       this.getOverallProductivity(jobsite.id, startDate, endDate),
       includeCrewHoursDetail
         ? this.getCrewHoursDetail(jobsite.id, startDate, endDate)
@@ -75,8 +80,13 @@ export default class ProductivityAnalyticsResolver {
     ]);
 
     // Use overall productivity metrics (correctly calculated)
-    const { totalTonnes, totalCrewHours, overallTonnesPerHour, totalManHours, overallTonnesPerManHour } =
-      overallProductivity;
+    const {
+      totalTonnes,
+      totalCrewHours,
+      overallTonnesPerHour,
+      totalManHours,
+      overallTonnesPerManHour,
+    } = overallProductivity;
 
     return {
       jobsiteId: jobsite.mongo_id,
@@ -268,7 +278,9 @@ export default class ProductivityAnalyticsResolver {
         "ms.crew_type",
         sql<number>`COALESCE(SUM(${tonnesConversion}), 0)`.as("tonnes"),
         sql<number>`COUNT(*)`.as("shipment_count"),
-        sql<number>`COALESCE(SUM(CASE WHEN LOWER(ms.unit) = 'm3' THEN ms.quantity ELSE 0 END), 0)`.as("raw_m3"),
+        sql<number>`COALESCE(SUM(CASE WHEN LOWER(ms.unit) = 'm3' THEN ms.quantity ELSE 0 END), 0)`.as(
+          "raw_m3"
+        ),
       ])
       .where("ms.jobsite_id", "=", jobsiteId)
       .where("ms.work_date", ">=", startDate)
@@ -479,8 +491,10 @@ export default class ProductivityAnalyticsResolver {
       materialStats.set(groupKey, {
         ...existing,
         totalTonnes: existing.totalTonnes + tonnes,
-        totalProportionalHours: existing.totalProportionalHours + proportionalHours,
-        totalProportionalManHours: existing.totalProportionalManHours + proportionalManHours,
+        totalProportionalHours:
+          existing.totalProportionalHours + proportionalHours,
+        totalProportionalManHours:
+          existing.totalProportionalManHours + proportionalManHours,
         totalRawM3: existing.totalRawM3 + rawM3,
         shipmentCount: existing.shipmentCount + Number(row.shipment_count),
       });
@@ -514,7 +528,9 @@ export default class ProductivityAnalyticsResolver {
       // Build daily reports list, sorted by date
       const dailyReports = [...stats.dailyReportIds]
         .map((id) => dailyReportMap.get(id))
-        .filter((info): info is { mongoId: string; date: Date } => info !== undefined)
+        .filter(
+          (info): info is { mongoId: string; date: Date } => info !== undefined
+        )
         .sort((a, b) => a.date.getTime() - b.date.getTime())
         .map((info) => ({ id: info.mongoId, date: info.date }));
 
@@ -527,11 +543,16 @@ export default class ProductivityAnalyticsResolver {
             dailyReportId: reportInfo?.mongoId || dailyReportId,
             tonnes: data.tonnes,
             crewHours: data.crewHours,
-            tonnesPerHour: data.crewHours > 0 ? data.tonnes / data.crewHours : 0,
+            tonnesPerHour:
+              data.crewHours > 0 ? data.tonnes / data.crewHours : 0,
             manHours: data.manHours,
-            tonnesPerManHour: data.manHours > 0 ? data.tonnes / data.manHours : 0,
+            tonnesPerManHour:
+              data.manHours > 0 ? data.tonnes / data.manHours : 0,
             rawM3: data.rawM3,
-            m3PerHour: data.rawM3 > 0 && data.crewHours > 0 ? data.rawM3 / data.crewHours : 0,
+            m3PerHour:
+              data.rawM3 > 0 && data.crewHours > 0
+                ? data.rawM3 / data.crewHours
+                : 0,
           };
         })
         .sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -606,7 +627,9 @@ export default class ProductivityAnalyticsResolver {
     const tonnesResult = await db
       .selectFrom("fact_material_shipment as ms")
       .innerJoin("dim_daily_report as dr", "dr.id", "ms.daily_report_id")
-      .select([sql<number>`COALESCE(SUM(${tonnesConversion}), 0)`.as("total_tonnes")])
+      .select([
+        sql<number>`COALESCE(SUM(${tonnesConversion}), 0)`.as("total_tonnes"),
+      ])
       .where("ms.jobsite_id", "=", jobsiteId)
       .where("ms.work_date", ">=", startDate)
       .where("ms.work_date", "<=", endDate)
@@ -695,7 +718,13 @@ export default class ProductivityAnalyticsResolver {
     const overallTonnesPerManHour =
       totalManHours > 0 ? totalTonnes / totalManHours : 0;
 
-    return { totalTonnes, totalCrewHours, overallTonnesPerHour, totalManHours, overallTonnesPerManHour };
+    return {
+      totalTonnes,
+      totalCrewHours,
+      overallTonnesPerHour,
+      totalManHours,
+      overallTonnesPerManHour,
+    };
   }
 
   /**

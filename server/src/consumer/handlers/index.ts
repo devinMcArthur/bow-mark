@@ -9,9 +9,18 @@ export { SyncHandler } from "./base";
 
 // Handler instances
 export { dailyReportSyncHandler } from "./dailyReportSync";
-export { employeeWorkSyncHandler, upsertFactEmployeeWork } from "./employeeWorkSync";
-export { vehicleWorkSyncHandler, upsertFactVehicleWork } from "./vehicleWorkSync";
-export { materialShipmentSyncHandler, upsertFactMaterialShipment } from "./materialShipmentSync";
+export {
+  employeeWorkSyncHandler,
+  upsertFactEmployeeWork,
+} from "./employeeWorkSync";
+export {
+  vehicleWorkSyncHandler,
+  upsertFactVehicleWork,
+} from "./vehicleWorkSync";
+export {
+  materialShipmentSyncHandler,
+  upsertFactMaterialShipment,
+} from "./materialShipmentSync";
 export { productionSyncHandler, upsertFactProduction } from "./productionSync";
 export { invoiceSyncHandler, upsertFactInvoice } from "./invoiceSync";
 

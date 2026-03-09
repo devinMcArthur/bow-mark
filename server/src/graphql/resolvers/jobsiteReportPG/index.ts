@@ -129,7 +129,9 @@ export default class JobsiteReportPGResolver {
     ]);
 
     return {
-      _id: `${jobsite.mongo_id}_${startDate.toISOString()}_${endDate.toISOString()}`,
+      _id: `${
+        jobsite.mongo_id
+      }_${startDate.toISOString()}_${endDate.toISOString()}`,
       jobsite: {
         _id: jobsite.mongo_id,
         name: jobsite.name,
@@ -169,9 +171,17 @@ export default class JobsiteReportPGResolver {
           eb.exists(
             eb
               .selectFrom("fact_employee_work")
-              .innerJoin("dim_daily_report", "dim_daily_report.id", "fact_employee_work.daily_report_id")
+              .innerJoin(
+                "dim_daily_report",
+                "dim_daily_report.id",
+                "fact_employee_work.daily_report_id"
+              )
               .select(sql`1`.as("one"))
-              .where("fact_employee_work.jobsite_id", "=", eb.ref("dim_jobsite.id"))
+              .where(
+                "fact_employee_work.jobsite_id",
+                "=",
+                eb.ref("dim_jobsite.id")
+              )
               .where("fact_employee_work.work_date", ">=", startOfYear)
               .where("fact_employee_work.work_date", "<=", endOfYear)
               .where("fact_employee_work.archived_at", "is", null)
@@ -243,7 +253,11 @@ export default class JobsiteReportPGResolver {
     // Get employee totals (only from approved daily reports)
     const employeeTotals = await db
       .selectFrom("fact_employee_work")
-      .innerJoin("dim_daily_report", "dim_daily_report.id", "fact_employee_work.daily_report_id")
+      .innerJoin(
+        "dim_daily_report",
+        "dim_daily_report.id",
+        "fact_employee_work.daily_report_id"
+      )
       .select([
         "fact_employee_work.crew_type",
         sql<number>`COALESCE(SUM(fact_employee_work.hours), 0)`.as("hours"),
@@ -261,7 +275,11 @@ export default class JobsiteReportPGResolver {
     // Get vehicle totals (only from approved daily reports)
     const vehicleTotals = await db
       .selectFrom("fact_vehicle_work")
-      .innerJoin("dim_daily_report", "dim_daily_report.id", "fact_vehicle_work.daily_report_id")
+      .innerJoin(
+        "dim_daily_report",
+        "dim_daily_report.id",
+        "fact_vehicle_work.daily_report_id"
+      )
       .select([
         "fact_vehicle_work.crew_type",
         sql<number>`COALESCE(SUM(fact_vehicle_work.hours), 0)`.as("hours"),
@@ -279,11 +297,19 @@ export default class JobsiteReportPGResolver {
     // Get material totals (only from approved daily reports)
     const materialTotals = await db
       .selectFrom("fact_material_shipment")
-      .innerJoin("dim_daily_report", "dim_daily_report.id", "fact_material_shipment.daily_report_id")
+      .innerJoin(
+        "dim_daily_report",
+        "dim_daily_report.id",
+        "fact_material_shipment.daily_report_id"
+      )
       .select([
         "fact_material_shipment.crew_type",
-        sql<number>`COALESCE(SUM(fact_material_shipment.quantity), 0)`.as("quantity"),
-        sql<number>`COALESCE(SUM(fact_material_shipment.total_cost), 0)`.as("cost"),
+        sql<number>`COALESCE(SUM(fact_material_shipment.quantity), 0)`.as(
+          "quantity"
+        ),
+        sql<number>`COALESCE(SUM(fact_material_shipment.total_cost), 0)`.as(
+          "cost"
+        ),
       ])
       .where("fact_material_shipment.jobsite_id", "=", jobsiteId)
       .where("fact_material_shipment.work_date", ">=", startDate)
@@ -297,10 +323,16 @@ export default class JobsiteReportPGResolver {
     // Get non-costed material totals (only from approved daily reports)
     const nonCostedTotals = await db
       .selectFrom("fact_non_costed_material")
-      .innerJoin("dim_daily_report", "dim_daily_report.id", "fact_non_costed_material.daily_report_id")
+      .innerJoin(
+        "dim_daily_report",
+        "dim_daily_report.id",
+        "fact_non_costed_material.daily_report_id"
+      )
       .select([
         "fact_non_costed_material.crew_type",
-        sql<number>`COALESCE(SUM(fact_non_costed_material.quantity), 0)`.as("quantity"),
+        sql<number>`COALESCE(SUM(fact_non_costed_material.quantity), 0)`.as(
+          "quantity"
+        ),
       ])
       .where("fact_non_costed_material.jobsite_id", "=", jobsiteId)
       .where("fact_non_costed_material.work_date", ">=", startDate)
@@ -314,7 +346,11 @@ export default class JobsiteReportPGResolver {
     // Get trucking totals (only from approved daily reports)
     const truckingTotals = await db
       .selectFrom("fact_trucking")
-      .innerJoin("dim_daily_report", "dim_daily_report.id", "fact_trucking.daily_report_id")
+      .innerJoin(
+        "dim_daily_report",
+        "dim_daily_report.id",
+        "fact_trucking.daily_report_id"
+      )
       .select([
         "fact_trucking.crew_type",
         sql<number>`COALESCE(SUM(fact_trucking.quantity), 0)`.as("quantity"),
@@ -366,19 +402,43 @@ export default class JobsiteReportPGResolver {
 
     // Calculate totals
     return {
-      employeeHours: crewTypeSummaries.reduce((sum, c) => sum + c.employeeHours, 0),
-      employeeCost: crewTypeSummaries.reduce((sum, c) => sum + c.employeeCost, 0),
-      vehicleHours: crewTypeSummaries.reduce((sum, c) => sum + c.vehicleHours, 0),
+      employeeHours: crewTypeSummaries.reduce(
+        (sum, c) => sum + c.employeeHours,
+        0
+      ),
+      employeeCost: crewTypeSummaries.reduce(
+        (sum, c) => sum + c.employeeCost,
+        0
+      ),
+      vehicleHours: crewTypeSummaries.reduce(
+        (sum, c) => sum + c.vehicleHours,
+        0
+      ),
       vehicleCost: crewTypeSummaries.reduce((sum, c) => sum + c.vehicleCost, 0),
-      materialQuantity: crewTypeSummaries.reduce((sum, c) => sum + c.materialQuantity, 0),
-      materialCost: crewTypeSummaries.reduce((sum, c) => sum + c.materialCost, 0),
+      materialQuantity: crewTypeSummaries.reduce(
+        (sum, c) => sum + c.materialQuantity,
+        0
+      ),
+      materialCost: crewTypeSummaries.reduce(
+        (sum, c) => sum + c.materialCost,
+        0
+      ),
       nonCostedMaterialQuantity: crewTypeSummaries.reduce(
         (sum, c) => sum + c.nonCostedMaterialQuantity,
         0
       ),
-      truckingQuantity: crewTypeSummaries.reduce((sum, c) => sum + c.truckingQuantity, 0),
-      truckingHours: crewTypeSummaries.reduce((sum, c) => sum + c.truckingHours, 0),
-      truckingCost: crewTypeSummaries.reduce((sum, c) => sum + c.truckingCost, 0),
+      truckingQuantity: crewTypeSummaries.reduce(
+        (sum, c) => sum + c.truckingQuantity,
+        0
+      ),
+      truckingHours: crewTypeSummaries.reduce(
+        (sum, c) => sum + c.truckingHours,
+        0
+      ),
+      truckingCost: crewTypeSummaries.reduce(
+        (sum, c) => sum + c.truckingCost,
+        0
+      ),
       crewTypeSummaries,
     };
   }
@@ -393,7 +453,11 @@ export default class JobsiteReportPGResolver {
   ): Promise<string[]> {
     const result = await db
       .selectFrom("fact_employee_work")
-      .innerJoin("dim_daily_report", "dim_daily_report.id", "fact_employee_work.daily_report_id")
+      .innerJoin(
+        "dim_daily_report",
+        "dim_daily_report.id",
+        "fact_employee_work.daily_report_id"
+      )
       .select("fact_employee_work.crew_type")
       .distinct()
       .where("fact_employee_work.work_date", ">=", startDate)
@@ -451,7 +515,11 @@ export default class JobsiteReportPGResolver {
   ): Promise<string[]> {
     const result = await db
       .selectFrom("fact_employee_work")
-      .innerJoin("dim_daily_report", "dim_daily_report.id", "fact_employee_work.daily_report_id")
+      .innerJoin(
+        "dim_daily_report",
+        "dim_daily_report.id",
+        "fact_employee_work.daily_report_id"
+      )
       .select("fact_employee_work.crew_type")
       .distinct()
       .where("fact_employee_work.jobsite_id", "=", jobsiteId)
@@ -592,7 +660,11 @@ export default class JobsiteReportPGResolver {
     // Get unique dates that have work (only from approved daily reports)
     const dates = await db
       .selectFrom("fact_employee_work")
-      .innerJoin("dim_daily_report", "dim_daily_report.id", "fact_employee_work.daily_report_id")
+      .innerJoin(
+        "dim_daily_report",
+        "dim_daily_report.id",
+        "fact_employee_work.daily_report_id"
+      )
       .select("fact_employee_work.work_date")
       .distinct()
       .where("fact_employee_work.jobsite_id", "=", jobsiteId)
@@ -604,7 +676,11 @@ export default class JobsiteReportPGResolver {
       .union(
         db
           .selectFrom("fact_vehicle_work")
-          .innerJoin("dim_daily_report", "dim_daily_report.id", "fact_vehicle_work.daily_report_id")
+          .innerJoin(
+            "dim_daily_report",
+            "dim_daily_report.id",
+            "fact_vehicle_work.daily_report_id"
+          )
           .select("fact_vehicle_work.work_date")
           .distinct()
           .where("fact_vehicle_work.jobsite_id", "=", jobsiteId)
@@ -638,19 +714,14 @@ export default class JobsiteReportPGResolver {
     jobsiteId: string,
     date: Date
   ): Promise<JobsiteDayReportPG | null> {
-    const [
-      employees,
-      vehicles,
-      materials,
-      nonCostedMaterials,
-      trucking,
-    ] = await Promise.all([
-      this.getEmployeesForDay(jobsiteId, date),
-      this.getVehiclesForDay(jobsiteId, date),
-      this.getMaterialsForDay(jobsiteId, date),
-      this.getNonCostedMaterialsForDay(jobsiteId, date),
-      this.getTruckingForDay(jobsiteId, date),
-    ]);
+    const [employees, vehicles, materials, nonCostedMaterials, trucking] =
+      await Promise.all([
+        this.getEmployeesForDay(jobsiteId, date),
+        this.getVehiclesForDay(jobsiteId, date),
+        this.getMaterialsForDay(jobsiteId, date),
+        this.getNonCostedMaterialsForDay(jobsiteId, date),
+        this.getTruckingForDay(jobsiteId, date),
+      ]);
 
     // If no data, skip this day
     if (
@@ -972,39 +1043,41 @@ export default class JobsiteReportPGResolver {
     };
 
     // Calculate crew type summaries
-    const crewTypeSummaries: CrewTypeSummaryPG[] = crewTypes.map((crewType) => ({
-      crewType,
-      employeeHours: employees
-        .filter((e) => e.crewType === crewType)
-        .reduce((sum, e) => sum + e.hours, 0),
-      employeeCost: employees
-        .filter((e) => e.crewType === crewType)
-        .reduce((sum, e) => sum + e.cost, 0),
-      vehicleHours: vehicles
-        .filter((v) => v.crewType === crewType)
-        .reduce((sum, v) => sum + v.hours, 0),
-      vehicleCost: vehicles
-        .filter((v) => v.crewType === crewType)
-        .reduce((sum, v) => sum + v.cost, 0),
-      materialQuantity: materials
-        .filter((m) => m.crewType === crewType)
-        .reduce((sum, m) => sum + m.quantity, 0),
-      materialCost: materials
-        .filter((m) => m.crewType === crewType)
-        .reduce((sum, m) => sum + m.cost, 0),
-      nonCostedMaterialQuantity: nonCostedMaterials
-        .filter((m) => m.crewType === crewType)
-        .reduce((sum, m) => sum + m.quantity, 0),
-      truckingQuantity: trucking
-        .filter((t) => t.crewType === crewType)
-        .reduce((sum, t) => sum + t.quantity, 0),
-      truckingHours: trucking
-        .filter((t) => t.crewType === crewType)
-        .reduce((sum, t) => sum + (t.hours || 0), 0),
-      truckingCost: trucking
-        .filter((t) => t.crewType === crewType)
-        .reduce((sum, t) => sum + t.cost, 0),
-    }));
+    const crewTypeSummaries: CrewTypeSummaryPG[] = crewTypes.map(
+      (crewType) => ({
+        crewType,
+        employeeHours: employees
+          .filter((e) => e.crewType === crewType)
+          .reduce((sum, e) => sum + e.hours, 0),
+        employeeCost: employees
+          .filter((e) => e.crewType === crewType)
+          .reduce((sum, e) => sum + e.cost, 0),
+        vehicleHours: vehicles
+          .filter((v) => v.crewType === crewType)
+          .reduce((sum, v) => sum + v.hours, 0),
+        vehicleCost: vehicles
+          .filter((v) => v.crewType === crewType)
+          .reduce((sum, v) => sum + v.cost, 0),
+        materialQuantity: materials
+          .filter((m) => m.crewType === crewType)
+          .reduce((sum, m) => sum + m.quantity, 0),
+        materialCost: materials
+          .filter((m) => m.crewType === crewType)
+          .reduce((sum, m) => sum + m.cost, 0),
+        nonCostedMaterialQuantity: nonCostedMaterials
+          .filter((m) => m.crewType === crewType)
+          .reduce((sum, m) => sum + m.quantity, 0),
+        truckingQuantity: trucking
+          .filter((t) => t.crewType === crewType)
+          .reduce((sum, t) => sum + t.quantity, 0),
+        truckingHours: trucking
+          .filter((t) => t.crewType === crewType)
+          .reduce((sum, t) => sum + (t.hours || 0), 0),
+        truckingCost: trucking
+          .filter((t) => t.crewType === crewType)
+          .reduce((sum, t) => sum + t.cost, 0),
+      })
+    );
 
     return {
       ...totals,

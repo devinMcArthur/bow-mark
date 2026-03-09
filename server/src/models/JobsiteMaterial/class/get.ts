@@ -176,7 +176,7 @@ const invoiceMonthRate = async (
       if (
         reportShipments[j].noJobsiteMaterial === false &&
         reportShipments[j].jobsiteMaterial?.toString() ===
-        jobsiteMaterial._id.toString()
+          jobsiteMaterial._id.toString()
       ) {
         quantity += reportShipments[j].quantity;
       }

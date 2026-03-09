@@ -48,7 +48,9 @@ export interface EmployeeWorkSyncContext {
 class EmployeeWorkSyncHandler extends SyncHandler<PopulatedEmployeeWork> {
   readonly entityName = "EmployeeWork";
 
-  protected async fetchFromMongo(mongoId: string): Promise<PopulatedEmployeeWork | null> {
+  protected async fetchFromMongo(
+    mongoId: string
+  ): Promise<PopulatedEmployeeWork | null> {
     const doc = await EmployeeWork.findById(mongoId)
       .populate("employee")
       .exec();
@@ -58,13 +60,17 @@ class EmployeeWorkSyncHandler extends SyncHandler<PopulatedEmployeeWork> {
 
   protected validate(doc: PopulatedEmployeeWork): boolean {
     if (!doc.employee) {
-      console.warn(`[${this.entityName}Sync] ${doc._id} missing employee reference`);
+      console.warn(
+        `[${this.entityName}Sync] ${doc._id} missing employee reference`
+      );
       return false;
     }
     return true;
   }
 
-  protected async syncToPostgres(employeeWork: PopulatedEmployeeWork): Promise<void> {
+  protected async syncToPostgres(
+    employeeWork: PopulatedEmployeeWork
+  ): Promise<void> {
     // Find the parent DailyReport that contains this EmployeeWork
     const dailyReport = await DailyReport.findOne({
       employeeWork: employeeWork._id,
@@ -95,7 +101,11 @@ class EmployeeWorkSyncHandler extends SyncHandler<PopulatedEmployeeWork> {
     // Upsert dimension records
     const jobsiteId = await upsertDimJobsite(typedDailyReport.jobsite);
     const crewId = await upsertDimCrew(typedDailyReport.crew);
-    const dailyReportId = await upsertDimDailyReport(typedDailyReport, jobsiteId, crewId);
+    const dailyReportId = await upsertDimDailyReport(
+      typedDailyReport,
+      jobsiteId,
+      crewId
+    );
     const employeeId = await upsertDimEmployee(employeeWork.employee);
 
     // Sync the fact record
@@ -118,7 +128,9 @@ class EmployeeWorkSyncHandler extends SyncHandler<PopulatedEmployeeWork> {
       .executeTakeFirst();
 
     if (!existing) {
-      console.log(`[${this.entityName}Sync] No fact_employee_work found for ${mongoId}`);
+      console.log(
+        `[${this.entityName}Sync] No fact_employee_work found for ${mongoId}`
+      );
       return;
     }
 
@@ -137,8 +149,17 @@ class EmployeeWorkSyncHandler extends SyncHandler<PopulatedEmployeeWork> {
  * - EmployeeWorkSyncHandler (direct EmployeeWork updates)
  * - DailyReportSyncHandler (bulk sync of all EmployeeWork in a report)
  */
-export async function upsertFactEmployeeWork(ctx: EmployeeWorkSyncContext): Promise<void> {
-  const { employeeWork, dailyReport, dailyReportId, jobsiteId, crewId, employeeId } = ctx;
+export async function upsertFactEmployeeWork(
+  ctx: EmployeeWorkSyncContext
+): Promise<void> {
+  const {
+    employeeWork,
+    dailyReport,
+    dailyReportId,
+    jobsiteId,
+    crewId,
+    employeeId,
+  } = ctx;
   const mongoId = employeeWork._id.toString();
 
   // Get the applicable rate for this work date

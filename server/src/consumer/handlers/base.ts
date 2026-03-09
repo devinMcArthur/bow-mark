@@ -55,7 +55,9 @@ export abstract class SyncHandler<TDocument = unknown> {
     try {
       if (action === "deleted") {
         await this.handleDelete(mongoId);
-        console.log(`[${this.entityName}Sync] Successfully handled deletion for ${mongoId}`);
+        console.log(
+          `[${this.entityName}Sync] Successfully handled deletion for ${mongoId}`
+        );
         return;
       }
 
@@ -63,13 +65,17 @@ export abstract class SyncHandler<TDocument = unknown> {
       const doc = await this.fetchFromMongo(mongoId);
 
       if (!doc) {
-        console.warn(`[${this.entityName}Sync] ${mongoId} not found in MongoDB`);
+        console.warn(
+          `[${this.entityName}Sync] ${mongoId} not found in MongoDB`
+        );
         return;
       }
 
       // Validate
       if (!this.validate(doc)) {
-        console.warn(`[${this.entityName}Sync] ${mongoId} failed validation, skipping`);
+        console.warn(
+          `[${this.entityName}Sync] ${mongoId} failed validation, skipping`
+        );
         return;
       }
 
@@ -77,7 +83,10 @@ export abstract class SyncHandler<TDocument = unknown> {
       await this.syncToPostgres(doc);
       console.log(`[${this.entityName}Sync] Successfully synced ${mongoId}`);
     } catch (error) {
-      console.error(`[${this.entityName}Sync] Failed to process ${mongoId}:`, error);
+      console.error(
+        `[${this.entityName}Sync] Failed to process ${mongoId}:`,
+        error
+      );
       throw error; // Re-throw for consumer retry logic
     }
   }

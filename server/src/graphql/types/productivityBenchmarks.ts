@@ -130,7 +130,9 @@ export class RegressionCoefficients {
   @Field(() => Float, { description: "y-intercept of the regression line" })
   intercept!: number;
 
-  @Field(() => Float, { description: "Slope of the regression line (per ln(tonnes))" })
+  @Field(() => Float, {
+    description: "Slope of the regression line (per ln(tonnes))",
+  })
   slope!: number;
 }
 
@@ -161,7 +163,8 @@ export class ProductivityBenchmarkReport {
   crews!: CrewBenchmark[];
 
   @Field(() => RegressionCoefficients, {
-    description: "Dynamically calculated regression coefficients for T/H vs ln(tonnes)",
+    description:
+      "Dynamically calculated regression coefficients for T/H vs ln(tonnes)",
   })
   regression!: RegressionCoefficients;
 }

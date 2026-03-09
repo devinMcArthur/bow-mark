@@ -50,7 +50,6 @@ export async function checkConnection(): Promise<boolean> {
   }
 }
 
-
 /**
  * Close database connection pool (for graceful shutdown)
  */

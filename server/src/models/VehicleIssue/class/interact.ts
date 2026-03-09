@@ -31,8 +31,9 @@ const sendSubscribedNotifications = async (
 ) => {
   const subject = `Vehicle Issue - ${vehicleIssue.title}`;
   const content = `
-      <p>A new vehicle issue has been created with priority ${vehicleIssue.priority
-    }</p>
+      <p>A new vehicle issue has been created with priority ${
+        vehicleIssue.priority
+      }</p>
       <h2>${vehicleIssue.title}</h2>
       <p>${vehicleIssue.description}</p>
       <p><b>Priority: </b>${vehicleIssue.priority}</p>

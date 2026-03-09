@@ -50,42 +50,55 @@ export default class FinancialPerformanceResolver {
     const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
 
     // Run all data fetches in parallel (PG + MongoDB)
-    const [revenueRows, employeeRows, vehicleRows, materialRows, truckingRows, tonnesRows, crewHoursRows, expenseInvoiceMap] =
-      await Promise.all([
-        this.getRevenue(startDate, endDate),
-        this.getEmployeeCosts(startDate, endDate),
-        this.getVehicleCosts(startDate, endDate),
-        this.getMaterialCosts(startDate, endDate),
-        this.getTruckingCosts(startDate, endDate),
-        this.getTonnesPerDailyReport(startDate, endDate),
-        this.getCrewHoursPerDailyReport(startDate, endDate),
-        this.getExpenseInvoices(startDate, endDate),
-      ]);
+    const [
+      revenueRows,
+      employeeRows,
+      vehicleRows,
+      materialRows,
+      truckingRows,
+      tonnesRows,
+      crewHoursRows,
+      expenseInvoiceMap,
+    ] = await Promise.all([
+      this.getRevenue(startDate, endDate),
+      this.getEmployeeCosts(startDate, endDate),
+      this.getVehicleCosts(startDate, endDate),
+      this.getMaterialCosts(startDate, endDate),
+      this.getTruckingCosts(startDate, endDate),
+      this.getTonnesPerDailyReport(startDate, endDate),
+      this.getCrewHoursPerDailyReport(startDate, endDate),
+      this.getExpenseInvoices(startDate, endDate),
+    ]);
 
     // Build lookup maps keyed by PG jobsite UUID
     const revenueMap = new Map<string, number>();
     for (const r of revenueRows) {
-      if (r.jobsite_id) revenueMap.set(r.jobsite_id, Number(r.total_revenue ?? 0));
+      if (r.jobsite_id)
+        revenueMap.set(r.jobsite_id, Number(r.total_revenue ?? 0));
     }
 
     const employeeMap = new Map<string, number>();
     for (const r of employeeRows) {
-      if (r.jobsite_id) employeeMap.set(r.jobsite_id, Number(r.employee_cost ?? 0));
+      if (r.jobsite_id)
+        employeeMap.set(r.jobsite_id, Number(r.employee_cost ?? 0));
     }
 
     const vehicleMap = new Map<string, number>();
     for (const r of vehicleRows) {
-      if (r.jobsite_id) vehicleMap.set(r.jobsite_id, Number(r.vehicle_cost ?? 0));
+      if (r.jobsite_id)
+        vehicleMap.set(r.jobsite_id, Number(r.vehicle_cost ?? 0));
     }
 
     const materialMap = new Map<string, number>();
     for (const r of materialRows) {
-      if (r.jobsite_id) materialMap.set(r.jobsite_id, Number(r.material_cost ?? 0));
+      if (r.jobsite_id)
+        materialMap.set(r.jobsite_id, Number(r.material_cost ?? 0));
     }
 
     const truckingMap = new Map<string, number>();
     for (const r of truckingRows) {
-      if (r.jobsite_id) truckingMap.set(r.jobsite_id, Number(r.trucking_cost ?? 0));
+      if (r.jobsite_id)
+        truckingMap.set(r.jobsite_id, Number(r.trucking_cost ?? 0));
     }
 
     // Aggregate tonnes per jobsite (sum over daily reports)
@@ -116,7 +129,8 @@ export default class FinancialPerformanceResolver {
     // Crew hours lookup: daily_report_id → avg hours
     const crewHoursMap = new Map<string, number>();
     for (const r of crewHoursRows) {
-      if (r.daily_report_id) crewHoursMap.set(r.daily_report_id, Number(r.crew_hours ?? 0));
+      if (r.daily_report_id)
+        crewHoursMap.set(r.daily_report_id, Number(r.crew_hours ?? 0));
     }
 
     // Collect all jobsite PG IDs that have ANY data
@@ -130,7 +144,9 @@ export default class FinancialPerformanceResolver {
     ]);
 
     // Fetch name/mongo_id for jobsites not covered by the tonnes query
-    const missingIds = [...allJobsiteIds].filter((id) => !jobsiteMetaMap.has(id));
+    const missingIds = [...allJobsiteIds].filter(
+      (id) => !jobsiteMetaMap.has(id)
+    );
     if (missingIds.length > 0) {
       const extraJobsites = await db
         .selectFrom("dim_jobsite")
@@ -212,10 +228,16 @@ export default class FinancialPerformanceResolver {
     // Build final JobsiteFinancialItem objects
     const jobsites: JobsiteFinancialItem[] = rawItems.map((item) => {
       const totalDirectCost =
-        item.employeeCost + item.vehicleCost + item.materialCost + item.truckingCost + item.expenseInvoiceCost;
+        item.employeeCost +
+        item.vehicleCost +
+        item.materialCost +
+        item.truckingCost +
+        item.expenseInvoiceCost;
       const netIncome = item.totalRevenue - totalDirectCost;
       const netMarginPercent =
-        item.totalRevenue > 0 ? (netIncome / item.totalRevenue) * 100 : undefined;
+        item.totalRevenue > 0
+          ? (netIncome / item.totalRevenue) * 100
+          : undefined;
 
       const expectedTonnesPerHour =
         item.totalTonnes > 0 && slope !== 0
@@ -224,7 +246,9 @@ export default class FinancialPerformanceResolver {
 
       const residualTonnesPerHourPercent =
         expectedTonnesPerHour > 0
-          ? ((item.tonnesPerHour - expectedTonnesPerHour) / expectedTonnesPerHour) * 100
+          ? ((item.tonnesPerHour - expectedTonnesPerHour) /
+              expectedTonnesPerHour) *
+            100
           : undefined;
 
       return {

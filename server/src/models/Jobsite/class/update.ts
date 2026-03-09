@@ -129,7 +129,7 @@ const workOnHand = async (jobsite: JobsiteDocument) => {
           dayReport.summary.truckingCost) *
         (1 +
           getRateForTime(system.internalExpenseOverheadRate, dayReport.date) /
-          100);
+            100);
     }
 
     expensesInSystem +=
@@ -203,7 +203,7 @@ const addTruckingRateToAll = async (
   if (
     system.materialShipmentVehicleTypeDefaults[systemItemIndex] &&
     system.materialShipmentVehicleTypeDefaults[systemItemIndex].rates[
-    systemRateIndex
+      systemRateIndex
     ]
   ) {
     const systemRateItem =
@@ -270,9 +270,7 @@ const addFileObject = async (
   return file;
 };
 
-const archive = async (
-  jobsite: JobsiteDocument
-): Promise<void> => {
+const archive = async (jobsite: JobsiteDocument): Promise<void> => {
   jobsite.archivedAt = new Date();
 };
 
@@ -301,5 +299,5 @@ export default {
   workOnHand,
   archive,
   unarchive,
-  location
+  location,
 };

@@ -177,7 +177,7 @@ const crewLocations = async (
         // Existing unique date
         const locationDay =
           crewLocations[crewLocations.length - 1].days[
-          uniqueDays.indexOf(startOfDay.toISOString())
+            uniqueDays.indexOf(startOfDay.toISOString())
           ];
 
         let jobsiteName = "";
