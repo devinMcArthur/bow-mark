@@ -31,6 +31,7 @@ import remarkGfm from "remark-gfm";
 import { NextPage } from "next";
 import { FiSend, FiPlus, FiEdit2, FiTrash2, FiArrowDown, FiMenu } from "react-icons/fi";
 import Permission from "../components/Common/Permission";
+import { SourcesDrawer } from "../components/Chat/SourcesDrawer";
 import { UserRoles } from "../generated/graphql";
 import { localStorageTokenKey } from "../contexts/Auth";
 import { navbarHeight } from "../constants/styles";
@@ -995,7 +996,7 @@ const ChatPage: NextPage = () => {
           <DrawerCloseButton />
           <DrawerHeader>Sources</DrawerHeader>
           <DrawerBody>
-            {/* SourcesDrawer content will go here in Task 5 */}
+            <SourcesDrawer message={sourcesMessage} />
           </DrawerBody>
         </DrawerContent>
       </Drawer>
