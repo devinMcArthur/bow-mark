@@ -118,9 +118,9 @@ k8s_yaml([
 k8s_resource(
     'mongo-express',
     resource_deps=['mongo'],
-    port_forwards=['8081:8081'],
+    port_forwards=['8082:8081'],
     labels=['db-tools'],
-    links=['http://localhost:8081'],
+    links=['http://localhost:8082'],
 )
 
 # Adminer - PostgreSQL web UI (lightweight, fast)
@@ -414,12 +414,13 @@ def switch_cmd(target_app_type):
 
         # 3. Restart app deployments to pick up new env vars
         echo "Restarting app deployments..."
-        kubectl rollout restart deployment server-deployment worker-deployment consumer-deployment client-deployment
+        kubectl rollout restart deployment server-deployment worker-deployment consumer-deployment mcp-analytics-deployment client-deployment
 
         # 4. Wait for rollouts
         echo "Waiting for rollout..."
         kubectl rollout status deployment server-deployment --timeout=90s
         kubectl rollout status deployment consumer-deployment --timeout=90s
+        kubectl rollout status deployment mcp-analytics-deployment --timeout=90s
         kubectl rollout status deployment client-deployment --timeout=90s
 
         echo ""
@@ -465,9 +466,6 @@ local_resource(
 local_resource(
     'reindex-search',
     cmd='''
-        echo "Waiting for server pod to be ready..."
-        kubectl wait --for=condition=ready pod -l component=server --timeout=120s
-
         POD=$(kubectl get pods -l component=server -o jsonpath='{.items[0].metadata.name}')
         if [ -z "$POD" ]; then
             echo "Error: Could not find server pod"
