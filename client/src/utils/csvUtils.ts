@@ -1,20 +1,17 @@
 // client/src/utils/csvUtils.ts
 
 /**
- * Converts a header row + data rows to an RFC 4180-compliant CSV string.
- * Cells containing commas, double-quotes, or newlines are wrapped in quotes;
- * internal double-quotes are escaped by doubling them.
+ * Converts a header row + data rows to a tab-separated string suitable for
+ * pasting into spreadsheet apps (Excel, LibreOffice Calc). Tabs within cells
+ * are replaced with a space since tab is the delimiter.
  */
 export function arrayToCsv(headers: string[], rows: string[][]): string {
   const escape = (cell: unknown): string => {
     const s = cell == null ? "" : String(cell);
-    if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
-      return `"${s.replace(/"/g, '""')}"`;
-    }
-    return s;
+    return s.replace(/\t/g, " ");
   };
 
   return [headers, ...rows]
-    .map((row) => row.map(escape).join(","))
-    .join("\r\n");
+    .map((row) => row.map(escape).join("\t"))
+    .join("\n");
 }
