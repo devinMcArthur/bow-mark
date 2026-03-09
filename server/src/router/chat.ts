@@ -5,6 +5,7 @@ import { Router } from "express";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { ChatConversation, IToolResult } from "../models/ChatConversation";
+import { isDocument } from "@typegoose/typegoose";
 import { User } from "@models";
 
 const router = Router();
@@ -57,9 +58,16 @@ router.post("/message", async (req, res) => {
     return;
   }
 
-  const user = await User.findById(userId);
-  const systemPrompt = user?.name
-    ? `The user's name is ${user.name}.\n\n${SYSTEM_PROMPT}`
+  const user = await User.findById(userId).populate("employee");
+  const employee = isDocument(user?.employee) ? user!.employee : null;
+  const userContext = [
+    user?.name && `The user's name is ${user.name}.`,
+    employee?.jobTitle && `Their job title is ${employee.jobTitle}.`,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const systemPrompt = userContext
+    ? `${userContext}\n\n${SYSTEM_PROMPT}`
     : SYSTEM_PROMPT;
 
   const { messages, conversationId } = req.body as {
