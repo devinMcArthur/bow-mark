@@ -32,7 +32,7 @@ const MainPageContainer: React.FC = ({ children }) => {
         color="gray.500"
       >
         <Spinner size="lg" />
-        <Text fontSize="sm">Unable to reach the server — retrying…</Text>
+        <Text fontSize="sm">Unable to reach the server, retrying…</Text>
       </Box>
     );
   }
