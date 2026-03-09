@@ -19,12 +19,20 @@ import {
   PopoverBody,
   PopoverFooter,
   Button,
+  Drawer,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerHeader,
+  DrawerBody,
+  DrawerCloseButton,
 } from "@chakra-ui/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { NextPage } from "next";
 import { FiSend, FiPlus, FiEdit2, FiTrash2, FiArrowDown, FiMenu } from "react-icons/fi";
 import Permission from "../components/Common/Permission";
+import { SourcesDrawer } from "../components/Chat/SourcesDrawer";
+import { CopyableTable } from "../components/Chat/CopyableTable";
 import { UserRoles } from "../generated/graphql";
 import { localStorageTokenKey } from "../contexts/Auth";
 import { navbarHeight } from "../constants/styles";
@@ -33,11 +41,17 @@ import { navbarHeight } from "../constants/styles";
 
 type Role = "user" | "assistant";
 
+interface ToolResult {
+  toolName: string;
+  result: string;
+}
+
 interface ChatMessage {
   id: string;
   role: Role;
   content: string;
   toolCalls?: string[];
+  toolResults?: ToolResult[];
   isStreaming?: boolean;
   model?: string;
 }
@@ -106,11 +120,7 @@ const MarkdownContent = ({ content }: { content: string }) => (
         ) : (
           <Code fontSize="xs" px={1} py={0.5} borderRadius="sm" bg="gray.100">{children}</Code>
         ),
-      table: ({ children }) => (
-        <Box overflowX="auto" mb={2}>
-          <Box as="table" w="full" fontSize="sm" sx={{ borderCollapse: "collapse" }}>{children}</Box>
-        </Box>
-      ),
+      table: (props) => <CopyableTable {...props} />,
       thead: ({ children }) => <Box as="thead" bg="gray.50">{children}</Box>,
       th: ({ children }) => (
         <Box as="th" px={3} py={1.5} textAlign="left" fontWeight="600" borderBottom="2px solid" borderColor="gray.200" whiteSpace="nowrap">{children}</Box>
@@ -303,6 +313,7 @@ const ChatPage: NextPage = () => {
   const [conversations, setConversations] = React.useState<ConversationSummary[]>([]);
   const [modelTokens, setModelTokens] = React.useState<Record<string, { input: number; output: number }>>({});
   const [showScrollButton, setShowScrollButton] = React.useState(false);
+  const [sourcesMessage, setSourcesMessage] = React.useState<ChatMessage | null>(null);
   const [isDesktop] = useMediaQuery("(min-width: 640px)");
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const bottomRef = React.useRef<HTMLDivElement>(null);
@@ -366,11 +377,12 @@ const ChatPage: NextPage = () => {
       }
       setModelTokens(perModel);
       setMessages(
-        data.messages.map((m: { role: Role; content: string; model?: string }) => ({
+        data.messages.map((m: { role: Role; content: string; model?: string; toolResults?: ToolResult[] }) => ({
           id: genId(),
           role: m.role,
           content: m.content,
           model: m.model,
+          toolResults: m.toolResults,
         }))
       );
     } catch {}
@@ -484,6 +496,7 @@ const ChatPage: NextPage = () => {
                 type: string;
                 delta?: string;
                 toolName?: string;
+                result?: string;
                 message?: string;
                 id?: string;
                 inputTokens?: number;
@@ -505,6 +518,20 @@ const ChatPage: NextPage = () => {
                   prev.map((m) =>
                     m.id === assistantId
                       ? { ...m, toolCalls: [...(m.toolCalls ?? []), event.toolName!] }
+                      : m
+                  )
+                );
+              } else if (event.type === "tool_result" && event.toolName) {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantId
+                      ? {
+                          ...m,
+                          toolResults: [
+                            ...(m.toolResults ?? []),
+                            { toolName: event.toolName!, result: event.result ?? "" },
+                          ],
+                        }
                       : m
                   )
                 );
@@ -876,6 +903,18 @@ const ChatPage: NextPage = () => {
                             </>
                           )}
                         </Box>
+                        {msg.toolResults && msg.toolResults.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="xs"
+                            mt={1}
+                            color="gray.500"
+                            fontWeight="normal"
+                            onClick={() => setSourcesMessage(msg)}
+                          >
+                            Sources ({msg.toolResults.length})
+                          </Button>
+                        )}
                       </Box>
                     )}
                   </Box>
@@ -943,6 +982,21 @@ const ChatPage: NextPage = () => {
           </Box>
         </Flex>
       </Flex>
+      <Drawer
+        isOpen={sourcesMessage !== null}
+        placement="right"
+        onClose={() => setSourcesMessage(null)}
+        size="md"
+      >
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerHeader>Sources</DrawerHeader>
+          <DrawerBody>
+            <SourcesDrawer message={sourcesMessage} />
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
     </Permission>
   );
 };
