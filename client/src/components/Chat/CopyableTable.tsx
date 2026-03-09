@@ -3,15 +3,17 @@ import React from "react";
 import { Box, Button } from "@chakra-ui/react";
 import { useCsvCopy } from "../../hooks/useCsvCopy";
 
-// Minimal mdast node shape — only the properties we use
-interface MdastNode {
+// ReactMarkdown v8 passes hast (HTML AST) nodes, not mdast nodes.
+// The hast table structure is: table > thead > tr > th, and table > tbody > tr > td.
+interface HastNode {
   type: string;
+  tagName?: string;
   value?: string;
-  children?: MdastNode[];
+  children?: HastNode[];
 }
 
-/** Recursively flatten an mdast node tree to a plain string. */
-function extractText(node: MdastNode): string {
+/** Recursively flatten a hast node tree to a plain string. */
+function extractText(node: HastNode): string {
   if (node.value !== undefined) return node.value;
   if (node.children) return node.children.map(extractText).join("");
   return "";
@@ -19,8 +21,8 @@ function extractText(node: MdastNode): string {
 
 interface Props {
   children: React.ReactNode;
-  /** Raw mdast Table node injected by ReactMarkdown v8 */
-  node?: MdastNode;
+  /** Hast table element injected by ReactMarkdown v8 */
+  node?: HastNode;
 }
 
 /**
@@ -32,17 +34,31 @@ export function CopyableTable({ children, node }: Props) {
   const rows: string[][] = [];
 
   if (node?.children) {
-    const [headerRow, ...dataRows] = node.children;
+    const thead = node.children.find(
+      (c) => c.type === "element" && c.tagName === "thead"
+    );
+    const tbody = node.children.find(
+      (c) => c.type === "element" && c.tagName === "tbody"
+    );
 
+    // Headers: thead > tr > th
+    const headerRow = thead?.children?.find(
+      (c) => c.type === "element" && c.tagName === "tr"
+    );
     if (headerRow?.children) {
       for (const cell of headerRow.children) {
-        headers.push(extractText(cell));
+        if (cell.type === "element") headers.push(extractText(cell));
       }
     }
 
-    for (const row of dataRows) {
-      if (row?.children) {
-        rows.push(row.children.map(extractText));
+    // Data rows: tbody > tr > td
+    if (tbody?.children) {
+      for (const row of tbody.children) {
+        if (row.type === "element" && row.tagName === "tr") {
+          rows.push(
+            (row.children ?? []).filter((c) => c.type === "element").map(extractText)
+          );
+        }
       }
     }
   }
