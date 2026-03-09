@@ -35,7 +35,10 @@ export interface SyncMessage {
  * The message is JSON-serialized and marked as persistent, meaning
  * RabbitMQ writes it to disk. This survives broker restarts.
  */
-async function publish(routingKey: string, message: SyncMessage): Promise<boolean> {
+async function publish(
+  routingKey: string,
+  message: SyncMessage
+): Promise<boolean> {
   try {
     const channel = await getChannel();
 
@@ -108,22 +111,30 @@ export const publishCrewChange = createPublisher(ROUTING_KEYS.crew);
 /**
  * Publish a daily report change event
  */
-export const publishDailyReportChange = createPublisher(ROUTING_KEYS.dailyReport);
+export const publishDailyReportChange = createPublisher(
+  ROUTING_KEYS.dailyReport
+);
 
 /**
  * Publish an Employee Work change event
  */
-export const publishEmployeeWorkChange = createPublisher(ROUTING_KEYS.employeeWork);
+export const publishEmployeeWorkChange = createPublisher(
+  ROUTING_KEYS.employeeWork
+);
 
 /**
  * Publish a Vehicle Work change event
  */
-export const publishVehicleWorkChange = createPublisher(ROUTING_KEYS.vehicleWork);
+export const publishVehicleWorkChange = createPublisher(
+  ROUTING_KEYS.vehicleWork
+);
 
 /**
  * Publish a Material Shipment change event
  */
-export const publishMaterialShipmentChange = createPublisher(ROUTING_KEYS.materialShipment);
+export const publishMaterialShipmentChange = createPublisher(
+  ROUTING_KEYS.materialShipment
+);
 
 /**
  * Publish a Production change event

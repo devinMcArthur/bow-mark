@@ -87,11 +87,17 @@ const getArg = (name: string): string | undefined => {
 const hasFlag = (name: string): boolean => args.includes(`--${name}`);
 
 const jobsiteFilter = getArg("jobsite");
-const jobcodesFilter = getArg("jobcodes")?.split(",").map((c) => c.trim()).filter(Boolean);
+const jobcodesFilter = getArg("jobcodes")
+  ?.split(",")
+  .map((c) => c.trim())
+  .filter(Boolean);
 const yearFilter = getArg("year") ? parseInt(getArg("year")!) : undefined;
 const limit = getArg("limit") ? parseInt(getArg("limit")!) : undefined;
 const dryRun = hasFlag("dry-run");
-const reportIds = getArg("report-ids")?.split(",").map((id) => id.trim()).filter(Boolean);
+const reportIds = getArg("report-ids")
+  ?.split(",")
+  .map((id) => id.trim())
+  .filter(Boolean);
 
 interface SyncStats {
   dailyReports: number;
@@ -126,10 +132,18 @@ async function syncDailyReport(
   // Upsert shared dimensions via cache (avoids repeated PG round trips for
   // the same jobsite/crew across hundreds of reports).
   const [jobsiteId, crewId] = await Promise.all([
-    cachedDim(`jobsite:${dailyReport.jobsite._id}`, () => upsertDimJobsite(dailyReport.jobsite)),
-    cachedDim(`crew:${dailyReport.crew._id}`, () => upsertDimCrew(dailyReport.crew)),
+    cachedDim(`jobsite:${dailyReport.jobsite._id}`, () =>
+      upsertDimJobsite(dailyReport.jobsite)
+    ),
+    cachedDim(`crew:${dailyReport.crew._id}`, () =>
+      upsertDimCrew(dailyReport.crew)
+    ),
   ]);
-  const dailyReportId = await upsertDimDailyReport(dailyReport, jobsiteId, crewId);
+  const dailyReportId = await upsertDimDailyReport(
+    dailyReport,
+    jobsiteId,
+    crewId
+  );
 
   const employeeWorkIds = dailyReport.employeeWork || [];
   const vehicleWorkIds = dailyReport.vehicleWork || [];
@@ -137,30 +151,41 @@ async function syncDailyReport(
   const productionIds = dailyReport.production || [];
 
   // Fetch all sub-documents in parallel — four sequential queries become one round-trip.
-  const [employeeWorks, vehicleWorks, materialShipments, productions] = await Promise.all([
-    employeeWorkIds.length > 0
-      ? EmployeeWork.find({ _id: { $in: employeeWorkIds } }).populate("employee").exec()
-      : Promise.resolve([]),
-    vehicleWorkIds.length > 0
-      ? VehicleWork.find({ _id: { $in: vehicleWorkIds } }).populate("vehicle").exec()
-      : Promise.resolve([]),
-    materialShipmentIds.length > 0
-      ? MaterialShipment.find({ _id: { $in: materialShipmentIds } })
-          .populate({ path: "jobsiteMaterial", populate: [{ path: "material" }, { path: "supplier" }] })
-          .exec()
-      : Promise.resolve([]),
-    productionIds.length > 0
-      ? Production.find({ _id: { $in: productionIds } }).exec()
-      : Promise.resolve([]),
-  ]);
+  const [employeeWorks, vehicleWorks, materialShipments, productions] =
+    await Promise.all([
+      employeeWorkIds.length > 0
+        ? EmployeeWork.find({ _id: { $in: employeeWorkIds } })
+            .populate("employee")
+            .exec()
+        : Promise.resolve([]),
+      vehicleWorkIds.length > 0
+        ? VehicleWork.find({ _id: { $in: vehicleWorkIds } })
+            .populate("vehicle")
+            .exec()
+        : Promise.resolve([]),
+      materialShipmentIds.length > 0
+        ? MaterialShipment.find({ _id: { $in: materialShipmentIds } })
+            .populate({
+              path: "jobsiteMaterial",
+              populate: [{ path: "material" }, { path: "supplier" }],
+            })
+            .exec()
+        : Promise.resolve([]),
+      productionIds.length > 0
+        ? Production.find({ _id: { $in: productionIds } }).exec()
+        : Promise.resolve([]),
+    ]);
 
   // Sync EmployeeWork
   for (const ew of employeeWorks) {
     if (!ew.employee) continue;
     try {
-      const typedEw = ew as EmployeeWorkDocument & { employee: EmployeeDocument };
-      const employeeId = await cachedDim(`employee:${typedEw.employee._id}`, () =>
-        upsertDimEmployee(typedEw.employee)
+      const typedEw = ew as EmployeeWorkDocument & {
+        employee: EmployeeDocument;
+      };
+      const employeeId = await cachedDim(
+        `employee:${typedEw.employee._id}`,
+        () => upsertDimEmployee(typedEw.employee)
       );
       await upsertFactEmployeeWork({
         employeeWork: typedEw,
@@ -358,14 +383,20 @@ async function main() {
   }
 
   if (jobcodesFilter && jobcodesFilter.length > 0) {
-    const jobsites = await Jobsite.find({ jobcode: { $in: jobcodesFilter } }).exec();
+    const jobsites = await Jobsite.find({
+      jobcode: { $in: jobcodesFilter },
+    }).exec();
     const foundCodes = jobsites.map((j) => j.jobcode);
     const missing = jobcodesFilter.filter((c) => !foundCodes.includes(c));
     if (missing.length > 0) {
       throw new Error(`Jobcodes not found: ${missing.join(", ")}`);
     }
     query.jobsite = { $in: jobsites.map((j) => j._id) };
-    console.log(`\nFiltering by jobcodes: ${jobsites.map((j) => `${j.jobcode} (${j.name})`).join(", ")}`);
+    console.log(
+      `\nFiltering by jobcodes: ${jobsites
+        .map((j) => `${j.jobcode} (${j.name})`)
+        .join(", ")}`
+    );
   }
 
   if (yearFilter) {
@@ -390,7 +421,9 @@ async function main() {
 
   let processed = 0;
 
-  console.log(`\nProcessing ${toProcess} reports (concurrency=${CONCURRENCY})...\n`);
+  console.log(
+    `\nProcessing ${toProcess} reports (concurrency=${CONCURRENCY})...\n`
+  );
 
   // Use paginated batch fetching instead of a cursor. MongoDB Atlas does not
   // honour noCursorTimeout for regular database users, so any long-lived cursor
@@ -401,13 +434,15 @@ async function main() {
   while (true) {
     if (limit && processed >= limit) break;
 
-    const batch = await DailyReport.find(query)
+    const batch = (await DailyReport.find(query)
       .populate("jobsite")
       .populate("crew")
       .sort({ date: 1 })
       .skip(offset)
       .limit(FETCH_BATCH)
-      .exec() as Array<DailyReportDocument & { jobsite: JobsiteDocument; crew: CrewDocument }>;
+      .exec()) as Array<
+      DailyReportDocument & { jobsite: JobsiteDocument; crew: CrewDocument }
+    >;
 
     if (batch.length === 0) break;
 
@@ -427,13 +462,16 @@ async function main() {
             const percent = ((processed / toProcess) * 100).toFixed(1);
             console.log(
               `Progress: ${processed}/${toProcess} (${percent}%) - ` +
-              `EW: ${stats.employeeWork}, VW: ${stats.vehicleWork}, MS: ${stats.materialShipments}, ` +
-              `NC: ${stats.nonCostedMaterials}, TR: ${stats.trucking}, PR: ${stats.production}, Errors: ${stats.errors}`
+                `EW: ${stats.employeeWork}, VW: ${stats.vehicleWork}, MS: ${stats.materialShipments}, ` +
+                `NC: ${stats.nonCostedMaterials}, TR: ${stats.trucking}, PR: ${stats.production}, Errors: ${stats.errors}`
             );
           }
         })
         .catch((error) => {
-          console.error(`Error processing DailyReport ${dailyReport._id}:`, error);
+          console.error(
+            `Error processing DailyReport ${dailyReport._id}:`,
+            error
+          );
           stats.errors++;
         });
 
@@ -476,7 +514,10 @@ async function main() {
     try {
       await syncJobsiteInvoices(jobsite);
     } catch (error) {
-      console.error(`Error syncing invoices for jobsite ${jobsite._id}:`, error);
+      console.error(
+        `Error syncing invoices for jobsite ${jobsite._id}:`,
+        error
+      );
       stats.errors++;
     }
   }

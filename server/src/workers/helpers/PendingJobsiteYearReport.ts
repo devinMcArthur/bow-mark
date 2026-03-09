@@ -4,7 +4,9 @@ import errorHandler from "@utils/errorHandler";
 const pendingJobsiteYearReportUpdateHelper = async () => {
   const jobsiteYearReports = await JobsiteYearReport.getByUpdatePending();
 
-  console.log(`Fixing ${jobsiteYearReports.length} pending jobsite year reports`);
+  console.log(
+    `Fixing ${jobsiteYearReports.length} pending jobsite year reports`
+  );
 
   // Update
   for (let i = 0; i < jobsiteYearReports.length; i++) {

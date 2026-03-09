@@ -28,14 +28,14 @@ import {
 } from "@chakra-ui/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { NextPage } from "next";
+import { useRouter } from "next/router";
 import { FiSend, FiPlus, FiEdit2, FiTrash2, FiArrowDown, FiMenu } from "react-icons/fi";
-import Permission from "../components/Common/Permission";
-import { SourcesDrawer } from "../components/Chat/SourcesDrawer";
-import { CopyableTable } from "../components/Chat/CopyableTable";
-import { UserRoles } from "../generated/graphql";
-import { localStorageTokenKey } from "../contexts/Auth";
-import { navbarHeight } from "../constants/styles";
+import Permission from "../Common/Permission";
+import { SourcesDrawer } from "./SourcesDrawer";
+import { CopyableTable } from "./CopyableTable";
+import { UserRoles } from "../../generated/graphql";
+import { localStorageTokenKey } from "../../contexts/Auth";
+import { navbarHeight } from "../../constants/styles";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -305,11 +305,18 @@ const ConversationItem = ({
 
 // ─── Chat Page ────────────────────────────────────────────────────────────────
 
-const ChatPage: NextPage = () => {
+interface ChatPageProps {
+  initialConversationId?: string;
+}
+
+const ChatPage = ({ initialConversationId }: ChatPageProps) => {
+  const router = useRouter();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState("");
   const [loading, setLoading] = React.useState(false);
-  const [conversationId, setConversationId] = React.useState<string | null>(null);
+  const [conversationId, setConversationId] = React.useState<string | null>(
+    initialConversationId ?? null
+  );
   const [conversations, setConversations] = React.useState<ConversationSummary[]>([]);
   const [modelTokens, setModelTokens] = React.useState<Record<string, { input: number; output: number }>>({});
   const [showScrollButton, setShowScrollButton] = React.useState(false);
@@ -338,6 +345,54 @@ const ChatPage: NextPage = () => {
     load();
   }, []);
 
+  const loadConversation = React.useCallback(
+    async (id: string) => {
+      try {
+        const res = await fetch(`${serverBase}/conversations/${id}`, {
+          headers: { Authorization: getToken() ?? "" },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setConversationId(data.id);
+        // Build per-model token totals from persisted per-message counts
+        const perModel: Record<string, { input: number; output: number }> = {};
+        for (const m of data.messages) {
+          if (m.model && m.inputTokens != null) {
+            perModel[m.model] = {
+              input: (perModel[m.model]?.input ?? 0) + m.inputTokens,
+              output: (perModel[m.model]?.output ?? 0) + (m.outputTokens ?? 0),
+            };
+          }
+        }
+        // Fall back to conversation-level totals attributed to stored model
+        if (Object.keys(perModel).length === 0) {
+          const storedModel = data.model ?? ACTIVE_MODEL;
+          perModel[storedModel] = { input: data.totalInputTokens, output: data.totalOutputTokens };
+        }
+        setModelTokens(perModel);
+        setMessages(
+          data.messages.map((m: { role: Role; content: string; model?: string; toolResults?: ToolResult[] }) => ({
+            id: genId(),
+            role: m.role,
+            content: m.content,
+            model: m.model,
+            toolResults: m.toolResults,
+          }))
+        );
+      } catch {}
+    },
+    [serverBase]
+  );
+
+  // Load conversation when URL param changes
+  React.useEffect(() => {
+    if (initialConversationId) {
+      setMessages([]);
+      setModelTokens({});
+      loadConversation(initialConversationId);
+    }
+  }, [initialConversationId, loadConversation]);
+
   // Scroll to bottom whenever messages update, but only if already near the bottom
   React.useEffect(() => {
     if (isAtBottomRef.current) {
@@ -349,43 +404,10 @@ const ChatPage: NextPage = () => {
     setMessages([]);
     setConversationId(null);
     setModelTokens({});
+    if (router.pathname !== "/chat") {
+      router.push("/chat");
+    }
     setTimeout(() => inputRef.current?.focus(), 50);
-  };
-
-  const loadConversation = async (id: string) => {
-    try {
-      const res = await fetch(`${serverBase}/conversations/${id}`, {
-        headers: { Authorization: getToken() ?? "" },
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      setConversationId(data.id);
-      // Build per-model token totals from persisted per-message counts
-      const perModel: Record<string, { input: number; output: number }> = {};
-      for (const m of data.messages) {
-        if (m.model && m.inputTokens != null) {
-          perModel[m.model] = {
-            input: (perModel[m.model]?.input ?? 0) + m.inputTokens,
-            output: (perModel[m.model]?.output ?? 0) + (m.outputTokens ?? 0),
-          };
-        }
-      }
-      // Fall back to conversation-level totals attributed to stored model
-      if (Object.keys(perModel).length === 0) {
-        const storedModel = data.model ?? ACTIVE_MODEL;
-        perModel[storedModel] = { input: data.totalInputTokens, output: data.totalOutputTokens };
-      }
-      setModelTokens(perModel);
-      setMessages(
-        data.messages.map((m: { role: Role; content: string; model?: string; toolResults?: ToolResult[] }) => ({
-          id: genId(),
-          role: m.role,
-          content: m.content,
-          model: m.model,
-          toolResults: m.toolResults,
-        }))
-      );
-    } catch {}
   };
 
   const renameConversation = async (id: string, title: string) => {
@@ -538,6 +560,8 @@ const ChatPage: NextPage = () => {
               } else if (event.type === "conversation_id" && event.id) {
                 currentConvoId = event.id;
                 setConversationId(event.id);
+                // Update URL without triggering a navigation/re-render mid-stream
+                window.history.replaceState({}, "", `/chat/${event.id}`);
                 setConversations((prev) => [
                   {
                     id: event.id!,
@@ -691,7 +715,10 @@ const ChatPage: NextPage = () => {
                   key={c.id}
                   convo={c}
                   isActive={c.id === conversationId}
-                  onSelect={() => { loadConversation(c.id); setSidebarOpen(false); }}
+                  onSelect={() => {
+                    router.push(`/chat/${c.id}`);
+                    setSidebarOpen(false);
+                  }}
                   onRename={(title) => renameConversation(c.id, title)}
                   onDelete={() => deleteConversation(c.id)}
                 />

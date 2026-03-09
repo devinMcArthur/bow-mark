@@ -137,7 +137,9 @@ const materialReportYears = async (
   });
 
   // Get all unique years from the day reports
-  const years = [...new Set(jobsiteDayReports.map((day) => day.date.getFullYear()))];
+  const years = [
+    ...new Set(jobsiteDayReports.map((day) => day.date.getFullYear())),
+  ];
 
   return years;
 };
@@ -184,7 +186,7 @@ const materialReports = async (
     date: {
       $gte: dayjs(`${year}-01-01`).startOf("year").toDate(),
       $lte: dayjs(`${year}-12-31`).endOf("year").toDate(),
-    }
+    },
   });
 
   interface MaterialReportCatalog {
@@ -221,7 +223,7 @@ const materialReports = async (
           mat.material.jobsiteMaterial &&
           jobsiteMaterialCatalog[mat.material.jobsiteMaterial.toString()] &&
           materialReport.material ===
-          jobsiteMaterialCatalog[mat.material.jobsiteMaterial.toString()]
+            jobsiteMaterialCatalog[mat.material.jobsiteMaterial.toString()]
         )
           return true;
         else return false;
@@ -291,5 +293,5 @@ export default {
   materialReportYears,
   invoices,
   invoiceReportYears,
-  invoiceReport
+  invoiceReport,
 };

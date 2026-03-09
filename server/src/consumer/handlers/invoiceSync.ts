@@ -92,17 +92,19 @@ async function findJobsiteAndDirection(
 class InvoiceSyncHandler extends SyncHandler<PopulatedInvoice> {
   readonly entityName = "Invoice";
 
-  protected async fetchFromMongo(mongoId: string): Promise<PopulatedInvoice | null> {
-    const doc = await Invoice.findById(mongoId)
-      .populate("company")
-      .exec();
+  protected async fetchFromMongo(
+    mongoId: string
+  ): Promise<PopulatedInvoice | null> {
+    const doc = await Invoice.findById(mongoId).populate("company").exec();
 
     return doc as PopulatedInvoice | null;
   }
 
   protected validate(doc: PopulatedInvoice): boolean {
     if (!doc.company) {
-      console.warn(`[${this.entityName}Sync] ${doc._id} missing company reference`);
+      console.warn(
+        `[${this.entityName}Sync] ${doc._id} missing company reference`
+      );
       return false;
     }
     return true;
@@ -141,7 +143,9 @@ class InvoiceSyncHandler extends SyncHandler<PopulatedInvoice> {
 /**
  * Upsert a fact_invoice record
  */
-export async function upsertFactInvoice(ctx: InvoiceSyncContext): Promise<void> {
+export async function upsertFactInvoice(
+  ctx: InvoiceSyncContext
+): Promise<void> {
   const { invoice, jobsite, direction } = ctx;
   const mongoId = invoice._id.toString();
 

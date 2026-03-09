@@ -19,8 +19,8 @@ const login = async (
   if ((await user.checkPassword(password)) === false)
     throw new Error("Invalid email or password provided");
 
-  let expiresIn = 24 * 60 * 60;
-  if (rememberMe) expiresIn = 30 * 24 * 60 * 60;
+  let expiresIn = 7 * 24 * 60 * 60;
+  if (rememberMe) expiresIn = 90 * 24 * 60 * 60;
 
   const token = createJWT(
     {

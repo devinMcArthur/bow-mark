@@ -124,7 +124,11 @@ image works for both paving and concrete (k8s ConfigMap injects `MONGO_URI`,
 
 **To deploy to production:**
 ```bash
-git push origin production
+# 1. Push to master first (triggers CI image build)
+git push origin master
+
+# 2. Open a PR from master → production (triggers deploy once merged)
+gh pr create --base production --head master --title "..." --body "..."
 ```
 
 **Required GitHub repository secrets:** `DOCKERHUB_USERNAME`, `DOCKERHUB_PASS`,

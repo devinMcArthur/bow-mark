@@ -40,9 +40,7 @@ export default class JobsiteYearReportResolver {
   }
 
   @FieldResolver(() => [ReportNoteClass])
-  async reportNotes(
-      @Root() jobsiteYearReport: JobsiteYearReportDocument
-  ) {
+  async reportNotes(@Root() jobsiteYearReport: JobsiteYearReportDocument) {
     return jobsiteYearReport.getReportNotes();
   }
 

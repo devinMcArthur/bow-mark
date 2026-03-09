@@ -5,13 +5,17 @@ import { Router } from "express";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { ChatConversation, IToolResult } from "../models/ChatConversation";
+import { isDocument } from "@typegoose/typegoose";
+import { User } from "@models";
 
 const router = Router();
 
 const MCP_SERVER_URL =
   process.env.MCP_SERVER_URL || "http://mcp-analytics:8081";
 
-const SYSTEM_PROMPT = `You are an analytics assistant for Bow-Mark, a construction and paving company.
+const APP_NAME = process.env.APP_NAME || "paving";
+
+const SYSTEM_PROMPT = `You are an analytics assistant for Bow-Mark's ${APP_NAME} division.
 You have access to tools that query the company's PostgreSQL reporting database and MongoDB.
 Use these tools to answer questions about jobsite financial performance, productivity metrics, crew benchmarks, material costs, daily activity, and employee productivity.
 
@@ -55,6 +59,18 @@ router.post("/message", async (req, res) => {
     res.status(401).json({ error: "Invalid token" });
     return;
   }
+
+  const user = await User.findById(userId).populate("employee");
+  const employee = isDocument(user?.employee) ? user!.employee : null;
+  const userContext = [
+    user?.name && `The user's name is ${user.name}.`,
+    employee?.jobTitle && `Their job title is ${employee.jobTitle}.`,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const systemPrompt = userContext
+    ? `${userContext}\n\n${SYSTEM_PROMPT}`
+    : SYSTEM_PROMPT;
 
   const { messages, conversationId } = req.body as {
     messages: Anthropic.MessageParam[];
@@ -232,7 +248,7 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
       const stream = anthropic.messages.stream({
         model: MODEL,
         max_tokens: 4096,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         tools: anthropicTools,
         messages: conversationMessages,
       });

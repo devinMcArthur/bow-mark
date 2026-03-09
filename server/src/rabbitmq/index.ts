@@ -10,7 +10,11 @@ import { RABBITMQ_CONFIG } from "./config";
 
 // Let TypeScript infer types from the amqplib API
 let connection: Awaited<ReturnType<typeof amqp.connect>> | null = null;
-let channel: Awaited<ReturnType<typeof amqp.connect>>["createChannel"] extends () => Promise<infer C> ? C | null : never = null;
+let channel: Awaited<
+  ReturnType<typeof amqp.connect>
+>["createChannel"] extends () => Promise<infer C>
+  ? C | null
+  : never = null;
 
 /**
  * Get or create a RabbitMQ connection
@@ -26,7 +30,9 @@ export async function getConnection() {
   const { hostname, port, username, password, vhost } =
     RABBITMQ_CONFIG.connection;
 
-  const url = `amqp://${username}:${password}@${hostname}:${port}/${encodeURIComponent(vhost)}`;
+  const url = `amqp://${username}:${password}@${hostname}:${port}/${encodeURIComponent(
+    vhost
+  )}`;
 
   console.log(
     `[RabbitMQ] Connecting to ${hostname}:${port}, vhost: ${vhost}...`
@@ -119,7 +125,9 @@ export async function setupTopology(): Promise<void> {
     }
 
     console.log(
-      `[RabbitMQ] Queue "${queueConfig.name}" ready (bindings: ${queueConfig.bindings.join(", ")})`
+      `[RabbitMQ] Queue "${
+        queueConfig.name
+      }" ready (bindings: ${queueConfig.bindings.join(", ")})`
     );
   }
 }

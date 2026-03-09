@@ -546,11 +546,17 @@ async function syncJobsiteMaterialRates(
       effective_date: r.date,
     }));
 
-    await db.insertInto("dim_jobsite_material_rate").values(rateValues).execute();
+    await db
+      .insertInto("dim_jobsite_material_rate")
+      .values(rateValues)
+      .execute();
   }
 
   // Insert delivered rates (mongo_id = deliveredRate._id to identify which delivered rate)
-  if (jobsiteMaterial.deliveredRates && jobsiteMaterial.deliveredRates.length > 0) {
+  if (
+    jobsiteMaterial.deliveredRates &&
+    jobsiteMaterial.deliveredRates.length > 0
+  ) {
     for (const deliveredRate of jobsiteMaterial.deliveredRates) {
       if (deliveredRate.rates && deliveredRate.rates.length > 0) {
         const rateValues = deliveredRate.rates.map((r) => ({
@@ -561,7 +567,10 @@ async function syncJobsiteMaterialRates(
           effective_date: r.date,
         }));
 
-        await db.insertInto("dim_jobsite_material_rate").values(rateValues).execute();
+        await db
+          .insertInto("dim_jobsite_material_rate")
+          .values(rateValues)
+          .execute();
       }
     }
   }
@@ -691,7 +700,11 @@ export async function getMaterialShipmentRate(
 
     case JobsiteMaterialCostType.deliveredRate: {
       if (deliveredRateId) {
-        return getJobsiteMaterialRateForDate(jobsiteMaterialId, workDate, deliveredRateId);
+        return getJobsiteMaterialRateForDate(
+          jobsiteMaterialId,
+          workDate,
+          deliveredRateId
+        );
       }
       // Fall through to standard rate lookup if no deliveredRateId
       return getJobsiteMaterialRateForDate(jobsiteMaterialId, workDate);
@@ -699,7 +712,11 @@ export async function getMaterialShipmentRate(
 
     case JobsiteMaterialCostType.rate:
     default: {
-      return getJobsiteMaterialRateForDate(jobsiteMaterialId, workDate, deliveredRateId);
+      return getJobsiteMaterialRateForDate(
+        jobsiteMaterialId,
+        workDate,
+        deliveredRateId
+      );
     }
   }
 }

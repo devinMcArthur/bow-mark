@@ -55,14 +55,13 @@ export interface MaterialShipmentSyncContext {
 class MaterialShipmentSyncHandler extends SyncHandler<PopulatedMaterialShipment> {
   readonly entityName = "MaterialShipment";
 
-  protected async fetchFromMongo(mongoId: string): Promise<PopulatedMaterialShipment | null> {
+  protected async fetchFromMongo(
+    mongoId: string
+  ): Promise<PopulatedMaterialShipment | null> {
     const doc = await MaterialShipment.findById(mongoId)
       .populate({
         path: "jobsiteMaterial",
-        populate: [
-          { path: "material" },
-          { path: "supplier" },
-        ],
+        populate: [{ path: "material" }, { path: "supplier" }],
       })
       .exec();
 
@@ -75,7 +74,9 @@ class MaterialShipmentSyncHandler extends SyncHandler<PopulatedMaterialShipment>
     return true;
   }
 
-  protected async syncToPostgres(materialShipment: PopulatedMaterialShipment): Promise<void> {
+  protected async syncToPostgres(
+    materialShipment: PopulatedMaterialShipment
+  ): Promise<void> {
     // Find the parent DailyReport
     const dailyReport = await DailyReport.findOne({
       materialShipment: materialShipment._id,
@@ -106,7 +107,11 @@ class MaterialShipmentSyncHandler extends SyncHandler<PopulatedMaterialShipment>
     // Upsert dimension records
     const jobsiteId = await upsertDimJobsite(typedDailyReport.jobsite);
     const crewId = await upsertDimCrew(typedDailyReport.crew);
-    const dailyReportId = await upsertDimDailyReport(typedDailyReport, jobsiteId, crewId);
+    const dailyReportId = await upsertDimDailyReport(
+      typedDailyReport,
+      jobsiteId,
+      crewId
+    );
 
     // Sync the fact record(s)
     await upsertFactMaterialShipment({
@@ -159,8 +164,11 @@ class MaterialShipmentSyncHandler extends SyncHandler<PopulatedMaterialShipment>
  * - Non-costed materials (noJobsiteMaterial=true) -> fact_non_costed_material
  * - Trucking (if vehicleObject.truckingRateId exists) -> fact_trucking
  */
-export async function upsertFactMaterialShipment(ctx: MaterialShipmentSyncContext): Promise<void> {
-  const { materialShipment, dailyReport, dailyReportId, jobsiteId, crewId } = ctx;
+export async function upsertFactMaterialShipment(
+  ctx: MaterialShipmentSyncContext
+): Promise<void> {
+  const { materialShipment, dailyReport, dailyReportId, jobsiteId, crewId } =
+    ctx;
   const mongoId = materialShipment._id.toString();
   const workDate = dailyReport.date;
   const crewType = (dailyReport as any).crew?.type || "Unknown";
@@ -173,7 +181,9 @@ export async function upsertFactMaterialShipment(ctx: MaterialShipmentSyncContex
 
   // For costed materials, we need the jobsiteMaterial
   if (!materialShipment.jobsiteMaterial) {
-    console.warn(`[MaterialShipmentSync] ${mongoId} missing jobsiteMaterial reference`);
+    console.warn(
+      `[MaterialShipmentSync] ${mongoId} missing jobsiteMaterial reference`
+    );
     return;
   }
 
@@ -181,13 +191,21 @@ export async function upsertFactMaterialShipment(ctx: MaterialShipmentSyncContex
 
   if (!jobsiteMaterial.material || !jobsiteMaterial.supplier) {
     // Need to fetch with populated refs
-    const fullJobsiteMaterial = await JobsiteMaterial.findById(jobsiteMaterial._id)
+    const fullJobsiteMaterial = await JobsiteMaterial.findById(
+      jobsiteMaterial._id
+    )
       .populate("material")
       .populate("supplier")
       .exec();
 
-    if (!fullJobsiteMaterial || !fullJobsiteMaterial.material || !fullJobsiteMaterial.supplier) {
-      console.warn(`[MaterialShipmentSync] ${mongoId} jobsiteMaterial missing material or supplier`);
+    if (
+      !fullJobsiteMaterial ||
+      !fullJobsiteMaterial.material ||
+      !fullJobsiteMaterial.supplier
+    ) {
+      console.warn(
+        `[MaterialShipmentSync] ${mongoId} jobsiteMaterial missing material or supplier`
+      );
       return;
     }
 
@@ -195,10 +213,11 @@ export async function upsertFactMaterialShipment(ctx: MaterialShipmentSyncContex
     (materialShipment as any).jobsiteMaterial = fullJobsiteMaterial;
   }
 
-  const populatedJobsiteMaterial = materialShipment.jobsiteMaterial as JobsiteMaterialDocument & {
-    material: MaterialDocument;
-    supplier: CompanyDocument;
-  };
+  const populatedJobsiteMaterial =
+    materialShipment.jobsiteMaterial as JobsiteMaterialDocument & {
+      material: MaterialDocument;
+      supplier: CompanyDocument;
+    };
 
   // Upsert material and company dimensions
   const materialId = await upsertDimMaterial(populatedJobsiteMaterial.material);
@@ -211,7 +230,8 @@ export async function upsertFactMaterialShipment(ctx: MaterialShipmentSyncContex
   );
 
   // Get the rate for this date based on the material's cost type
-  const deliveredRateId = materialShipment.vehicleObject?.deliveredRateId?.toString();
+  const deliveredRateId =
+    materialShipment.vehicleObject?.deliveredRateId?.toString();
   const { rate, estimated } = await getMaterialShipmentRate(
     jobsiteMaterialId,
     populatedJobsiteMaterial,
@@ -268,8 +288,11 @@ export async function upsertFactMaterialShipment(ctx: MaterialShipmentSyncContex
 /**
  * Upsert a fact_non_costed_material record
  */
-async function upsertFactNonCostedMaterial(ctx: MaterialShipmentSyncContext): Promise<void> {
-  const { materialShipment, dailyReport, dailyReportId, jobsiteId, crewId } = ctx;
+async function upsertFactNonCostedMaterial(
+  ctx: MaterialShipmentSyncContext
+): Promise<void> {
+  const { materialShipment, dailyReport, dailyReportId, jobsiteId, crewId } =
+    ctx;
   const mongoId = materialShipment._id.toString();
   const workDate = dailyReport.date;
   const crewType = (dailyReport as any).crew?.type || "Unknown";
@@ -318,7 +341,8 @@ async function upsertFactTrucking(
   ctx: MaterialShipmentSyncContext,
   jobsite: JobsiteDocument
 ): Promise<void> {
-  const { materialShipment, dailyReport, dailyReportId, jobsiteId, crewId } = ctx;
+  const { materialShipment, dailyReport, dailyReportId, jobsiteId, crewId } =
+    ctx;
   const mongoId = materialShipment._id.toString();
   const workDate = dailyReport.date;
   const crewType = (dailyReport as any).crew?.type || "Unknown";
@@ -332,7 +356,9 @@ async function upsertFactTrucking(
   );
 
   if (!truckingRate) {
-    console.warn(`[MaterialShipmentSync] Trucking rate ${vehicleObject.truckingRateId} not found on jobsite`);
+    console.warn(
+      `[MaterialShipmentSync] Trucking rate ${vehicleObject.truckingRateId} not found on jobsite`
+    );
     return;
   }
 
@@ -358,7 +384,9 @@ async function upsertFactTrucking(
 
   const rateObj = getRateForDate(truckingRate, workDate);
   if (!rateObj) {
-    console.warn(`[MaterialShipmentSync] No rate found for trucking rate ${truckingRate._id}`);
+    console.warn(
+      `[MaterialShipmentSync] No rate found for trucking rate ${truckingRate._id}`
+    );
     return;
   }
 

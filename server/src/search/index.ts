@@ -120,8 +120,7 @@ export const searchMulti = async (
           const hit = result.hits[j];
           if (hit.id) {
             collection.push({
-              employee:
-                (await Employee.getById(hit.id)) || undefined,
+              employee: (await Employee.getById(hit.id)) || undefined,
               score: hit._rankingScore ?? 0,
             });
           }

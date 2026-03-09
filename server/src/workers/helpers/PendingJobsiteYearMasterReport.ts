@@ -5,7 +5,9 @@ const pendingJobsiteYearMasterReportUpdateHelper = async () => {
   const jobsiteYearMasterReports =
     await JobsiteYearMasterReport.getByUpdatePending();
 
-  console.log(`Fixing ${jobsiteYearMasterReports.length} pending jobsite year master reports`);
+  console.log(
+    `Fixing ${jobsiteYearMasterReports.length} pending jobsite year master reports`
+  );
 
   // Update
   for (let i = 0; i < jobsiteYearMasterReports.length; i++) {

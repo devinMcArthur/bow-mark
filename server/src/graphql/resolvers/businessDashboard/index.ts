@@ -38,7 +38,6 @@ const getTonnesConversion = () => sql<number>`
 
 @Resolver()
 export default class BusinessDashboardResolver {
-
   // ─── Overview ─────────────────────────────────────────────────────────────
 
   @Query(() => DashboardOverviewReport)
@@ -58,10 +57,22 @@ export default class BusinessDashboardResolver {
 
     const [
       jobsiteRows,
-      revenueRows, employeeRows, vehicleRows, materialRows, truckingRows,
-      expenseRows, tonnesRows, crewHoursRows,
-      priorRevenueRows, priorEmployeeRows, priorVehicleRows, priorMaterialRows,
-      priorTruckingRows, priorExpenseRows, priorTonnesRows, priorCrewHoursRows,
+      revenueRows,
+      employeeRows,
+      vehicleRows,
+      materialRows,
+      truckingRows,
+      expenseRows,
+      tonnesRows,
+      crewHoursRows,
+      priorRevenueRows,
+      priorEmployeeRows,
+      priorVehicleRows,
+      priorMaterialRows,
+      priorTruckingRows,
+      priorExpenseRows,
+      priorTonnesRows,
+      priorCrewHoursRows,
     ] = await Promise.all([
       this.getJobsites(),
       this.getRevenue(startDate, endDate),
@@ -83,22 +94,41 @@ export default class BusinessDashboardResolver {
     ]);
 
     // Build lookup maps keyed by PG jobsite UUID
-    const revenueMap = new Map(revenueRows.map(r => [r.jobsite_id, Number(r.total_revenue)]));
-    const employeeMap = new Map(employeeRows.map(r => [r.jobsite_id, Number(r.total_cost)]));
-    const vehicleMap = new Map(vehicleRows.map(r => [r.jobsite_id, Number(r.total_cost)]));
-    const materialMap = new Map(materialRows.map(r => [r.jobsite_id, Number(r.total_cost)]));
-    const truckingMap = new Map(truckingRows.map(r => [r.jobsite_id, Number(r.total_cost)]));
-    const expenseMap = new Map(expenseRows.map(r => [r.jobsite_id, Number(r.total_cost)]));
-    const tonnesMap = new Map(tonnesRows.map(r => [r.jobsite_id, Number(r.total_tonnes ?? 0)]));
-    const crewHoursMap = new Map(crewHoursRows.map(r => [r.jobsite_id, Number(r.total_hours)]));
+    const revenueMap = new Map(
+      revenueRows.map((r) => [r.jobsite_id, Number(r.total_revenue)])
+    );
+    const employeeMap = new Map(
+      employeeRows.map((r) => [r.jobsite_id, Number(r.total_cost)])
+    );
+    const vehicleMap = new Map(
+      vehicleRows.map((r) => [r.jobsite_id, Number(r.total_cost)])
+    );
+    const materialMap = new Map(
+      materialRows.map((r) => [r.jobsite_id, Number(r.total_cost)])
+    );
+    const truckingMap = new Map(
+      truckingRows.map((r) => [r.jobsite_id, Number(r.total_cost)])
+    );
+    const expenseMap = new Map(
+      expenseRows.map((r) => [r.jobsite_id, Number(r.total_cost)])
+    );
+    const tonnesMap = new Map(
+      tonnesRows.map((r) => [r.jobsite_id, Number(r.total_tonnes ?? 0)])
+    );
+    const crewHoursMap = new Map(
+      crewHoursRows.map((r) => [r.jobsite_id, Number(r.total_hours)])
+    );
 
-    const jobsiteMongoMap = new Map(jobsiteRows.map(j => [j.id, j]));
+    const jobsiteMongoMap = new Map(jobsiteRows.map((j) => [j.id, j]));
 
     // Only include jobsites with some activity in this period
     const activeIds = new Set([
-      ...revenueMap.keys(), ...employeeMap.keys(),
-      ...vehicleMap.keys(), ...materialMap.keys(),
-      ...truckingMap.keys(), ...expenseMap.keys(),
+      ...revenueMap.keys(),
+      ...employeeMap.keys(),
+      ...vehicleMap.keys(),
+      ...materialMap.keys(),
+      ...truckingMap.keys(),
+      ...expenseMap.keys(),
       ...tonnesMap.keys(),
     ]);
 
@@ -108,8 +138,10 @@ export default class BusinessDashboardResolver {
       if (!j) continue;
       const revenue = revenueMap.get(pgId) ?? 0;
       const directCost =
-        (employeeMap.get(pgId) ?? 0) + (vehicleMap.get(pgId) ?? 0) +
-        (materialMap.get(pgId) ?? 0) + (truckingMap.get(pgId) ?? 0) +
+        (employeeMap.get(pgId) ?? 0) +
+        (vehicleMap.get(pgId) ?? 0) +
+        (materialMap.get(pgId) ?? 0) +
+        (truckingMap.get(pgId) ?? 0) +
         (expenseMap.get(pgId) ?? 0);
       const netIncome = revenue - directCost;
       const tonnes = tonnesMap.get(pgId) ?? 0;
@@ -131,17 +163,26 @@ export default class BusinessDashboardResolver {
     const totalRevenue = items.reduce((s, j) => s + j.totalRevenue, 0);
     const totalNetIncome = items.reduce((s, j) => s + j.netIncome, 0);
     const totalTonnes = items.reduce((s, j) => s + j.totalTonnes, 0);
-    const totalCrewHrs = crewHoursRows.reduce((s, r) => s + Number(r.total_hours), 0);
-    const avgTonnesPerHour = totalCrewHrs > 0 ? totalTonnes / totalCrewHrs : undefined;
+    const totalCrewHrs = crewHoursRows.reduce(
+      (s, r) => s + Number(r.total_hours),
+      0
+    );
+    const avgTonnesPerHour =
+      totalCrewHrs > 0 ? totalTonnes / totalCrewHrs : undefined;
     // Equal-weight average (one vote per jobsite, not revenue-weighted) —
     // consistent with the design spec: "Avg margin across jobsites"
-    const margined = items.filter(j => j.netMarginPercent != null);
-    const avgNetMarginPercent = margined.length > 0
-      ? margined.reduce((s, j) => s + (j.netMarginPercent ?? 0), 0) / margined.length
-      : undefined;
+    const margined = items.filter((j) => j.netMarginPercent != null);
+    const avgNetMarginPercent =
+      margined.length > 0
+        ? margined.reduce((s, j) => s + (j.netMarginPercent ?? 0), 0) /
+          margined.length
+        : undefined;
 
     // Prior year totals for YoY
-    const priorRevenue = priorRevenueRows.reduce((s, r) => s + Number(r.total_revenue), 0);
+    const priorRevenue = priorRevenueRows.reduce(
+      (s, r) => s + Number(r.total_revenue),
+      0
+    );
     const priorCost =
       priorEmployeeRows.reduce((s, r) => s + Number(r.total_cost), 0) +
       priorVehicleRows.reduce((s, r) => s + Number(r.total_cost), 0) +
@@ -149,8 +190,14 @@ export default class BusinessDashboardResolver {
       priorTruckingRows.reduce((s, r) => s + Number(r.total_cost), 0) +
       priorExpenseRows.reduce((s, r) => s + Number(r.total_cost), 0);
     const priorNetIncome = priorRevenue - priorCost;
-    const priorTonnes = priorTonnesRows.reduce((s, r) => s + Number(r.total_tonnes ?? 0), 0);
-    const priorCrewHrs = priorCrewHoursRows.reduce((s, r) => s + Number(r.total_hours), 0);
+    const priorTonnes = priorTonnesRows.reduce(
+      (s, r) => s + Number(r.total_tonnes ?? 0),
+      0
+    );
+    const priorCrewHrs = priorCrewHoursRows.reduce(
+      (s, r) => s + Number(r.total_hours),
+      0
+    );
     const priorTH = priorCrewHrs > 0 ? priorTonnes / priorCrewHrs : 0;
     const currentTH = avgTonnesPerHour ?? 0;
 
@@ -186,8 +233,15 @@ export default class BusinessDashboardResolver {
     endDate.setHours(23, 59, 59, 999);
 
     const [
-      jobsiteRows, revenueRows, employeeRows, vehicleRows,
-      materialRows, truckingRows, expenseRows, tonnesRows, crewHoursRows,
+      jobsiteRows,
+      revenueRows,
+      employeeRows,
+      vehicleRows,
+      materialRows,
+      truckingRows,
+      expenseRows,
+      tonnesRows,
+      crewHoursRows,
     ] = await Promise.all([
       this.getJobsites(),
       this.getRevenue(startDate, endDate),
@@ -200,25 +254,46 @@ export default class BusinessDashboardResolver {
       this.getCrewHoursPerJobsite(startDate, endDate),
     ]);
 
-    const revenueMap = new Map(revenueRows.map(r => [r.jobsite_id, Number(r.total_revenue)]));
-    const employeeMap = new Map(employeeRows.map(r => [r.jobsite_id, Number(r.total_cost)]));
-    const vehicleMap = new Map(vehicleRows.map(r => [r.jobsite_id, Number(r.total_cost)]));
-    const materialMap = new Map(materialRows.map(r => [r.jobsite_id, Number(r.total_cost)]));
-    const truckingMap = new Map(truckingRows.map(r => [r.jobsite_id, Number(r.total_cost)]));
-    const expenseMap = new Map(expenseRows.map(r => [r.jobsite_id, Number(r.total_cost)]));
-    const tonnesMap = new Map(tonnesRows.map(r => [r.jobsite_id, Number(r.total_tonnes ?? 0)]));
-    const crewHoursMap = new Map(crewHoursRows.map(r => [r.jobsite_id, Number(r.total_hours)]));
-    const jobsiteMongoMap = new Map(jobsiteRows.map(j => [j.id, j]));
+    const revenueMap = new Map(
+      revenueRows.map((r) => [r.jobsite_id, Number(r.total_revenue)])
+    );
+    const employeeMap = new Map(
+      employeeRows.map((r) => [r.jobsite_id, Number(r.total_cost)])
+    );
+    const vehicleMap = new Map(
+      vehicleRows.map((r) => [r.jobsite_id, Number(r.total_cost)])
+    );
+    const materialMap = new Map(
+      materialRows.map((r) => [r.jobsite_id, Number(r.total_cost)])
+    );
+    const truckingMap = new Map(
+      truckingRows.map((r) => [r.jobsite_id, Number(r.total_cost)])
+    );
+    const expenseMap = new Map(
+      expenseRows.map((r) => [r.jobsite_id, Number(r.total_cost)])
+    );
+    const tonnesMap = new Map(
+      tonnesRows.map((r) => [r.jobsite_id, Number(r.total_tonnes ?? 0)])
+    );
+    const crewHoursMap = new Map(
+      crewHoursRows.map((r) => [r.jobsite_id, Number(r.total_hours)])
+    );
+    const jobsiteMongoMap = new Map(jobsiteRows.map((j) => [j.id, j]));
 
     const activeIds = new Set([
-      ...revenueMap.keys(), ...employeeMap.keys(),
-      ...vehicleMap.keys(), ...materialMap.keys(),
-      ...truckingMap.keys(), ...expenseMap.keys(),
+      ...revenueMap.keys(),
+      ...employeeMap.keys(),
+      ...vehicleMap.keys(),
+      ...materialMap.keys(),
+      ...truckingMap.keys(),
+      ...expenseMap.keys(),
       ...tonnesMap.keys(),
     ]);
 
     const items: DashboardFinancialItem[] = [];
-    let totalRevenue = 0, totalDirectCost = 0, totalNetIncome = 0;
+    let totalRevenue = 0,
+      totalDirectCost = 0,
+      totalNetIncome = 0;
     const margins: number[] = [];
 
     for (const pgId of activeIds) {
@@ -263,9 +338,10 @@ export default class BusinessDashboardResolver {
       totalRevenue,
       totalDirectCost,
       totalNetIncome,
-      avgNetMarginPercent: margins.length > 0
-        ? margins.reduce((s, m) => s + m, 0) / margins.length
-        : undefined,
+      avgNetMarginPercent:
+        margins.length > 0
+          ? margins.reduce((s, m) => s + m, 0) / margins.length
+          : undefined,
       jobsites: items,
     };
   }
@@ -280,7 +356,8 @@ export default class BusinessDashboardResolver {
     const endDate = new Date(input.endDate.getTime());
     endDate.setHours(23, 59, 59, 999);
 
-    const materialGrouping = input.materialGrouping ?? MaterialGrouping.MATERIAL_ONLY;
+    const materialGrouping =
+      input.materialGrouping ?? MaterialGrouping.MATERIAL_ONLY;
 
     // Parse filter criteria for jobsite benchmarks
     const filterCriteria = this.parseSelectedMaterials(
@@ -305,7 +382,12 @@ export default class BusinessDashboardResolver {
       manHoursPerCrewRows,
     ] = await Promise.all([
       this.getAvailableMaterials(startDate, endDate, materialGrouping),
-      this.getShipmentsPerReport(startDate, endDate, materialGrouping, filterCriteria),
+      this.getShipmentsPerReport(
+        startDate,
+        endDate,
+        materialGrouping,
+        filterCriteria
+      ),
       this.getCrewHoursPerReport(startDate, endDate),
       this.getManHoursPerReport(startDate, endDate),
       this.getCrews(),
@@ -329,9 +411,18 @@ export default class BusinessDashboardResolver {
     }
 
     // Jobsite benchmarks (benchmarks pattern: per-report aggregation)
-    const jobsiteStats = this.aggregateByJobsite(shipmentsPerReport, crewHoursDailyMap, manHoursDailyMap);
-    const { jobsites, overallTonnes, overallCrewHours, overallManHours, regression } =
-      this.buildJobsiteBenchmarks(jobsiteStats);
+    const jobsiteStats = this.aggregateByJobsite(
+      shipmentsPerReport,
+      crewHoursDailyMap,
+      manHoursDailyMap
+    );
+    const {
+      jobsites,
+      overallTonnes,
+      overallCrewHours,
+      overallManHours,
+      regression,
+    } = this.buildJobsiteBenchmarks(jobsiteStats);
 
     const averageTonnesPerHour =
       overallCrewHours > 0 ? overallTonnes / overallCrewHours : 0;
@@ -347,7 +438,10 @@ export default class BusinessDashboardResolver {
       manHoursPerCrewRows.map((r) => [r.crew_id, Number(r.total_man_hours)])
     );
     const m3CrewMap = new Map(
-      tonnesPerCrewRows.map((r) => [r.crew_id, Number((r as any).total_m3 || 0)])
+      tonnesPerCrewRows.map((r) => [
+        r.crew_id,
+        Number((r as any).total_m3 || 0),
+      ])
     );
 
     const crewItems: DashboardProductivityCrewItem[] = [];
@@ -378,7 +472,8 @@ export default class BusinessDashboardResolver {
     const validCrews = crewItems.filter((c) => c.tonnesPerHour != null);
     const avgCrewTH =
       validCrews.length > 0
-        ? validCrews.reduce((s, c) => s + (c.tonnesPerHour ?? 0), 0) / validCrews.length
+        ? validCrews.reduce((s, c) => s + (c.tonnesPerHour ?? 0), 0) /
+          validCrews.length
         : undefined;
     if (avgCrewTH != null) {
       for (const item of crewItems) {
@@ -421,13 +516,19 @@ export default class BusinessDashboardResolver {
     const materialsResult = await db
       .selectFrom("fact_material_shipment as ms")
       .innerJoin("dim_daily_report as dr", "dr.id", "ms.daily_report_id")
-      .innerJoin("dim_jobsite_material as jm", "jm.id", "ms.jobsite_material_id")
+      .innerJoin(
+        "dim_jobsite_material as jm",
+        "jm.id",
+        "ms.jobsite_material_id"
+      )
       .innerJoin("dim_material as m", "m.id", "jm.material_id")
       .select([
         "m.name as material_name",
         "ms.crew_type",
         "ms.daily_report_id",
-        sql<number>`COALESCE(SUM(${getTonnesConversion()}), 0)`.as("total_tonnes"),
+        sql<number>`COALESCE(SUM(${getTonnesConversion()}), 0)`.as(
+          "total_tonnes"
+        ),
         sql<number>`COUNT(*)`.as("shipment_count"),
       ])
       .where("ms.work_date", ">=", startDate)
@@ -558,7 +659,11 @@ export default class BusinessDashboardResolver {
   private parseSelectedMaterials(
     selectedMaterials: string[] | undefined,
     grouping: MaterialGrouping
-  ): Array<{ materialName: string; crewType?: string; jobTitle?: string }> | null {
+  ): Array<{
+    materialName: string;
+    crewType?: string;
+    jobTitle?: string;
+  }> | null {
     if (!selectedMaterials || selectedMaterials.length === 0) return null;
     return selectedMaterials.map((key) => {
       const parts = key.split("|");
@@ -576,7 +681,11 @@ export default class BusinessDashboardResolver {
     startDate: Date,
     endDate: Date,
     grouping: MaterialGrouping,
-    filterCriteria: Array<{ materialName: string; crewType?: string; jobTitle?: string }> | null
+    filterCriteria: Array<{
+      materialName: string;
+      crewType?: string;
+      jobTitle?: string;
+    }> | null
   ) {
     let dominantJobTitleMap = new Map<string, string>();
     if (grouping === MaterialGrouping.JOB_TITLE && filterCriteria) {
@@ -587,7 +696,11 @@ export default class BusinessDashboardResolver {
       .selectFrom("fact_material_shipment as ms")
       .innerJoin("dim_daily_report as dr", "dr.id", "ms.daily_report_id")
       .innerJoin("dim_jobsite as j", "j.id", "ms.jobsite_id")
-      .innerJoin("dim_jobsite_material as jm", "jm.id", "ms.jobsite_material_id")
+      .innerJoin(
+        "dim_jobsite_material as jm",
+        "jm.id",
+        "ms.jobsite_material_id"
+      )
       .innerJoin("dim_material as m", "m.id", "jm.material_id")
       .select([
         "j.id as jobsite_id",
@@ -599,7 +712,9 @@ export default class BusinessDashboardResolver {
         "ms.crew_type",
         sql<number>`COALESCE(SUM(${getTonnesConversion()}), 0)`.as("tonnes"),
         sql<number>`COUNT(*)`.as("shipment_count"),
-        sql<number>`COALESCE(SUM(CASE WHEN LOWER(ms.unit) = 'm3' THEN ms.quantity ELSE 0 END), 0)`.as("raw_m3"),
+        sql<number>`COALESCE(SUM(CASE WHEN LOWER(ms.unit) = 'm3' THEN ms.quantity ELSE 0 END), 0)`.as(
+          "raw_m3"
+        ),
       ])
       .where("ms.work_date", ">=", startDate)
       .where("ms.work_date", "<=", endDate)
@@ -829,7 +944,9 @@ export default class BusinessDashboardResolver {
       .map((stats) => {
         const percentFromAverage =
           averageTonnesPerHour > 0
-            ? ((stats.tonnesPerHour - averageTonnesPerHour) / averageTonnesPerHour) * 100
+            ? ((stats.tonnesPerHour - averageTonnesPerHour) /
+                averageTonnesPerHour) *
+              100
             : 0;
         const expectedTonnesPerHour = this.calculateExpectedTonnesPerHour(
           stats.totalTonnes,
@@ -838,7 +955,9 @@ export default class BusinessDashboardResolver {
         );
         const percentFromExpected =
           expectedTonnesPerHour > 0
-            ? ((stats.tonnesPerHour - expectedTonnesPerHour) / expectedTonnesPerHour) * 100
+            ? ((stats.tonnesPerHour - expectedTonnesPerHour) /
+                expectedTonnesPerHour) *
+              100
             : 0;
 
         return {
@@ -849,17 +968,19 @@ export default class BusinessDashboardResolver {
           totalCrewHours: stats.totalCrewHours,
           tonnesPerHour: stats.tonnesPerHour,
           totalManHours: stats.totalManHours,
-          tonnesPerManHour: stats.totalManHours > 0
-            ? stats.totalTonnes / stats.totalManHours
-            : undefined,
+          tonnesPerManHour:
+            stats.totalManHours > 0
+              ? stats.totalTonnes / stats.totalManHours
+              : undefined,
           shipmentCount: stats.shipmentCount,
           percentFromAverage,
           expectedTonnesPerHour,
           percentFromExpected,
           totalM3: stats.totalM3,
-          m3PerHour: stats.totalM3 > 0 && stats.totalCrewHours > 0
-            ? stats.totalM3 / stats.totalCrewHours
-            : undefined,
+          m3PerHour:
+            stats.totalM3 > 0 && stats.totalCrewHours > 0
+              ? stats.totalM3 / stats.totalCrewHours
+              : undefined,
         };
       })
       .sort((a, b) => b.tonnesPerHour - a.tonnesPerHour);
@@ -955,7 +1076,10 @@ export default class BusinessDashboardResolver {
     return db
       .selectFrom("fact_employee_work as ew")
       .innerJoin("dim_daily_report as dr", "dr.id", "ew.daily_report_id")
-      .select(["ew.jobsite_id", sql<number>`SUM(ew.total_cost)`.as("total_cost")])
+      .select([
+        "ew.jobsite_id",
+        sql<number>`SUM(ew.total_cost)`.as("total_cost"),
+      ])
       .where("ew.work_date", ">=", startDate)
       .where("ew.work_date", "<=", endDate)
       .where("ew.archived_at", "is", null)
@@ -969,7 +1093,10 @@ export default class BusinessDashboardResolver {
     return db
       .selectFrom("fact_vehicle_work as vw")
       .innerJoin("dim_daily_report as dr", "dr.id", "vw.daily_report_id")
-      .select(["vw.jobsite_id", sql<number>`SUM(vw.total_cost)`.as("total_cost")])
+      .select([
+        "vw.jobsite_id",
+        sql<number>`SUM(vw.total_cost)`.as("total_cost"),
+      ])
       .where("vw.work_date", ">=", startDate)
       .where("vw.work_date", "<=", endDate)
       .where("vw.archived_at", "is", null)
@@ -983,7 +1110,10 @@ export default class BusinessDashboardResolver {
     return db
       .selectFrom("fact_material_shipment as ms")
       .innerJoin("dim_daily_report as dr", "dr.id", "ms.daily_report_id")
-      .select(["ms.jobsite_id", sql<number>`SUM(ms.total_cost)`.as("total_cost")])
+      .select([
+        "ms.jobsite_id",
+        sql<number>`SUM(ms.total_cost)`.as("total_cost"),
+      ])
       .where("ms.work_date", ">=", startDate)
       .where("ms.work_date", "<=", endDate)
       .where("ms.archived_at", "is", null)
@@ -1027,7 +1157,10 @@ export default class BusinessDashboardResolver {
 
     return db
       .selectFrom(sub.as("crew_daily"))
-      .select(["crew_daily.jobsite_id", sql<number>`SUM(crew_daily.crew_day_hours)`.as("total_hours")])
+      .select([
+        "crew_daily.jobsite_id",
+        sql<number>`SUM(crew_daily.crew_day_hours)`.as("total_hours"),
+      ])
       .groupBy("crew_daily.jobsite_id")
       .execute();
   }
@@ -1050,7 +1183,10 @@ export default class BusinessDashboardResolver {
 
     return db
       .selectFrom(sub.as("crew_daily"))
-      .select(["crew_daily.crew_id", sql<number>`SUM(crew_daily.crew_day_hours)`.as("total_hours")])
+      .select([
+        "crew_daily.crew_id",
+        sql<number>`SUM(crew_daily.crew_day_hours)`.as("total_hours"),
+      ])
       .groupBy("crew_daily.crew_id")
       .execute();
   }
@@ -1060,10 +1196,7 @@ export default class BusinessDashboardResolver {
     return db
       .selectFrom("fact_employee_work as ew")
       .innerJoin("dim_daily_report as dr", "dr.id", "ew.daily_report_id")
-      .select([
-        "ew.crew_id",
-        sql<number>`SUM(ew.hours)`.as("total_man_hours"),
-      ])
+      .select(["ew.crew_id", sql<number>`SUM(ew.hours)`.as("total_man_hours")])
       .where("ew.work_date", ">=", startDate)
       .where("ew.work_date", "<=", endDate)
       .where("ew.archived_at", "is", null)
@@ -1073,13 +1206,24 @@ export default class BusinessDashboardResolver {
       .execute();
   }
 
-  private async getTonnesPerJobsite(startDate: Date, endDate: Date, selectedMaterials?: string[]) {
+  private async getTonnesPerJobsite(
+    startDate: Date,
+    endDate: Date,
+    selectedMaterials?: string[]
+  ) {
     let q = db
       .selectFrom("fact_material_shipment as ms")
       .innerJoin("dim_daily_report as dr", "dr.id", "ms.daily_report_id")
-      .innerJoin("dim_jobsite_material as jm", "jm.id", "ms.jobsite_material_id")
+      .innerJoin(
+        "dim_jobsite_material as jm",
+        "jm.id",
+        "ms.jobsite_material_id"
+      )
       .innerJoin("dim_material as m", "m.id", "jm.material_id")
-      .select(["ms.jobsite_id", sql<number>`SUM(${getTonnesConversion()})`.as("total_tonnes")])
+      .select([
+        "ms.jobsite_id",
+        sql<number>`SUM(${getTonnesConversion()})`.as("total_tonnes"),
+      ])
       .where("ms.work_date", ">=", startDate)
       .where("ms.work_date", "<=", endDate)
       .where("ms.archived_at", "is", null)
@@ -1092,18 +1236,28 @@ export default class BusinessDashboardResolver {
     return q.groupBy("ms.jobsite_id").execute();
   }
 
-  private async getTonnesPerCrew(startDate: Date, endDate: Date, selectedMaterials?: string[]) {
+  private async getTonnesPerCrew(
+    startDate: Date,
+    endDate: Date,
+    selectedMaterials?: string[]
+  ) {
     let q = db
       .selectFrom("fact_material_shipment as ms")
       .innerJoin("dim_daily_report as dr", "dr.id", "ms.daily_report_id")
-      .innerJoin("dim_jobsite_material as jm", "jm.id", "ms.jobsite_material_id")
+      .innerJoin(
+        "dim_jobsite_material as jm",
+        "jm.id",
+        "ms.jobsite_material_id"
+      )
       .innerJoin("dim_material as m", "m.id", "jm.material_id")
       .select([
         "ms.crew_id",
         sql<number>`SUM(${getTonnesConversion()})`.as("total_tonnes"),
         sql<number>`COUNT(DISTINCT ms.work_date)`.as("day_count"),
         sql<number>`COUNT(DISTINCT ms.jobsite_id)`.as("jobsite_count"),
-        sql<number>`COALESCE(SUM(CASE WHEN LOWER(ms.unit) = 'm3' THEN ms.quantity ELSE 0 END), 0)`.as("total_m3"),
+        sql<number>`COALESCE(SUM(CASE WHEN LOWER(ms.unit) = 'm3' THEN ms.quantity ELSE 0 END), 0)`.as(
+          "total_m3"
+        ),
       ])
       .where("ms.work_date", ">=", startDate)
       .where("ms.work_date", "<=", endDate)

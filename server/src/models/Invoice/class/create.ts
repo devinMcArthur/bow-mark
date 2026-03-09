@@ -14,12 +14,16 @@ const document = async (
     if (jobsiteMaterialParent) {
       const jobsite = await jobsiteMaterialParent.getJobsite();
       const material = await jobsiteMaterialParent.getMaterial();
-      throw new Error(`An Invoice with this company and invoice number already exists on the material '${material.name}' on the jobsite '${jobsite.name}'`);
+      throw new Error(
+        `An Invoice with this company and invoice number already exists on the material '${material.name}' on the jobsite '${jobsite.name}'`
+      );
     }
 
     const jobsiteParent = await existingInvoice.getJobsite();
     if (jobsiteParent) {
-      throw new Error(`An Invoice with this company and invoice number already exists on the jobsite '${jobsiteParent.name}'`);
+      throw new Error(
+        `An Invoice with this company and invoice number already exists on the jobsite '${jobsiteParent.name}'`
+      );
     }
 
     throw new Error(

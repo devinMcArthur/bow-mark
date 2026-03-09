@@ -1,6 +1,6 @@
 import {
-    DailyReport,
-    DailyReportDocument,
+  DailyReport,
+  DailyReportDocument,
   File,
   FileDocument,
   ReportNoteDocument,
@@ -50,7 +50,7 @@ const dailyReport = async (
   reportNote: ReportNoteDocument
 ): Promise<DailyReportDocument | null> => {
   return DailyReport.findOne({
-    reportNote: reportNote._id
+    reportNote: reportNote._id,
   });
 };
 

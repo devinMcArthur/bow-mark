@@ -146,7 +146,10 @@ export default class ProductivityBenchmarksResolver {
     }
 
     // Aggregate by jobsite
-    const jobsiteStats = this.aggregateByJobsite(shipmentsPerReport, crewHoursMap);
+    const jobsiteStats = this.aggregateByJobsite(
+      shipmentsPerReport,
+      crewHoursMap
+    );
 
     // Calculate overall totals and build results
     const { jobsites, overallTonnes, overallCrewHours, regression } =
@@ -196,7 +199,9 @@ export default class ProductivityBenchmarksResolver {
         "m.name as material_name",
         "ms.crew_type",
         "ms.daily_report_id",
-        sql<number>`COALESCE(SUM(${getTonnesConversion()}), 0)`.as("total_tonnes"),
+        sql<number>`COALESCE(SUM(${getTonnesConversion()}), 0)`.as(
+          "total_tonnes"
+        ),
         sql<number>`COUNT(*)`.as("shipment_count"),
       ])
       .where("ms.work_date", ">=", startDate)
@@ -336,7 +341,11 @@ export default class ProductivityBenchmarksResolver {
   private parseSelectedMaterials(
     selectedMaterials: string[] | undefined,
     grouping: MaterialGrouping
-  ): Array<{ materialName: string; crewType?: string; jobTitle?: string }> | null {
+  ): Array<{
+    materialName: string;
+    crewType?: string;
+    jobTitle?: string;
+  }> | null {
     if (!selectedMaterials || selectedMaterials.length === 0) {
       return null;
     }
@@ -361,7 +370,11 @@ export default class ProductivityBenchmarksResolver {
     startDate: Date,
     endDate: Date,
     grouping: MaterialGrouping,
-    filterCriteria: Array<{ materialName: string; crewType?: string; jobTitle?: string }> | null
+    filterCriteria: Array<{
+      materialName: string;
+      crewType?: string;
+      jobTitle?: string;
+    }> | null
   ) {
     // For JOB_TITLE filtering, we need the dominant job titles
     let dominantJobTitleMap = new Map<string, string>();
@@ -689,7 +702,12 @@ export default class ProductivityBenchmarksResolver {
       })
       .sort((a, b) => b.tonnesPerHour - a.tonnesPerHour);
 
-    return { jobsites, overallTonnes, overallCrewHours, regression: { intercept, slope } };
+    return {
+      jobsites,
+      overallTonnes,
+      overallCrewHours,
+      regression: { intercept, slope },
+    };
   }
 
   /**

@@ -56,7 +56,9 @@ type PopulatedDailyReport = DailyReportDocument & {
 class DailyReportSyncHandler extends SyncHandler<PopulatedDailyReport> {
   readonly entityName = "DailyReport";
 
-  protected async fetchFromMongo(mongoId: string): Promise<PopulatedDailyReport | null> {
+  protected async fetchFromMongo(
+    mongoId: string
+  ): Promise<PopulatedDailyReport | null> {
     const doc = await DailyReport.findById(mongoId)
       .populate("jobsite")
       .populate("crew")
@@ -75,11 +77,17 @@ class DailyReportSyncHandler extends SyncHandler<PopulatedDailyReport> {
     return true;
   }
 
-  protected async syncToPostgres(dailyReport: PopulatedDailyReport): Promise<void> {
+  protected async syncToPostgres(
+    dailyReport: PopulatedDailyReport
+  ): Promise<void> {
     // 1. Upsert dimension records
     const jobsiteId = await upsertDimJobsite(dailyReport.jobsite);
     const crewId = await upsertDimCrew(dailyReport.crew);
-    const dailyReportId = await upsertDimDailyReport(dailyReport, jobsiteId, crewId);
+    const dailyReportId = await upsertDimDailyReport(
+      dailyReport,
+      jobsiteId,
+      crewId
+    );
 
     // 2. Sync EmployeeWork records
     await this.syncEmployeeWorks(dailyReport, dailyReportId, jobsiteId, crewId);
@@ -88,7 +96,12 @@ class DailyReportSyncHandler extends SyncHandler<PopulatedDailyReport> {
     await this.syncVehicleWorks(dailyReport, dailyReportId, jobsiteId, crewId);
 
     // 4. Sync MaterialShipment records (includes trucking and non-costed materials)
-    await this.syncMaterialShipments(dailyReport, dailyReportId, jobsiteId, crewId);
+    await this.syncMaterialShipments(
+      dailyReport,
+      dailyReportId,
+      jobsiteId,
+      crewId
+    );
 
     // 5. Sync Production records
     await this.syncProductions(dailyReport, dailyReportId, jobsiteId, crewId);
@@ -117,12 +130,16 @@ class DailyReportSyncHandler extends SyncHandler<PopulatedDailyReport> {
 
     for (const ew of employeeWorks) {
       if (!ew.employee) {
-        console.warn(`[${this.entityName}Sync] EmployeeWork ${ew._id} missing employee reference`);
+        console.warn(
+          `[${this.entityName}Sync] EmployeeWork ${ew._id} missing employee reference`
+        );
         continue;
       }
 
       try {
-        const typedEw = ew as EmployeeWorkDocument & { employee: EmployeeDocument };
+        const typedEw = ew as EmployeeWorkDocument & {
+          employee: EmployeeDocument;
+        };
         const employeeId = await upsertDimEmployee(typedEw.employee);
 
         await upsertFactEmployeeWork({
@@ -135,11 +152,18 @@ class DailyReportSyncHandler extends SyncHandler<PopulatedDailyReport> {
         });
         syncedMongoIds.push(ew._id.toString());
       } catch (error) {
-        console.error(`[${this.entityName}Sync] Failed to sync EmployeeWork ${ew._id}:`, error);
+        console.error(
+          `[${this.entityName}Sync] Failed to sync EmployeeWork ${ew._id}:`,
+          error
+        );
       }
     }
 
-    await this.archiveOrphanedFacts("fact_employee_work", dailyReportId, syncedMongoIds);
+    await this.archiveOrphanedFacts(
+      "fact_employee_work",
+      dailyReportId,
+      syncedMongoIds
+    );
   }
 
   private async syncVehicleWorks(
@@ -165,12 +189,16 @@ class DailyReportSyncHandler extends SyncHandler<PopulatedDailyReport> {
 
     for (const vw of vehicleWorks) {
       if (!vw.vehicle) {
-        console.warn(`[${this.entityName}Sync] VehicleWork ${vw._id} missing vehicle reference`);
+        console.warn(
+          `[${this.entityName}Sync] VehicleWork ${vw._id} missing vehicle reference`
+        );
         continue;
       }
 
       try {
-        const typedVw = vw as VehicleWorkDocument & { vehicle: VehicleDocument };
+        const typedVw = vw as VehicleWorkDocument & {
+          vehicle: VehicleDocument;
+        };
         const vehicleId = await upsertDimVehicle(typedVw.vehicle);
 
         await upsertFactVehicleWork({
@@ -183,11 +211,18 @@ class DailyReportSyncHandler extends SyncHandler<PopulatedDailyReport> {
         });
         syncedMongoIds.push(vw._id.toString());
       } catch (error) {
-        console.error(`[${this.entityName}Sync] Failed to sync VehicleWork ${vw._id}:`, error);
+        console.error(
+          `[${this.entityName}Sync] Failed to sync VehicleWork ${vw._id}:`,
+          error
+        );
       }
     }
 
-    await this.archiveOrphanedFacts("fact_vehicle_work", dailyReportId, syncedMongoIds);
+    await this.archiveOrphanedFacts(
+      "fact_vehicle_work",
+      dailyReportId,
+      syncedMongoIds
+    );
   }
 
   private async syncMaterialShipments(
@@ -199,8 +234,16 @@ class DailyReportSyncHandler extends SyncHandler<PopulatedDailyReport> {
     const materialShipmentIds = dailyReport.materialShipment || [];
 
     if (materialShipmentIds.length === 0) {
-      await this.archiveOrphanedFacts("fact_material_shipment", dailyReportId, []);
-      await this.archiveOrphanedFacts("fact_non_costed_material", dailyReportId, []);
+      await this.archiveOrphanedFacts(
+        "fact_material_shipment",
+        dailyReportId,
+        []
+      );
+      await this.archiveOrphanedFacts(
+        "fact_non_costed_material",
+        dailyReportId,
+        []
+      );
       await this.archiveOrphanedFacts("fact_trucking", dailyReportId, []);
       return;
     }
@@ -210,10 +253,7 @@ class DailyReportSyncHandler extends SyncHandler<PopulatedDailyReport> {
     })
       .populate({
         path: "jobsiteMaterial",
-        populate: [
-          { path: "material" },
-          { path: "supplier" },
-        ],
+        populate: [{ path: "material" }, { path: "supplier" }],
       })
       .exec();
 
@@ -250,13 +290,28 @@ class DailyReportSyncHandler extends SyncHandler<PopulatedDailyReport> {
           syncedTruckingIds.push(ms._id.toString());
         }
       } catch (error) {
-        console.error(`[${this.entityName}Sync] Failed to sync MaterialShipment ${ms._id}:`, error);
+        console.error(
+          `[${this.entityName}Sync] Failed to sync MaterialShipment ${ms._id}:`,
+          error
+        );
       }
     }
 
-    await this.archiveOrphanedFacts("fact_material_shipment", dailyReportId, syncedCostedIds);
-    await this.archiveOrphanedFacts("fact_non_costed_material", dailyReportId, syncedNonCostedIds);
-    await this.archiveOrphanedFacts("fact_trucking", dailyReportId, syncedTruckingIds);
+    await this.archiveOrphanedFacts(
+      "fact_material_shipment",
+      dailyReportId,
+      syncedCostedIds
+    );
+    await this.archiveOrphanedFacts(
+      "fact_non_costed_material",
+      dailyReportId,
+      syncedNonCostedIds
+    );
+    await this.archiveOrphanedFacts(
+      "fact_trucking",
+      dailyReportId,
+      syncedTruckingIds
+    );
   }
 
   private async syncProductions(
@@ -293,7 +348,10 @@ class DailyReportSyncHandler extends SyncHandler<PopulatedDailyReport> {
         });
         syncedMongoIds.push(prod._id.toString());
       } catch (error) {
-        console.error(`[${this.entityName}Sync] Failed to sync Production ${prod._id}:`, error);
+        console.error(
+          `[${this.entityName}Sync] Failed to sync Production ${prod._id}:`,
+          error
+        );
       }
     }
 
@@ -316,7 +374,9 @@ class DailyReportSyncHandler extends SyncHandler<PopulatedDailyReport> {
       .executeTakeFirst();
 
     if (!dailyReport) {
-      console.log(`[${this.entityName}Sync] No dim_daily_report found for ${mongoId}`);
+      console.log(
+        `[${this.entityName}Sync] No dim_daily_report found for ${mongoId}`
+      );
       return;
     }
 
@@ -364,7 +424,9 @@ class DailyReportSyncHandler extends SyncHandler<PopulatedDailyReport> {
       .where("daily_report_id", "=", dailyReport.id)
       .execute();
 
-    console.log(`[${this.entityName}Sync] Archived DailyReport ${mongoId} and its facts`);
+    console.log(
+      `[${this.entityName}Sync] Archived DailyReport ${mongoId} and its facts`
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -375,7 +437,12 @@ class DailyReportSyncHandler extends SyncHandler<PopulatedDailyReport> {
    * Archive fact records that are no longer in the DailyReport
    */
   private async archiveOrphanedFacts(
-    tableName: "fact_employee_work" | "fact_vehicle_work" | "fact_material_shipment" | "fact_non_costed_material" | "fact_trucking",
+    tableName:
+      | "fact_employee_work"
+      | "fact_vehicle_work"
+      | "fact_material_shipment"
+      | "fact_non_costed_material"
+      | "fact_trucking",
     dailyReportId: string,
     validMongoIds: string[]
   ): Promise<void> {

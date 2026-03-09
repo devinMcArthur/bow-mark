@@ -96,9 +96,7 @@ export default class VehicleResolver {
   }
 
   @Query(() => VehicleHoursReport)
-  async vehicleHourReports(
-    @Arg("id", () => ID) id: Id,
-  ) {
+  async vehicleHourReports(@Arg("id", () => ID) id: Id) {
     const vehicle = await Vehicle.getById(id);
     if (!vehicle) throw new Error("Could not find vehicle");
 

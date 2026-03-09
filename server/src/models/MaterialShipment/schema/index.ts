@@ -22,7 +22,10 @@ import { publishMaterialShipmentChange } from "../../../rabbitmq/publisher";
 
   // Publish to RabbitMQ for PostgreSQL sync
   try {
-    await publishMaterialShipmentChange("updated", materialShipment._id.toString());
+    await publishMaterialShipmentChange(
+      "updated",
+      materialShipment._id.toString()
+    );
   } catch (e) {
     errorHandler("MaterialShipment RabbitMQ publish error", e);
   }
@@ -36,7 +39,10 @@ import { publishMaterialShipmentChange } from "../../../rabbitmq/publisher";
 
   // Publish deletion to RabbitMQ
   try {
-    await publishMaterialShipmentChange("deleted", materialShipment._id.toString());
+    await publishMaterialShipmentChange(
+      "deleted",
+      materialShipment._id.toString()
+    );
   } catch (e) {
     errorHandler("MaterialShipment RabbitMQ publish error", e);
   }

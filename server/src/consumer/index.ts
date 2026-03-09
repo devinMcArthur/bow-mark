@@ -27,7 +27,10 @@ import {
   closeConnection as closeRabbitMQ,
   RABBITMQ_CONFIG,
 } from "../rabbitmq";
-import { checkConnection as checkPostgres, closeConnection as closePostgres } from "../db";
+import {
+  checkConnection as checkPostgres,
+  closeConnection as closePostgres,
+} from "../db";
 import type { SyncMessage } from "../rabbitmq/publisher";
 import {
   dailyReportSyncHandler,
@@ -190,7 +193,12 @@ process.on("SIGTERM", shutdown);
 
 // Handle uncaught errors
 process.on("unhandledRejection", (reason, promise) => {
-  console.error("[Consumer] Unhandled Rejection at:", promise, "reason:", reason);
+  console.error(
+    "[Consumer] Unhandled Rejection at:",
+    promise,
+    "reason:",
+    reason
+  );
 });
 
 // Start the consumer

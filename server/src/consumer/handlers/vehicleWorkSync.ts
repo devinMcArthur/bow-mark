@@ -45,23 +45,27 @@ export interface VehicleWorkSyncContext {
 class VehicleWorkSyncHandler extends SyncHandler<PopulatedVehicleWork> {
   readonly entityName = "VehicleWork";
 
-  protected async fetchFromMongo(mongoId: string): Promise<PopulatedVehicleWork | null> {
-    const doc = await VehicleWork.findById(mongoId)
-      .populate("vehicle")
-      .exec();
+  protected async fetchFromMongo(
+    mongoId: string
+  ): Promise<PopulatedVehicleWork | null> {
+    const doc = await VehicleWork.findById(mongoId).populate("vehicle").exec();
 
     return doc as PopulatedVehicleWork | null;
   }
 
   protected validate(doc: PopulatedVehicleWork): boolean {
     if (!doc.vehicle) {
-      console.warn(`[${this.entityName}Sync] ${doc._id} missing vehicle reference`);
+      console.warn(
+        `[${this.entityName}Sync] ${doc._id} missing vehicle reference`
+      );
       return false;
     }
     return true;
   }
 
-  protected async syncToPostgres(vehicleWork: PopulatedVehicleWork): Promise<void> {
+  protected async syncToPostgres(
+    vehicleWork: PopulatedVehicleWork
+  ): Promise<void> {
     // Find the parent DailyReport that contains this VehicleWork
     const dailyReport = await DailyReport.findOne({
       vehicleWork: vehicleWork._id,
@@ -92,7 +96,11 @@ class VehicleWorkSyncHandler extends SyncHandler<PopulatedVehicleWork> {
     // Upsert dimension records
     const jobsiteId = await upsertDimJobsite(typedDailyReport.jobsite);
     const crewId = await upsertDimCrew(typedDailyReport.crew);
-    const dailyReportId = await upsertDimDailyReport(typedDailyReport, jobsiteId, crewId);
+    const dailyReportId = await upsertDimDailyReport(
+      typedDailyReport,
+      jobsiteId,
+      crewId
+    );
     const vehicleId = await upsertDimVehicle(vehicleWork.vehicle);
 
     // Sync the fact record
@@ -114,7 +122,9 @@ class VehicleWorkSyncHandler extends SyncHandler<PopulatedVehicleWork> {
       .executeTakeFirst();
 
     if (!existing) {
-      console.log(`[${this.entityName}Sync] No fact_vehicle_work found for ${mongoId}`);
+      console.log(
+        `[${this.entityName}Sync] No fact_vehicle_work found for ${mongoId}`
+      );
       return;
     }
 
@@ -131,8 +141,17 @@ class VehicleWorkSyncHandler extends SyncHandler<PopulatedVehicleWork> {
  *
  * Shared utility for both VehicleWorkSyncHandler and DailyReportSyncHandler.
  */
-export async function upsertFactVehicleWork(ctx: VehicleWorkSyncContext): Promise<void> {
-  const { vehicleWork, dailyReport, dailyReportId, jobsiteId, crewId, vehicleId } = ctx;
+export async function upsertFactVehicleWork(
+  ctx: VehicleWorkSyncContext
+): Promise<void> {
+  const {
+    vehicleWork,
+    dailyReport,
+    dailyReportId,
+    jobsiteId,
+    crewId,
+    vehicleId,
+  } = ctx;
   const mongoId = vehicleWork._id.toString();
 
   // Get the applicable rate for this work date
