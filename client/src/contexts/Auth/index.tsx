@@ -1,4 +1,3 @@
-import { useToast } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import React from "react";
 
@@ -20,6 +19,7 @@ interface IAuthProvider {
 
 interface IAuthState {
   user: FullUserSnippetFragment | undefined | null;
+  serverUnreachable: boolean;
 }
 
 interface IAuthContext {
@@ -41,6 +41,12 @@ type IAuthAction =
   }
   | {
     type: "session-loading";
+  }
+  | {
+    type: "server-unreachable";
+  }
+  | {
+    type: "server-reachable";
   };
 
 /**
@@ -51,6 +57,7 @@ export const localStorageTokenKey = "token";
 
 const initialState: IAuthState = {
   user: undefined,
+  serverUnreachable: false,
 };
 
 const AuthContext = React.createContext<IAuthContext | undefined>(undefined);
@@ -64,16 +71,31 @@ const AuthReducer = (_draft: IAuthState, action: IAuthAction): IAuthState => {
     case "authorize-session": {
       return {
         user: action.payload.user,
+        serverUnreachable: false,
       };
     }
     case "deauthorize-session": {
       return {
         user: null,
+        serverUnreachable: false,
       };
     }
     case "session-loading": {
       return {
         user: undefined,
+        serverUnreachable: false,
+      };
+    }
+    case "server-unreachable": {
+      return {
+        ..._draft,
+        serverUnreachable: true,
+      };
+    }
+    case "server-reachable": {
+      return {
+        ..._draft,
+        serverUnreachable: false,
       };
     }
   }
@@ -98,7 +120,7 @@ const AuthProvider = ({ children }: IAuthProvider) => {
 
   const router = useRouter();
 
-  const toast = useToast();
+  const retryRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [
     currentUser,
@@ -125,6 +147,10 @@ const AuthProvider = ({ children }: IAuthProvider) => {
 
   const authorizeSession = React.useCallback(
     (user: FullUserSnippetFragment) => {
+      if (retryRef.current) {
+        clearInterval(retryRef.current);
+        retryRef.current = null;
+      }
       dispatch({
         type: "authorize-session",
         payload: {
@@ -170,13 +196,12 @@ const AuthProvider = ({ children }: IAuthProvider) => {
     else if (currentUserLoading) sessionLoading();
     else if (!currentUserLoading && currentUserError) {
       if (currentUserError.networkError) {
-        toast({
-          title: "Error",
-          description:
-            "Unable to connect to the server. If the problem persists, please contact support.",
-          status: "error",
-          isClosable: true,
-        });
+        dispatch({ type: "server-unreachable" });
+        if (!retryRef.current) {
+          retryRef.current = setInterval(() => {
+            fetchUser();
+          }, 10000);
+        }
       } else {
         deauthorizeSession();
       }
@@ -190,6 +215,8 @@ const AuthProvider = ({ children }: IAuthProvider) => {
     authorizeSession,
     sessionLoading,
     deauthorizeSession,
+    dispatch,
+    fetchUser,
   ]);
 
   // Handle token changes
