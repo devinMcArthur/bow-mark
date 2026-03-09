@@ -4,11 +4,12 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { Router } from "express";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
-import { ChatConversation } from "../models/ChatConversation";
+import { ChatConversation, IToolResult } from "../models/ChatConversation";
 
 const router = Router();
 
-const MCP_SERVER_URL = process.env.MCP_SERVER_URL || "http://mcp-analytics:8081";
+const MCP_SERVER_URL =
+  process.env.MCP_SERVER_URL || "http://mcp-analytics:8081";
 
 const SYSTEM_PROMPT = `You are an analytics assistant for Bow-Mark, a construction and paving company.
 You have access to tools that query the company's PostgreSQL reporting database and MongoDB.
@@ -70,7 +71,8 @@ router.post("/message", async (req, res) => {
   }
 
   // ── Load or create conversation ──────────────────────────────────────────
-  let convo: Awaited<ReturnType<typeof ChatConversation.findById>> | null = null;
+  let convo: Awaited<ReturnType<typeof ChatConversation.findById>> | null =
+    null;
   let isNewConversation = false;
 
   try {
@@ -107,8 +109,11 @@ router.post("/message", async (req, res) => {
   // ── Start query complexity classification in background ──────────────────
   // Run in parallel with MCP connect to add no meaningful latency.
   // Default to Opus (the more capable model) on any failure or uncertainty.
-  const lastUserContent = [...messages].reverse().find((m) => m.role === "user")?.content;
-  const queryText = typeof lastUserContent === "string" ? lastUserContent : null;
+  const lastUserContent = [...messages]
+    .reverse()
+    .find((m) => m.role === "user")?.content;
+  const queryText =
+    typeof lastUserContent === "string" ? lastUserContent : null;
 
   const classificationPromise: Promise<"simple" | "complex"> = queryText
     ? anthropic.messages
@@ -133,7 +138,9 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
         })
         .then((r) => {
           const text =
-            r.content[0]?.type === "text" ? r.content[0].text.trim().toUpperCase() : "";
+            r.content[0]?.type === "text"
+              ? r.content[0].text.trim().toUpperCase()
+              : "";
           return text === "SIMPLE" ? "simple" : "complex";
         })
         .catch(() => "complex" as const)
@@ -141,7 +148,9 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
 
   // ── Connect to MCP server ────────────────────────────────────────────────
   const mcpClient = new Client({ name: "bow-mark-chat", version: "1.0.0" });
-  const transport = new StreamableHTTPClientTransport(new URL(`${MCP_SERVER_URL}/mcp`));
+  const transport = new StreamableHTTPClientTransport(
+    new URL(`${MCP_SERVER_URL}/mcp`)
+  );
 
   try {
     await mcpClient.connect(transport);
@@ -179,7 +188,8 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
 
   // ── Await classification result → choose model ───────────────────────────
   const complexity = await classificationPromise;
-  const MODEL = complexity === "simple" ? "claude-sonnet-4-6" : "claude-opus-4-6";
+  const MODEL =
+    complexity === "simple" ? "claude-sonnet-4-6" : "claude-opus-4-6";
   console.log(`[chat] complexity=${complexity} → model=${MODEL}`);
 
   // Update stored model to reflect what was actually used this turn
@@ -216,6 +226,7 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
 
   try {
     let continueLoop = true;
+    const turnToolResults: IToolResult[] = [];
 
     while (continueLoop) {
       const stream = anthropic.messages.stream({
@@ -245,11 +256,17 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
       convo!.totalOutputTokens += message.usage.output_tokens;
 
       if (message.stop_reason === "end_turn") {
-        conversationMessages.push({ role: "assistant", content: message.content });
+        conversationMessages.push({
+          role: "assistant",
+          content: message.content,
+        });
         sendEvent({ type: "done" });
         continueLoop = false;
       } else if (message.stop_reason === "tool_use") {
-        conversationMessages.push({ role: "assistant", content: message.content });
+        conversationMessages.push({
+          role: "assistant",
+          content: message.content,
+        });
 
         const toolResults: Anthropic.ToolResultBlockParam[] = [];
 
@@ -275,12 +292,18 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
               tool_use_id: block.id,
               content: resultText,
             });
+            turnToolResults.push({ toolName: block.name, result: resultText });
+            sendEvent({ type: "tool_result", toolName: block.name, result: resultText });
           } catch (toolErr) {
             console.error(`Tool call failed: ${block.name}`, toolErr);
             toolResults.push({
               type: "tool_result",
               tool_use_id: block.id,
-              content: `Error: ${toolErr instanceof Error ? toolErr.message : "Tool execution failed"}`,
+              content: `Error: ${
+                toolErr instanceof Error
+                  ? toolErr.message
+                  : "Tool execution failed"
+              }`,
               is_error: true,
             });
           }
@@ -296,14 +319,17 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
     // ── Persist messages + token counts ────────────────────────────────────
     // Append new user message from the incoming request
     const lastUserMsg = messages[messages.length - 1];
-    if (lastUserMsg?.role === "user" && typeof lastUserMsg.content === "string") {
+    if (
+      lastUserMsg?.role === "user" &&
+      typeof lastUserMsg.content === "string"
+    ) {
       convo!.messages.push({ role: "user", content: lastUserMsg.content });
     }
 
     // Find the last assistant turn (skip tool_use blocks, get text only)
-    const lastAssistantTurn = [...conversationMessages].reverse().find(
-      (m) => m.role === "assistant"
-    );
+    const lastAssistantTurn = [...conversationMessages]
+      .reverse()
+      .find((m) => m.role === "assistant");
     if (lastAssistantTurn) {
       const content = lastAssistantTurn.content;
       const text =
@@ -320,6 +346,7 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
           model: MODEL,
           inputTokens: convo!.totalInputTokens - tokensBefore.input,
           outputTokens: convo!.totalOutputTokens - tokensBefore.output,
+          ...(turnToolResults.length > 0 ? { toolResults: turnToolResults } : {}),
         });
       }
     }
@@ -327,7 +354,11 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
     await convo!.save();
 
     // ── Title generation (first turn only) ─────────────────────────────────
-    if (isFirstTurn && firstUserMessage && typeof firstUserMessage === "string") {
+    if (
+      isFirstTurn &&
+      firstUserMessage &&
+      typeof firstUserMessage === "string"
+    ) {
       try {
         const titleResponse = await anthropic.messages.create({
           model: "claude-haiku-4-5",
@@ -354,8 +385,12 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
   } catch (err) {
     console.error("Claude API error:", err);
     let userMessage = err instanceof Error ? err.message : "Unknown error";
-    if (err instanceof Anthropic.BadRequestError && err.message.toLowerCase().includes("too long")) {
-      userMessage = "The request exceeded the context limit — the tool results returned too much data. Try narrowing the date range or filtering to a specific jobsite.";
+    if (
+      err instanceof Anthropic.BadRequestError &&
+      err.message.toLowerCase().includes("too long")
+    ) {
+      userMessage =
+        "The request exceeded the context limit — the tool results returned too much data. Try narrowing the date range or filtering to a specific jobsite.";
     }
     sendEvent({ type: "error", message: userMessage });
   } finally {
