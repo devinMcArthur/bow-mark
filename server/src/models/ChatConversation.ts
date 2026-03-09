@@ -28,7 +28,7 @@ export interface IChatConversation extends Document {
 const ToolResultSchema = new Schema<IToolResult>(
   {
     toolName: { type: String, required: true },
-    result:   { type: String, required: true },
+    result: { type: String, required: true },
   },
   { _id: false }
 );
@@ -47,7 +47,12 @@ const ChatMessageSchema = new Schema<IChatMessage>(
 
 const ChatConversationSchema = new Schema<IChatConversation>(
   {
-    user: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
     title: { type: String, required: true, default: "New conversation" },
     aiModel: { type: String, required: true },
     messages: { type: [ChatMessageSchema], default: [] },
