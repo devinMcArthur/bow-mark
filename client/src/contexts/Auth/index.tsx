@@ -169,9 +169,7 @@ const AuthProvider = ({ children }: IAuthProvider) => {
       authorizeSession(currentUserData.currentUser);
     else if (currentUserLoading) sessionLoading();
     else if (!currentUserLoading && currentUserError) {
-      if (currentUserError.message !== "Failed to fetch") {
-        deauthorizeSession();
-      } else {
+      if (currentUserError.networkError) {
         toast({
           title: "Error",
           description:
@@ -179,6 +177,8 @@ const AuthProvider = ({ children }: IAuthProvider) => {
           status: "error",
           isClosable: true,
         });
+      } else {
+        deauthorizeSession();
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
