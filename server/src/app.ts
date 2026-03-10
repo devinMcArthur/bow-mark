@@ -158,7 +158,10 @@ const createApp = async () => {
         try {
           jwt.verify(token, process.env.JWT_SECRET);
         } catch (error) {
-          throw new Error("Cut it out hackerman");
+          // Invalid / expired token — treat as unauthenticated rather than
+          // failing context creation (which causes a 500 that the client
+          // misreads as the server being unreachable).
+          return { user: null, req, res };
         }
 
         const decoded = jwt.decode(token);
