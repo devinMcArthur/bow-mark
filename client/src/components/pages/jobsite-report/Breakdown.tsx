@@ -112,9 +112,6 @@ function aggregateDayReports(dayReports: DayReport[]): {
   const crewMap = new Map<string, CrewData>();
   const dateSet = new Set<string>();
 
-  // Accumulator for shift hours: crewType → date → { totalHours, count }
-  const empAccByCrewDate = new Map<string, Map<string, { totalHours: number; count: number }>>();
-
   for (const day of dayReports) {
     const dateStr = new Date(day.date).toISOString().split("T")[0];
     dateSet.add(dateStr);
@@ -132,12 +129,6 @@ function aggregateDayReports(dayReports: DayReport[]): {
       entry.totalCost += emp.cost;
       const prev = entry.byDate.get(dateStr) || { hours: 0, cost: 0 };
       entry.byDate.set(dateStr, { hours: prev.hours + emp.hours, cost: prev.cost + emp.cost });
-
-      // Accumulate for shift hours
-      if (!empAccByCrewDate.has(emp.crewType)) empAccByCrewDate.set(emp.crewType, new Map());
-      const acc = empAccByCrewDate.get(emp.crewType)!;
-      const prevAcc = acc.get(dateStr) ?? { totalHours: 0, count: 0 };
-      acc.set(dateStr, { totalHours: prevAcc.totalHours + emp.hours, count: prevAcc.count + 1 });
     }
 
     for (const veh of day.vehicles) {
@@ -202,11 +193,18 @@ function aggregateDayReports(dayReports: DayReport[]): {
     }
   }
 
-  // Compute shift hours per date per crew (avg employee hours = shift length proxy)
-  empAccByCrewDate.forEach((dateMap, crewType) => {
-    const crew = crewMap.get(crewType);
-    if (!crew) return;
-    dateMap.forEach(({ totalHours, count }, date) => {
+  // Compute shift hours per date per crew.
+  // Use crew.employees[name].byDate[date].hours — already correctly summed across all
+  // EmployeeWork entries per employee per day — so count here is distinct employees, not entries.
+  crewMap.forEach((crew) => {
+    const dateAcc = new Map<string, { totalHours: number; count: number }>();
+    crew.employees.forEach((empEntry) => {
+      empEntry.byDate.forEach(({ hours }, date) => {
+        const prev = dateAcc.get(date) ?? { totalHours: 0, count: 0 };
+        dateAcc.set(date, { totalHours: prev.totalHours + hours, count: prev.count + 1 });
+      });
+    });
+    dateAcc.forEach(({ totalHours, count }, date) => {
       if (count > 0) crew.shiftHoursByDate.set(date, totalHours / count);
     });
   });
