@@ -6,6 +6,7 @@ import {
   FormLabel,
   Heading,
   HStack,
+  Link as ChakraLink,
   Select,
   Text,
   Textarea,
@@ -14,6 +15,7 @@ import {
 } from "@chakra-ui/react";
 import { gql } from "@apollo/client";
 import * as Apollo from "@apollo/client";
+import NextLink from "next/link";
 import React from "react";
 import { TenderDetail } from "./types";
 
@@ -121,6 +123,19 @@ const TenderOverview = ({ tender, onUpdated }: TenderOverviewProps) => {
         </Text>
         <Badge colorScheme={statusColor(tender.status)}>{tender.status}</Badge>
       </HStack>
+
+      {tender.jobsite && (
+        <HStack mb={3} spacing={2} align="center">
+          <Text fontSize="sm" color="gray.500">
+            Jobsite:
+          </Text>
+          <NextLink href={`/jobsite/${tender.jobsite._id}`} passHref>
+            <ChakraLink fontSize="sm" color="blue.600">
+              {tender.jobsite.name}
+            </ChakraLink>
+          </NextLink>
+        </HStack>
+      )}
 
       {!editing ? (
         <>

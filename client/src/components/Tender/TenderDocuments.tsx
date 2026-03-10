@@ -253,6 +253,7 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
   const [uploading, setUploading] = React.useState(false);
   const [removingId, setRemovingId] = React.useState<string | null>(null);
   const [retryingId, setRetryingId] = React.useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const [fileCreate] = useFileCreateMutation();
@@ -271,17 +272,15 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
   );
 
   // Detect any pending/processing files
-  const hasPending = tender.files.some(
+  const pendingCount = tender.files.filter(
     (f) => f.summaryStatus === "pending" || f.summaryStatus === "processing"
-  );
+  ).length;
+  const hasPending = pendingCount > 0;
 
   // ── Upload handler ────────────────────────────────────────────────────────
 
-  const handleFileChange = React.useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
+  const handleUpload = React.useCallback(
+    async (file: File) => {
       if (!documentType.trim()) {
         toast({
           title: "Please enter a document type before uploading",
@@ -342,6 +341,25 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
     [documentType, tender._id, fileCreate, tenderAddFile, toast, onUpdated]
   );
 
+  const handleFileChange = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) handleUpload(file);
+    },
+    [handleUpload]
+  );
+
+  const handleDrop = React.useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(false);
+      const file = e.dataTransfer.files?.[0];
+      if (file) handleUpload(file);
+    },
+    [handleUpload]
+  );
+
   // ── Remove handler ────────────────────────────────────────────────────────
 
   const handleRemove = React.useCallback(
@@ -398,8 +416,7 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
         <Alert status="warning" mb={3} borderRadius="md" size="sm">
           <AlertIcon />
           <AlertDescription fontSize="sm">
-            Some documents are still being processed. Summaries will appear
-            when ready.
+            {pendingCount} {pendingCount === 1 ? "document is" : "documents are"} still being processed — answers may be incomplete.
           </AlertDescription>
         </Alert>
       )}
@@ -436,11 +453,15 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
 
       {/* Upload area */}
       <Box
-        border="1px solid"
-        borderColor="gray.200"
+        border="2px dashed"
+        borderColor={isDragOver ? "blue.400" : "gray.200"}
         borderRadius="md"
         p={3}
-        bg="gray.50"
+        bg={isDragOver ? "blue.50" : "gray.50"}
+        transition="border-color 0.15s, background 0.15s"
+        onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+        onDragLeave={() => setIsDragOver(false)}
+        onDrop={handleDrop}
       >
         <Text fontSize="sm" fontWeight="600" mb={2} color="gray.700">
           Add Document
