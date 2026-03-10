@@ -4,7 +4,6 @@ import {
   AlertIcon,
   Badge,
   Box,
-  Collapse,
   Heading,
   HStack,
   IconButton,
@@ -247,6 +246,81 @@ const computeUtilization = (
   return (totalVehicleHours / totalShiftHours) * 100;
 };
 
+// ---- StickyTable ----
+// Splits Thead (sticky, outside overflow-x box) from Tbody (scrollable).
+// Syncs horizontal scroll from body → header so column headers stay aligned.
+const COL_HIGHLIGHT = "#EBF8FF"; // blue.50
+
+const StickyTable = ({
+  tableWidth,
+  head,
+  children,
+}: {
+  tableWidth: string;
+  head: React.ReactNode;
+  children: React.ReactNode;
+}) => {
+  const bodyRef = React.useRef<HTMLDivElement>(null);
+  const headRef = React.useRef<HTMLDivElement>(null);
+  const prevColRef = React.useRef<number | null>(null);
+
+  const onBodyScroll = React.useCallback(() => {
+    if (headRef.current && bodyRef.current) {
+      headRef.current.scrollLeft = bodyRef.current.scrollLeft;
+    }
+  }, []);
+
+  const applyColHighlight = React.useCallback((colIdx: number | null) => {
+    const prev = prevColRef.current;
+    if (prev === colIdx) return;
+
+    if (prev !== null) {
+      headRef.current?.querySelectorAll(`tr th:nth-child(${prev + 1})`).forEach((el) => {
+        (el as HTMLElement).style.backgroundColor = "";
+      });
+      bodyRef.current?.querySelectorAll(`tr td:nth-child(${prev + 1})`).forEach((el) => {
+        (el as HTMLElement).style.backgroundColor = "";
+      });
+    }
+
+    if (colIdx !== null) {
+      headRef.current?.querySelectorAll(`tr th:nth-child(${colIdx + 1})`).forEach((el) => {
+        (el as HTMLElement).style.backgroundColor = COL_HIGHLIGHT;
+      });
+      bodyRef.current?.querySelectorAll(`tr td:nth-child(${colIdx + 1})`).forEach((el) => {
+        (el as HTMLElement).style.backgroundColor = COL_HIGHLIGHT;
+      });
+    }
+
+    prevColRef.current = colIdx;
+  }, []);
+
+  const onMouseOver = React.useCallback(
+    (e: React.MouseEvent) => {
+      const cell = (e.target as HTMLElement).closest("td, th") as HTMLTableCellElement | null;
+      applyColHighlight(cell ? cell.cellIndex : null);
+    },
+    [applyColHighlight]
+  );
+
+  const onMouseLeave = React.useCallback(() => applyColHighlight(null), [applyColHighlight]);
+
+  return (
+    <Box onMouseOver={onMouseOver} onMouseLeave={onMouseLeave}>
+      <Box ref={headRef} position="sticky" top={0} zIndex={2} bg="white" sx={{ overflowX: "hidden" }}>
+        <Table size="sm" sx={{ tableLayout: "fixed" }} w={tableWidth}>
+          <Thead>{head}</Thead>
+        </Table>
+      </Box>
+      <Box ref={bodyRef} sx={{ overflowX: "auto" }} onScroll={onBodyScroll}>
+        <Table size="sm" sx={{ tableLayout: "fixed" }} w={tableWidth}>
+          <Tbody>{children}</Tbody>
+        </Table>
+      </Box>
+    </Box>
+  );
+};
+
 // ---- CrewCard ----
 interface ICrewCard {
   crewType: string;
@@ -288,44 +362,41 @@ const CrewCard = ({ crewType, crew }: ICrewCard) => {
         </HStack>
       }
     >
-      <Collapse in={open} animateOpacity>
-        <Stack spacing={4} pt={2}>
+      {open && <Stack spacing={4} pt={2}>
 
           {/* Employees */}
           {crew.employees.size > 0 && (
             <Box>
               <Heading size="xs" mb={2} color="gray.600">Employees</Heading>
-              <Box overflowX="auto">
-                <Table size="sm" minW="600px">
-                  <Thead>
-                    <Tr>
-                      <Th minW="150px">Name</Th>
-                      <Th isNumeric>Total Hrs</Th>
-                      <Th isNumeric>Total Cost</Th>
-                      {dates.map((d) => (
-                        <Th key={d} isNumeric whiteSpace="nowrap">{fmtDateHeader(d)}</Th>
-                      ))}
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {Array.from(crew.employees.entries()).map(([name, entry]) => (
-                      <Tr key={name}>
-                        <Td fontWeight="medium">{name}</Td>
-                        <Td isNumeric>{formatNumber(entry.totalHours)}</Td>
-                        <Td isNumeric>{formatCurrency(entry.totalCost)}</Td>
-                        {dates.map((d) => {
-                          const day = entry.byDate.get(d);
-                          return (
-                            <Td key={d} isNumeric color={day ? undefined : "gray.300"}>
-                              {day ? formatNumber(day.hours) : "—"}
-                            </Td>
-                          );
-                        })}
-                      </Tr>
+              <StickyTable
+                tableWidth={`${340 + dates.length * 70}px`}
+                head={
+                  <Tr>
+                    <Th w="160px" position="sticky" left={0} zIndex={1}>Name</Th>
+                    <Th isNumeric w="85px" position="sticky" left="160px" zIndex={1}>Total Hrs</Th>
+                    <Th isNumeric w="95px" position="sticky" left="245px" zIndex={1}>Total Cost</Th>
+                    {dates.map((d) => (
+                      <Th key={d} w="70px" isNumeric whiteSpace="nowrap">{fmtDateHeader(d)}</Th>
                     ))}
-                  </Tbody>
-                </Table>
-              </Box>
+                  </Tr>
+                }
+              >
+                {Array.from(crew.employees.entries()).map(([name, entry]) => (
+                  <Tr bg="white" _hover={{ bg: "blue.50" }} key={name}>
+                    <Td w="160px" position="sticky" left={0} zIndex={1} fontWeight="medium">{name}</Td>
+                    <Td isNumeric w="85px" position="sticky" left="160px" zIndex={1}>{formatNumber(entry.totalHours)}</Td>
+                    <Td isNumeric w="95px" position="sticky" left="245px" zIndex={1}>{formatCurrency(entry.totalCost)}</Td>
+                    {dates.map((d) => {
+                      const day = entry.byDate.get(d);
+                      return (
+                        <Td key={d} isNumeric color={day ? undefined : "gray.300"}>
+                          {day ? formatNumber(day.hours) : "—"}
+                        </Td>
+                      );
+                    })}
+                  </Tr>
+                ))}
+              </StickyTable>
             </Box>
           )}
 
@@ -333,65 +404,63 @@ const CrewCard = ({ crewType, crew }: ICrewCard) => {
           {crew.vehicles.size > 0 && (
             <Box>
               <Heading size="xs" mb={2} color="gray.600">Equipment</Heading>
-              <Box overflowX="auto">
-                <Table size="sm" minW="600px">
-                  <Thead>
-                    <Tr>
-                      <Th minW="150px">Vehicle</Th>
-                      <Th>Code</Th>
-                      <Th isNumeric>Total Hrs / Util</Th>
-                      <Th isNumeric>Total Cost</Th>
-                      {dates.map((d) => (
-                        <Th key={d} isNumeric whiteSpace="nowrap">{fmtDateHeader(d)}</Th>
-                      ))}
+              <StickyTable
+                tableWidth={`${455 + dates.length * 80}px`}
+                head={
+                  <Tr>
+                    <Th w="160px" position="sticky" left={0} zIndex={1}>Vehicle</Th>
+                    <Th w="75px" position="sticky" left="160px" zIndex={1}>Code</Th>
+                    <Th isNumeric w="125px" position="sticky" left="235px" zIndex={1}>Total Hrs / Util</Th>
+                    <Th isNumeric w="95px" position="sticky" left="360px" zIndex={1}>Total Cost</Th>
+                    {dates.map((d) => (
+                      <Th key={d} w="80px" isNumeric whiteSpace="nowrap">{fmtDateHeader(d)}</Th>
+                    ))}
+                  </Tr>
+                }
+              >
+                {Array.from(crew.vehicles.entries()).map(([name, entry]) => {
+                  const totalUtil = computeUtilization(entry.byDate, crew.shiftHoursByDate);
+                  return (
+                    <Tr bg="white" _hover={{ bg: "blue.50" }} key={name}>
+                      <Td w="160px" position="sticky" left={0} zIndex={1} fontWeight="medium">{entry.name}</Td>
+                      <Td w="75px" position="sticky" left="160px" zIndex={1} color="gray.500">{entry.code}</Td>
+                      <Td isNumeric w="125px" position="sticky" left="235px" zIndex={1}>
+                        <Text as="span">{formatNumber(entry.totalHours)}</Text>
+                        {totalUtil != null && (
+                          <Text as="span" color="gray.500" fontSize="xs" ml={1}>
+                            ({Math.round(totalUtil)}%)
+                          </Text>
+                        )}
+                      </Td>
+                      <Td isNumeric w="95px" position="sticky" left="360px" zIndex={1}>{formatCurrency(entry.totalCost)}</Td>
+                      {dates.map((d) => {
+                        const day = entry.byDate.get(d);
+                        const shiftHours = crew.shiftHoursByDate.get(d);
+                        const dailyUtil =
+                          day && shiftHours && shiftHours > 0
+                            ? Math.round((day.hours / shiftHours) * 100)
+                            : null;
+                        return (
+                          <Td key={d} isNumeric color={day ? undefined : "gray.300"}>
+                            {day ? (
+                              <>
+                                <Text as="span">{formatNumber(day.hours)}</Text>
+                                {dailyUtil != null && (
+                                  <Text as="span" color="gray.500" fontSize="xs" ml={1}>
+                                    ({dailyUtil}%)
+                                  </Text>
+                                )}
+                              </>
+                            ) : (
+                              "—"
+                            )}
+                          </Td>
+                        );
+                      })}
                     </Tr>
-                  </Thead>
-                  <Tbody>
-                    {Array.from(crew.vehicles.entries()).map(([name, entry]) => {
-                      const totalUtil = computeUtilization(entry.byDate, crew.shiftHoursByDate);
-                      return (
-                      <Tr key={name}>
-                        <Td fontWeight="medium">{entry.name}</Td>
-                        <Td color="gray.500">{entry.code}</Td>
-                        <Td isNumeric>
-                          <Text as="span">{formatNumber(entry.totalHours)}</Text>
-                          {totalUtil != null && (
-                            <Text as="span" color="gray.500" fontSize="xs" ml={1}>
-                              ({Math.round(totalUtil)}%)
-                            </Text>
-                          )}
-                        </Td>
-                        <Td isNumeric>{formatCurrency(entry.totalCost)}</Td>
-                        {dates.map((d) => {
-                          const day = entry.byDate.get(d);
-                          const shiftHours = crew.shiftHoursByDate.get(d);
-                          const dailyUtil =
-                            day && shiftHours && shiftHours > 0
-                              ? Math.round((day.hours / shiftHours) * 100)
-                              : null;
-                          return (
-                            <Td key={d} isNumeric color={day ? undefined : "gray.300"}>
-                              {day ? (
-                                <>
-                                  <Text as="span">{formatNumber(day.hours)}</Text>
-                                  {dailyUtil != null && (
-                                    <Text as="span" color="gray.500" fontSize="xs" ml={1}>
-                                      ({dailyUtil}%)
-                                    </Text>
-                                  )}
-                                </>
-                              ) : (
-                                "—"
-                              )}
-                            </Td>
-                          );
-                        })}
-                      </Tr>
-                      );
-                    })}
-                  </Tbody>
-                </Table>
-              </Box>
+                  );
+                })}
+              </StickyTable>
             </Box>
           )}
 
@@ -399,47 +468,45 @@ const CrewCard = ({ crewType, crew }: ICrewCard) => {
           {crew.materials.size > 0 && (
             <Box>
               <Heading size="xs" mb={2} color="gray.600">Materials</Heading>
-              <Box overflowX="auto">
-                <Table size="sm" minW="600px">
-                  <Thead>
-                    <Tr>
-                      <Th minW="150px">Material</Th>
-                      <Th>Supplier</Th>
-                      <Th isNumeric>Total Qty</Th>
-                      <Th isNumeric>Total Cost</Th>
-                      {dates.map((d) => (
-                        <Th key={d} isNumeric whiteSpace="nowrap">{fmtDateHeader(d)}</Th>
-                      ))}
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {Array.from(crew.materials.entries()).map(([key, entry]) => {
-                      const [matName] = key.split("|");
-                      return (
-                        <Tr key={key}>
-                          <Td fontWeight="medium">
-                            {matName}
-                            {entry.estimated && (
-                              <Badge ml={1} colorScheme="yellow" fontSize="xs">Est</Badge>
-                            )}
+              <StickyTable
+                tableWidth={`${470 + dates.length * 70}px`}
+                head={
+                  <Tr>
+                    <Th w="160px" position="sticky" left={0} zIndex={1}>Material</Th>
+                    <Th w="120px" position="sticky" left="160px" zIndex={1}>Supplier</Th>
+                    <Th isNumeric w="95px" position="sticky" left="280px" zIndex={1}>Total Qty</Th>
+                    <Th isNumeric w="95px" position="sticky" left="375px" zIndex={1}>Total Cost</Th>
+                    {dates.map((d) => (
+                      <Th key={d} w="70px" isNumeric whiteSpace="nowrap">{fmtDateHeader(d)}</Th>
+                    ))}
+                  </Tr>
+                }
+              >
+                {Array.from(crew.materials.entries()).map(([key, entry]) => {
+                  const [matName] = key.split("|");
+                  return (
+                    <Tr bg="white" _hover={{ bg: "blue.50" }} key={key}>
+                      <Td w="160px" position="sticky" left={0} zIndex={1} fontWeight="medium">
+                        {matName}
+                        {entry.estimated && (
+                          <Badge ml={1} colorScheme="yellow" fontSize="xs">Est</Badge>
+                        )}
+                      </Td>
+                      <Td w="120px" position="sticky" left="160px" zIndex={1} color="gray.500">{entry.supplier}</Td>
+                      <Td isNumeric w="95px" position="sticky" left="280px" zIndex={1}>{formatNumber(entry.totalQty)} {entry.unit}</Td>
+                      <Td isNumeric w="95px" position="sticky" left="375px" zIndex={1}>{formatCurrency(entry.totalCost)}</Td>
+                      {dates.map((d) => {
+                        const day = entry.byDate.get(d);
+                        return (
+                          <Td key={d} isNumeric color={day ? undefined : "gray.300"}>
+                            {day ? formatNumber(day.qty) : "—"}
                           </Td>
-                          <Td color="gray.500">{entry.supplier}</Td>
-                          <Td isNumeric>{formatNumber(entry.totalQty)} {entry.unit}</Td>
-                          <Td isNumeric>{formatCurrency(entry.totalCost)}</Td>
-                          {dates.map((d) => {
-                            const day = entry.byDate.get(d);
-                            return (
-                              <Td key={d} isNumeric color={day ? undefined : "gray.300"}>
-                                {day ? formatNumber(day.qty) : "—"}
-                              </Td>
-                            );
-                          })}
-                        </Tr>
-                      );
-                    })}
-                  </Tbody>
-                </Table>
-              </Box>
+                        );
+                      })}
+                    </Tr>
+                  );
+                })}
+              </StickyTable>
             </Box>
           )}
 
@@ -447,40 +514,38 @@ const CrewCard = ({ crewType, crew }: ICrewCard) => {
           {crew.nonCostedMaterials.size > 0 && (
             <Box>
               <Heading size="xs" mb={2} color="gray.600">Non-Costed Materials</Heading>
-              <Box overflowX="auto">
-                <Table size="sm" minW="600px">
-                  <Thead>
-                    <Tr>
-                      <Th minW="150px">Material</Th>
-                      <Th>Supplier</Th>
-                      <Th isNumeric>Total Qty</Th>
-                      {dates.map((d) => (
-                        <Th key={d} isNumeric whiteSpace="nowrap">{fmtDateHeader(d)}</Th>
-                      ))}
+              <StickyTable
+                tableWidth={`${375 + dates.length * 70}px`}
+                head={
+                  <Tr>
+                    <Th w="160px" position="sticky" left={0} zIndex={1}>Material</Th>
+                    <Th w="120px" position="sticky" left="160px" zIndex={1}>Supplier</Th>
+                    <Th isNumeric w="95px" position="sticky" left="280px" zIndex={1}>Total Qty</Th>
+                    {dates.map((d) => (
+                      <Th key={d} w="70px" isNumeric whiteSpace="nowrap">{fmtDateHeader(d)}</Th>
+                    ))}
+                  </Tr>
+                }
+              >
+                {Array.from(crew.nonCostedMaterials.entries()).map(([key, entry]) => {
+                  const [matName] = key.split("|");
+                  return (
+                    <Tr bg="white" _hover={{ bg: "blue.50" }} key={key}>
+                      <Td w="160px" position="sticky" left={0} zIndex={1} fontWeight="medium">{matName}</Td>
+                      <Td w="120px" position="sticky" left="160px" zIndex={1} color="gray.500">{entry.supplier}</Td>
+                      <Td isNumeric w="95px" position="sticky" left="280px" zIndex={1}>{formatNumber(entry.totalQty)} {entry.unit}</Td>
+                      {dates.map((d) => {
+                        const qty = entry.byDate.get(d);
+                        return (
+                          <Td key={d} isNumeric color={qty ? undefined : "gray.300"}>
+                            {qty ? formatNumber(qty) : "—"}
+                          </Td>
+                        );
+                      })}
                     </Tr>
-                  </Thead>
-                  <Tbody>
-                    {Array.from(crew.nonCostedMaterials.entries()).map(([key, entry]) => {
-                      const [matName] = key.split("|");
-                      return (
-                        <Tr key={key}>
-                          <Td fontWeight="medium">{matName}</Td>
-                          <Td color="gray.500">{entry.supplier}</Td>
-                          <Td isNumeric>{formatNumber(entry.totalQty)} {entry.unit}</Td>
-                          {dates.map((d) => {
-                            const qty = entry.byDate.get(d);
-                            return (
-                              <Td key={d} isNumeric color={qty ? undefined : "gray.300"}>
-                                {qty ? formatNumber(qty) : "—"}
-                              </Td>
-                            );
-                          })}
-                        </Tr>
-                      );
-                    })}
-                  </Tbody>
-                </Table>
-              </Box>
+                  );
+                })}
+              </StickyTable>
             </Box>
           )}
 
@@ -488,44 +553,41 @@ const CrewCard = ({ crewType, crew }: ICrewCard) => {
           {crew.trucking.size > 0 && (
             <Box>
               <Heading size="xs" mb={2} color="gray.600">Trucking</Heading>
-              <Box overflowX="auto">
-                <Table size="sm" minW="600px">
-                  <Thead>
-                    <Tr>
-                      <Th minW="150px">Type</Th>
-                      <Th>Rate</Th>
-                      <Th isNumeric>Total Qty</Th>
-                      <Th isNumeric>Total Cost</Th>
-                      {dates.map((d) => (
-                        <Th key={d} isNumeric whiteSpace="nowrap">{fmtDateHeader(d)}</Th>
-                      ))}
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {Array.from(crew.trucking.entries()).map(([type, entry]) => (
-                      <Tr key={type}>
-                        <Td fontWeight="medium">{type}</Td>
-                        <Td color="gray.500">${formatNumber(entry.rate)}/{entry.rateType}</Td>
-                        <Td isNumeric>{formatNumber(entry.totalQty)}</Td>
-                        <Td isNumeric>{formatCurrency(entry.totalCost)}</Td>
-                        {dates.map((d) => {
-                          const day = entry.byDate.get(d);
-                          return (
-                            <Td key={d} isNumeric color={day ? undefined : "gray.300"}>
-                              {day ? formatNumber(day.qty) : "—"}
-                            </Td>
-                          );
-                        })}
-                      </Tr>
+              <StickyTable
+                tableWidth={`${440 + dates.length * 70}px`}
+                head={
+                  <Tr>
+                    <Th w="160px" position="sticky" left={0} zIndex={1}>Type</Th>
+                    <Th w="100px" position="sticky" left="160px" zIndex={1}>Rate</Th>
+                    <Th isNumeric w="85px" position="sticky" left="260px" zIndex={1}>Total Qty</Th>
+                    <Th isNumeric w="95px" position="sticky" left="345px" zIndex={1}>Total Cost</Th>
+                    {dates.map((d) => (
+                      <Th key={d} w="70px" isNumeric whiteSpace="nowrap">{fmtDateHeader(d)}</Th>
                     ))}
-                  </Tbody>
-                </Table>
-              </Box>
+                  </Tr>
+                }
+              >
+                {Array.from(crew.trucking.entries()).map(([type, entry]) => (
+                  <Tr bg="white" _hover={{ bg: "blue.50" }} key={type}>
+                    <Td w="160px" position="sticky" left={0} zIndex={1} fontWeight="medium">{type}</Td>
+                    <Td w="100px" position="sticky" left="160px" zIndex={1} color="gray.500">${formatNumber(entry.rate)}/{entry.rateType}</Td>
+                    <Td isNumeric w="85px" position="sticky" left="260px" zIndex={1}>{formatNumber(entry.totalQty)}</Td>
+                    <Td isNumeric w="95px" position="sticky" left="345px" zIndex={1}>{formatCurrency(entry.totalCost)}</Td>
+                    {dates.map((d) => {
+                      const day = entry.byDate.get(d);
+                      return (
+                        <Td key={d} isNumeric color={day ? undefined : "gray.300"}>
+                          {day ? formatNumber(day.qty) : "—"}
+                        </Td>
+                      );
+                    })}
+                  </Tr>
+                ))}
+              </StickyTable>
             </Box>
           )}
 
-        </Stack>
-      </Collapse>
+        </Stack>}
     </Card>
   );
 };
