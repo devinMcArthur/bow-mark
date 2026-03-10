@@ -1300,7 +1300,7 @@ function createMcpServer(): McpServer {
             .where("vw.archived_at", "is", null)
             .where("dr.approved", "=", true)
             .where("dr.archived", "=", false)
-            .groupBy(["vw.vehicle_id", "vw.daily_report_id", "ds.avg_employee_hours"])
+            .groupBy(["vw.vehicle_id", "vw.daily_report_id"])
         )
         .selectFrom("vehicle_daily as vd")
         .innerJoin("dim_vehicle as v", "v.id", "vd.vehicle_id")
