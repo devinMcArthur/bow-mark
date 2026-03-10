@@ -236,18 +236,16 @@ const computeUtilization = (
 ): number | null => {
   let totalVehicleHours = 0;
   let totalShiftHours = 0;
-  let hasData = false;
 
   vehicleByDate.forEach(({ hours }, date) => {
     const shiftHours = shiftHoursByDate.get(date);
     if (shiftHours && shiftHours > 0) {
       totalVehicleHours += hours;
       totalShiftHours += shiftHours;
-      hasData = true;
     }
   });
 
-  if (!hasData || totalShiftHours === 0) return null;
+  if (totalShiftHours === 0) return null;
   return (totalVehicleHours / totalShiftHours) * 100;
 };
 
@@ -351,21 +349,19 @@ const CrewCard = ({ crewType, crew }: ICrewCard) => {
                     </Tr>
                   </Thead>
                   <Tbody>
-                    {Array.from(crew.vehicles.entries()).map(([name, entry]) => (
+                    {Array.from(crew.vehicles.entries()).map(([name, entry]) => {
+                      const totalUtil = computeUtilization(entry.byDate, crew.shiftHoursByDate);
+                      return (
                       <Tr key={name}>
                         <Td fontWeight="medium">{entry.name}</Td>
                         <Td color="gray.500">{entry.code}</Td>
                         <Td isNumeric>
                           <Text as="span">{formatNumber(entry.totalHours)}</Text>
-                          {(() => {
-                            const util = computeUtilization(entry.byDate, crew.shiftHoursByDate);
-                            if (util == null) return null;
-                            return (
-                              <Text as="span" color="gray.500" fontSize="xs" ml={1}>
-                                ({Math.round(util)}%)
-                              </Text>
-                            );
-                          })()}
+                          {totalUtil != null && (
+                            <Text as="span" color="gray.500" fontSize="xs" ml={1}>
+                              ({Math.round(totalUtil)}%)
+                            </Text>
+                          )}
                         </Td>
                         <Td isNumeric>{formatCurrency(entry.totalCost)}</Td>
                         {dates.map((d) => {
@@ -393,7 +389,8 @@ const CrewCard = ({ crewType, crew }: ICrewCard) => {
                           );
                         })}
                       </Tr>
-                    ))}
+                      );
+                    })}
                   </Tbody>
                 </Table>
               </Box>
