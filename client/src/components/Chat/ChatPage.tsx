@@ -407,8 +407,10 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
     }
   }, [initialConversationId, loadConversation]);
 
-  // Scroll to bottom whenever messages update, but only if already near the bottom
-  React.useEffect(() => {
+  // Scroll to bottom whenever messages update, but only if already near the bottom.
+  // useLayoutEffect runs synchronously after DOM commit and before browser paint,
+  // ensuring scrollTop is set before the user ever sees content at the wrong position.
+  React.useLayoutEffect(() => {
     if (isAtBottomRef.current) {
       const el = scrollContainerRef.current;
       if (el) el.scrollTop = el.scrollHeight;
