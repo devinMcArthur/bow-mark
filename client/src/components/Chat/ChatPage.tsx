@@ -410,7 +410,8 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
   // Scroll to bottom whenever messages update, but only if already near the bottom
   React.useEffect(() => {
     if (isAtBottomRef.current) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      const el = scrollContainerRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
     }
   }, [messages]);
 
