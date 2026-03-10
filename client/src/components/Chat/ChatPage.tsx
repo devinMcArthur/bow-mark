@@ -6,6 +6,7 @@ import {
   HStack,
   IconButton,
   Input,
+  Textarea,
   Portal,
   Spinner,
   Text,
@@ -252,9 +253,12 @@ const ConversationItem = ({
             right={2}
             top="50%"
             transform="translateY(-50%)"
-            opacity={0}
-            _groupHover={{ opacity: 1 }}
             onClick={(e) => e.stopPropagation()}
+            sx={{
+              opacity: 0,
+              pointerEvents: "none",
+              "[role=group]:hover &": { opacity: 1, pointerEvents: "auto" },
+            }}
           >
             <Tooltip label="Rename" placement="top" hasArrow>
               <IconButton
@@ -326,7 +330,16 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
   const bottomRef = React.useRef<HTMLDivElement>(null);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const isAtBottomRef = React.useRef(true);
-  const inputRef = React.useRef<HTMLInputElement>(null);
+  const inputRef = React.useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea as content grows
+  React.useEffect(() => {
+    const el = inputRef.current;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    }
+  }, [input]);
 
   const serverBase = (process.env.NEXT_PUBLIC_API_URL as string).replace("/graphql", "");
   const getToken = () =>
@@ -370,6 +383,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
           perModel[storedModel] = { input: data.totalInputTokens, output: data.totalOutputTokens };
         }
         setModelTokens(perModel);
+        isAtBottomRef.current = true;
         setMessages(
           data.messages.map((m: { role: Role; content: string; model?: string; toolResults?: ToolResult[] }) => ({
             id: genId(),
@@ -471,7 +485,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
         const body: Record<string, unknown> = { messages: history };
         if (conversationId) body.conversationId = conversationId;
 
-        const response = await fetch(`${serverBase}/chat/message`, {
+        const response = await fetch(`${serverBase}/api/chat/message`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -981,10 +995,16 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
           >
             <form onSubmit={handleSubmit}>
                 <HStack spacing={2}>
-                  <Input
+                  <Textarea
                     ref={inputRef}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage(input);
+                      }
+                    }}
                     placeholder="Ask about jobsite performance, revenue, productivity..."
                     size="md"
                     bg="gray.50"
@@ -994,6 +1014,12 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
                     _placeholder={{ color: "gray.400", fontSize: "sm" }}
                     disabled={loading}
                     autoFocus
+                    rows={1}
+                    resize="none"
+                    overflow="hidden"
+                    minH="unset"
+                    lineHeight="short"
+                    py="9px"
                   />
                   <IconButton
                     type="submit"
