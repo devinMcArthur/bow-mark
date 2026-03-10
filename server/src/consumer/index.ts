@@ -31,7 +31,7 @@ import {
   checkConnection as checkPostgres,
   closeConnection as closePostgres,
 } from "../db";
-import type { SyncMessage } from "../rabbitmq/publisher";
+import type { SyncMessage, TenderFileSummaryMessage } from "../rabbitmq/publisher";
 import {
   dailyReportSyncHandler,
   employeeWorkSyncHandler,
@@ -39,6 +39,7 @@ import {
   materialShipmentSyncHandler,
   productionSyncHandler,
   invoiceSyncHandler,
+  tenderFileSummaryHandler,
 } from "./handlers";
 
 /**
@@ -92,6 +93,12 @@ async function processMessage(
       case RABBITMQ_CONFIG.queues.invoice.name:
         await invoiceSyncHandler.handle(message);
         break;
+
+      case RABBITMQ_CONFIG.queues.tenderFile.name: {
+        const tenderMsg: TenderFileSummaryMessage = JSON.parse(content);
+        await tenderFileSummaryHandler.handle(tenderMsg);
+        break;
+      }
 
       default:
         console.warn(`[Consumer] Unknown queue: ${queueName}`);
