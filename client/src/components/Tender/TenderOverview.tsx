@@ -17,7 +17,7 @@ import { gql } from "@apollo/client";
 import * as Apollo from "@apollo/client";
 import NextLink from "next/link";
 import React from "react";
-import { TenderDetail } from "./types";
+import { TenderDetail, tenderStatusColor } from "./types";
 
 // ─── GQL ─────────────────────────────────────────────────────────────────────
 
@@ -51,14 +51,6 @@ interface TenderUpdateResult {
   };
 }
 
-// ─── Status badge ─────────────────────────────────────────────────────────────
-
-function statusColor(status: string): string {
-  if (status === "won") return "green";
-  if (status === "lost") return "red";
-  return "blue";
-}
-
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface TenderOverviewProps {
@@ -76,6 +68,13 @@ const TenderOverview = ({ tender, onUpdated }: TenderOverviewProps) => {
   const [description, setDescription] = React.useState(
     tender.description ?? ""
   );
+
+  React.useEffect(() => {
+    if (!editing) {
+      setStatus(tender.status);
+      setDescription(tender.description ?? "");
+    }
+  }, [tender.status, tender.description, editing]);
 
   const [tenderUpdate, { loading }] = Apollo.useMutation<
     TenderUpdateResult,
@@ -121,7 +120,7 @@ const TenderOverview = ({ tender, onUpdated }: TenderOverviewProps) => {
         <Text fontFamily="mono" fontWeight="600" color="gray.600">
           {tender.jobcode}
         </Text>
-        <Badge colorScheme={statusColor(tender.status)}>{tender.status}</Badge>
+        <Badge colorScheme={tenderStatusColor(tender.status)}>{tender.status}</Badge>
       </HStack>
 
       {tender.jobsite && (

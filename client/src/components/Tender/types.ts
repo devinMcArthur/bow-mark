@@ -1,4 +1,13 @@
-// ─── Shared TypeScript interfaces for Tender components ───────────────────────
+// ─── Shared TypeScript interfaces and utilities for Tender components ──────────
+
+export const TENDER_STATUS_COLORS: Record<string, string> = {
+  bidding: "blue",
+  won: "green",
+  lost: "red",
+};
+
+export const tenderStatusColor = (status: string): string =>
+  TENDER_STATUS_COLORS[status] ?? "gray";
 
 export interface TenderFileSummary {
   overview: string;

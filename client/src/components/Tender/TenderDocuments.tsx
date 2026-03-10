@@ -108,6 +108,13 @@ const TENDER_RETRY_SUMMARY = gql`
 interface TenderFilesResult {
   tenderAddFile: { _id: string; files: TenderFileItem[] };
 }
+interface TenderAddFileVars {
+  id: string;
+  data: {
+    fileId: string;
+    documentType: string;
+  };
+}
 interface TenderRemoveFileVars {
   id: string;
   fileObjectId: string;
@@ -129,7 +136,6 @@ function summaryStatusColor(status: string): string {
 // ─── Expandable file row ──────────────────────────────────────────────────────
 
 interface FileRowProps {
-  tenderId: string;
   file: TenderFileItem;
   onRemove: (fileObjectId: string) => void;
   onRetry: (fileObjectId: string) => void;
@@ -258,7 +264,7 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
 
   const [fileCreate] = useFileCreateMutation();
 
-  const [tenderAddFile] = Apollo.useMutation<TenderFilesResult>(
+  const [tenderAddFile] = Apollo.useMutation<TenderFilesResult, TenderAddFileVars>(
     TENDER_ADD_FILE
   );
 
@@ -435,7 +441,6 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
             {tender.files.map((file) => (
               <FileRow
                 key={file._id}
-                tenderId={tender._id}
                 file={file}
                 onRemove={handleRemove}
                 onRetry={handleRetry}

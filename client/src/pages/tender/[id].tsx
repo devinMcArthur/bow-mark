@@ -133,6 +133,7 @@ const TenderDetailPage = () => {
           {tender && (
             <>
               <TenderOverview
+                key={tender._id}
                 tender={tender}
                 onUpdated={() => refetch()}
               />

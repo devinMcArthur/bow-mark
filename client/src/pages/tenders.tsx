@@ -33,6 +33,7 @@ import Container from "../components/Common/Container";
 import Loading from "../components/Common/Loading";
 import Permission from "../components/Common/Permission";
 import { UserRoles } from "../generated/graphql";
+import { tenderStatusColor } from "../components/Tender/types";
 import * as Apollo from "@apollo/client";
 
 // ─── GQL ─────────────────────────────────────────────────────────────────────
@@ -85,14 +86,6 @@ interface TenderCreateVars {
     jobcode: string;
     description?: string;
   };
-}
-
-// ─── Status badge ─────────────────────────────────────────────────────────────
-
-function statusColor(status: string): string {
-  if (status === "won") return "green";
-  if (status === "lost") return "red";
-  return "blue"; // bidding
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -210,7 +203,7 @@ const Tenders = () => {
                   </Td>
                   <Td>{tender.name}</Td>
                   <Td>
-                    <Badge colorScheme={statusColor(tender.status)}>
+                    <Badge colorScheme={tenderStatusColor(tender.status)}>
                       {tender.status}
                     </Badge>
                   </Td>
