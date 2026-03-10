@@ -1273,6 +1273,7 @@ function createMcpServer(): McpServer {
               ),
             ])
             .where("ew.archived_at", "is", null)
+            .$if(!!crewType, (qb) => qb.where("ew.crew_type", "ilike", crewType!))
             .groupBy("ew.daily_report_id")
         )
         .with("vehicle_daily", (db) =>
