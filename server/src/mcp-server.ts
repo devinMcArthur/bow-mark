@@ -1216,6 +1216,155 @@ function createMcpServer(): McpServer {
     }
   );
 
+  // ── get_equipment_utilization ─────────────────────────────────────────────
+  server.registerTool(
+    "get_equipment_utilization",
+    {
+      description:
+        "Get equipment/vehicle utilization percentages for a jobsite and date range. " +
+        "Utilization = vehicle operational hours / avg crew shift hours per day. " +
+        "Returns overall utilization summary and per-vehicle breakdown.",
+      inputSchema: {
+        jobsiteMongoId: z
+          .string()
+          .describe("MongoDB ObjectId of the jobsite (use search_jobsites to find it)"),
+        startDate: z.string().describe("Start date in YYYY-MM-DD format"),
+        endDate: z.string().describe("End date in YYYY-MM-DD format"),
+        crewType: z
+          .string()
+          .optional()
+          .describe("Filter to a specific crew type (optional — omit for all crews)"),
+      },
+    },
+    async ({ jobsiteMongoId, startDate: startStr, endDate: endStr, crewType }) => {
+      const startDate = new Date(startStr);
+      const endDate = new Date(endStr);
+      endDate.setHours(23, 59, 59, 999);
+
+      // Resolve jobsite mongo_id → postgres id
+      const jobsite = await db
+        .selectFrom("dim_jobsite as j")
+        .select(["j.id", "j.name", "j.jobcode"])
+        .where("j.mongo_id", "=", jobsiteMongoId)
+        .executeTakeFirst();
+
+      if (!jobsite) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Jobsite not found: ${jobsiteMongoId}`,
+            },
+          ],
+        };
+      }
+
+      // CTE 1: avg employee hours per daily report
+      // CTE 2: vehicle hours per (vehicle, daily_report) with shift hours attached
+      // Final: aggregate by vehicle → total hours, total cost, days active, utilization %
+      const rows = await db
+        .with("daily_shifts", (db) =>
+          db
+            .selectFrom("fact_employee_work as ew")
+            .select([
+              "ew.daily_report_id",
+              sql<number>`SUM(ew.hours) / NULLIF(COUNT(DISTINCT ew.employee_id), 0)`.as(
+                "avg_employee_hours"
+              ),
+            ])
+            .where("ew.archived_at", "is", null)
+            .groupBy("ew.daily_report_id")
+        )
+        .with("vehicle_daily", (db) =>
+          db
+            .selectFrom("fact_vehicle_work as vw")
+            .innerJoin("dim_daily_report as dr", "dr.id", "vw.daily_report_id")
+            .leftJoin(
+              "daily_shifts as ds",
+              "ds.daily_report_id",
+              "vw.daily_report_id"
+            )
+            .$if(!!crewType, (qb) =>
+              qb.where("vw.crew_type", "ilike", crewType!)
+            )
+            .select([
+              "vw.vehicle_id",
+              "vw.daily_report_id",
+              sql<number>`SUM(vw.hours)`.as("vehicle_hours"),
+              sql<number>`SUM(vw.total_cost)`.as("vehicle_cost"),
+              sql<number>`MAX(ds.avg_employee_hours)`.as("avg_employee_hours"),
+            ])
+            .where("vw.jobsite_id", "=", jobsite.id)
+            .where("vw.work_date", ">=", startDate)
+            .where("vw.work_date", "<=", endDate)
+            .where("vw.archived_at", "is", null)
+            .where("dr.approved", "=", true)
+            .where("dr.archived", "=", false)
+            .groupBy(["vw.vehicle_id", "vw.daily_report_id", "ds.avg_employee_hours"])
+        )
+        .selectFrom("vehicle_daily as vd")
+        .innerJoin("dim_vehicle as v", "v.id", "vd.vehicle_id")
+        .select([
+          "v.id as vehicle_id",
+          "v.name as vehicle_name",
+          "v.vehicle_code",
+          sql<number>`SUM(vd.vehicle_hours)`.as("total_hours"),
+          sql<number>`SUM(vd.vehicle_cost)`.as("total_cost"),
+          sql<number>`COUNT(*)`.as("days_active"),
+          sql<number>`SUM(vd.vehicle_hours) / NULLIF(SUM(vd.avg_employee_hours), 0) * 100`.as(
+            "utilization_pct"
+          ),
+        ])
+        .groupBy(["v.id", "v.name", "v.vehicle_code"])
+        .orderBy("utilization_pct", "desc")
+        .execute();
+
+      const totalHours = rows.reduce((s, r) => s + Number(r.total_hours ?? 0), 0);
+      const totalCost = rows.reduce((s, r) => s + Number(r.total_cost ?? 0), 0);
+      const avgUtilization =
+        rows.length > 0
+          ? rows.reduce((s, r) => s + Number(r.utilization_pct ?? 0), 0) /
+            rows.length
+          : null;
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(
+              {
+                jobsite: `${jobsite.name}${jobsite.jobcode ? ` (${jobsite.jobcode})` : ""}`,
+                period: { startDate: startStr, endDate: endStr },
+                crewType: crewType ?? "all",
+                summary: {
+                  overallAvgUtilizationPct:
+                    avgUtilization != null
+                      ? Math.round(avgUtilization * 10) / 10
+                      : null,
+                  totalVehicleHours: Math.round(totalHours * 10) / 10,
+                  totalVehicleCost: Math.round(totalCost),
+                },
+                vehicles: rows.map((r) => ({
+                  vehicleName: r.vehicle_name,
+                  vehicleCode: r.vehicle_code,
+                  utilizationPct:
+                    r.utilization_pct != null
+                      ? Math.round(Number(r.utilization_pct) * 10) / 10
+                      : null,
+                  totalHours: Math.round(Number(r.total_hours ?? 0) * 10) / 10,
+                  totalCost: Math.round(Number(r.total_cost ?? 0)),
+                  daysActive: Number(r.days_active),
+                })),
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+  );
+
   // ── get_daily_report_activity ─────────────────────────────────────────────
   server.registerTool(
     "get_daily_report_activity",
