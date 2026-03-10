@@ -77,45 +77,44 @@ This avoids diluting the average with days where the vehicle wasn't present at a
 
 ### SQL Logic (Kysely inline CTEs)
 
-1. **`daily_shifts` CTE** — per `daily_report_id`, compute avg employee hours:
+1. **`daily_shifts` CTE** — per `daily_report_id`, compute avg employee hours. When `crew_type` is supplied, filters employee work to that crew type so the shift length denominator matches the filtered crew (important on mixed-crew days):
    ```sql
    SELECT daily_report_id,
           SUM(hours) / NULLIF(COUNT(DISTINCT employee_id), 0) AS avg_employee_hours
    FROM fact_employee_work
    WHERE archived_at IS NULL
+     [AND crew_type ILIKE $crew_type  -- when crew_type filter is supplied]
    GROUP BY daily_report_id
    ```
 
-2. **`vehicle_daily` CTE** — join vehicle work with shifts, filter by jobsite + date range + approved:
+2. **`vehicle_daily` CTE** — join vehicle work with shifts, filter by jobsite + date range + approved. Groups by `(vehicle_id, daily_report_id)` only; `avg_employee_hours` is aggregated via `MAX()` (safe because `daily_shifts` produces exactly one row per `daily_report_id`):
    ```sql
-   SELECT fvw.vehicle_id, dv.name, dv.vehicle_code,
-          fvw.daily_report_id, fvw.hours AS vehicle_hours,
-          fvw.total_cost, dr.work_date, fvw.crew_type,
-          ds.avg_employee_hours,
-          CASE WHEN ds.avg_employee_hours > 0
-               THEN fvw.hours / ds.avg_employee_hours * 100
-               ELSE NULL END AS utilization_pct
+   SELECT fvw.vehicle_id, fvw.daily_report_id,
+          SUM(fvw.hours) AS vehicle_hours,
+          SUM(fvw.total_cost) AS vehicle_cost,
+          MAX(ds.avg_employee_hours) AS avg_employee_hours
    FROM fact_vehicle_work fvw
-   JOIN dim_vehicle dv ON fvw.vehicle_id = dv.id
-   JOIN dim_daily_report dr ON fvw.daily_report_id = dr.id
-   JOIN dim_jobsite dj ON fvw.jobsite_id = dj.id
-   LEFT JOIN daily_shifts ds ON fvw.daily_report_id = ds.daily_report_id
-   WHERE dj.mongo_id = $jobsite_mongo_id
-     AND dr.work_date BETWEEN $start_date AND $end_date
+   JOIN dim_daily_report dr ON dr.id = fvw.daily_report_id
+   LEFT JOIN daily_shifts ds ON ds.daily_report_id = fvw.daily_report_id
+   WHERE fvw.jobsite_id = $jobsite_pg_id
+     AND fvw.work_date BETWEEN $start_date AND $end_date
+     AND fvw.archived_at IS NULL
      AND dr.approved = true
      AND dr.archived = false
-     AND fvw.archived_at IS NULL
+     [AND fvw.crew_type ILIKE $crew_type  -- when crew_type filter is supplied]
+   GROUP BY fvw.vehicle_id, fvw.daily_report_id
    ```
 
-3. **Final aggregation** — group by vehicle:
+3. **Final aggregation** — group by vehicle. `overallAvgUtilizationPct` in the summary is a time-weighted average (`SUM(hours × utilization_pct) / SUM(hours)`), not a simple mean across vehicles:
    ```sql
-   SELECT vehicle_id, name, vehicle_code,
-          SUM(vehicle_hours) AS total_hours,
-          SUM(total_cost) AS total_cost,
+   SELECT vd.vehicle_id, v.name, v.vehicle_code,
+          SUM(vd.vehicle_hours) AS total_hours,
+          SUM(vd.vehicle_cost) AS total_cost,
           COUNT(*) AS days_active,
-          SUM(vehicle_hours) / NULLIF(SUM(avg_employee_hours), 0) * 100 AS utilization_pct
-   FROM vehicle_daily
-   GROUP BY vehicle_id, name, vehicle_code
+          SUM(vd.vehicle_hours) / NULLIF(SUM(vd.avg_employee_hours), 0) * 100 AS utilization_pct
+   FROM vehicle_daily vd
+   JOIN dim_vehicle v ON v.id = vd.vehicle_id
+   GROUP BY vd.vehicle_id, v.name, v.vehicle_code
    ORDER BY utilization_pct DESC
    ```
 
@@ -125,15 +124,16 @@ This avoids diluting the average with days where the vehicle wasn't present at a
 {
   "jobsite": "Job Name (JC-2025-01)",
   "period": { "startDate": "2025-01-01", "endDate": "2025-12-31" },
+  "crewType": "all",
   "summary": {
-    "overallUtilizationPct": 72.4,
+    "overallAvgUtilizationPct": 72.4,
     "totalVehicleHours": 340.5,
     "totalVehicleCost": 28400.00
   },
   "vehicles": [
     {
-      "name": "Paver #1",
-      "code": "PAV-01",
+      "vehicleName": "Paver #1",
+      "vehicleCode": "PAV-01",
       "utilizationPct": 81.2,
       "totalHours": 156.0,
       "totalCost": 14200.00,
