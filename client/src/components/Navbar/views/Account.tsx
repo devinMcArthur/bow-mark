@@ -45,6 +45,11 @@ const NavbarAccount = () => {
               <MenuItem onClick={() => router.push("/jobsites")}>
                 Jobsites
               </MenuItem>
+              <Permission minRole={UserRoles.ProjectManager}>
+                <MenuItem onClick={() => router.push("/tenders")}>
+                  Tenders
+                </MenuItem>
+              </Permission>
 
               <MenuDivider />
 
