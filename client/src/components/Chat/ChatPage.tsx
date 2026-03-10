@@ -393,6 +393,12 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
             toolResults: m.toolResults,
           }))
         );
+        // Scroll to bottom after React commits the DOM. setTimeout(0) runs after
+        // the current call stack, by which point React has flushed the state update.
+        setTimeout(() => {
+          const el = scrollContainerRef.current;
+          if (el) el.scrollTop = el.scrollHeight;
+        }, 0);
       } catch {}
     },
     [serverBase]
@@ -408,9 +414,8 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
     }
   }, [initialConversationId, loadConversation]);
 
-  // Scroll to bottom whenever messages update, but only if already near the bottom.
-  // useLayoutEffect runs synchronously after DOM commit and before browser paint,
-  // ensuring scrollTop is set before the user ever sees content at the wrong position.
+  // Scroll to bottom whenever messages update during streaming, but only if
+  // already near the bottom (so reading up isn't interrupted).
   React.useLayoutEffect(() => {
     if (isAtBottomRef.current) {
       const el = scrollContainerRef.current;
@@ -810,7 +815,6 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
 
           {/* Messages area */}
           <Box
-            key={initialConversationId ?? "new"}
             ref={scrollContainerRef}
             flex={1}
             overflowY="auto"
