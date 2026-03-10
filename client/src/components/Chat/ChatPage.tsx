@@ -1,24 +1,15 @@
 import React from "react";
 import {
   Box,
-  Code,
   Flex,
   HStack,
   IconButton,
-  Input,
   Textarea,
-  Portal,
   Spinner,
   Text,
   VStack,
   Tooltip,
-  useDisclosure,
   useMediaQuery,
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  PopoverBody,
-  PopoverFooter,
   Button,
   Drawer,
   DrawerOverlay,
@@ -27,44 +18,16 @@ import {
   DrawerBody,
   DrawerCloseButton,
 } from "@chakra-ui/react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { useRouter } from "next/router";
-import { FiSend, FiPlus, FiEdit2, FiTrash2, FiArrowDown, FiMenu } from "react-icons/fi";
+import { FiSend, FiPlus, FiArrowDown, FiMenu } from "react-icons/fi";
 import Permission from "../Common/Permission";
 import { SourcesDrawer } from "./SourcesDrawer";
-import { CopyableTable } from "./CopyableTable";
 import { UserRoles } from "../../generated/graphql";
 import { localStorageTokenKey } from "../../contexts/Auth";
 import { navbarHeight } from "../../constants/styles";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type Role = "user" | "assistant";
-
-interface ToolResult {
-  toolName: string;
-  result: string;
-}
-
-interface ChatMessage {
-  id: string;
-  role: Role;
-  content: string;
-  toolCalls?: string[];
-  toolResults?: ToolResult[];
-  isStreaming?: boolean;
-  model?: string;
-}
-
-interface ConversationSummary {
-  id: string;
-  title: string;
-  model: string;
-  totalInputTokens: number;
-  totalOutputTokens: number;
-  updatedAt: string;
-}
+import { Role, ToolResult, ChatMessage, ConversationSummary } from "./types";
+import MarkdownContent from "./MarkdownContent";
+import ConversationItem from "./ConversationItem";
 
 // ─── Pricing ──────────────────────────────────────────────────────────────────
 
@@ -90,70 +53,6 @@ function calcTotalCost(modelTokens: Record<string, { input: number; output: numb
   }, 0);
 }
 
-// ─── Markdown renderer ────────────────────────────────────────────────────────
-
-const MarkdownContent = ({ content }: { content: string }) => (
-  <ReactMarkdown
-    remarkPlugins={[remarkGfm]}
-    components={{
-      p: ({ children }) => (
-        <Text fontSize="sm" lineHeight="1.7" mb={2}>{children}</Text>
-      ),
-      h1: ({ children }) => (
-        <Text fontSize="lg" fontWeight="700" mb={2} mt={3}>{children}</Text>
-      ),
-      h2: ({ children }) => (
-        <Text fontSize="md" fontWeight="700" mb={2} mt={3}>{children}</Text>
-      ),
-      h3: ({ children }) => (
-        <Text fontSize="sm" fontWeight="700" mb={1} mt={2}>{children}</Text>
-      ),
-      ul: ({ children }) => (
-        <Box as="ul" pl={5} mb={2} fontSize="sm" lineHeight="1.7">{children}</Box>
-      ),
-      ol: ({ children }) => (
-        <Box as="ol" pl={5} mb={2} fontSize="sm" lineHeight="1.7">{children}</Box>
-      ),
-      li: ({ children }) => <Box as="li" mb={0.5}>{children}</Box>,
-      code: ({ children, className, inline }: { children: React.ReactNode; className?: string; inline?: boolean }) =>
-        !inline ? (
-          <Code display="block" whiteSpace="pre" p={3} borderRadius="md" fontSize="xs" bg="gray.50" border="1px solid" borderColor="gray.200" overflowX="auto" mb={2} w="full">{children}</Code>
-        ) : (
-          <Code fontSize="xs" px={1} py={0.5} borderRadius="sm" bg="gray.100">{children}</Code>
-        ),
-      table: (props) => <CopyableTable {...props} />,
-      thead: ({ children }) => <Box as="thead" bg="gray.50">{children}</Box>,
-      th: ({ children }) => (
-        <Box as="th" px={3} py={1.5} textAlign="left" fontWeight="600" borderBottom="2px solid" borderColor="gray.200" whiteSpace="nowrap">{children}</Box>
-      ),
-      td: ({ children }) => (
-        <Box as="td" px={3} py={1.5} borderBottom="1px solid" borderColor="gray.100">{children}</Box>
-      ),
-      strong: ({ children }) => <Box as="strong" fontWeight="600">{children}</Box>,
-      em: ({ children }) => <Box as="em" fontStyle="italic">{children}</Box>,
-      hr: () => <Box borderTop="1px solid" borderColor="gray.200" my={3} />,
-      blockquote: ({ children }) => (
-        <Box borderLeft="3px solid" borderColor="blue.300" pl={3} py={0.5} my={2} color="gray.600">{children}</Box>
-      ),
-      a: ({ href, children }) => (
-        <Box
-          as="a"
-          href={href}
-          color="blue.600"
-          textDecoration="underline"
-          _hover={{ color: "blue.800" }}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {children}
-        </Box>
-      ),
-    }}
-  >
-    {content}
-  </ReactMarkdown>
-);
-
 const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 // ─── Suggestion chips ─────────────────────────────────────────────────────────
@@ -164,148 +63,6 @@ const SUGGESTIONS = [
   "What's our T/H compared to last year?",
   "Show me crew productivity rankings for 2025",
 ];
-
-// ─── Sidebar conversation item ────────────────────────────────────────────────
-
-const ConversationItem = ({
-  convo,
-  isActive,
-  onSelect,
-  onRename,
-  onDelete,
-}: {
-  convo: ConversationSummary;
-  isActive: boolean;
-  onSelect: () => void;
-  onRename: (title: string) => void;
-  onDelete: () => void;
-}) => {
-  const [editing, setEditing] = React.useState(false);
-  const [editValue, setEditValue] = React.useState(convo.title);
-  const inputRef = React.useRef<HTMLInputElement>(null);
-  const { isOpen: deleteOpen, onOpen: openDelete, onClose: closeDelete } = useDisclosure();
-
-  const startEdit = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditValue(convo.title);
-    setEditing(true);
-    setTimeout(() => inputRef.current?.focus(), 0);
-  };
-
-  const saveEdit = () => {
-    const trimmed = editValue.trim();
-    if (trimmed && trimmed !== convo.title) {
-      onRename(trimmed);
-    }
-    setEditing(false);
-  };
-
-  const relativeTime = (dateStr: string) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "just now";
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    const days = Math.floor(hrs / 24);
-    return `${days}d ago`;
-  };
-
-  return (
-    <Box
-      px={3}
-      py={2}
-      borderRadius="md"
-      bg={isActive ? "blue.50" : "transparent"}
-      border="1px solid"
-      borderColor={isActive ? "blue.200" : "transparent"}
-      cursor="pointer"
-      _hover={{ bg: isActive ? "blue.50" : "gray.100" }}
-      onClick={onSelect}
-      role="group"
-      position="relative"
-    >
-      {editing ? (
-        <Input
-          ref={inputRef}
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onBlur={saveEdit}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") saveEdit();
-            if (e.key === "Escape") setEditing(false);
-          }}
-          size="xs"
-          onClick={(e) => e.stopPropagation()}
-          autoFocus
-        />
-      ) : (
-        <>
-          <Text fontSize="xs" fontWeight="500" color="gray.700" noOfLines={1}>
-            {convo.title}
-          </Text>
-          <Text fontSize="xs" color="gray.400" mt={0.5}>
-            {relativeTime(convo.updatedAt)}
-          </Text>
-          <HStack
-            spacing={1}
-            position="absolute"
-            right={2}
-            top="50%"
-            transform="translateY(-50%)"
-            onClick={(e) => e.stopPropagation()}
-            sx={{
-              opacity: 0,
-              pointerEvents: "none",
-              "[role=group]:hover &": { opacity: 1, pointerEvents: "auto" },
-            }}
-          >
-            <Tooltip label="Rename" placement="top" hasArrow>
-              <IconButton
-                aria-label="Rename"
-                icon={<FiEdit2 />}
-                size="xs"
-                variant="ghost"
-                onClick={startEdit}
-              />
-            </Tooltip>
-            <Popover isOpen={deleteOpen} onClose={closeDelete} placement="bottom-end">
-              <PopoverTrigger>
-                <IconButton
-                  aria-label="Delete"
-                  icon={<FiTrash2 />}
-                  size="xs"
-                  variant="ghost"
-                  colorScheme="red"
-                  onClick={openDelete}
-                />
-              </PopoverTrigger>
-              <Portal>
-                <PopoverContent w="200px" zIndex={9999}>
-                  <PopoverBody>
-                    <Text fontSize="xs">Delete this conversation?</Text>
-                  </PopoverBody>
-                  <PopoverFooter>
-                    <HStack spacing={2}>
-                      <Button size="xs" variant="ghost" onClick={closeDelete}>Cancel</Button>
-                      <Button
-                        size="xs"
-                        colorScheme="red"
-                        onClick={() => { closeDelete(); onDelete(); }}
-                      >
-                        Delete
-                      </Button>
-                    </HStack>
-                  </PopoverFooter>
-                </PopoverContent>
-              </Portal>
-            </Popover>
-          </HStack>
-        </>
-      )}
-    </Box>
-  );
-};
 
 // ─── Chat Page ────────────────────────────────────────────────────────────────
 
@@ -327,7 +84,6 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
   const [sourcesMessage, setSourcesMessage] = React.useState<ChatMessage | null>(null);
   const [isDesktop] = useMediaQuery("(min-width: 640px)");
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
-  const bottomRef = React.useRef<HTMLDivElement>(null);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const isAtBottomRef = React.useRef(true);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
@@ -393,12 +149,6 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
             toolResults: m.toolResults,
           }))
         );
-        // Scroll to bottom after React commits the DOM. setTimeout(0) runs after
-        // the current call stack, by which point React has flushed the state update.
-        setTimeout(() => {
-          const el = scrollContainerRef.current;
-          if (el) el.scrollTop = el.scrollHeight;
-        }, 0);
       } catch {}
     },
     [serverBase]
@@ -414,12 +164,13 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
     }
   }, [initialConversationId, loadConversation]);
 
-  // Scroll to bottom whenever messages update during streaming, but only if
-  // already near the bottom (so reading up isn't interrupted).
+  // With flex-direction:column-reverse, scrollTop=0 is the visual bottom.
+  // Keep it pinned to 0 during streaming when the user hasn't scrolled up.
   React.useLayoutEffect(() => {
     if (isAtBottomRef.current) {
       const el = scrollContainerRef.current;
-      if (el) el.scrollTop = el.scrollHeight;
+      // Some browsers use negative scrollTop for reversed containers; reset to 0 either way.
+      if (el && Math.abs(el.scrollTop) > 1) el.scrollTop = 0;
     }
   }, [messages]);
 
@@ -813,166 +564,178 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
             </HStack>
           </Box>
 
-          {/* Messages area */}
-          <Box
-            ref={scrollContainerRef}
-            flex={1}
-            overflowY="auto"
-            px={6}
-            py={6}
-            onScroll={() => {
-              const el = scrollContainerRef.current;
-              if (!el) return;
-              const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 100;
-              isAtBottomRef.current = atBottom;
-              setShowScrollButton(!atBottom);
-            }}
-          >
-              {isEmpty && (
-                <VStack spacing={6} mt={16} align="center">
-                  <VStack spacing={1}>
-                    <Text fontSize="xl" fontWeight="700" color="gray.700">
-                      Ask about jobsite performance
-                    </Text>
-                    <Text fontSize="sm" color="gray.500">
-                      Query revenue, productivity, crew benchmarks, and more
-                    </Text>
-                  </VStack>
-                  <VStack spacing={2} align="stretch" w="full" maxW="520px">
-                    {SUGGESTIONS.map((s) => (
-                      <Box
-                        key={s}
-                        as="button"
-                        onClick={() => sendMessage(s)}
-                        px={4}
-                        py={3}
-                        bg="white"
-                        border="1px solid"
-                        borderColor="gray.200"
-                        borderRadius="md"
-                        textAlign="left"
-                        fontSize="sm"
-                        color="gray.700"
-                        _hover={{ borderColor: "blue.400", bg: "blue.50", color: "blue.700" }}
-                        transition="all 0.15s"
-                        cursor="pointer"
-                      >
-                        {s}
-                      </Box>
-                    ))}
-                  </VStack>
+          {/* Empty state — rendered outside the scroll container so it isn't affected
+              by flex-direction:column-reverse and appears naturally at the top */}
+          {isEmpty && (
+            <Box flex={1} overflowY="auto" px={6} py={6}>
+              <VStack spacing={6} mt={16} align="center">
+                <VStack spacing={1}>
+                  <Text fontSize="xl" fontWeight="700" color="gray.700">
+                    Ask about jobsite performance
+                  </Text>
+                  <Text fontSize="sm" color="gray.500">
+                    Query revenue, productivity, crew benchmarks, and more
+                  </Text>
                 </VStack>
-              )}
+                <VStack spacing={2} align="stretch" w="full" maxW="520px">
+                  {SUGGESTIONS.map((s) => (
+                    <Box
+                      key={s}
+                      as="button"
+                      onClick={() => sendMessage(s)}
+                      px={4}
+                      py={3}
+                      bg="white"
+                      border="1px solid"
+                      borderColor="gray.200"
+                      borderRadius="md"
+                      textAlign="left"
+                      fontSize="sm"
+                      color="gray.700"
+                      _hover={{ borderColor: "blue.400", bg: "blue.50", color: "blue.700" }}
+                      transition="all 0.15s"
+                      cursor="pointer"
+                    >
+                      {s}
+                    </Box>
+                  ))}
+                </VStack>
+              </VStack>
+            </Box>
+          )}
 
-              <VStack spacing={4} align="stretch">
-                {messages.map((msg) => (
-                  <Box key={msg.id} alignSelf={msg.role === "user" ? "flex-end" : "flex-start"} maxW="85%">
-                    {msg.role === "user" ? (
-                      <Box
-                        bg="blue.600"
-                        color="white"
-                        px={4}
-                        py={3}
-                        borderRadius="lg"
-                        borderBottomRightRadius="sm"
-                      >
-                        <Text fontSize="sm" lineHeight="1.6">
-                          {msg.content}
-                        </Text>
-                      </Box>
-                    ) : (
-                      <Box>
-                        {msg.toolCalls && msg.toolCalls.length > 0 && (
-                          <HStack spacing={1} mb={2} flexWrap="wrap">
-                            {Array.from(new Set(msg.toolCalls)).map((tool) => (
-                              <Box
-                                key={tool}
-                                px={2}
-                                py={0.5}
-                                bg="gray.100"
-                                borderRadius="sm"
-                                fontSize="xs"
-                                color="gray.500"
-                                fontFamily="mono"
-                              >
-                                {tool}
-                              </Box>
-                            ))}
-                          </HStack>
-                        )}
+          {/* Messages scroll area — flex-direction:column-reverse anchors content to the
+              bottom so scrollTop=0 always shows the latest messages. No JS scroll needed
+              on conversation load; overflow-anchor:none prevents browser interference
+              during streaming. */}
+          {!isEmpty && (
+            <Box
+              ref={scrollContainerRef}
+              flex={1}
+              overflowY="auto"
+              display="flex"
+              flexDirection="column-reverse"
+              sx={{ overflowAnchor: "none" }}
+              onScroll={() => {
+                const el = scrollContainerRef.current;
+                if (!el) return;
+                // scrollTop=0 is visual bottom. Some browsers use negative scrollTop
+                // for reversed containers, so use Math.abs.
+                const atBottom = Math.abs(el.scrollTop) < 100;
+                isAtBottomRef.current = atBottom;
+                setShowScrollButton(!atBottom);
+              }}
+            >
+              <Box px={6} py={6}>
+                <VStack spacing={4} align="stretch">
+                  {messages.map((msg) => (
+                    <Box key={msg.id} alignSelf={msg.role === "user" ? "flex-end" : "flex-start"} maxW="85%">
+                      {msg.role === "user" ? (
                         <Box
-                          bg="white"
-                          border="1px solid"
-                          borderColor="gray.200"
+                          bg="blue.600"
+                          color="white"
                           px={4}
                           py={3}
                           borderRadius="lg"
-                          borderBottomLeftRadius="sm"
-                          shadow="sm"
+                          borderBottomRightRadius="sm"
                         >
-                          {msg.isStreaming && msg.content === "" ? (
-                            <HStack spacing={2}>
-                              <Spinner size="xs" color="blue.400" />
-                              <Text fontSize="sm" color="gray.400">
-                                {msg.toolCalls && msg.toolCalls.length > 0
-                                  ? "Querying database..."
-                                  : "Thinking..."}
-                              </Text>
-                            </HStack>
-                          ) : (
-                            <>
-                              <MarkdownContent content={msg.content} />
-                              {msg.isStreaming && (
+                          <Text fontSize="sm" lineHeight="1.6">
+                            {msg.content}
+                          </Text>
+                        </Box>
+                      ) : (
+                        <Box>
+                          {msg.toolCalls && msg.toolCalls.length > 0 && (
+                            <HStack spacing={1} mb={2} flexWrap="wrap">
+                              {Array.from(new Set(msg.toolCalls)).map((tool) => (
                                 <Box
-                                  display="inline-block"
-                                  w="2px"
-                                  h="14px"
-                                  bg="blue.500"
-                                  ml={0.5}
-                                  verticalAlign="middle"
-                                  animation="blink 1s step-end infinite"
-                                  sx={{
-                                    "@keyframes blink": {
-                                      "0%, 100%": { opacity: 1 },
-                                      "50%": { opacity: 0 },
-                                    },
-                                  }}
-                                />
-                              )}
-                              {msg.model && !msg.isStreaming && (
-                                <Text
-                                  fontSize="10px"
-                                  color="gray.400"
-                                  textAlign="right"
-                                  mt={1}
+                                  key={tool}
+                                  px={2}
+                                  py={0.5}
+                                  bg="gray.100"
+                                  borderRadius="sm"
+                                  fontSize="xs"
+                                  color="gray.500"
                                   fontFamily="mono"
                                 >
-                                  {modelLabel(msg.model)}
+                                  {tool}
+                                </Box>
+                              ))}
+                            </HStack>
+                          )}
+                          <Box
+                            bg="white"
+                            border="1px solid"
+                            borderColor="gray.200"
+                            px={4}
+                            py={3}
+                            borderRadius="lg"
+                            borderBottomLeftRadius="sm"
+                            shadow="sm"
+                          >
+                            {msg.isStreaming && msg.content === "" ? (
+                              <HStack spacing={2}>
+                                <Spinner size="xs" color="blue.400" />
+                                <Text fontSize="sm" color="gray.400">
+                                  {msg.toolCalls && msg.toolCalls.length > 0
+                                    ? "Querying database..."
+                                    : "Thinking..."}
                                 </Text>
-                              )}
-                            </>
+                              </HStack>
+                            ) : (
+                              <>
+                                <MarkdownContent content={msg.content} />
+                                {msg.isStreaming && (
+                                  <Box
+                                    display="inline-block"
+                                    w="2px"
+                                    h="14px"
+                                    bg="blue.500"
+                                    ml={0.5}
+                                    verticalAlign="middle"
+                                    animation="blink 1s step-end infinite"
+                                    sx={{
+                                      "@keyframes blink": {
+                                        "0%, 100%": { opacity: 1 },
+                                        "50%": { opacity: 0 },
+                                      },
+                                    }}
+                                  />
+                                )}
+                                {msg.model && !msg.isStreaming && (
+                                  <Text
+                                    fontSize="10px"
+                                    color="gray.400"
+                                    textAlign="right"
+                                    mt={1}
+                                    fontFamily="mono"
+                                  >
+                                    {modelLabel(msg.model)}
+                                  </Text>
+                                )}
+                              </>
+                            )}
+                          </Box>
+                          {msg.toolResults && msg.toolResults.length > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              mt={1}
+                              color="gray.500"
+                              fontWeight="normal"
+                              onClick={() => setSourcesMessage(msg)}
+                            >
+                              Sources ({msg.toolResults.length})
+                            </Button>
                           )}
                         </Box>
-                        {msg.toolResults && msg.toolResults.length > 0 && (
-                          <Button
-                            variant="ghost"
-                            size="xs"
-                            mt={1}
-                            color="gray.500"
-                            fontWeight="normal"
-                            onClick={() => setSourcesMessage(msg)}
-                          >
-                            Sources ({msg.toolResults.length})
-                          </Button>
-                        )}
-                      </Box>
-                    )}
-                  </Box>
-                ))}
-              </VStack>
-
-              <Box ref={bottomRef} />
-          </Box>
+                      )}
+                    </Box>
+                  ))}
+                </VStack>
+              </Box>
+            </Box>
+          )}
 
           {/* Scroll to bottom button */}
           {showScrollButton && (
@@ -985,7 +748,8 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
                 colorScheme="blue"
                 shadow="md"
                 onClick={() => {
-                  bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+                  const el = scrollContainerRef.current;
+                  if (el) el.scrollTo({ top: 0, behavior: "smooth" });
                   isAtBottomRef.current = true;
                   setShowScrollButton(false);
                 }}
