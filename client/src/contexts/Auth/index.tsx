@@ -195,7 +195,14 @@ const AuthProvider = ({ children }: IAuthProvider) => {
       authorizeSession(currentUserData.currentUser);
     else if (currentUserLoading) sessionLoading();
     else if (!currentUserLoading && currentUserError) {
-      if (currentUserError.networkError) {
+      // If networkError has a statusCode the server responded (e.g. 400/500
+      // from a bad JWT) — it IS reachable, just rejecting the request.
+      // Only dispatch server-unreachable when there is no HTTP response at all
+      // (connection refused, DNS failure, etc.).
+      const isGenuineNetworkFailure =
+        currentUserError.networkError &&
+        !("statusCode" in currentUserError.networkError);
+      if (isGenuineNetworkFailure) {
         dispatch({ type: "server-unreachable" });
         if (!retryRef.current) {
           retryRef.current = setInterval(() => {

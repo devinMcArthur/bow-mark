@@ -22,6 +22,21 @@ tilt down
 skaffold dev
 ```
 
+### kubectl Context Safety
+
+**ALWAYS verify the kubectl context before running any kubectl command.** Using the wrong context can affect production.
+
+```bash
+kubectl config current-context   # verify before every kubectl command
+kubectl config use-context minikube          # switch to dev
+kubectl config use-context <do-tor-context>  # switch to production
+```
+
+| Context | Environment |
+|---------|-------------|
+| `minikube` | Local development |
+| `do-tor...` | Production (DigitalOcean Toronto) |
+
 ### Checking Service Health During Development
 
 **Always check k8s pod logs after making server-side changes** to confirm the server started successfully. A TypeScript compile error or runtime crash will show up here, not in the local terminal.
