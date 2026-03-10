@@ -1142,6 +1142,7 @@ export type Mutation = {
   dailyReportUpdate: DailyReportClass;
   employeeArchive: EmployeeClass;
   employeeCreate: EmployeeClass;
+  fileCreate: FileClass;
   employeeUnarchive: EmployeeClass;
   employeeUpdate: EmployeeClass;
   employeeUpdateRates: EmployeeClass;
@@ -1329,6 +1330,11 @@ export type MutationEmployeeArchiveArgs = {
 export type MutationEmployeeCreateArgs = {
   crewId?: InputMaybe<Scalars['String']>;
   data: EmployeeCreateData;
+};
+
+
+export type MutationFileCreateArgs = {
+  data: FileCreateData;
 };
 
 
@@ -11441,3 +11447,52 @@ export function useJobsiteYearReportSubSubscription(baseOptions: Apollo.Subscrip
       }
 export type JobsiteYearReportSubSubscriptionHookResult = ReturnType<typeof useJobsiteYearReportSubSubscription>;
 export type JobsiteYearReportSubSubscriptionResult = Apollo.SubscriptionResult<JobsiteYearReportSubSubscription>;
+
+// ──────────────────────────────────────────────────────────────────────────────
+// FileCreate — manually added (server mutation added in feature/tender)
+// ──────────────────────────────────────────────────────────────────────────────
+
+export type FileCreateMutationVariables = Exact<{
+  data: FileCreateData;
+}>;
+
+export type FileCreateMutation = {
+  __typename?: 'Mutation';
+  fileCreate: { __typename?: 'FileClass'; _id: string; mimetype: string; description?: string | null };
+};
+
+export const FileCreateDocument = gql`
+    mutation FileCreate($data: FileCreateData!) {
+  fileCreate(data: $data) {
+    _id
+    mimetype
+    description
+  }
+}
+    `;
+export type FileCreateMutationFn = Apollo.MutationFunction<FileCreateMutation, FileCreateMutationVariables>;
+
+/**
+ * __useFileCreateMutation__
+ *
+ * To run a mutation, you first call `useFileCreateMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useFileCreateMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [fileCreateMutation, { data, loading, error }] = useFileCreateMutation({
+ *   variables: {
+ *      data: // value for 'data'
+ *   },
+ * });
+ */
+export function useFileCreateMutation(baseOptions?: Apollo.MutationHookOptions<FileCreateMutation, FileCreateMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<FileCreateMutation, FileCreateMutationVariables>(FileCreateDocument, options);
+      }
+export type FileCreateMutationHookResult = ReturnType<typeof useFileCreateMutation>;
+export type FileCreateMutationResult = Apollo.MutationResult<FileCreateMutation>;
+export type FileCreateMutationOptions = Apollo.BaseMutationOptions<FileCreateMutation, FileCreateMutationVariables>;
