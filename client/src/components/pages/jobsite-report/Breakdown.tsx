@@ -84,6 +84,7 @@ interface CrewData {
   totalMaterialCost: number;
   totalMaterialQty: number;
   totalTruckingCost: number;
+  shiftHoursByDate: Map<string, number>; // date → avg employee hours (shift length)
 }
 
 function emptyCrewData(): CrewData {
@@ -100,6 +101,7 @@ function emptyCrewData(): CrewData {
     totalMaterialCost: 0,
     totalMaterialQty: 0,
     totalTruckingCost: 0,
+    shiftHoursByDate: new Map(),
   };
 }
 
@@ -109,6 +111,9 @@ function aggregateDayReports(dayReports: DayReport[]): {
 } {
   const crewMap = new Map<string, CrewData>();
   const dateSet = new Set<string>();
+
+  // Accumulator for shift hours: crewType → date → { totalHours, count }
+  const empAccByCrewDate = new Map<string, Map<string, { totalHours: number; count: number }>>();
 
   for (const day of dayReports) {
     const dateStr = new Date(day.date).toISOString().split("T")[0];
@@ -127,6 +132,12 @@ function aggregateDayReports(dayReports: DayReport[]): {
       entry.totalCost += emp.cost;
       const prev = entry.byDate.get(dateStr) || { hours: 0, cost: 0 };
       entry.byDate.set(dateStr, { hours: prev.hours + emp.hours, cost: prev.cost + emp.cost });
+
+      // Accumulate for shift hours
+      if (!empAccByCrewDate.has(emp.crewType)) empAccByCrewDate.set(emp.crewType, new Map());
+      const acc = empAccByCrewDate.get(emp.crewType)!;
+      const prevAcc = acc.get(dateStr) ?? { totalHours: 0, count: 0 };
+      acc.set(dateStr, { totalHours: prevAcc.totalHours + emp.hours, count: prevAcc.count + 1 });
     }
 
     for (const veh of day.vehicles) {
@@ -191,6 +202,15 @@ function aggregateDayReports(dayReports: DayReport[]): {
     }
   }
 
+  // Compute shift hours per date per crew (avg employee hours = shift length proxy)
+  empAccByCrewDate.forEach((dateMap, crewType) => {
+    const crew = crewMap.get(crewType);
+    if (!crew) return;
+    dateMap.forEach(({ totalHours, count }, date) => {
+      if (count > 0) crew.shiftHoursByDate.set(date, totalHours / count);
+    });
+  });
+
   const dates = Array.from(dateSet).sort();
   return { crewMap, dates };
 }
@@ -204,6 +224,32 @@ const fmtDateHeader = (dateStr: string) => {
 // ---- Currency formatter ----
 const formatCurrency = (n: number) =>
   n < 0 ? `-$${formatNumber(Math.abs(n))}` : `$${formatNumber(n)}`;
+
+/**
+ * Compute utilization % for a vehicle over a period.
+ * Only includes days where the vehicle was active (avoids diluting with absent days).
+ * Returns null if no shift data is available.
+ */
+const computeUtilization = (
+  vehicleByDate: Map<string, { hours: number; cost: number }>,
+  shiftHoursByDate: Map<string, number>
+): number | null => {
+  let totalVehicleHours = 0;
+  let totalShiftHours = 0;
+  let hasData = false;
+
+  vehicleByDate.forEach(({ hours }, date) => {
+    const shiftHours = shiftHoursByDate.get(date);
+    if (shiftHours && shiftHours > 0) {
+      totalVehicleHours += hours;
+      totalShiftHours += shiftHours;
+      hasData = true;
+    }
+  });
+
+  if (!hasData || totalShiftHours === 0) return null;
+  return (totalVehicleHours / totalShiftHours) * 100;
+};
 
 // ---- CrewCard ----
 interface ICrewCard {
@@ -297,7 +343,7 @@ const CrewCard = ({ crewType, crew }: ICrewCard) => {
                     <Tr>
                       <Th minW="150px">Vehicle</Th>
                       <Th>Code</Th>
-                      <Th isNumeric>Total Hrs</Th>
+                      <Th isNumeric>Total Hrs / Util</Th>
                       <Th isNumeric>Total Cost</Th>
                       {dates.map((d) => (
                         <Th key={d} isNumeric whiteSpace="nowrap">{fmtDateHeader(d)}</Th>
@@ -309,13 +355,40 @@ const CrewCard = ({ crewType, crew }: ICrewCard) => {
                       <Tr key={name}>
                         <Td fontWeight="medium">{entry.name}</Td>
                         <Td color="gray.500">{entry.code}</Td>
-                        <Td isNumeric>{formatNumber(entry.totalHours)}</Td>
+                        <Td isNumeric>
+                          <Text as="span">{formatNumber(entry.totalHours)}</Text>
+                          {(() => {
+                            const util = computeUtilization(entry.byDate, crew.shiftHoursByDate);
+                            if (util == null) return null;
+                            return (
+                              <Text as="span" color="gray.500" fontSize="xs" ml={1}>
+                                ({Math.round(util)}%)
+                              </Text>
+                            );
+                          })()}
+                        </Td>
                         <Td isNumeric>{formatCurrency(entry.totalCost)}</Td>
                         {dates.map((d) => {
                           const day = entry.byDate.get(d);
+                          const shiftHours = crew.shiftHoursByDate.get(d);
+                          const dailyUtil =
+                            day && shiftHours && shiftHours > 0
+                              ? Math.round((day.hours / shiftHours) * 100)
+                              : null;
                           return (
                             <Td key={d} isNumeric color={day ? undefined : "gray.300"}>
-                              {day ? formatNumber(day.hours) : "—"}
+                              {day ? (
+                                <>
+                                  <Text as="span">{formatNumber(day.hours)}</Text>
+                                  {dailyUtil != null && (
+                                    <Text as="span" color="gray.500" fontSize="xs" ml={1}>
+                                      ({dailyUtil}%)
+                                    </Text>
+                                  )}
+                                </>
+                              ) : (
+                                "—"
+                              )}
                             </Td>
                           );
                         })}
