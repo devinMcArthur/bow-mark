@@ -463,6 +463,23 @@ export type EmployeeWorkUpdateData = {
   startTime: Scalars['DateTime'];
 };
 
+export type EnrichedFileClass = {
+  __typename?: 'EnrichedFileClass';
+  _id: Scalars['ID'];
+  documentType: Scalars['String'];
+  file: FileClass;
+  pageCount?: Maybe<Scalars['Float']>;
+  summary?: Maybe<EnrichedFileSummaryClass>;
+  summaryStatus: Scalars['String'];
+};
+
+export type EnrichedFileSummaryClass = {
+  __typename?: 'EnrichedFileSummaryClass';
+  documentType: Scalars['String'];
+  keyTopics: Array<Scalars['String']>;
+  overview: Scalars['String'];
+};
+
 export type EquipmentFluidAddedSchema = {
   __typename?: 'EquipmentFluidAddedSchema';
   _id: Scalars['ID'];
@@ -1175,6 +1192,12 @@ export type Mutation = {
   systemUpdateLaborTypes: SystemClass;
   systemUpdateMaterialShipmentVehicleTypeDefaults: SystemClass;
   systemUpdateUnitDefaults: SystemClass;
+  tenderAddFile: TenderClass;
+  tenderCreate: TenderClass;
+  tenderRemove: Scalars['Boolean'];
+  tenderRemoveFile: TenderClass;
+  tenderRetrySummary: TenderClass;
+  tenderUpdate: TenderClass;
   userDelete: Scalars['String'];
   userPasswordReset: Scalars['Boolean'];
   userPasswordResetRequest: Scalars['Boolean'];
@@ -1583,6 +1606,40 @@ export type MutationSystemUpdateUnitDefaultsArgs = {
 };
 
 
+export type MutationTenderAddFileArgs = {
+  data: TenderAddFileData;
+  id: Scalars['ID'];
+};
+
+
+export type MutationTenderCreateArgs = {
+  data: TenderCreateData;
+};
+
+
+export type MutationTenderRemoveArgs = {
+  id: Scalars['ID'];
+};
+
+
+export type MutationTenderRemoveFileArgs = {
+  fileObjectId: Scalars['ID'];
+  id: Scalars['ID'];
+};
+
+
+export type MutationTenderRetrySummaryArgs = {
+  fileObjectId: Scalars['ID'];
+  id: Scalars['ID'];
+};
+
+
+export type MutationTenderUpdateArgs = {
+  data: TenderUpdateData;
+  id: Scalars['ID'];
+};
+
+
 export type MutationUserDeleteArgs = {
   userId: Scalars['String'];
 };
@@ -1875,6 +1932,8 @@ export type Query = {
   search: Array<SearchClass>;
   signup: SignupClass;
   system: SystemClass;
+  tender?: Maybe<TenderClass>;
+  tenders: Array<TenderClass>;
   user?: Maybe<UserClass>;
   users: Array<UserClass>;
   vehicle: VehicleClass;
@@ -2119,6 +2178,11 @@ export type QuerySignupArgs = {
 };
 
 
+export type QueryTenderArgs = {
+  id: Scalars['ID'];
+};
+
+
 export type QueryUserArgs = {
   query: UserQuery;
 };
@@ -2299,6 +2363,38 @@ export type SystemClass = {
   schemaVersion: Scalars['Float'];
   timezone: Scalars['String'];
   unitDefaults: Array<Scalars['String']>;
+};
+
+export type TenderAddFileData = {
+  documentType: Scalars['String'];
+  fileId: Scalars['String'];
+};
+
+export type TenderClass = {
+  __typename?: 'TenderClass';
+  _id: Scalars['ID'];
+  createdAt: Scalars['DateTime'];
+  createdBy: UserClass;
+  description?: Maybe<Scalars['String']>;
+  files: Array<EnrichedFileClass>;
+  jobcode: Scalars['String'];
+  jobsite?: Maybe<JobsiteClass>;
+  name: Scalars['String'];
+  status: Scalars['String'];
+  updatedAt: Scalars['DateTime'];
+};
+
+export type TenderCreateData = {
+  description?: InputMaybe<Scalars['String']>;
+  jobcode: Scalars['String'];
+  name: Scalars['String'];
+};
+
+export type TenderUpdateData = {
+  description?: InputMaybe<Scalars['String']>;
+  jobsiteId?: InputMaybe<Scalars['String']>;
+  name?: InputMaybe<Scalars['String']>;
+  status?: InputMaybe<Scalars['String']>;
 };
 
 export type TruckingRateClass = {
