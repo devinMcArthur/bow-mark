@@ -1,4 +1,4 @@
-// @ts-nocheck — see mcp-server.ts for explanation
+// @ts-nocheck — TypeScript 5.x OOMs on deeply chained Zod+Kysely types
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { sql } from "kysely";
