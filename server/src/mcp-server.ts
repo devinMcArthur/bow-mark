@@ -1321,11 +1321,15 @@ function createMcpServer(): McpServer {
 
       const totalHours = rows.reduce((s, r) => s + Number(r.total_hours ?? 0), 0);
       const totalCost = rows.reduce((s, r) => s + Number(r.total_cost ?? 0), 0);
+
+      // Weighted average: vehicles with more hours contribute proportionally more to the overall %
+      // Computed as: sum(vehicle_hours * utilization_pct) / sum(vehicle_hours)
+      const weightedUtilNum = rows.reduce(
+        (s, r) => s + Number(r.total_hours ?? 0) * Number(r.utilization_pct ?? 0),
+        0
+      );
       const avgUtilization =
-        rows.length > 0
-          ? rows.reduce((s, r) => s + Number(r.utilization_pct ?? 0), 0) /
-            rows.length
-          : null;
+        totalHours > 0 ? weightedUtilNum / totalHours : null;
 
       return {
         content: [
