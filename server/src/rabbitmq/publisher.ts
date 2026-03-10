@@ -145,3 +145,40 @@ export const publishProductionChange = createPublisher(ROUTING_KEYS.production);
  * Publish an Invoice change event
  */
 export const publishInvoiceChange = createPublisher(ROUTING_KEYS.invoice);
+
+export interface TenderFileSummaryMessage {
+  tenderId: string;
+  fileObjectId: string;
+  fileId: string;
+  timestamp: string;
+}
+
+export const publishTenderFileCreated = async (
+  tenderId: string,
+  fileObjectId: string,
+  fileId: string
+): Promise<boolean> => {
+  const message: TenderFileSummaryMessage = {
+    tenderId,
+    fileObjectId,
+    fileId,
+    timestamp: new Date().toISOString(),
+  };
+  try {
+    const channel = await getChannel();
+    await setupTopology();
+    const success = channel.publish(
+      RABBITMQ_CONFIG.exchange.name,
+      ROUTING_KEYS.tenderFile.created,
+      Buffer.from(JSON.stringify(message)),
+      { persistent: true, contentType: "application/json" }
+    );
+    if (success) {
+      console.log(`[RabbitMQ] Published tender_file.created: ${fileId}`);
+    }
+    return success;
+  } catch (error) {
+    console.error(`[RabbitMQ] Failed to publish tender_file.created:`, error);
+    return false;
+  }
+};
