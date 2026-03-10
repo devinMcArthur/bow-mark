@@ -68,9 +68,19 @@ const SUGGESTIONS = [
 
 interface ChatPageProps {
   initialConversationId?: string;
+  messageEndpoint?: string;        // default: "/api/chat/message"
+  conversationsEndpoint?: string;  // default: "/conversations"
+  extraPayload?: Record<string, unknown>; // merged into POST body e.g. { tenderId }
+  suggestions?: string[];          // overrides SUGGESTIONS constant if provided
 }
 
-const ChatPage = ({ initialConversationId }: ChatPageProps) => {
+const ChatPage = ({
+  initialConversationId,
+  messageEndpoint = "/api/chat/message",
+  conversationsEndpoint = "/conversations",
+  extraPayload,
+  suggestions: suggestionsProp,
+}: ChatPageProps) => {
   const router = useRouter();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState("");
@@ -105,7 +115,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
   React.useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch(`${serverBase}/conversations`, {
+        const res = await fetch(`${serverBase}${conversationsEndpoint}`, {
           headers: { Authorization: getToken() ?? "" },
         });
         if (res.ok) setConversations(await res.json());
@@ -117,7 +127,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
   const loadConversation = React.useCallback(
     async (id: string) => {
       try {
-        const res = await fetch(`${serverBase}/conversations/${id}`, {
+        const res = await fetch(`${serverBase}${conversationsEndpoint}/${id}`, {
           headers: { Authorization: getToken() ?? "" },
         });
         if (!res.ok) return;
@@ -151,7 +161,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
         );
       } catch {}
     },
-    [serverBase]
+    [serverBase, conversationsEndpoint]
   );
 
   // Load conversation when URL param changes
@@ -186,7 +196,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
 
   const renameConversation = async (id: string, title: string) => {
     try {
-      const res = await fetch(`${serverBase}/conversations/${id}/title`, {
+      const res = await fetch(`${serverBase}${conversationsEndpoint}/${id}/title`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -204,7 +214,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
 
   const deleteConversation = async (id: string) => {
     try {
-      const res = await fetch(`${serverBase}/conversations/${id}`, {
+      const res = await fetch(`${serverBase}${conversationsEndpoint}/${id}`, {
         method: "DELETE",
         headers: { Authorization: getToken() ?? "" },
       });
@@ -242,16 +252,18 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
 
       try {
         const token = getToken();
-        const body: Record<string, unknown> = { messages: history };
-        if (conversationId) body.conversationId = conversationId;
 
-        const response = await fetch(`${serverBase}/api/chat/message`, {
+        const response = await fetch(`${serverBase}${messageEndpoint}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: token ?? "",
           },
-          body: JSON.stringify(body),
+          body: JSON.stringify({
+            messages: history,
+            ...(conversationId ? { conversationId } : {}),
+            ...extraPayload,
+          }),
         });
 
         if (!response.ok) {
@@ -428,7 +440,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
         setTimeout(() => inputRef.current?.focus(), 50);
       }
     },
-    [messages, loading, conversationId]
+    [messages, loading, conversationId, messageEndpoint, extraPayload]
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -578,7 +590,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
                   </Text>
                 </VStack>
                 <VStack spacing={2} align="stretch" w="full" maxW="520px">
-                  {SUGGESTIONS.map((s) => (
+                  {(suggestionsProp ?? SUGGESTIONS).map((s) => (
                     <Box
                       key={s}
                       as="button"
