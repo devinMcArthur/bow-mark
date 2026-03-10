@@ -18,6 +18,7 @@ export * from "./Production";
 export * from "./ReportNote";
 export * from "./Signup";
 export * from "./System";
+export * from "./Tender";
 export * from "./User";
 export * from "./Vehicle";
 export * from "./VehicleIssue";
@@ -327,6 +328,20 @@ export const System = getModelForClass(SystemClass, {
 });
 
 /**
+ * ----- Tender -----
+ */
+
+import { TenderClass } from "./Tender/class";
+
+export type TenderDocument = DocumentType<TenderClass>;
+
+export type TenderModel = ReturnModelType<typeof TenderClass>;
+
+export const Tender = getModelForClass(TenderClass, {
+  schemaOptions: { collection: "tenders" },
+});
+
+/**
  * ----- User -----
  */
 
@@ -383,3 +398,4 @@ export const VehicleWork = getModelForClass(VehicleWorkClass, {
 });
 
 export * from "./ChatConversation";
+export * from "./TenderConversation";
