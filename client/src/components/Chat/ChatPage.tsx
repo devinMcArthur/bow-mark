@@ -401,6 +401,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
   // Load conversation when URL param changes
   React.useEffect(() => {
     if (initialConversationId) {
+      isAtBottomRef.current = true;
       setMessages([]);
       setModelTokens({});
       loadConversation(initialConversationId);
@@ -809,6 +810,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
 
           {/* Messages area */}
           <Box
+            key={initialConversationId ?? "new"}
             ref={scrollContainerRef}
             flex={1}
             overflowY="auto"
