@@ -35,7 +35,14 @@ export const tenderFileSummaryHandler = {
 
       let messageContent: Anthropic.MessageParam["content"];
 
-      if (contentType.includes("spreadsheet") || contentType.includes("excel") || contentType.includes("ms-excel")) {
+      const isSpreadsheet =
+        contentType.includes("spreadsheet") ||
+        contentType.includes("excel") ||
+        contentType.includes("ms-excel") ||
+        fileId.toLowerCase().endsWith(".xlsx") ||
+        fileId.toLowerCase().endsWith(".xls");
+
+      if (isSpreadsheet) {
         const xlsx = await import("xlsx");
         const workbook = xlsx.read(buffer, { type: "buffer" });
         const sheets = workbook.SheetNames.map((name) => {
