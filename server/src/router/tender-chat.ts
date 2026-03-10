@@ -148,6 +148,10 @@ ${fileIndex || "No documents have been processed yet."}${pendingNotice}
         res.status(403).json({ error: "Forbidden" });
         return;
       }
+      if (convo.tender.toString() !== tenderId) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
     } else {
       convo = await TenderConversation.create({
         tender: tenderId,
@@ -324,9 +328,7 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
             const isSpreadsheet =
               contentType.includes("spreadsheet") ||
               contentType.includes("excel") ||
-              contentType.includes("ms-excel") ||
-              fileId.toLowerCase().endsWith(".xlsx") ||
-              fileId.toLowerCase().endsWith(".xls");
+              contentType.includes("ms-excel");
 
             let toolResultContent: Anthropic.ToolResultBlockParam["content"];
 
