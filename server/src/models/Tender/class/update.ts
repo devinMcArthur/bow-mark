@@ -11,6 +11,7 @@ const fields = async (
   if (data.jobsiteId !== undefined) {
     tender.jobsite = data.jobsiteId ? (data.jobsiteId as any) : undefined;
   }
+  tender.updatedAt = new Date();
   return tender;
 };
 

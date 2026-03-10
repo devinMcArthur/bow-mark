@@ -1,7 +1,7 @@
 import { FileClass } from "../../File/class";
 import { JobsiteClass } from "../../Jobsite/class";
 import { UserClass } from "../../User/class";
-import { IEnrichedFileSummary } from "@typescript/tender";
+import { IEnrichedFileSummary, SummaryStatus, TenderStatus } from "@typescript/tender";
 import { prop, Ref } from "@typegoose/typegoose";
 import { Types } from "mongoose";
 import { Field, ID, ObjectType } from "type-graphql";
@@ -41,7 +41,7 @@ export class EnrichedFileClass {
     enum: ["pending", "processing", "ready", "failed"],
     default: "pending",
   })
-  public summaryStatus!: string;
+  public summaryStatus!: SummaryStatus;
 
   @Field({ nullable: true })
   @prop({ required: false })
@@ -71,7 +71,7 @@ export class TenderSchema {
     enum: ["bidding", "won", "lost"],
     default: "bidding",
   })
-  public status!: string;
+  public status!: TenderStatus;
 
   @Field(() => JobsiteClass, { nullable: true })
   @prop({ ref: () => JobsiteClass, required: false })
