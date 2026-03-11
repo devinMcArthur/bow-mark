@@ -74,7 +74,7 @@ export default class TenderResolver {
     tender!.files.push({
       _id: fileObjectId,
       file: file!._id,
-      documentType: data.documentType,
+      documentType: data.documentType ?? "",
       summaryStatus: "pending",
     } as any);
 

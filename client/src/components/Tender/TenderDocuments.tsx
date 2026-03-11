@@ -6,11 +6,8 @@ import {
   Box,
   Button,
   Collapse,
-  FormControl,
-  FormLabel,
   HStack,
   IconButton,
-  Input,
   Spinner,
   Table,
   Tbody,
@@ -20,7 +17,6 @@ import {
   Thead,
   Tr,
   useToast,
-  VStack,
   Wrap,
   WrapItem,
 } from "@chakra-ui/react";
@@ -112,7 +108,6 @@ interface TenderAddFileVars {
   id: string;
   data: {
     fileId: string;
-    documentType: string;
   };
 }
 interface TenderRemoveFileVars {
@@ -167,7 +162,11 @@ const FileRow = ({
                 onClick={() => setExpanded((v) => !v)}
               />
             )}
-            <Text fontSize="sm">{file.documentType}</Text>
+            <Text fontSize="sm">
+              {file.summary?.documentType || file.documentType || (
+                <Text as="span" color="gray.400" fontStyle="italic">Detecting…</Text>
+              )}
+            </Text>
           </HStack>
         </Td>
         <Td>
@@ -255,7 +254,6 @@ interface TenderDocumentsProps {
 const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
   const toast = useToast();
 
-  const [documentType, setDocumentType] = React.useState("");
   const [uploading, setUploading] = React.useState(false);
   const [removingId, setRemovingId] = React.useState<string | null>(null);
   const [retryingId, setRetryingId] = React.useState<string | null>(null);
@@ -287,19 +285,10 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
 
   const handleUpload = React.useCallback(
     async (file: File) => {
-      if (!documentType.trim()) {
-        toast({
-          title: "Please enter a document type before uploading",
-          status: "warning",
-          isClosable: true,
-        });
-        return;
-      }
-
       setUploading(true);
 
       try {
-        // Step 1: Read file as data URL and create File document via GraphQL multipart upload
+        // Step 1: Upload file via GraphQL multipart upload
         const dataUrl = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = (ev) => resolve(ev.target!.result as string);
@@ -319,18 +308,14 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
         const fileId = fileRes.data?.fileCreate._id;
         if (!fileId) throw new Error("File upload failed: no ID returned");
 
-        // Step 2: Attach to tender
+        // Step 2: Attach to tender (AI will detect document type)
         await tenderAddFile({
           variables: {
             id: tender._id,
-            data: {
-              fileId,
-              documentType: documentType.trim(),
-            },
+            data: { fileId },
           },
         });
 
-        setDocumentType("");
         if (fileInputRef.current) fileInputRef.current.value = "";
         if (onUpdated) onUpdated();
       } catch (e: any) {
@@ -344,7 +329,7 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
         setUploading(false);
       }
     },
-    [documentType, tender._id, fileCreate, tenderAddFile, toast, onUpdated]
+    [tender._id, fileCreate, tenderAddFile, toast, onUpdated]
   );
 
   const handleFileChange = React.useCallback(
@@ -468,46 +453,26 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
         onDragLeave={() => setIsDragOver(false)}
         onDrop={handleDrop}
       >
-        <Text fontSize="sm" fontWeight="600" mb={2} color="gray.700">
-          Add Document
+        <Text fontSize="sm" color="gray.500" mb={2}>
+          Drop a file here or click to upload. The AI will detect the document type automatically.
         </Text>
-        <VStack align="stretch" spacing={2}>
-          <FormControl>
-            <FormLabel fontSize="xs" color="gray.600">
-              Document Type
-            </FormLabel>
-            <Input
-              size="sm"
-              placeholder="e.g. Geotechnical Report"
-              value={documentType}
-              onChange={(e) => setDocumentType(e.target.value)}
-              isDisabled={uploading}
-            />
-          </FormControl>
-          <HStack>
-            <Button
-              size="sm"
-              colorScheme="blue"
-              isLoading={uploading}
-              isDisabled={!documentType.trim()}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              Choose File
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              style={{ display: "none" }}
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-              onChange={handleFileChange}
-            />
-            {uploading && (
-              <Text fontSize="xs" color="gray.500">
-                Uploading...
-              </Text>
-            )}
-          </HStack>
-        </VStack>
+        <HStack>
+          <Button
+            size="sm"
+            colorScheme="blue"
+            isLoading={uploading}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Choose File
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            style={{ display: "none" }}
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+            onChange={handleFileChange}
+          />
+        </HStack>
       </Box>
     </Box>
   );

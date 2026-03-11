@@ -32,6 +32,6 @@ export class TenderAddFileData {
   @Field()
   public fileId!: string;
 
-  @Field()
-  public documentType!: string;
+  @Field({ nullable: true })
+  public documentType?: string;
 }
