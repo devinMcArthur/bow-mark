@@ -15,19 +15,14 @@ import {
   StatHelpText,
   StatLabel,
   StatNumber,
-  Table,
-  Tbody,
-  Td,
   Text,
-  Th,
-  Thead,
-  Tr,
 } from "@chakra-ui/react";
 import { useJobsiteReportQuery } from "../../../generated/graphql";
 import { useSystem } from "../../../contexts/System";
 import formatNumber from "../../../utils/formatNumber";
 import getRateForTime from "../../../utils/getRateForTime";
 import Card from "../../Common/Card";
+import InvoiceTablePG from "./InvoiceTablePG";
 
 interface ISummary {
   jobsiteMongoId: string;
@@ -301,59 +296,29 @@ const Summary = ({ jobsiteMongoId, startDate, endDate, onJobsiteName }: ISummary
         </Card>
 
         {/* Invoice Cards */}
-        <SimpleGrid columns={[1, 2]} spacing={4}>
-          {/* Revenue Invoices */}
-          <Card heading={<Heading size="sm">Revenue Invoices</Heading>}>
-            {report.revenueInvoices.length === 0 ? (
-              <Text color="gray.500" fontSize="sm">No revenue invoices</Text>
-            ) : (
-              <Table size="sm">
-                <Thead>
-                  <Tr>
-                    <Th>Invoice #</Th>
-                    <Th>Company</Th>
-                    <Th isNumeric>Amount</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {report.revenueInvoices.map((inv) => (
-                    <Tr key={inv.id}>
-                      <Td>{inv.invoiceNumber}</Td>
-                      <Td>{inv.companyName}</Td>
-                      <Td isNumeric color="green.700">{formatCurrency(inv.amount)}</Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
-            )}
-          </Card>
+        <Card heading={<Heading size="sm">Revenue Invoices ({report.revenueInvoices.length})</Heading>}>
+          {report.revenueInvoices.length === 0 ? (
+            <Text color="gray.500" fontSize="sm">No revenue invoices</Text>
+          ) : (
+            <InvoiceTablePG
+              invoices={report.revenueInvoices}
+              caption="Revenue costing"
+              colorScheme="green"
+            />
+          )}
+        </Card>
 
-          {/* Expense Invoices */}
-          <Card heading={<Heading size="sm">Expense Invoices</Heading>}>
-            {report.expenseInvoices.length === 0 ? (
-              <Text color="gray.500" fontSize="sm">No expense invoices</Text>
-            ) : (
-              <Table size="sm">
-                <Thead>
-                  <Tr>
-                    <Th>Invoice #</Th>
-                    <Th>Company</Th>
-                    <Th isNumeric>Amount</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {report.expenseInvoices.map((inv) => (
-                    <Tr key={inv.id}>
-                      <Td>{inv.invoiceNumber}</Td>
-                      <Td>{inv.companyName}</Td>
-                      <Td isNumeric color="red.600">{formatCurrency(inv.amount)}</Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
-            )}
-          </Card>
-        </SimpleGrid>
+        <Card heading={<Heading size="sm">Expense Invoices ({report.expenseInvoices.length})</Heading>}>
+          {report.expenseInvoices.length === 0 ? (
+            <Text color="gray.500" fontSize="sm">No expense invoices</Text>
+          ) : (
+            <InvoiceTablePG
+              invoices={report.expenseInvoices}
+              caption="Expense costing"
+              colorScheme="red"
+            />
+          )}
+        </Card>
       </Stack>
     </Box>
   );
