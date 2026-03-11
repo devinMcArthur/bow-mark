@@ -296,29 +296,35 @@ const Summary = ({ jobsiteMongoId, startDate, endDate, onJobsiteName }: ISummary
         </Card>
 
         {/* Invoice Cards */}
-        <Card heading={<Heading size="sm">Revenue Invoices ({report.revenueInvoices.length})</Heading>}>
-          {report.revenueInvoices.length === 0 ? (
-            <Text color="gray.500" fontSize="sm">No revenue invoices</Text>
-          ) : (
-            <InvoiceTablePG
-              invoices={report.revenueInvoices}
-              caption="Revenue costing"
-              colorScheme="green"
-            />
-          )}
-        </Card>
+        <SimpleGrid columns={2} spacing={4}>
+          <Card heading={<Heading size="sm">Revenue Invoices ({report.revenueInvoices.length})</Heading>}>
+            {report.revenueInvoices.length === 0 ? (
+              <Text color="gray.500" fontSize="sm">No revenue invoices</Text>
+            ) : (
+              <Box maxH="400px" overflowY="auto">
+                <InvoiceTablePG
+                  invoices={report.revenueInvoices}
+                  caption="Revenue costing"
+                  colorScheme="green"
+                />
+              </Box>
+            )}
+          </Card>
 
-        <Card heading={<Heading size="sm">Expense Invoices ({report.expenseInvoices.length})</Heading>}>
-          {report.expenseInvoices.length === 0 ? (
-            <Text color="gray.500" fontSize="sm">No expense invoices</Text>
-          ) : (
-            <InvoiceTablePG
-              invoices={report.expenseInvoices}
-              caption="Expense costing"
-              colorScheme="red"
-            />
-          )}
-        </Card>
+          <Card heading={<Heading size="sm">Expense Invoices ({report.expenseInvoices.length})</Heading>}>
+            {report.expenseInvoices.length === 0 ? (
+              <Text color="gray.500" fontSize="sm">No expense invoices</Text>
+            ) : (
+              <Box maxH="400px" overflowY="auto">
+                <InvoiceTablePG
+                  invoices={report.expenseInvoices}
+                  caption="Expense costing"
+                  colorScheme="red"
+                />
+              </Box>
+            )}
+          </Card>
+        </SimpleGrid>
       </Stack>
     </Box>
   );
