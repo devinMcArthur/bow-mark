@@ -46,10 +46,11 @@ const Productivity = dynamic<{
 
 const toDateInput = (d: Date) => d.toISOString().slice(0, 10);
 
-type ActivePreset = string | null; // year string (e.g. "2026")
+type ActivePreset = string | null; // year string (e.g. "2026") or "all-time"
 
 const THIS_YEAR = new Date().getFullYear();
 const PAST_YEARS = Array.from({ length: 5 }, (_, i) => THIS_YEAR - 1 - i);
+const ALL_TIME_START = "1970-01-01";
 
 const getYearRange = (year: number) => {
   const today = new Date();
@@ -60,6 +61,7 @@ const getYearRange = (year: number) => {
 };
 
 const detectPreset = (start: string, end: string): ActivePreset => {
+  if (start === ALL_TIME_START) return "all-time";
   const thisYearRange = getYearRange(THIS_YEAR);
   if (start === thisYearRange.startDate && end === thisYearRange.endDate) return String(THIS_YEAR);
   for (const y of PAST_YEARS) {
@@ -123,6 +125,12 @@ const JobsiteReportPage: NextPage = () => {
     setActivePreset(String(year));
   };
 
+  const setAllTime = () => {
+    setStartDate(ALL_TIME_START);
+    setEndDate(toDateInput(new Date()));
+    setActivePreset("all-time");
+  };
+
   return (
     <Permission minRole={UserRoles.ProjectManager} type={null} showError>
       <Box
@@ -176,6 +184,13 @@ const JobsiteReportPage: NextPage = () => {
             </TabList>
             <HStack spacing={2} wrap="wrap" pb="1px">
               <ButtonGroup size="sm" isAttached variant="outline">
+                <Button
+                  onClick={setAllTime}
+                  colorScheme={activePreset === "all-time" ? "blue" : "gray"}
+                  variant={activePreset === "all-time" ? "solid" : "outline"}
+                >
+                  All Time
+                </Button>
                 <Button
                   onClick={() => setYear(THIS_YEAR)}
                   colorScheme={activePreset === String(THIS_YEAR) ? "blue" : "gray"}
