@@ -91,18 +91,12 @@ const InvoiceTable: React.FC<Props> = ({
     }
     // Sort groups by subtotal descending
     const sorted = Array.from(groups.entries()).sort(
-      (
-        a: [string, { name: string; subtotal: number; rows: JobsiteDayReportInvoiceSnippetFragment[] }],
-        b: [string, { name: string; subtotal: number; rows: JobsiteDayReportInvoiceSnippetFragment[] }]
-      ) => b[1].subtotal - a[1].subtotal
+      (a, b) => b[1].subtotal - a[1].subtotal
     );
     // Sort rows within each group by date descending
     for (const [, g] of sorted) {
       g.rows.sort(
-        (
-          a: JobsiteDayReportInvoiceSnippetFragment,
-          b: JobsiteDayReportInvoiceSnippetFragment
-        ) =>
+        (a, b) =>
           new Date(b.invoice.date).getTime() -
           new Date(a.invoice.date).getTime()
       );
@@ -152,7 +146,7 @@ const InvoiceTable: React.FC<Props> = ({
         </ButtonGroup>
       </HStack>
 
-      <Box w="100%" overflowX="scroll" backgroundColor="gray.200" borderRadius={4}>
+      <Box w="100%" overflowX="auto" backgroundColor="gray.200" borderRadius={4}>
         {viewMode === "grouped" ? (
           <Table variant="striped" colorScheme={colorScheme}>
             <TableCaption>{caption}</TableCaption>

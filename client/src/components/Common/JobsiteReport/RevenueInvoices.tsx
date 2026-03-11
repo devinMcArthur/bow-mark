@@ -1,41 +1,24 @@
-import {
-  Box,
-  Heading,
-  Table,
-  TableCaption,
-  Tbody,
-  Tfoot,
-  Th,
-  Thead,
-  Tr,
-} from "@chakra-ui/react";
+// client/src/components/Common/JobsiteReport/RevenueInvoices.tsx
+import { Box, Heading } from "@chakra-ui/react";
 import React from "react";
 import {
   JobsiteMonthReportNoFetchSnippetFragment,
   JobsiteYearReportNoFetchSnippetFragment,
 } from "../../../generated/graphql";
-import formatNumber from "../../../utils/formatNumber";
 import Card from "../../Common/Card";
+import InvoiceTable from "./InvoiceTable";
 import JobsiteReportInvoiceSummary from "./InvoiceSummary";
 
 interface IJobsiteReportRevenueInvoices {
   report:
-  | JobsiteMonthReportNoFetchSnippetFragment
-  | JobsiteYearReportNoFetchSnippetFragment;
+    | JobsiteMonthReportNoFetchSnippetFragment
+    | JobsiteYearReportNoFetchSnippetFragment;
 }
 
 const JobsiteReportRevenueInvoices = ({
   report,
 }: IJobsiteReportRevenueInvoices) => {
-  /**
-   * ----- Hook Inititalization -----
-   */
-
   const [collapsed, setCollapsed] = React.useState(true);
-
-  /**
-   * ----- Rendering -----
-   */
 
   return (
     <Card
@@ -55,46 +38,12 @@ const JobsiteReportRevenueInvoices = ({
         <JobsiteReportInvoiceSummary invoices={report.revenueInvoices} />
       </Box>
       {!collapsed && (
-        <Box
-          w="100%"
-          overflowX="scroll"
-          backgroundColor="gray.200"
-          borderRadius={4}
-          m={2}
-        >
-          <Table variant="striped" colorScheme="red">
-            <TableCaption>Revenue costing</TableCaption>
-            <Thead>
-              <Tr>
-                <Th>Invoice</Th>
-                <Th isNumeric>Cost</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {report.revenueInvoices.map((reports) => (
-                <Tr key={reports._id}>
-                  <Th>
-                    {reports.invoice.company.name}{" "}
-                    {reports.invoice.invoiceNumber}{" "}
-                    {reports.invoice.internal && "(internal)"}
-                  </Th>
-                  <Th isNumeric>${formatNumber(reports.value)}</Th>
-                </Tr>
-              ))}
-            </Tbody>
-            <Tfoot>
-              <Tr>
-                <Th>Totals</Th>
-                <Th isNumeric>
-                  $
-                  {formatNumber(
-                    report.summary.externalRevenueInvoiceValue +
-                    report.summary.internalRevenueInvoiceValue
-                  )}
-                </Th>
-              </Tr>
-            </Tfoot>
-          </Table>
+        <Box m={2}>
+          <InvoiceTable
+            invoices={report.revenueInvoices}
+            caption="Revenue costing"
+            colorScheme="green"
+          />
         </Box>
       )}
     </Card>
