@@ -142,7 +142,7 @@ const InvoiceTablePG: React.FC<Props> = ({
         {viewMode === "grouped" ? (
           <Table size="sm" variant="striped" colorScheme={colorScheme}>
             <TableCaption>{caption}</TableCaption>
-            <Thead>
+            <Thead sx={{ "th": { paddingTop: 4 } }}>
               <Tr>
                 <Th>Date</Th>
                 <Th>Invoice #</Th>
@@ -206,7 +206,7 @@ const InvoiceTablePG: React.FC<Props> = ({
         ) : (
           <Table size="sm" variant="striped" colorScheme={colorScheme}>
             <TableCaption>{caption}</TableCaption>
-            <Thead>
+            <Thead sx={{ "th": { paddingTop: 4 } }}>
               <Tr>
                 <Th
                   cursor="pointer"
