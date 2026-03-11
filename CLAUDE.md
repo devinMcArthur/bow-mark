@@ -157,6 +157,31 @@ MongoDB → RabbitMQ → Consumer → PostgreSQL (star schema)
 - Consumer process transforms and syncs to PostgreSQL reporting tables
 - See `db/migrations/` for PostgreSQL schema (dimensions + fact tables)
 
+## Code Organization
+
+### File Size and Separation
+
+Keep files focused and navigable. When a file grows beyond ~300 lines, consider whether it contains multiple distinct concerns that belong in separate files.
+
+**Extract when a unit is independently reusable or testable:**
+- Shared types used across multiple files → `types.ts` (or colocated `types.ts` per feature folder)
+- A React component with its own state and props → its own `.tsx` file
+- A group of related functions serving a single domain → its own module
+
+**Don't extract just for length:**
+- A long file that is truly one cohesive concern (e.g. a complex form, a single resolver) is fine as-is
+- Only extract to a shared file when the code is used in 2+ places; otherwise keep it colocated
+
+**MCP tools pattern** (`server/src/mcp/tools/`):
+- Each domain (`search`, `financial`, `productivity`, `operational`) lives in its own file
+- Each file exports `register(server: McpServer): void`
+- Shared SQL helpers go in `mcp/shared.ts`
+
+**React components pattern** (`client/src/components/<Feature>/`):
+- Types shared across the feature → `types.ts`
+- Each distinct component → its own `.tsx` file
+- The main page/container component imports from the above
+
 ## Environment Variables
 
 Key production secrets (see README.md for full list):

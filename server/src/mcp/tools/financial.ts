@@ -617,4 +617,117 @@ export function register(server: McpServer): void {
       };
     }
   );
+
+  // ── get_jobsite_invoices ─────────────────────────────────────────────────────
+  server.registerTool(
+    "get_jobsite_invoices",
+    {
+      description:
+        "Get all invoices for a specific jobsite. Returns individual invoice records with company, amount, date, type, and direction so you can analyse subcontractor costs, revenue, or any invoice breakdown. Optionally filter by date range and/or direction (expense/revenue).",
+      inputSchema: {
+        jobsiteMongoId: z
+          .string()
+          .describe("MongoDB ID of the jobsite (from search_jobsites)"),
+        startDate: z
+          .string()
+          .optional()
+          .describe("Filter invoices on or after this date (YYYY-MM-DD)"),
+        endDate: z
+          .string()
+          .optional()
+          .describe("Filter invoices on or before this date (YYYY-MM-DD)"),
+        direction: z
+          .enum(["expense", "revenue", "all"])
+          .optional()
+          .describe(
+            'Filter by direction: "expense" (vendor/subcontractor costs), "revenue" (customer billing), or "all" (default)'
+          ),
+      },
+    },
+    async ({ jobsiteMongoId, startDate: startStr, endDate: endStr, direction }) => {
+      const jobsite = await db
+        .selectFrom("dim_jobsite")
+        .select(["id", "mongo_id", "name", "jobcode"])
+        .where("mongo_id", "=", jobsiteMongoId)
+        .executeTakeFirst();
+
+      if (!jobsite) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Jobsite not found: ${jobsiteMongoId}`,
+            },
+          ],
+        };
+      }
+
+      let query = db
+        .selectFrom("fact_invoice as i")
+        .innerJoin("dim_company as c", "c.id", "i.company_id")
+        .select([
+          "c.name as company_name",
+          "c.mongo_id as company_id",
+          "i.amount",
+          "i.invoice_date as date",
+          "i.invoice_number",
+          "i.description",
+          "i.direction",
+          "i.invoice_type",
+        ])
+        .where("i.jobsite_id", "=", jobsite.id)
+        .orderBy("i.invoice_date", "desc");
+
+      if (startStr) {
+        query = query.where("i.invoice_date", ">=", new Date(startStr));
+      }
+      if (endStr) {
+        const end = new Date(endStr);
+        end.setHours(23, 59, 59, 999);
+        query = query.where("i.invoice_date", "<=", end);
+      }
+      if (direction && direction !== "all") {
+        query = query.where("i.direction", "=", direction);
+      }
+
+      const rows = await query.execute();
+
+      const invoices = rows.map((r) => ({
+        company_name: r.company_name,
+        company_id: r.company_id,
+        amount: Math.round(Number(r.amount) * 100) / 100,
+        date: r.date instanceof Date ? r.date.toISOString().split("T")[0] : r.date,
+        invoice_number: r.invoice_number,
+        description: r.description ?? null,
+        direction: r.direction,
+        invoice_type: r.invoice_type,
+      }));
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(
+              {
+                jobsite: {
+                  id: jobsite.mongo_id,
+                  name: jobsite.name,
+                  jobcode: jobsite.jobcode,
+                },
+                filters: {
+                  startDate: startStr ?? null,
+                  endDate: endStr ?? null,
+                  direction: direction ?? "all",
+                },
+                count: invoices.length,
+                invoices,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+  );
 }
