@@ -127,7 +127,7 @@ interface TenderRetryVars {
 // ─── Status badge color ───────────────────────────────────────────────────────
 
 function summaryStatusColor(status: string): string {
-  if (status === "complete") return "green";
+  if (status === "ready") return "green";
   if (status === "failed") return "red";
   if (status === "processing") return "yellow";
   return "gray"; // pending

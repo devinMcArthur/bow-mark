@@ -2,6 +2,7 @@ import {
   Tender,
   TenderClass,
   TenderDocument,
+  TenderConversation,
   File,
   JobsiteClass,
   Jobsite,
@@ -124,6 +125,7 @@ export default class TenderResolver {
   @Mutation(() => Boolean)
   async tenderRemove(@Arg("id", () => ID) id: Id) {
     const tender = await Tender.getById(id, { throwError: true });
+    await TenderConversation.deleteMany({ tender: id });
     await tender!.deleteOne();
     return true;
   }
