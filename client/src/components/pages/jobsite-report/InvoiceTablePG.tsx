@@ -49,11 +49,11 @@ const InvoiceTablePG: React.FC<Props> = ({
   const [sortCol, setSortCol] = React.useState<SortCol>("date");
   const [sortDir, setSortDir] = React.useState<SortDir>("desc");
   const [expandedCompanies, setExpandedCompanies] = React.useState<Set<string>>(
-    () => new Set(invoices.map((r) => r.companyName))
+    () => new Set()
   );
 
   React.useEffect(() => {
-    setExpandedCompanies(new Set(invoices.map((r) => r.companyName)));
+    setExpandedCompanies(new Set());
   }, [invoices]);
 
   const total = invoices.reduce((sum, r) => sum + r.amount, 0);
