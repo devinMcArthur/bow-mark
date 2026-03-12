@@ -12,6 +12,7 @@ import { Server } from "ws";
 import chatRouter from "./router/chat";
 import conversationsRouter from "./router/conversations";
 import fileRouter from "./router/files";
+import publicDocumentsRouter from "./router/public-documents";
 
 import { IContext } from "@typescript/graphql";
 
@@ -56,6 +57,7 @@ import ReportIssueFullResolver from "@graphql/resolvers/reportIssueFull";
 import ReportNoteResolver from "@graphql/resolvers/reportNote";
 import SignupResolver from "@graphql/resolvers/signup";
 import SystemResolver from "@graphql/resolvers/system";
+import PublicDocumentResolver from "@graphql/resolvers/publicDocument";
 import TruckingReportResolver from "@graphql/resolvers/truckingReport";
 import UserResolver from "@graphql/resolvers/user";
 import VehicleResolver from "@graphql/resolvers/vehicle";
@@ -119,6 +121,7 @@ const createApp = async () => {
       SearchResolver,
       SignupResolver,
       SystemResolver,
+      PublicDocumentResolver,
       TruckingReportResolver,
       UserResolver,
       VehicleResolver,
@@ -213,6 +216,7 @@ const createApp = async () => {
   );
 
   app.use("/file", fileRouter);
+  app.use("/public", publicDocumentsRouter);
   app.use("/api/chat", chatRouter);
   app.use("/conversations", conversationsRouter);
 

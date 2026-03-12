@@ -1,0 +1,5 @@
+query PublicDocuments {
+  publicDocuments {
+    ...PublicDocumentSnippet
+  }
+}

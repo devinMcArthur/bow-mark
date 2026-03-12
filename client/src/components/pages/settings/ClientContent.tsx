@@ -4,6 +4,7 @@ import Permission from "../../Common/Permission";
 import CompanySettings from "./views/Companies";
 import MaterialSettings from "./views/Materials";
 import ProfileSettings from "./views/Profile";
+import PublicDocumentsSettings from "./views/PublicDocuments";
 import SystemSettings from "./views/System";
 import UserSettings from "./views/Users";
 
@@ -17,6 +18,9 @@ const SettingsClientContent = () => {
           <Tab>Materials</Tab>
           <Tab>Companies</Tab>
           <Tab>Users</Tab>
+          <Permission>
+            <Tab>Public Documents</Tab>
+          </Permission>
         </Permission>
       </TabList>
       <TabPanels>
@@ -34,6 +38,9 @@ const SettingsClientContent = () => {
         </TabPanel>
         <TabPanel>
           <UserSettings />
+        </TabPanel>
+        <TabPanel>
+          <PublicDocumentsSettings />
         </TabPanel>
       </TabPanels>
     </Tabs>

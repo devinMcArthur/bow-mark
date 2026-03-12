@@ -1,0 +1,5 @@
+mutation PublicDocumentUpdate($id: String!, $data: PublicDocumentUpdateData!) {
+  publicDocumentUpdate(id: $id, data: $data) {
+    ...PublicDocumentSnippet
+  }
+}
