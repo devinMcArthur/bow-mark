@@ -14,8 +14,7 @@ import conversationsRouter from "./router/conversations";
 import fileRouter from "./router/files";
 import tenderChatRouter from "./router/tender-chat";
 import tenderConversationsRouter from "./router/tender-conversations";
-import tenderFilesRouter from "./router/tender-files";
-import specFilesRouter from "./router/spec-files";
+import enrichedFilesRouter from "./router/enriched-files";
 
 import { IContext } from "@typescript/graphql";
 
@@ -225,8 +224,7 @@ const createApp = async () => {
   app.use("/conversations", conversationsRouter);
   app.use("/api/tender-chat", tenderChatRouter);
   app.use("/tender-conversations", tenderConversationsRouter);
-  app.use("/api/tender-files", tenderFilesRouter);
-  app.use("/api/spec-files", specFilesRouter);
+  app.use("/api/enriched-files", enrichedFilesRouter);
 
   await apolloServer.start();
 

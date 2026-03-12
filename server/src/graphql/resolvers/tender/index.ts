@@ -6,6 +6,7 @@ import {
   File,
   JobsiteClass,
   Jobsite,
+  EnrichedFile,
 } from "@models";
 import { IContext } from "@typescript/graphql";
 import { Id } from "@typescript/models";
@@ -20,9 +21,9 @@ import {
   Resolver,
   Root,
 } from "type-graphql";
-import { Types } from "mongoose";
 import { TenderCreateData, TenderUpdateData, TenderAddFileData } from "./mutations";
 import { publishEnrichedFileCreated } from "../../../rabbitmq/publisher";
+import { isDocument } from "@typegoose/typegoose";
 
 @Resolver(() => TenderClass)
 export default class TenderResolver {
@@ -70,20 +71,18 @@ export default class TenderResolver {
     const tender = await Tender.getById(id, { throwError: true });
     const file = await File.getById(data.fileId, { throwError: true });
 
-    const fileObjectId = new Types.ObjectId();
-    tender!.files.push({
-      _id: fileObjectId,
-      file: file!._id,
-      ...(data.documentType ? { documentType: data.documentType } : {}),
-      summaryStatus: "pending",
-    } as any);
+    // Create a standalone EnrichedFile document for this file
+    const enrichedFile = await EnrichedFile.createDocument(
+      file!._id.toString(),
+      data.documentType
+    );
 
+    // Push the EnrichedFile ref onto the tender
+    tender!.files.push(enrichedFile._id as any);
     await tender!.save();
 
-    await publishEnrichedFileCreated(
-      fileObjectId.toString(),
-      file!._id.toString()
-    );
+    // Publish for async summarization
+    await publishEnrichedFileCreated(enrichedFile._id.toString(), file!._id.toString());
 
     return Tender.getById(tender!._id.toString());
   }
@@ -92,31 +91,32 @@ export default class TenderResolver {
   @Mutation(() => TenderClass)
   async tenderRemoveFile(@Arg("id", () => ID) id: Id, @Arg("fileObjectId", () => ID) fileObjectId: Id) {
     const tender = await Tender.getById(id, { throwError: true });
-    tender!.files = tender!.files.filter(
-      (f) => f._id.toString() !== fileObjectId.toString()
+    tender!.files = (tender!.files as any[]).filter(
+      (f: any) => f.toString() !== fileObjectId.toString()
     ) as any;
     await tender!.save();
+
+    // Delete the standalone EnrichedFile document
+    await EnrichedFile.findByIdAndDelete(fileObjectId);
+
     return tender;
   }
 
   @Authorized(["ADMIN", "PM"])
   @Mutation(() => TenderClass)
   async tenderRetrySummary(@Arg("id", () => ID) id: Id, @Arg("fileObjectId", () => ID) fileObjectId: Id) {
-    const tender = await Tender.getById(id, { throwError: true });
-    const fileObj = tender!.files.find((f) => f._id.toString() === fileObjectId.toString());
-    if (!fileObj) throw new Error("File not found on tender");
+    const enrichedFile = await EnrichedFile.findById(fileObjectId);
+    if (!enrichedFile) throw new Error("File not found");
 
-    await (Tender as any).findOneAndUpdate(
-      { _id: id, "files._id": fileObjectId },
-      { $set: { "files.$.summaryStatus": "pending" }, $unset: { "files.$.summaryError": "" } }
-    );
+    await EnrichedFile.findByIdAndUpdate(fileObjectId, {
+      $set: { summaryStatus: "pending" },
+      $unset: { summaryError: "" },
+    });
 
-    // fileObj.file may be a populated document (from getById) or a raw ObjectId ref —
-    // extract the id string safely either way
-    const fileId =
-      fileObj.file && typeof (fileObj.file as any)._id !== "undefined"
-        ? (fileObj.file as any)._id.toString()
-        : fileObj.file!.toString();
+    if (!enrichedFile.file) throw new Error("EnrichedFile has no file ref");
+    const fileId = isDocument(enrichedFile.file)
+      ? enrichedFile.file._id.toString()
+      : enrichedFile.file.toString();
 
     await publishEnrichedFileCreated(fileObjectId.toString(), fileId);
 
@@ -128,6 +128,11 @@ export default class TenderResolver {
   async tenderRemove(@Arg("id", () => ID) id: Id) {
     const tender = await Tender.getById(id, { throwError: true });
     await TenderConversation.deleteMany({ tender: id });
+    // Clean up all associated EnrichedFile documents
+    const fileIds = (tender!.files as any[]).map((f: any) => f.toString());
+    if (fileIds.length > 0) {
+      await EnrichedFile.deleteMany({ _id: { $in: fileIds } });
+    }
     await tender!.deleteOne();
     return true;
   }

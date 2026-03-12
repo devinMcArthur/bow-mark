@@ -1,17 +1,18 @@
 import { Router } from "express";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
-import { System } from "@models";
+import { EnrichedFile } from "@models";
 import { getFileSignedUrl } from "@utils/fileStorage";
 
 const router = Router();
 
-// GET /api/spec-files/:fileObjectId?token=JWT
+// GET /api/enriched-files/:enrichedFileId?token=JWT&page=N
 //
-// Same redirect pattern as tender-files — generates a fresh signed URL
-// on every click so citations in chat never go stale.
+// Accepts JWT via Authorization header OR ?token= query param.
+// Loads the EnrichedFile doc, resolves the S3 file key, and redirects
+// to a fresh signed URL so citations never go stale.
 
-router.get("/:fileObjectId", async (req, res) => {
+router.get("/:enrichedFileId", async (req, res) => {
   const token =
     (req.headers.authorization as string | undefined) ||
     (req.query.token as string | undefined);
@@ -28,31 +29,23 @@ router.get("/:fileObjectId", async (req, res) => {
     return;
   }
 
-  const { fileObjectId } = req.params;
+  const { enrichedFileId } = req.params;
 
-  if (!mongoose.isValidObjectId(fileObjectId)) {
+  if (!mongoose.isValidObjectId(enrichedFileId)) {
     res.status(400).send("Invalid ID");
     return;
   }
 
-  const system = await System.getSystem();
-  if (!system) {
-    res.status(404).send("System not found");
-    return;
-  }
-
-  const fileObj = system.specFiles.find(
-    (f) => f._id.toString() === fileObjectId
-  );
-  if (!fileObj?.file) {
+  const enrichedFile = await EnrichedFile.findById(enrichedFileId).populate("file");
+  if (!enrichedFile?.file) {
     res.status(404).send("File not found");
     return;
   }
 
   const fileId =
-    fileObj.file && typeof (fileObj.file as any)._id !== "undefined"
-      ? (fileObj.file as any)._id.toString()
-      : fileObj.file.toString();
+    typeof enrichedFile.file === "object" && (enrichedFile.file as any)._id
+      ? (enrichedFile.file as any)._id.toString()
+      : enrichedFile.file.toString();
 
   const signedUrl = (await getFileSignedUrl(fileId)) as string;
 

@@ -1,9 +1,9 @@
 import { Types } from "mongoose";
-import { prop } from "@typegoose/typegoose";
+import { prop, Ref } from "@typegoose/typegoose";
 import { Field, ID, ObjectType } from "type-graphql";
 import SchemaVersions from "@constants/SchemaVersions";
 import { DefaultRateClass, RateClass } from "@typescript/models";
-import { EnrichedFileClass } from "../../Tender/schema";
+import { EnrichedFileClass } from "../../EnrichedFile/class";
 
 @ObjectType()
 export class SystemSchema {
@@ -50,8 +50,8 @@ export class SystemSchema {
   public timezone!: string;
 
   @Field(() => [EnrichedFileClass], { nullable: false })
-  @prop({ type: () => [EnrichedFileClass], default: [] })
-  public specFiles!: EnrichedFileClass[];
+  @prop({ ref: () => EnrichedFileClass, type: () => [Types.ObjectId], default: [] })
+  public specFiles!: Ref<EnrichedFileClass>[];
 
   @Field({ nullable: false })
   @prop({ required: true, default: Date.now })

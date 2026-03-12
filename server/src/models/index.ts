@@ -1,3 +1,4 @@
+export * from "./EnrichedFile";
 export * from "./Company";
 export * from "./Crew";
 export * from "./DailyReport";

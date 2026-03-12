@@ -1,74 +1,10 @@
-import { FileClass } from "../../File/class";
+import { EnrichedFileClass } from "../../EnrichedFile/class";
 import { JobsiteClass } from "../../Jobsite/class";
 import { UserClass } from "../../User/class";
-import { IEnrichedFileSummary, SummaryStatus, TenderStatus } from "@typescript/tender";
+import { TenderStatus } from "@typescript/tender";
 import { prop, Ref } from "@typegoose/typegoose";
 import { Types } from "mongoose";
 import { Field, ID, ObjectType } from "type-graphql";
-
-@ObjectType()
-export class EnrichedFileSummaryChunkClass {
-  @Field()
-  public startPage!: number;
-
-  @Field()
-  public endPage!: number;
-
-  @Field()
-  public overview!: string;
-
-  @Field(() => [String])
-  public keyTopics!: string[];
-}
-
-@ObjectType()
-export class EnrichedFileSummaryClass {
-  @Field()
-  public overview!: string;
-
-  @Field()
-  public documentType!: string;
-
-  @Field(() => [String])
-  public keyTopics!: string[];
-
-  @Field(() => [EnrichedFileSummaryChunkClass], { nullable: true })
-  public chunks?: EnrichedFileSummaryChunkClass[];
-}
-
-@ObjectType()
-export class EnrichedFileClass {
-  @Field(() => ID, { nullable: false })
-  public _id!: Types.ObjectId;
-
-  @Field(() => FileClass)
-  @prop({ ref: () => FileClass, required: true })
-  public file!: Ref<FileClass>;
-
-  @Field({ nullable: true })
-  @prop({ required: false, trim: true })
-  public documentType?: string;
-
-  @Field(() => EnrichedFileSummaryClass, { nullable: true })
-  @prop({ type: () => Object, required: false })
-  public summary?: IEnrichedFileSummary;
-
-  @Field()
-  @prop({
-    required: true,
-    enum: ["pending", "processing", "ready", "failed"],
-    default: "pending",
-  })
-  public summaryStatus!: SummaryStatus;
-
-  @Field({ nullable: true })
-  @prop({ required: false })
-  public pageCount?: number;
-
-  @Field({ nullable: true })
-  @prop({ required: false, trim: true })
-  public summaryError?: string;
-}
 
 @ObjectType()
 export class TenderSchema {
@@ -100,8 +36,8 @@ export class TenderSchema {
   public jobsite?: Ref<JobsiteClass>;
 
   @Field(() => [EnrichedFileClass])
-  @prop({ type: () => [EnrichedFileClass], default: [] })
-  public files!: EnrichedFileClass[];
+  @prop({ ref: () => EnrichedFileClass, type: () => [Types.ObjectId], default: [] })
+  public files!: Ref<EnrichedFileClass>[];
 
   @Field(() => UserClass)
   @prop({ ref: () => UserClass, required: true })

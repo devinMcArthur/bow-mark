@@ -6,12 +6,16 @@ const byId = async (
   id: Id,
   options?: GetByIDOptions
 ): Promise<TenderDocument | null> => {
+  const query = Tender.findById(id).populate({
+    path: "files",
+    populate: { path: "file" },
+  });
   if (options?.throwError) {
-    const tender = await Tender.findById(id).populate("files.file");
+    const tender = await query;
     if (!tender) throw new Error(`Tender ${id} not found`);
     return tender;
   }
-  return Tender.findById(id).populate("files.file");
+  return query;
 };
 
 const list = async (Tender: TenderModel): Promise<TenderDocument[]> => {

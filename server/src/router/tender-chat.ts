@@ -87,7 +87,9 @@ router.post("/message", async (req, res) => {
 
   // ── Load tender ───────────────────────────────────────────────────────────
   const [tender, systemDoc] = await Promise.all([
-    Tender.findById(tenderId).lean(),
+    Tender.findById(tenderId)
+      .populate({ path: "files", populate: { path: "file" } })
+      .lean(),
     System.getSystem(),
   ]);
   if (!tender) {
@@ -106,13 +108,13 @@ router.post("/message", async (req, res) => {
     .join(" ");
 
   // ── Build system prompt from tender data ──────────────────────────────────
-  const readyFiles = tender.files.filter((f) => f.summaryStatus === "ready");
-  const pendingFiles = tender.files.filter(
-    (f) => f.summaryStatus === "pending" || f.summaryStatus === "processing"
+  const tenderFiles = (tender.files as any[]);
+  const specFiles = ((systemDoc?.specFiles ?? []) as any[]);
+  const readyFiles = tenderFiles.filter((f: any) => f.summaryStatus === "ready");
+  const pendingFiles = tenderFiles.filter(
+    (f: any) => f.summaryStatus === "pending" || f.summaryStatus === "processing"
   );
-  const readySpecFiles = (systemDoc?.specFiles ?? []).filter(
-    (f) => f.summaryStatus === "ready"
-  );
+  const readySpecFiles = specFiles.filter((f: any) => f.summaryStatus === "ready");
 
   // Build stable redirect URLs for each file — these go through /api/tender-files
   // which generates a fresh signed URL on every click, so citations never go stale.
@@ -138,13 +140,13 @@ router.post("/message", async (req, res) => {
 
   const fileIndex = readyFiles
     .map((f) =>
-      buildFileEntry(f, `${serverBase}/api/tender-files/${tender._id}/${f._id}?token=${token}`)
+      buildFileEntry(f, `${serverBase}/api/enriched-files/${f._id}?token=${token}`)
     )
     .join("\n\n---\n\n");
 
   const specFileIndex = readySpecFiles
     .map((f) =>
-      buildFileEntry(f, `${serverBase}/api/spec-files/${f._id}?token=${token}`)
+      buildFileEntry(f, `${serverBase}/api/enriched-files/${f._id}?token=${token}`)
     )
     .join("\n\n---\n\n");
 
@@ -374,9 +376,9 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
           try {
             // ── read_document tool execution ────────────────────────────
             const input = block.input as { file_object_id: string; start_page?: number; end_page?: number };
-            const fileObj =
-              tender.files.find((f) => f._id.toString() === input.file_object_id) ??
-              (systemDoc?.specFiles ?? []).find((f) => f._id.toString() === input.file_object_id);
+            const fileObj: any =
+              tenderFiles.find((f: any) => f._id.toString() === input.file_object_id) ??
+              specFiles.find((f: any) => f._id.toString() === input.file_object_id);
             if (!fileObj)
               throw new Error(
                 `File ${input.file_object_id} not found`
@@ -387,9 +389,10 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
                 `File reference missing for ${input.file_object_id}`
               );
 
-            const fileId = isDocument(fileObj.file)
-              ? fileObj.file._id.toString()
-              : fileObj.file.toString();
+            const fileId =
+              fileObj.file && typeof fileObj.file === "object" && (fileObj.file as any)._id
+                ? (fileObj.file as any)._id.toString()
+                : (fileObj.file as any).toString();
             const docLabel = (fileObj.summary as any)?.documentType || fileObj.documentType || "Document";
 
             // Guard: deduplicate reloads of the same document+range (allow different page ranges)

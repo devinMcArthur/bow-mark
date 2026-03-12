@@ -1,7 +1,11 @@
 import { SystemModel, SystemDocument } from "@models";
 
 const system = async (System: SystemModel): Promise<SystemDocument> => {
-  const system = (await System.find().limit(1).populate("specFiles.file"))[0];
+  const system = (
+    await System.find()
+      .limit(1)
+      .populate({ path: "specFiles", populate: { path: "file" } })
+  )[0];
 
   return system;
 };

@@ -1,10 +1,10 @@
 import { DefaultRateData, RatesData } from "@graphql/types/mutation";
-import { System, SystemClass, File } from "@models";
+import { System, SystemClass, File, EnrichedFile } from "@models";
 import { Arg, Authorized, ID, Mutation, Query, Resolver } from "type-graphql";
-import { Types } from "mongoose";
 import { Id } from "@typescript/models";
 import mutations from "./mutations";
 import { publishEnrichedFileCreated } from "../../../rabbitmq/publisher";
+import { isDocument } from "@typegoose/typegoose";
 
 @Resolver(() => SystemClass)
 export default class SystemResolver {
@@ -69,16 +69,14 @@ export default class SystemResolver {
     const system = await System.getSystem();
     const file = await File.getById(fileId, { throwError: true });
 
-    const fileObjectId = new Types.ObjectId();
-    system.specFiles.push({
-      _id: fileObjectId,
-      file: file!._id,
-      summaryStatus: "pending",
-    } as any);
+    // Create a standalone EnrichedFile document
+    const enrichedFile = await EnrichedFile.createDocument(file!._id.toString());
 
+    // Push the ref to system.specFiles
+    system.specFiles.push(enrichedFile._id as any);
     await system.save();
 
-    await publishEnrichedFileCreated(fileObjectId.toString(), file!._id.toString());
+    await publishEnrichedFileCreated(enrichedFile._id.toString(), file!._id.toString());
 
     return System.getSystem();
   }
@@ -87,31 +85,31 @@ export default class SystemResolver {
   @Mutation(() => SystemClass)
   async systemRemoveSpecFile(@Arg("fileObjectId", () => ID) fileObjectId: Id) {
     const system = await System.getSystem();
-    system.specFiles = system.specFiles.filter(
-      (f) => f._id.toString() !== fileObjectId.toString()
+    system.specFiles = (system.specFiles as any[]).filter(
+      (f: any) => f.toString() !== fileObjectId.toString()
     ) as any;
     await system.save();
+
+    await EnrichedFile.findByIdAndDelete(fileObjectId);
+
     return system;
   }
 
   @Authorized(["ADMIN"])
   @Mutation(() => SystemClass)
   async systemRetrySpecFile(@Arg("fileObjectId", () => ID) fileObjectId: Id) {
-    const system = await System.getSystem();
-    const fileObj = system.specFiles.find(
-      (f) => f._id.toString() === fileObjectId.toString()
-    );
-    if (!fileObj) throw new Error("Spec file not found");
+    const enrichedFile = await EnrichedFile.findById(fileObjectId);
+    if (!enrichedFile) throw new Error("Spec file not found");
+    if (!enrichedFile.file) throw new Error("EnrichedFile has no file ref");
 
-    await (System as any).findOneAndUpdate(
-      { "specFiles._id": fileObjectId },
-      { $set: { "specFiles.$.summaryStatus": "pending" }, $unset: { "specFiles.$.summaryError": "" } }
-    );
+    await EnrichedFile.findByIdAndUpdate(fileObjectId, {
+      $set: { summaryStatus: "pending" },
+      $unset: { summaryError: "" },
+    });
 
-    const fileId =
-      fileObj.file && typeof (fileObj.file as any)._id !== "undefined"
-        ? (fileObj.file as any)._id.toString()
-        : fileObj.file!.toString();
+    const fileId = isDocument(enrichedFile.file)
+      ? enrichedFile.file._id.toString()
+      : enrichedFile.file.toString();
 
     await publishEnrichedFileCreated(fileObjectId.toString(), fileId);
 
