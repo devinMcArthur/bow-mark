@@ -13,6 +13,7 @@ import chatRouter from "./router/chat";
 import conversationsRouter from "./router/conversations";
 import fileRouter from "./router/files";
 import tenderChatRouter from "./router/tender-chat";
+import jobsiteChatRouter from "./router/jobsite-chat";
 import tenderConversationsRouter from "./router/tender-conversations";
 import enrichedFilesRouter from "./router/enriched-files";
 
@@ -223,6 +224,7 @@ const createApp = async () => {
   app.use("/api/chat", chatRouter);
   app.use("/conversations", conversationsRouter);
   app.use("/api/tender-chat", tenderChatRouter);
+  app.use("/api/jobsite-chat", jobsiteChatRouter);
   app.use("/tender-conversations", tenderConversationsRouter);
   app.use("/api/enriched-files", enrichedFilesRouter);
 

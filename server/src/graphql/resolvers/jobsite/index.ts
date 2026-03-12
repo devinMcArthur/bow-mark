@@ -12,7 +12,11 @@ import {
   JobsiteMonthReportClass,
   JobsiteYearReportClass,
   MaterialShipmentClass,
+  File,
+  EnrichedFile,
 } from "@models";
+import { publishEnrichedFileCreated } from "../../../rabbitmq/publisher";
+import { isDocument } from "@typegoose/typegoose";
 import { IContext, ListOptionData } from "@typescript/graphql";
 import { Id } from "@typescript/models";
 import dayjs from "dayjs";
@@ -297,5 +301,66 @@ export default class JobsiteResolver {
   @Mutation(() => JobsiteClass)
   async jobsiteUnarchive(@Arg("id", () => ID) id: Id) {
     return mutations.unarchive(id);
+  }
+
+  // ── EnrichedFiles ────────────────────────────────────────────────────────
+
+  @Authorized(["ADMIN", "PM"])
+  @Mutation(() => JobsiteClass)
+  async jobsiteAddEnrichedFile(
+    @Arg("id", () => ID) id: Id,
+    @Arg("fileId", () => ID) fileId: Id
+  ) {
+    const jobsite = await Jobsite.getById(id, { throwError: true });
+    const file = await File.getById(fileId, { throwError: true });
+
+    const enrichedFile = await EnrichedFile.createDocument(file!._id.toString());
+    (jobsite!.enrichedFiles as any[]).push(enrichedFile._id);
+    await jobsite!.save();
+
+    await publishEnrichedFileCreated(enrichedFile._id.toString(), file!._id.toString());
+
+    return Jobsite.getById(id);
+  }
+
+  @Authorized(["ADMIN", "PM"])
+  @Mutation(() => JobsiteClass)
+  async jobsiteRemoveEnrichedFile(
+    @Arg("id", () => ID) id: Id,
+    @Arg("fileObjectId", () => ID) fileObjectId: Id
+  ) {
+    const jobsite = await Jobsite.getById(id, { throwError: true });
+    jobsite!.enrichedFiles = (jobsite!.enrichedFiles as any[]).filter(
+      (f: any) => f.toString() !== fileObjectId.toString()
+    ) as any;
+    await jobsite!.save();
+
+    await EnrichedFile.findByIdAndDelete(fileObjectId);
+
+    return jobsite;
+  }
+
+  @Authorized(["ADMIN", "PM"])
+  @Mutation(() => JobsiteClass)
+  async jobsiteRetryEnrichedFile(
+    @Arg("id", () => ID) id: Id,
+    @Arg("fileObjectId", () => ID) fileObjectId: Id
+  ) {
+    const enrichedFile = await EnrichedFile.findById(fileObjectId);
+    if (!enrichedFile) throw new Error("File not found");
+    if (!enrichedFile.file) throw new Error("EnrichedFile has no file ref");
+
+    await EnrichedFile.findByIdAndUpdate(fileObjectId, {
+      $set: { summaryStatus: "pending" },
+      $unset: { summaryError: "" },
+    });
+
+    const fileId = isDocument(enrichedFile.file)
+      ? enrichedFile.file._id.toString()
+      : enrichedFile.file.toString();
+
+    await publishEnrichedFileCreated(fileObjectId.toString(), fileId);
+
+    return Jobsite.getById(id);
   }
 }
