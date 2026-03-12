@@ -3,6 +3,7 @@ import { SearchOptions } from "@graphql/types/query";
 import {
   CrewClass,
   DailyReportClass,
+  EnrichedFileClass,
   InvoiceClass,
   Jobsite,
   JobsiteClass,
@@ -130,6 +131,11 @@ export default class JobsiteResolver {
   @FieldResolver(() => [JobsiteYearReportClass])
   async yearReports(@Root() jobsite: JobsiteDocument) {
     return jobsite.getYearReports();
+  }
+
+  @FieldResolver(() => [EnrichedFileClass])
+  async enrichedFiles(@Root() jobsite: JobsiteDocument) {
+    return EnrichedFile.find({ _id: { $in: jobsite.enrichedFiles } }).populate("file");
   }
 
   /**
