@@ -24,109 +24,72 @@ import {
 import { gql } from "@apollo/client";
 import * as Apollo from "@apollo/client";
 import React from "react";
-import { FiChevronDown, FiChevronRight, FiExternalLink, FiRefreshCw, FiTrash2 } from "react-icons/fi";
-import { TenderDetail, TenderFileItem } from "./types";
+import {
+  FiChevronDown,
+  FiChevronRight,
+  FiExternalLink,
+  FiRefreshCw,
+  FiTrash2,
+} from "react-icons/fi";
 import dataUrlToBlob from "../../utils/dataUrlToBlob";
+import { localStorageTokenKey } from "../../contexts/Auth";
+
+// ─── GQL ─────────────────────────────────────────────────────────────────────
 
 const FILE_CREATE = gql`
-  mutation TenderFileCreate($data: FileCreateData!) {
+  mutation JobsiteEnrichedFileCreate($data: FileCreateData!) {
     fileCreate(data: $data) {
       _id
     }
   }
 `;
-import { localStorageTokenKey } from "../../contexts/Auth";
 
-// ─── GQL ─────────────────────────────────────────────────────────────────────
+const ENRICHED_FILE_FRAGMENT = `
+  _id
+  documentType
+  summaryStatus
+  summaryError
+  pageCount
+  summary {
+    overview
+    documentType
+    keyTopics
+  }
+  file {
+    _id
+    mimetype
+    description
+  }
+`;
 
-const TENDER_ADD_FILE = gql`
-  mutation TenderAddFile($id: ID!, $data: TenderAddFileData!) {
-    tenderAddFile(id: $id, data: $data) {
+const JOBSITE_ADD_ENRICHED_FILE = gql`
+  mutation JobsiteAddEnrichedFile($id: ID!, $fileId: ID!) {
+    jobsiteAddEnrichedFile(id: $id, fileId: $fileId) {
       _id
-      files {
-        _id
-        documentType
-        summaryStatus
-        summaryError
-        pageCount
-        summary {
-          overview
-          documentType
-          keyTopics
-          chunks {
-            startPage
-            endPage
-            overview
-            keyTopics
-          }
-        }
-        file {
-          _id
-          mimetype
-          description
-        }
+      enrichedFiles {
+        ${ENRICHED_FILE_FRAGMENT}
       }
     }
   }
 `;
 
-const TENDER_REMOVE_FILE = gql`
-  mutation TenderRemoveFile($id: ID!, $fileObjectId: ID!) {
-    tenderRemoveFile(id: $id, fileObjectId: $fileObjectId) {
+const JOBSITE_REMOVE_ENRICHED_FILE = gql`
+  mutation JobsiteRemoveEnrichedFile($id: ID!, $fileObjectId: ID!) {
+    jobsiteRemoveEnrichedFile(id: $id, fileObjectId: $fileObjectId) {
       _id
-      files {
-        _id
-        documentType
-        summaryStatus
-        summaryError
-        pageCount
-        summary {
-          overview
-          documentType
-          keyTopics
-          chunks {
-            startPage
-            endPage
-            overview
-            keyTopics
-          }
-        }
-        file {
-          _id
-          mimetype
-          description
-        }
+      enrichedFiles {
+        ${ENRICHED_FILE_FRAGMENT}
       }
     }
   }
 `;
 
-const TENDER_RETRY_SUMMARY = gql`
-  mutation TenderRetrySummary($id: ID!, $fileObjectId: ID!) {
-    tenderRetrySummary(id: $id, fileObjectId: $fileObjectId) {
+const JOBSITE_RETRY_ENRICHED_FILE = gql`
+  mutation JobsiteRetryEnrichedFile($id: ID!, $fileObjectId: ID!) {
+    jobsiteRetryEnrichedFile(id: $id, fileObjectId: $fileObjectId) {
       _id
-      files {
-        _id
-        documentType
-        summaryStatus
-        summaryError
-        pageCount
-        summary {
-          overview
-          documentType
-          keyTopics
-          chunks {
-            startPage
-            endPage
-            overview
-            keyTopics
-          }
-        }
-        file {
-          _id
-          mimetype
-          description
-        }
+      enrichedFiles {
+        ${ENRICHED_FILE_FRAGMENT}
       }
     }
   }
@@ -134,52 +97,44 @@ const TENDER_RETRY_SUMMARY = gql`
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface TenderFilesResult {
-  tenderAddFile: { _id: string; files: TenderFileItem[] };
-}
-interface TenderAddFileVars {
-  id: string;
-  data: {
-    fileId: string;
+export interface EnrichedFileItem {
+  _id: string;
+  documentType?: string | null;
+  summaryStatus: string;
+  summaryError?: string | null;
+  pageCount?: number | null;
+  summary?: {
+    overview: string;
+    documentType: string;
+    keyTopics: string[];
+  } | null;
+  file: {
+    _id: string;
+    mimetype: string;
+    description?: string | null;
   };
 }
-interface TenderRemoveFileVars {
-  id: string;
-  fileObjectId: string;
-}
-interface TenderRetryVars {
-  id: string;
-  fileObjectId: string;
-}
 
-// ─── Status badge color ───────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function summaryStatusColor(status: string): string {
   if (status === "ready") return "green";
   if (status === "failed") return "red";
   if (status === "processing") return "yellow";
-  return "gray"; // pending
+  return "gray";
 }
 
-// ─── Expandable file row ──────────────────────────────────────────────────────
+// ─── File row ─────────────────────────────────────────────────────────────────
 
 interface FileRowProps {
-  file: TenderFileItem;
-  tenderId: string;
-  onRemove: (fileObjectId: string) => void;
-  onRetry: (fileObjectId: string) => void;
+  file: EnrichedFileItem;
+  onRemove: (id: string) => void;
+  onRetry: (id: string) => void;
   removingId: string | null;
   retryingId: string | null;
 }
 
-const FileRow = ({
-  file,
-  tenderId,
-  onRemove,
-  onRetry,
-  removingId,
-  retryingId,
-}: FileRowProps) => {
+const FileRow = ({ file, onRemove, onRetry, removingId, retryingId }: FileRowProps) => {
   const [expanded, setExpanded] = React.useState(false);
   const hasSummary = !!file.summary;
 
@@ -207,7 +162,9 @@ const FileRow = ({
             <Box minW={0}>
               {file.file.description && (
                 <Tooltip label={file.file.description} placement="top" fontSize="xs" openDelay={500}>
-                  <Text fontSize="sm" fontWeight="medium" isTruncated>{file.file.description}</Text>
+                  <Text fontSize="sm" fontWeight="medium" isTruncated>
+                    {file.file.description}
+                  </Text>
                 </Tooltip>
               )}
               <Text fontSize="xs" color="gray.500" isTruncated>
@@ -226,7 +183,10 @@ const FileRow = ({
             maxW="320px"
             fontSize="xs"
           >
-            <Badge colorScheme={summaryStatusColor(file.summaryStatus)} cursor={file.summaryError ? "help" : undefined}>
+            <Badge
+              colorScheme={summaryStatusColor(file.summaryStatus)}
+              cursor={file.summaryError ? "help" : undefined}
+            >
               {file.summaryStatus}
             </Badge>
           </Tooltip>
@@ -244,13 +204,7 @@ const FileRow = ({
             {(file.summaryStatus === "failed" || file.summaryStatus === "ready") && (
               <IconButton
                 aria-label="Retry summary"
-                icon={
-                  retryingId === file._id ? (
-                    <Spinner size="xs" />
-                  ) : (
-                    <FiRefreshCw />
-                  )
-                }
+                icon={retryingId === file._id ? <Spinner size="xs" /> : <FiRefreshCw />}
                 size="xs"
                 colorScheme="orange"
                 variant="ghost"
@@ -260,9 +214,7 @@ const FileRow = ({
             )}
             <IconButton
               aria-label="Remove file"
-              icon={
-                removingId === file._id ? <Spinner size="xs" /> : <FiTrash2 />
-              }
+              icon={removingId === file._id ? <Spinner size="xs" /> : <FiTrash2 />}
               size="xs"
               colorScheme="red"
               variant="ghost"
@@ -306,16 +258,19 @@ const FileRow = ({
   );
 };
 
-// ─── Props ────────────────────────────────────────────────────────────────────
+// ─── Main component ───────────────────────────────────────────────────────────
 
-interface TenderDocumentsProps {
-  tender: TenderDetail;
+interface JobsiteEnrichedFilesProps {
+  jobsiteId: string;
+  enrichedFiles: EnrichedFileItem[];
   onUpdated?: () => void;
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
-
-const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
+const JobsiteEnrichedFiles = ({
+  jobsiteId,
+  enrichedFiles,
+  onUpdated,
+}: JobsiteEnrichedFilesProps) => {
   const toast = useToast();
 
   const [uploading, setUploading] = React.useState(false);
@@ -324,35 +279,23 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
   const [isDragOver, setIsDragOver] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const [fileCreate] = Apollo.useMutation<{ fileCreate: { _id: string } }, { data: { file: File; description: string } }>(FILE_CREATE);
+  const [fileCreate] = Apollo.useMutation<
+    { fileCreate: { _id: string } },
+    { data: { file: File; description: string } }
+  >(FILE_CREATE);
 
-  const [tenderAddFile] = Apollo.useMutation<TenderFilesResult, TenderAddFileVars>(
-    TENDER_ADD_FILE
-  );
+  const [addEnrichedFile] = Apollo.useMutation(JOBSITE_ADD_ENRICHED_FILE);
+  const [removeEnrichedFile] = Apollo.useMutation(JOBSITE_REMOVE_ENRICHED_FILE);
+  const [retryEnrichedFile] = Apollo.useMutation(JOBSITE_RETRY_ENRICHED_FILE);
 
-  const [tenderRemoveFile] = Apollo.useMutation<
-    unknown,
-    TenderRemoveFileVars
-  >(TENDER_REMOVE_FILE);
-
-  const [tenderRetrySummary] = Apollo.useMutation<unknown, TenderRetryVars>(
-    TENDER_RETRY_SUMMARY
-  );
-
-  // Detect any pending/processing files
-  const pendingCount = tender.files.filter(
+  const pendingCount = enrichedFiles.filter(
     (f) => f.summaryStatus === "pending" || f.summaryStatus === "processing"
   ).length;
-  const hasPending = pendingCount > 0;
-
-  // ── Upload handler ────────────────────────────────────────────────────────
 
   const handleUpload = React.useCallback(
     async (file: File) => {
       setUploading(true);
-
       try {
-        // Step 1: Upload file via GraphQL multipart upload
         const dataUrl = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = (ev) => resolve(ev.target!.result as string);
@@ -364,21 +307,13 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
         const uploadFile = new File([blob], file.name, { type: file.type });
 
         const fileRes = await fileCreate({
-          variables: {
-            data: { file: uploadFile, description: file.name },
-          },
+          variables: { data: { file: uploadFile, description: file.name } },
         });
 
         const fileId = fileRes.data?.fileCreate._id;
         if (!fileId) throw new Error("File upload failed: no ID returned");
 
-        // Step 2: Attach to tender (AI will detect document type)
-        await tenderAddFile({
-          variables: {
-            id: tender._id,
-            data: { fileId },
-          },
-        });
+        await addEnrichedFile({ variables: { id: jobsiteId, fileId } });
 
         if (fileInputRef.current) fileInputRef.current.value = "";
         if (onUpdated) onUpdated();
@@ -393,7 +328,7 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
         setUploading(false);
       }
     },
-    [tender._id, fileCreate, tenderAddFile, toast, onUpdated]
+    [jobsiteId, fileCreate, addEnrichedFile, toast, onUpdated]
   );
 
   const handleFileChange = React.useCallback(
@@ -415,15 +350,11 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
     [handleUpload]
   );
 
-  // ── Remove handler ────────────────────────────────────────────────────────
-
   const handleRemove = React.useCallback(
     async (fileObjectId: string) => {
       setRemovingId(fileObjectId);
       try {
-        await tenderRemoveFile({
-          variables: { id: tender._id, fileObjectId },
-        });
+        await removeEnrichedFile({ variables: { id: jobsiteId, fileObjectId } });
         if (onUpdated) onUpdated();
       } catch (e: any) {
         toast({
@@ -436,18 +367,14 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
         setRemovingId(null);
       }
     },
-    [tender._id, tenderRemoveFile, toast, onUpdated]
+    [jobsiteId, removeEnrichedFile, toast, onUpdated]
   );
-
-  // ── Retry handler ─────────────────────────────────────────────────────────
 
   const handleRetry = React.useCallback(
     async (fileObjectId: string) => {
       setRetryingId(fileObjectId);
       try {
-        await tenderRetrySummary({
-          variables: { id: tender._id, fileObjectId },
-        });
+        await retryEnrichedFile({ variables: { id: jobsiteId, fileObjectId } });
         if (onUpdated) onUpdated();
       } catch (e: any) {
         toast({
@@ -460,24 +387,29 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
         setRetryingId(null);
       }
     },
-    [tender._id, tenderRetrySummary, toast, onUpdated]
+    [jobsiteId, retryEnrichedFile, toast, onUpdated]
   );
-
-  // ── Rendering ──────────────────────────────────────────────────────────────
 
   return (
     <Box>
-      {hasPending && (
+      {pendingCount > 0 && (
         <Alert status="warning" mb={3} borderRadius="md" size="sm">
           <AlertIcon />
           <AlertDescription fontSize="sm">
-            {pendingCount} {pendingCount === 1 ? "document is" : "documents are"} still being processed — answers may be incomplete.
+            {pendingCount} {pendingCount === 1 ? "document is" : "documents are"} still being
+            processed — answers may be incomplete.
           </AlertDescription>
         </Alert>
       )}
 
-      {tender.files.length > 0 ? (
-        <Table variant="simple" size="sm" mb={4} style={{ tableLayout: "fixed" }} w="100%">
+      {enrichedFiles.length > 0 ? (
+        <Table
+          variant="simple"
+          size="sm"
+          mb={4}
+          style={{ tableLayout: "fixed" }}
+          w="100%"
+        >
           <colgroup>
             <col style={{ width: "auto" }} />
             <col style={{ width: "90px" }} />
@@ -493,11 +425,10 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
             </Tr>
           </Thead>
           <Tbody>
-            {tender.files.map((file) => (
+            {enrichedFiles.map((file) => (
               <FileRow
                 key={file._id}
                 file={file}
-                tenderId={tender._id}
                 onRemove={handleRemove}
                 onRetry={handleRetry}
                 removingId={removingId}
@@ -508,11 +439,10 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
         </Table>
       ) : (
         <Text fontSize="sm" color="gray.500" mb={3}>
-          No documents yet.
+          No documents yet. Upload jobsite-specific documents for the AI to reference.
         </Text>
       )}
 
-      {/* Upload area */}
       <Box
         border="2px dashed"
         borderColor={isDragOver ? "blue.400" : "gray.200"}
@@ -520,12 +450,16 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
         p={3}
         bg={isDragOver ? "blue.50" : "gray.50"}
         transition="border-color 0.15s, background 0.15s"
-        onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragOver(true);
+        }}
         onDragLeave={() => setIsDragOver(false)}
         onDrop={handleDrop}
       >
         <Text fontSize="sm" color="gray.500" mb={2} textAlign="center">
-          Drop a file here or click to upload. The AI will detect the document type automatically.
+          Drop a file here or click to upload. The AI will detect the document type
+          automatically.
         </Text>
         <HStack justify="center">
           <Button
@@ -549,4 +483,4 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
   );
 };
 
-export default TenderDocuments;
+export default JobsiteEnrichedFiles;

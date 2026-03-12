@@ -74,7 +74,7 @@ const FileRow = ({ file, onRemove, onRetry, removingId, retryingId }: FileRowPro
   const openFile = () => {
     const token = typeof window !== "undefined" ? localStorage.getItem(localStorageTokenKey) : null;
     if (!token) return;
-    window.open(`${serverBase}/api/spec-files/${file._id}?token=${token}`, "_blank");
+    window.open(`${serverBase}/api/enriched-files/${file._id}?token=${token}`, "_blank");
   };
 
   return (
