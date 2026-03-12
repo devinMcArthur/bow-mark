@@ -22,7 +22,7 @@ import {
 } from "type-graphql";
 import { Types } from "mongoose";
 import { TenderCreateData, TenderUpdateData, TenderAddFileData } from "./mutations";
-import { publishTenderFileCreated } from "../../../rabbitmq/publisher";
+import { publishEnrichedFileCreated } from "../../../rabbitmq/publisher";
 
 @Resolver(() => TenderClass)
 export default class TenderResolver {
@@ -80,8 +80,7 @@ export default class TenderResolver {
 
     await tender!.save();
 
-    await publishTenderFileCreated(
-      tender!._id.toString(),
+    await publishEnrichedFileCreated(
       fileObjectId.toString(),
       file!._id.toString()
     );
@@ -119,11 +118,7 @@ export default class TenderResolver {
         ? (fileObj.file as any)._id.toString()
         : fileObj.file!.toString();
 
-    await publishTenderFileCreated(
-      tender!._id.toString(),
-      fileObjectId.toString(),
-      fileId
-    );
+    await publishEnrichedFileCreated(fileObjectId.toString(), fileId);
 
     return Tender.getById(id);
   }

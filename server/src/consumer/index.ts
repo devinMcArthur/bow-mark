@@ -32,9 +32,9 @@ import {
   checkConnection as checkPostgres,
   closeConnection as closePostgres,
 } from "../db";
-import type { SyncMessage, TenderFileSummaryMessage, SpecFileSummaryMessage } from "../rabbitmq/publisher";
-import { publishTenderFileCreated, publishSpecFileCreated } from "../rabbitmq/publisher";
-import { Tender, System } from "@models";
+import type { SyncMessage, EnrichedFileSummaryMessage } from "../rabbitmq/publisher";
+import { publishEnrichedFileCreated } from "../rabbitmq/publisher";
+import { EnrichedFile } from "@models";
 import {
   dailyReportSyncHandler,
   employeeWorkSyncHandler,
@@ -42,8 +42,7 @@ import {
   materialShipmentSyncHandler,
   productionSyncHandler,
   invoiceSyncHandler,
-  tenderFileSummaryHandler,
-  specFileSummaryHandler,
+  enrichedFileSummaryHandler,
 } from "./handlers";
 
 /**
@@ -98,15 +97,9 @@ async function processMessage(
         await invoiceSyncHandler.handle(message);
         break;
 
-      case RABBITMQ_CONFIG.queues.tenderFile.name: {
-        const tenderMsg: TenderFileSummaryMessage = JSON.parse(content);
-        await tenderFileSummaryHandler.handle(tenderMsg);
-        break;
-      }
-
-      case RABBITMQ_CONFIG.queues.specFile.name: {
-        const specMsg: SpecFileSummaryMessage = JSON.parse(content);
-        await specFileSummaryHandler.handle(specMsg);
+      case RABBITMQ_CONFIG.queues.enrichedFile.name: {
+        const enrichedMsg: EnrichedFileSummaryMessage = JSON.parse(content);
+        await enrichedFileSummaryHandler.handle(enrichedMsg);
         break;
       }
 
@@ -122,45 +115,23 @@ async function processMessage(
 }
 
 /**
- * On startup, reset any files stuck in "processing" back to "pending" and
- * republish their messages. This recovers from a consumer crash mid-processing.
+ * On startup, reset any EnrichedFile docs stuck in "processing" back to
+ * "pending" and republish their messages. This recovers from a consumer crash
+ * mid-processing.
  */
 async function recoverStuckFiles(): Promise<void> {
-  // Tender files
-  const tenders = await Tender.find({ "files.summaryStatus": "processing" }).lean();
-  for (const tender of tenders) {
-    for (const file of tender.files) {
-      if (file.summaryStatus !== "processing") continue;
-      await Tender.findOneAndUpdate(
-        { _id: tender._id, "files._id": file._id },
-        { $set: { "files.$.summaryStatus": "pending" } }
-      );
-      if (!file.file) continue;
-      await publishTenderFileCreated(
-        tender._id.toString(),
-        file._id.toString(),
-        file.file.toString()
-      );
-      console.log(`[Consumer] Recovered stuck tender file ${file._id}`);
-    }
-  }
+  const stuck = await EnrichedFile.find({ summaryStatus: "processing" })
+    .populate("file")
+    .lean();
 
-  // Spec files
-  const system = await System.getSystem();
-  if (system) {
-    for (const specFile of system.specFiles ?? []) {
-      if (specFile.summaryStatus !== "processing") continue;
-      await System.findOneAndUpdate(
-        { "specFiles._id": specFile._id },
-        { $set: { "specFiles.$.summaryStatus": "pending" } }
-      );
-      if (!specFile.file) continue;
-      await publishSpecFileCreated(
-        specFile._id.toString(),
-        specFile.file.toString()
-      );
-      console.log(`[Consumer] Recovered stuck spec file ${specFile._id}`);
-    }
+  for (const enrichedFile of stuck) {
+    await EnrichedFile.findByIdAndUpdate(enrichedFile._id, {
+      $set: { summaryStatus: "pending" },
+    });
+    if (!enrichedFile.file) continue;
+    const fileId = (enrichedFile.file as any)._id?.toString() ?? enrichedFile.file.toString();
+    await publishEnrichedFileCreated(enrichedFile._id.toString(), fileId);
+    console.log(`[Consumer] Recovered stuck enriched file ${enrichedFile._id}`);
   }
 }
 

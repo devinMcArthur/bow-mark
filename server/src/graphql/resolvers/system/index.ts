@@ -4,7 +4,7 @@ import { Arg, Authorized, ID, Mutation, Query, Resolver } from "type-graphql";
 import { Types } from "mongoose";
 import { Id } from "@typescript/models";
 import mutations from "./mutations";
-import { publishSpecFileCreated } from "../../../rabbitmq/publisher";
+import { publishEnrichedFileCreated } from "../../../rabbitmq/publisher";
 
 @Resolver(() => SystemClass)
 export default class SystemResolver {
@@ -78,7 +78,7 @@ export default class SystemResolver {
 
     await system.save();
 
-    await publishSpecFileCreated(fileObjectId.toString(), file!._id.toString());
+    await publishEnrichedFileCreated(fileObjectId.toString(), file!._id.toString());
 
     return System.getSystem();
   }
@@ -113,7 +113,7 @@ export default class SystemResolver {
         ? (fileObj.file as any)._id.toString()
         : fileObj.file!.toString();
 
-    await publishSpecFileCreated(fileObjectId.toString(), fileId);
+    await publishEnrichedFileCreated(fileObjectId.toString(), fileId);
 
     return System.getSystem();
   }

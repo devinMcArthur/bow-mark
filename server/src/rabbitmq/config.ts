@@ -84,16 +84,9 @@ export const RABBITMQ_CONFIG = {
         durable: true,
       },
     },
-    tenderFile: {
-      name: "tender.file_summary",
-      bindings: ["tender_file.*"],
-      options: {
-        durable: true,
-      },
-    },
-    specFile: {
-      name: "spec.file_summary",
-      bindings: ["spec_file.*"],
+    enrichedFile: {
+      name: "enriched.file_summary",
+      bindings: ["enriched_file.*"],
       options: {
         durable: true,
       },
@@ -150,13 +143,8 @@ export const ROUTING_KEYS = {
     updated: "invoice.updated",
     deleted: "invoice.deleted",
   },
-  tenderFile: {
-    created: "tender_file.created",
-    updated: "tender_file.updated",
-    deleted: "tender_file.deleted",
-  },
-  specFile: {
-    created: "spec_file.created",
+  enrichedFile: {
+    created: "enriched_file.created",
   },
 } as const;
 

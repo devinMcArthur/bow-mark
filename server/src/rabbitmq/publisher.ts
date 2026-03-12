@@ -146,18 +146,18 @@ export const publishProductionChange = createPublisher(ROUTING_KEYS.production);
  */
 export const publishInvoiceChange = createPublisher(ROUTING_KEYS.invoice);
 
-export interface SpecFileSummaryMessage {
-  fileObjectId: string;
+export interface EnrichedFileSummaryMessage {
+  enrichedFileId: string;
   fileId: string;
   timestamp: string;
 }
 
-export const publishSpecFileCreated = async (
-  fileObjectId: string,
+export const publishEnrichedFileCreated = async (
+  enrichedFileId: string,
   fileId: string
 ): Promise<boolean> => {
-  const message: SpecFileSummaryMessage = {
-    fileObjectId,
+  const message: EnrichedFileSummaryMessage = {
+    enrichedFileId,
     fileId,
     timestamp: new Date().toISOString(),
   };
@@ -166,53 +166,16 @@ export const publishSpecFileCreated = async (
     await setupTopology();
     const success = channel.publish(
       RABBITMQ_CONFIG.exchange.name,
-      ROUTING_KEYS.specFile.created,
+      ROUTING_KEYS.enrichedFile.created,
       Buffer.from(JSON.stringify(message)),
       { persistent: true, contentType: "application/json" }
     );
     if (success) {
-      console.log(`[RabbitMQ] Published spec_file.created: ${fileId}`);
+      console.log(`[RabbitMQ] Published enriched_file.created: ${enrichedFileId}`);
     }
     return success;
   } catch (error) {
-    console.error(`[RabbitMQ] Failed to publish spec_file.created:`, error);
-    return false;
-  }
-};
-
-export interface TenderFileSummaryMessage {
-  tenderId: string;
-  fileObjectId: string;
-  fileId: string;
-  timestamp: string;
-}
-
-export const publishTenderFileCreated = async (
-  tenderId: string,
-  fileObjectId: string,
-  fileId: string
-): Promise<boolean> => {
-  const message: TenderFileSummaryMessage = {
-    tenderId,
-    fileObjectId,
-    fileId,
-    timestamp: new Date().toISOString(),
-  };
-  try {
-    const channel = await getChannel();
-    await setupTopology();
-    const success = channel.publish(
-      RABBITMQ_CONFIG.exchange.name,
-      ROUTING_KEYS.tenderFile.created,
-      Buffer.from(JSON.stringify(message)),
-      { persistent: true, contentType: "application/json" }
-    );
-    if (success) {
-      console.log(`[RabbitMQ] Published tender_file.created: ${fileId}`);
-    }
-    return success;
-  } catch (error) {
-    console.error(`[RabbitMQ] Failed to publish tender_file.created:`, error);
+    console.error(`[RabbitMQ] Failed to publish enriched_file.created:`, error);
     return false;
   }
 };

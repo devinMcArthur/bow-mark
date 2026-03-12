@@ -1,29 +1,28 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { Tender } from "@models";
+import { EnrichedFile } from "@models";
 import { getFile } from "@utils/fileStorage";
-import type { TenderFileSummaryMessage } from "../../rabbitmq/publisher";
+import type { EnrichedFileSummaryMessage } from "../../rabbitmq/publisher";
 import { summarizePdf, DocumentSummary } from "./summarizePdf";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const SUMMARY_PROMPT = `You are processing a construction tender document for a paving/concrete company.
+const SUMMARY_PROMPT = `You are processing a construction document for a paving/concrete company.
 Analyze this document and return a JSON object with exactly these fields:
 {
   "overview": "2-4 sentence summary of what this document is and its main purpose",
-  "documentType": "what type of document this is (e.g. Spec Book, Drawing, Schedule of Quantities, Geotechnical Report, DSSP, Traffic Control Plan, Addendum, etc.)",
+  "documentType": "what type of document this is (e.g. Spec Book, Drawing, Schedule of Quantities, Geotechnical Report, Municipal Spec, Standard Drawing, Material Standard, DSSP, Traffic Control Plan, Addendum, etc.)",
   "keyTopics": ["array", "of", "key", "topics", "materials", "or", "requirements", "mentioned"]
 }
 Return only valid JSON, no markdown, no explanation.`;
 
-export const tenderFileSummaryHandler = {
-  async handle(message: TenderFileSummaryMessage): Promise<void> {
-    const { tenderId, fileObjectId, fileId } = message;
-    console.log(`[TenderSummary] Processing file ${fileId} for tender ${tenderId}`);
+export const enrichedFileSummaryHandler = {
+  async handle(message: EnrichedFileSummaryMessage): Promise<void> {
+    const { enrichedFileId, fileId } = message;
+    console.log(`[EnrichedFileSummary] Processing file ${fileId} (enrichedFile ${enrichedFileId})`);
 
-    await Tender.findOneAndUpdate(
-      { _id: tenderId, "files._id": fileObjectId },
-      { $set: { "files.$.summaryStatus": "processing" } }
-    );
+    await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
+      $set: { summaryStatus: "processing" },
+    });
 
     try {
       const s3Object = await getFile(fileId);
@@ -102,25 +101,21 @@ export const tenderFileSummaryHandler = {
         }
       }
 
-      await Tender.findOneAndUpdate(
-        { _id: tenderId, "files._id": fileObjectId },
-        {
-          $set: {
-            "files.$.summary": summary,
-            "files.$.summaryStatus": "ready",
-            ...(pageCount !== undefined ? { "files.$.pageCount": pageCount } : {}),
-          },
-        }
-      );
+      await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
+        $set: {
+          summary,
+          summaryStatus: "ready",
+          ...(pageCount !== undefined ? { pageCount } : {}),
+        },
+      });
 
-      console.log(`[TenderSummary] Done for file ${fileId}`);
+      console.log(`[EnrichedFileSummary] Done for file ${fileId}`);
     } catch (error) {
-      console.error(`[TenderSummary] Failed for file ${fileId}:`, error);
+      console.error(`[EnrichedFileSummary] Failed for file ${fileId}:`, error);
       const summaryError = error instanceof Error ? error.message : String(error);
-      await Tender.findOneAndUpdate(
-        { _id: tenderId, "files._id": fileObjectId },
-        { $set: { "files.$.summaryStatus": "failed", "files.$.summaryError": summaryError } }
-      );
+      await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
+        $set: { summaryStatus: "failed", summaryError },
+      });
       throw error;
     }
   },
