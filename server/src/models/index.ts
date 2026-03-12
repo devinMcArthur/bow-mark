@@ -31,6 +31,20 @@ import {
 } from "@typegoose/typegoose";
 
 /**
+ * ----- EnrichedFile -----
+ */
+
+import { EnrichedFileClass } from "./EnrichedFile/class";
+
+export type EnrichedFileDocument = DocumentType<EnrichedFileClass>;
+
+export type EnrichedFileModel = ReturnModelType<typeof EnrichedFileClass>;
+
+export const EnrichedFile = getModelForClass(EnrichedFileClass, {
+  schemaOptions: { collection: "enrichedfiles" },
+});
+
+/**
  * ----- Company -----
  */
 
