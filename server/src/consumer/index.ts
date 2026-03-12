@@ -19,6 +19,7 @@ if (process.env.NODE_ENV === "development" || !process.env.NODE_ENV) {
   dotenv.config({ path: path.join(__dirname, "..", "..", ".env.development") });
 }
 
+import http from "http";
 import mongoose from "mongoose";
 import { ConsumeMessage } from "amqplib";
 import {
@@ -31,7 +32,9 @@ import {
   checkConnection as checkPostgres,
   closeConnection as closePostgres,
 } from "../db";
-import type { SyncMessage, TenderFileSummaryMessage } from "../rabbitmq/publisher";
+import type { SyncMessage, TenderFileSummaryMessage, SpecFileSummaryMessage } from "../rabbitmq/publisher";
+import { publishTenderFileCreated, publishSpecFileCreated } from "../rabbitmq/publisher";
+import { Tender, System } from "@models";
 import {
   dailyReportSyncHandler,
   employeeWorkSyncHandler,
@@ -40,6 +43,7 @@ import {
   productionSyncHandler,
   invoiceSyncHandler,
   tenderFileSummaryHandler,
+  specFileSummaryHandler,
 } from "./handlers";
 
 /**
@@ -100,6 +104,12 @@ async function processMessage(
         break;
       }
 
+      case RABBITMQ_CONFIG.queues.specFile.name: {
+        const specMsg: SpecFileSummaryMessage = JSON.parse(content);
+        await specFileSummaryHandler.handle(specMsg);
+        break;
+      }
+
       default:
         console.warn(`[Consumer] Unknown queue: ${queueName}`);
     }
@@ -108,6 +118,49 @@ async function processMessage(
   } catch (error) {
     console.error(`[Consumer] Error processing ${routingKey}:`, error);
     return false;
+  }
+}
+
+/**
+ * On startup, reset any files stuck in "processing" back to "pending" and
+ * republish their messages. This recovers from a consumer crash mid-processing.
+ */
+async function recoverStuckFiles(): Promise<void> {
+  // Tender files
+  const tenders = await Tender.find({ "files.summaryStatus": "processing" }).lean();
+  for (const tender of tenders) {
+    for (const file of tender.files) {
+      if (file.summaryStatus !== "processing") continue;
+      await Tender.findOneAndUpdate(
+        { _id: tender._id, "files._id": file._id },
+        { $set: { "files.$.summaryStatus": "pending" } }
+      );
+      if (!file.file) continue;
+      await publishTenderFileCreated(
+        tender._id.toString(),
+        file._id.toString(),
+        file.file.toString()
+      );
+      console.log(`[Consumer] Recovered stuck tender file ${file._id}`);
+    }
+  }
+
+  // Spec files
+  const system = await System.getSystem();
+  if (system) {
+    for (const specFile of system.specFiles ?? []) {
+      if (specFile.summaryStatus !== "processing") continue;
+      await System.findOneAndUpdate(
+        { "specFiles._id": specFile._id },
+        { $set: { "specFiles.$.summaryStatus": "pending" } }
+      );
+      if (!specFile.file) continue;
+      await publishSpecFileCreated(
+        specFile._id.toString(),
+        specFile.file.toString()
+      );
+      console.log(`[Consumer] Recovered stuck spec file ${specFile._id}`);
+    }
   }
 }
 
@@ -138,6 +191,9 @@ async function startConsumer(): Promise<void> {
 
   // Set up RabbitMQ exchange and queues
   await setupTopology();
+
+  // Reset any files stuck in "processing" from a previous crash
+  await recoverStuckFiles();
 
   const channel = await getChannel();
 
@@ -208,8 +264,17 @@ process.on("unhandledRejection", (reason, promise) => {
   );
 });
 
+// Minimal health server — returns 503 until consumer is ready, then 200
+let consumerReady = false;
+http.createServer((_req, res) => {
+  res.writeHead(consumerReady ? 200 : 503);
+  res.end();
+}).listen(9090);
+
 // Start the consumer
-startConsumer().catch((error) => {
-  console.error("[Consumer] Failed to start:", error);
-  process.exit(1);
-});
+startConsumer()
+  .then(() => { consumerReady = true; })
+  .catch((error) => {
+    console.error("[Consumer] Failed to start:", error);
+    process.exit(1);
+  });

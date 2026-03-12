@@ -9,21 +9,31 @@ export const TENDER_STATUS_COLORS: Record<string, string> = {
 export const tenderStatusColor = (status: string): string =>
   TENDER_STATUS_COLORS[status] ?? "gray";
 
+export interface TenderFileSummaryChunk {
+  startPage: number;
+  endPage: number;
+  overview: string;
+  keyTopics: string[];
+}
+
 export interface TenderFileSummary {
   overview: string;
   documentType: string;
   keyTopics: string[];
+  chunks?: TenderFileSummaryChunk[] | null;
 }
 
 export interface TenderFileItem {
   _id: string;
-  documentType: string;
+  documentType?: string | null;
   summaryStatus: string;
+  summaryError?: string | null;
   pageCount?: number | null;
   summary?: TenderFileSummary | null;
   file: {
     _id: string;
     mimetype: string;
+    description?: string | null;
   };
 }
 

@@ -91,6 +91,13 @@ export const RABBITMQ_CONFIG = {
         durable: true,
       },
     },
+    specFile: {
+      name: "spec.file_summary",
+      bindings: ["spec_file.*"],
+      options: {
+        durable: true,
+      },
+    },
   },
 } as const;
 
@@ -147,6 +154,9 @@ export const ROUTING_KEYS = {
     created: "tender_file.created",
     updated: "tender_file.updated",
     deleted: "tender_file.deleted",
+  },
+  specFile: {
+    created: "spec_file.created",
   },
 } as const;
 

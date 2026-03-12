@@ -118,6 +118,41 @@ router.patch("/:id/title", auth, async (req: any, res) => {
   }
 });
 
+// DELETE /conversations/:id/last-exchange — remove last user+assistant pair
+router.delete("/:id/last-exchange", auth, async (req: any, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    const convo = await ChatConversation.findById(req.params.id);
+    if (!convo) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    if (convo.user.toString() !== req.userId) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+    // Find the last user message and trim from there
+    const msgs = convo.messages as any[];
+    let lastUserIdx = -1;
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].role === "user") { lastUserIdx = i; break; }
+    }
+    if (lastUserIdx === -1) {
+      res.status(400).json({ error: "No exchange to remove" });
+      return;
+    }
+    convo.messages = msgs.slice(0, lastUserIdx) as any;
+    await convo.save();
+    res.json({ success: true });
+  } catch (err) {
+    console.error("DELETE /conversations/:id/last-exchange error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // DELETE /conversations/:id
 router.delete("/:id", auth, async (req: any, res) => {
   try {

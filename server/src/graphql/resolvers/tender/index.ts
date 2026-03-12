@@ -74,7 +74,7 @@ export default class TenderResolver {
     tender!.files.push({
       _id: fileObjectId,
       file: file!._id,
-      documentType: data.documentType ?? "",
+      ...(data.documentType ? { documentType: data.documentType } : {}),
       summaryStatus: "pending",
     } as any);
 
@@ -86,7 +86,7 @@ export default class TenderResolver {
       file!._id.toString()
     );
 
-    return tender;
+    return Tender.getById(tender!._id.toString());
   }
 
   @Authorized(["ADMIN", "PM"])
@@ -109,13 +109,20 @@ export default class TenderResolver {
 
     await (Tender as any).findOneAndUpdate(
       { _id: id, "files._id": fileObjectId },
-      { $set: { "files.$.summaryStatus": "pending" } }
+      { $set: { "files.$.summaryStatus": "pending" }, $unset: { "files.$.summaryError": "" } }
     );
+
+    // fileObj.file may be a populated document (from getById) or a raw ObjectId ref —
+    // extract the id string safely either way
+    const fileId =
+      fileObj.file && typeof (fileObj.file as any)._id !== "undefined"
+        ? (fileObj.file as any)._id.toString()
+        : fileObj.file!.toString();
 
     await publishTenderFileCreated(
       tender!._id.toString(),
       fileObjectId.toString(),
-      fileObj.file!.toString()
+      fileId
     );
 
     return Tender.getById(id);

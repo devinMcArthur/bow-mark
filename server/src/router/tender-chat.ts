@@ -2,24 +2,36 @@ import Anthropic from "@anthropic-ai/sdk";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
-import { Tender, User } from "@models";
+import { PDFDocument } from "pdf-lib";
+import { Tender, User, System } from "@models";
 import { TenderConversation } from "../models/TenderConversation";
 import { getFile } from "@utils/fileStorage";
 import { isDocument } from "@typegoose/typegoose";
 import { IToolResult } from "../models/ChatConversation";
+
+// Max PDF bytes to send in a single document block (~4 MB base64 after encoding)
+const MAX_READABLE_PDF_BYTES = 3 * 1024 * 1024;
 
 const router = Router();
 
 const READ_DOCUMENT_TOOL: Anthropic.Tool = {
   name: "read_document",
   description:
-    "Load the full contents of a specific tender document. Use this when a document summary indicates it is relevant to the question and you need the actual content, including drawings, tables, and specifications.",
+    "Load the contents of one specific document. For large documents (spec books, etc.) only a page range is loaded at a time — the response will tell you the total page count so you can request other sections if needed. IMPORTANT: Call this tool for ONE document at a time only — never request multiple documents in the same response.",
   input_schema: {
     type: "object" as const,
     properties: {
       file_object_id: {
         type: "string",
         description: "The _id of the file object from the document list",
+      },
+      start_page: {
+        type: "number",
+        description: "First page to read (1-indexed, inclusive). Omit to start from the beginning.",
+      },
+      end_page: {
+        type: "number",
+        description: "Last page to read (1-indexed, inclusive). Omit to read as far as the size limit allows.",
       },
     },
     required: ["file_object_id"],
@@ -74,7 +86,10 @@ router.post("/message", async (req, res) => {
   }
 
   // ── Load tender ───────────────────────────────────────────────────────────
-  const tender = await Tender.findById(tenderId).lean();
+  const [tender, systemDoc] = await Promise.all([
+    Tender.findById(tenderId).lean(),
+    System.getSystem(),
+  ]);
   if (!tender) {
     res.status(404).json({ error: "Tender not found" });
     return;
@@ -95,18 +110,42 @@ router.post("/message", async (req, res) => {
   const pendingFiles = tender.files.filter(
     (f) => f.summaryStatus === "pending" || f.summaryStatus === "processing"
   );
+  const readySpecFiles = (systemDoc?.specFiles ?? []).filter(
+    (f) => f.summaryStatus === "ready"
+  );
+
+  // Build stable redirect URLs for each file — these go through /api/tender-files
+  // which generates a fresh signed URL on every click, so citations never go stale.
+  const serverBase =
+    process.env.API_BASE_URL ||
+    `${req.protocol}://${req.get("host")}`;
+
+  const buildFileEntry = (f: any, urlPath: string) => {
+    const summary = f.summary as any;
+    const chunks = summary?.chunks as Array<{ startPage: number; endPage: number; overview: string; keyTopics: string[] }> | undefined;
+    const chunkIndex = chunks && chunks.length > 1
+      ? `\nPage Sections:\n${chunks.map((c) => `  Pages ${c.startPage}–${c.endPage}: ${c.keyTopics.slice(0, 6).join(", ")}`).join("\n")}`
+      : "";
+    return [
+      `**File ID: ${f._id}**`,
+      `Type: ${summary?.documentType || f.documentType || "Unknown"}`,
+      `URL: ${urlPath}`,
+      summary
+        ? `Overview: ${summary.overview}\nKey Topics: ${(summary.keyTopics as string[]).join(", ")}${chunkIndex}`
+        : "Summary: not yet available",
+    ].join("\n");
+  };
 
   const fileIndex = readyFiles
-    .map((f) => {
-      const summary = f.summary as any;
-      return [
-        `**File ID: ${f._id}**`,
-        `Type: ${f.documentType}`,
-        summary
-          ? `Overview: ${summary.overview}\nKey Topics: ${(summary.keyTopics as string[]).join(", ")}`
-          : "Summary: not yet available",
-      ].join("\n");
-    })
+    .map((f) =>
+      buildFileEntry(f, `${serverBase}/api/tender-files/${tender._id}/${f._id}?token=${token}`)
+    )
+    .join("\n\n---\n\n");
+
+  const specFileIndex = readySpecFiles
+    .map((f) =>
+      buildFileEntry(f, `${serverBase}/api/spec-files/${f._id}?token=${token}`)
+    )
     .join("\n\n---\n\n");
 
   const pendingNotice =
@@ -118,18 +157,21 @@ router.post("/message", async (req, res) => {
 
 You are working on tender: **${tender.name}** (Job Code: ${tender.jobcode})${tender.description ? `\nTender description: ${tender.description}` : ""}
 
-## Available Documents
+## Tender Documents
 
-${fileIndex || "No documents have been processed yet."}${pendingNotice}
+${fileIndex || "No tender documents have been processed yet."}${pendingNotice}${specFileIndex ? `\n\n## Reference Specifications (shared across all tenders)\n\n${specFileIndex}` : ""}
 
 ## Instructions
 
-- Use the read_document tool to load specific documents when you need their full content to answer a question.
-- Prefer reading relevant documents over guessing from summaries alone.
-- Always cite your sources inline using the format **[Document Type, p.X]** where X is the page number.
+- Use document summaries to identify the most likely relevant document, then use read_document to load it.
+- Load ONE document at a time. Never call read_document more than once per response — read a document, then answer. Only load a second document if the first was clearly insufficient.
+- There is a strict 90-page limit per conversation turn across all loaded documents. Loading multiple large PDFs in one turn will fail.
+- **Citations are mandatory.** Every specific fact, requirement, clause, section, or drawing you reference MUST include an inline page link. Use this format: **[[Document Type, p.X]](URL#page=X)** — the file URL comes from the document list above, with #page=X appended. If no URL is available use plain text: [Document Type, p.X].
+- When you mention a specific drawing number (e.g. "Std Drawing 454.1010.004"), section number (e.g. "Section 3.4"), or clause, you must link to the page it appears on. If you are not certain of the exact page, give your best estimate from the page range you read and note it as approximate: **[[Std Drawing 454.1010.004, p.~47]](URL#page=47)**.
+- Never name a drawing, section, or spec requirement without a page citation. A reference with no page number is incomplete.
 - If a document is a drawing, describe what you see in the drawing as part of your answer.
 - Be accurate. If you are unsure, say so and recommend the user verify in the source document.
-- For questions about specific requirements, clauses, or quantities, always read the relevant document rather than relying on the summary.`;
+- If a question spans multiple documents, answer from the most relevant one first and note which other documents may also contain relevant information.`;
 
   // ── Load or create conversation ──────────────────────────────────────────
   let convo: Awaited<
@@ -230,6 +272,12 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
 
+  // Keepalive: send a SSE comment every 20s so the connection isn't dropped
+  // by any intermediate proxy or browser timeout during long PDF operations.
+  const keepalive = setInterval(() => {
+    res.write(": ping\n\n");
+  }, 20000);
+
   // Emit conversation_id for new conversations immediately
   if (isNewConversation) {
     sendEvent({ type: "conversation_id", id: convo!._id.toString() });
@@ -249,24 +297,47 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
     output: convo!.totalOutputTokens,
   };
 
+  // Accumulates streamed text so we can do a partial save if the stream dies
+  let streamedText = "";
+
+  // ── PDF page budget tracking ──────────────────────────────────────────────
+  // Anthropic enforces a hard 100-page limit across all document blocks per
+  // request. We track pages loaded this turn and refuse to load docs that
+  // would push us over, returning a helpful message to Claude instead.
+  const PDF_PAGE_LIMIT = 90; // conservative buffer below the 100-page hard limit
+  let pdfPagesLoaded = 0;
+  const loadedFileIds = new Set<string>(); // prevent redundant reloads
+
   try {
     let continueLoop = true;
     const turnToolResults: IToolResult[] = [];
 
     while (continueLoop) {
+      // Per-stream abort timeout — if Anthropic goes silent for 5 minutes the
+      // stream will never resolve or reject, hanging the request indefinitely.
+      const controller = new AbortController();
+      const streamTimeout = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+
       const stream = anthropic.messages.stream({
         model: MODEL,
-        max_tokens: 4096,
+        max_tokens: 8192,
         system: systemPrompt,
         tools: [READ_DOCUMENT_TOOL],
+        tool_choice: { type: "auto", disable_parallel_tool_use: true },
         messages: conversationMessages,
-      });
+      }, { signal: controller.signal });
 
       stream.on("text", (delta: string) => {
+        streamedText += delta;
         sendEvent({ type: "text_delta", delta });
       });
 
-      const message = await stream.finalMessage();
+      let message: Awaited<ReturnType<typeof stream.finalMessage>>;
+      try {
+        message = await stream.finalMessage();
+      } finally {
+        clearTimeout(streamTimeout);
+      }
 
       // Emit usage after each turn
       sendEvent({
@@ -302,21 +373,47 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
 
           try {
             // ── read_document tool execution ────────────────────────────
-            const input = block.input as { file_object_id: string };
-            const fileObj = tender.files.find(
-              (f) => f._id.toString() === input.file_object_id
-            );
+            const input = block.input as { file_object_id: string; start_page?: number; end_page?: number };
+            const fileObj =
+              tender.files.find((f) => f._id.toString() === input.file_object_id) ??
+              (systemDoc?.specFiles ?? []).find((f) => f._id.toString() === input.file_object_id);
             if (!fileObj)
               throw new Error(
-                `File ${input.file_object_id} not found on tender`
+                `File ${input.file_object_id} not found`
               );
 
             if (!fileObj.file)
               throw new Error(
-                `File reference missing on tender file ${input.file_object_id}`
+                `File reference missing for ${input.file_object_id}`
               );
 
-            const fileId = fileObj.file.toString();
+            const fileId = isDocument(fileObj.file)
+              ? fileObj.file._id.toString()
+              : fileObj.file.toString();
+            const docLabel = (fileObj.summary as any)?.documentType || fileObj.documentType || "Document";
+
+            // Guard: deduplicate reloads of the same document+range (allow different page ranges)
+            const rangeKey = `${fileId}:${input.start_page ?? 0}:${input.end_page ?? "end"}`;
+            if (loadedFileIds.has(rangeKey)) {
+              throw new Error(
+                `Document "${docLabel}" (same page range) is already loaded in this conversation turn.`
+              );
+            }
+
+            // Guard: enforce PDF page budget using estimated pages to be read
+            // (for large docs with a page range, we only read a subset)
+            const docPageCount = fileObj.pageCount ?? 0;
+            const requestedPages = input.end_page && input.start_page
+              ? input.end_page - input.start_page + 1
+              : docPageCount;
+            const estimatedPages = Math.min(requestedPages || docPageCount, docPageCount || requestedPages);
+            if (estimatedPages > 0 && pdfPagesLoaded + estimatedPages > PDF_PAGE_LIMIT) {
+              throw new Error(
+                `Cannot load "${docLabel}" — this turn has already used ${pdfPagesLoaded} of the ${PDF_PAGE_LIMIT}-page limit. ` +
+                `Please answer based on what has already been loaded, or let the user know they should ask about one document at a time.`
+              );
+            }
+
             const s3Object = await getFile(fileId);
             if (!s3Object?.Body) throw new Error("File body empty");
 
@@ -339,12 +436,12 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
                 const ws = workbook.Sheets[name];
                 return `Sheet: ${name}\n${xlsx.utils.sheet_to_csv(ws)}`;
               }).join("\n\n");
-              toolResultContent = `Document: ${fileObj.documentType}\n\n${text}`;
+              toolResultContent = `Document: ${docLabel}\n\n${text}`;
             } else if (contentType.startsWith("image/")) {
               toolResultContent = [
                 {
                   type: "text" as const,
-                  text: `Document: ${fileObj.documentType}`,
+                  text: `Document: ${docLabel}`,
                 },
                 {
                   type: "image" as const,
@@ -360,24 +457,73 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
                 },
               ];
             } else {
-              // PDF
+              // PDF — extract only the requested (or first fitting) page range
+              const pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+              const totalPages = pdfDoc.getPageCount();
+
+              // Convert 1-indexed user input to 0-indexed, clamp to document bounds
+              let startIdx = input.start_page ? Math.max(0, input.start_page - 1) : 0;
+              let endIdx = input.end_page ? Math.min(input.end_page, totalPages) : totalPages;
+
+              // Bisect down until the extracted chunk fits
+              let pdfChunk: Buffer;
+              while (true) {
+                const indices = Array.from({ length: endIdx - startIdx }, (_, i) => startIdx + i);
+                const chunkDoc = await PDFDocument.create();
+                const pages = await chunkDoc.copyPages(pdfDoc, indices);
+                for (const page of pages) chunkDoc.addPage(page);
+                pdfChunk = Buffer.from(await chunkDoc.save());
+
+                if (pdfChunk.length <= MAX_READABLE_PDF_BYTES || endIdx - startIdx <= 1) break;
+                // Halve the page range and retry
+                endIdx = startIdx + Math.floor((endIdx - startIdx) / 2);
+              }
+
+              const pagesRead = endIdx - startIdx;
+              const pageNote = totalPages > pagesRead
+                ? `Pages ${startIdx + 1}–${endIdx} of ${totalPages} total. Use start_page/end_page to read other sections.`
+                : `All ${totalPages} pages.`;
+
               toolResultContent = [
                 {
                   type: "text" as const,
-                  text: `Document: ${fileObj.documentType}\nWhen citing this document use the filename: "${fileObj.documentType}"`,
+                  text: `Document: ${docLabel}\n${pageNote}\nWhen citing this document use the filename: "${docLabel}"`,
                 },
                 {
                   type: "document" as any,
                   source: {
                     type: "base64" as const,
                     media_type: "application/pdf" as const,
-                    data: base64,
+                    data: pdfChunk.toString("base64"),
                   },
                 },
               ];
+
+              // Update page tracking to use actual pages extracted
+              if (pdfPagesLoaded + pagesRead > PDF_PAGE_LIMIT) {
+                throw new Error(
+                  `Cannot load "${docLabel}" (${pagesRead} pages) — this turn has already used ${pdfPagesLoaded} of the ${PDF_PAGE_LIMIT}-page limit.`
+                );
+              }
+              if (docPageCount > 0) pdfPagesLoaded += pagesRead;
+              loadedFileIds.add(rangeKey);
+
+              const resultSummary = `Loaded document: ${docLabel} (${pageNote})`;
+              toolResults.push({
+                type: "tool_result",
+                tool_use_id: block.id,
+                content: toolResultContent,
+              });
+              turnToolResults.push({ toolName: block.name, result: resultSummary });
+              sendEvent({ type: "tool_result", toolName: block.name, result: resultSummary });
+              continue; // skip the generic push below
             }
 
-            const resultSummary = `Loaded document: ${fileObj.documentType}`;
+            // Track pages loaded and mark this file as loaded (non-PDF paths)
+            if (docPageCount > 0) pdfPagesLoaded += docPageCount;
+            loadedFileIds.add(rangeKey);
+
+            const resultSummary = `Loaded document: ${docLabel}`;
             toolResults.push({
               type: "tool_result",
               tool_use_id: block.id,
@@ -416,6 +562,12 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
 
         conversationMessages.push({ role: "user", content: toolResults });
       } else {
+        // Handles max_tokens and any other non-tool stop reason — still push
+        // the message so the save code below captures it.
+        conversationMessages.push({
+          role: "assistant",
+          content: message.content,
+        });
         sendEvent({ type: "done" });
         continueLoop = false;
       }
@@ -492,15 +644,46 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
   } catch (err) {
     console.error("Claude API error:", err);
     let userMessage = err instanceof Error ? err.message : "Unknown error";
-    if (
-      err instanceof Anthropic.BadRequestError &&
-      err.message.toLowerCase().includes("too long")
-    ) {
-      userMessage =
-        "The document is too large to load in full. Try asking about a specific section or request a page range.";
+    if (err instanceof Anthropic.APIError) {
+      const body = err.error as { error?: { type?: string } } | undefined;
+      const errType = body?.error?.type;
+      if (errType === "overloaded_error") {
+        userMessage = "Claude is currently overloaded. Please try again in a moment.";
+      } else if (err instanceof Anthropic.BadRequestError) {
+        if (err.message.toLowerCase().includes("too long")) {
+          userMessage =
+            "The document is too large to load in full. Try asking about a specific section or request a page range.";
+        } else if (err.message.includes("100 PDF pages")) {
+          userMessage =
+            "Too many PDF pages were loaded in a single request. Please ask about one document at a time, or start a new conversation for a fresh context.";
+        }
+      }
     }
+
+    // Partial save — if the stream generated text before dying, persist it so
+    // the user sees it on refresh rather than losing the whole turn.
+    if (streamedText && convo) {
+      try {
+        const lastUserMsg = messages[messages.length - 1];
+        if (lastUserMsg?.role === "user" && typeof lastUserMsg.content === "string") {
+          convo.messages.push({ role: "user", content: lastUserMsg.content });
+        }
+        convo.messages.push({
+          role: "assistant",
+          content: streamedText + "\n\n*(response interrupted)*",
+          model: MODEL,
+          inputTokens: convo.totalInputTokens - tokensBefore.input,
+          outputTokens: convo.totalOutputTokens - tokensBefore.output,
+        });
+        await convo.save();
+      } catch (saveErr) {
+        console.error("Failed to save partial response:", saveErr);
+      }
+    }
+
     sendEvent({ type: "error", message: userMessage });
   } finally {
+    clearInterval(keepalive);
     res.end();
   }
 });

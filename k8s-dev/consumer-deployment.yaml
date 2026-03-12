@@ -16,6 +16,15 @@ spec:
         - name: consumer
           image: itsdevin/bow-mark-server
           command: ["npm", "run", "start:consumer-dev"]
+          ports:
+            - containerPort: 9090
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9090
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 24
           envFrom:
             - configMapRef:
                 name: app-config

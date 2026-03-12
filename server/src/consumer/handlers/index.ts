@@ -24,6 +24,7 @@ export {
 export { productionSyncHandler, upsertFactProduction } from "./productionSync";
 export { invoiceSyncHandler, upsertFactInvoice } from "./invoiceSync";
 export { tenderFileSummaryHandler } from "./tenderFileSummaryHandler";
+export { specFileSummaryHandler } from "./specFileSummaryHandler";
 
 // Dimension helpers (shared across handlers)
 export {

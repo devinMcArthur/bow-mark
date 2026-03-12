@@ -7,6 +7,21 @@ import { Types } from "mongoose";
 import { Field, ID, ObjectType } from "type-graphql";
 
 @ObjectType()
+export class EnrichedFileSummaryChunkClass {
+  @Field()
+  public startPage!: number;
+
+  @Field()
+  public endPage!: number;
+
+  @Field()
+  public overview!: string;
+
+  @Field(() => [String])
+  public keyTopics!: string[];
+}
+
+@ObjectType()
 export class EnrichedFileSummaryClass {
   @Field()
   public overview!: string;
@@ -16,6 +31,9 @@ export class EnrichedFileSummaryClass {
 
   @Field(() => [String])
   public keyTopics!: string[];
+
+  @Field(() => [EnrichedFileSummaryChunkClass], { nullable: true })
+  public chunks?: EnrichedFileSummaryChunkClass[];
 }
 
 @ObjectType()
@@ -27,9 +45,9 @@ export class EnrichedFileClass {
   @prop({ ref: () => FileClass, required: true })
   public file!: Ref<FileClass>;
 
-  @Field()
-  @prop({ required: true, trim: true })
-  public documentType!: string;
+  @Field({ nullable: true })
+  @prop({ required: false, trim: true })
+  public documentType?: string;
 
   @Field(() => EnrichedFileSummaryClass, { nullable: true })
   @prop({ type: () => Object, required: false })
@@ -46,6 +64,10 @@ export class EnrichedFileClass {
   @Field({ nullable: true })
   @prop({ required: false })
   public pageCount?: number;
+
+  @Field({ nullable: true })
+  @prop({ required: false, trim: true })
+  public summaryError?: string;
 }
 
 @ObjectType()

@@ -404,12 +404,18 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
   } catch (err) {
     console.error("Claude API error:", err);
     let userMessage = err instanceof Error ? err.message : "Unknown error";
-    if (
-      err instanceof Anthropic.BadRequestError &&
-      err.message.toLowerCase().includes("too long")
-    ) {
-      userMessage =
-        "The request exceeded the context limit — the tool results returned too much data. Try narrowing the date range or filtering to a specific jobsite.";
+    if (err instanceof Anthropic.APIError) {
+      const body = err.error as { error?: { type?: string } } | undefined;
+      const errType = body?.error?.type;
+      if (errType === "overloaded_error") {
+        userMessage = "Claude is currently overloaded. Please try again in a moment.";
+      } else if (
+        err instanceof Anthropic.BadRequestError &&
+        err.message.toLowerCase().includes("too long")
+      ) {
+        userMessage =
+          "The request exceeded the context limit — the tool results returned too much data. Try narrowing the date range or filtering to a specific jobsite.";
+      }
     }
     sendEvent({ type: "error", message: userMessage });
   } finally {

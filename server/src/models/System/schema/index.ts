@@ -3,6 +3,7 @@ import { prop } from "@typegoose/typegoose";
 import { Field, ID, ObjectType } from "type-graphql";
 import SchemaVersions from "@constants/SchemaVersions";
 import { DefaultRateClass, RateClass } from "@typescript/models";
+import { EnrichedFileClass } from "../../Tender/schema";
 
 @ObjectType()
 export class SystemSchema {
@@ -47,6 +48,10 @@ export class SystemSchema {
   @Field({ nullable: false })
   @prop({ required: true, default: "America/Edmonton" })
   public timezone!: string;
+
+  @Field(() => [EnrichedFileClass], { nullable: false })
+  @prop({ type: () => [EnrichedFileClass], default: [] })
+  public specFiles!: EnrichedFileClass[];
 
   @Field({ nullable: false })
   @prop({ required: true, default: Date.now })

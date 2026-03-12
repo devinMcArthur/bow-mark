@@ -19,7 +19,7 @@ import {
   DrawerCloseButton,
 } from "@chakra-ui/react";
 import { useRouter } from "next/router";
-import { FiSend, FiPlus, FiArrowDown, FiMenu } from "react-icons/fi";
+import { FiSend, FiPlus, FiArrowDown, FiMenu, FiRefreshCw } from "react-icons/fi";
 import Permission from "../Common/Permission";
 import { SourcesDrawer } from "./SourcesDrawer";
 import { UserRoles } from "../../generated/graphql";
@@ -64,6 +64,112 @@ const SUGGESTIONS = [
   "Show me crew productivity rankings for 2025",
 ];
 
+// ─── MessageBubble (memoized so typing doesn't re-render existing messages) ───
+
+interface MessageBubbleProps {
+  msg: ChatMessage;
+  onShowSources: (msg: ChatMessage) => void;
+}
+
+const MessageBubble = React.memo(({ msg, onShowSources }: MessageBubbleProps) => {
+  if (msg.role === "user") {
+    return (
+      <Box
+        bg="blue.600"
+        color="white"
+        px={4}
+        py={3}
+        borderRadius="lg"
+        borderBottomRightRadius="sm"
+      >
+        <Text fontSize="sm" lineHeight="1.6">{msg.content}</Text>
+      </Box>
+    );
+  }
+
+  return (
+    <Box>
+      {msg.toolCalls && msg.toolCalls.length > 0 && (
+        <HStack spacing={1} mb={2} flexWrap="wrap">
+          {Array.from(new Set(msg.toolCalls)).map((tool) => (
+            <Box
+              key={tool}
+              px={2}
+              py={0.5}
+              bg="gray.100"
+              borderRadius="sm"
+              fontSize="xs"
+              color="gray.500"
+              fontFamily="mono"
+            >
+              {tool}
+            </Box>
+          ))}
+        </HStack>
+      )}
+      <Box
+        bg="white"
+        border="1px solid"
+        borderColor="gray.200"
+        px={4}
+        py={3}
+        borderRadius="lg"
+        borderBottomLeftRadius="sm"
+        shadow="sm"
+      >
+        {msg.isStreaming && msg.content === "" ? (
+          <HStack spacing={2}>
+            <Spinner size="xs" color="blue.400" />
+            <Text fontSize="sm" color="gray.400">
+              {msg.toolCalls && msg.toolCalls.length > 0 ? "Querying database..." : "Thinking..."}
+            </Text>
+          </HStack>
+        ) : (
+          <>
+            <MarkdownContent content={msg.content} />
+            {msg.isStreaming && (
+              <Box
+                display="inline-block"
+                w="2px"
+                h="14px"
+                bg="blue.500"
+                ml={0.5}
+                verticalAlign="middle"
+                animation="blink 1s step-end infinite"
+                sx={{
+                  "@keyframes blink": {
+                    "0%, 100%": { opacity: 1 },
+                    "50%": { opacity: 0 },
+                  },
+                }}
+              />
+            )}
+            {msg.model && !msg.isStreaming && (
+              <Text fontSize="10px" color="gray.400" textAlign="right" mt={1} fontFamily="mono">
+                {modelLabel(msg.model)}
+              </Text>
+            )}
+          </>
+        )}
+      </Box>
+      {msg.toolResults && msg.toolResults.length > 0 && (
+        <Button
+          variant="ghost"
+          size="xs"
+          mt={1}
+          color="gray.500"
+          fontWeight="normal"
+          onClick={() => onShowSources(msg)}
+        >
+          Sources ({msg.toolResults.length})
+        </Button>
+      )}
+    </Box>
+  );
+});
+
+MessageBubble.displayName = "MessageBubble";
+
 // ─── Chat Page ────────────────────────────────────────────────────────────────
 
 interface ChatPageProps {
@@ -72,6 +178,7 @@ interface ChatPageProps {
   conversationsEndpoint?: string;  // default: "/conversations"
   extraPayload?: Record<string, unknown>; // merged into POST body e.g. { tenderId }
   suggestions?: string[];          // overrides SUGGESTIONS constant if provided
+  disableRouting?: boolean;        // when true, don't navigate on conversation select/new
 }
 
 const ChatPage = ({
@@ -80,6 +187,7 @@ const ChatPage = ({
   conversationsEndpoint = "/conversations",
   extraPayload,
   suggestions: suggestionsProp,
+  disableRouting = false,
 }: ChatPageProps) => {
   const router = useRouter();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
@@ -96,6 +204,7 @@ const ChatPage = ({
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const isAtBottomRef = React.useRef(true);
+  const prevScrollHeightRef = React.useRef<number>(0);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
 
   // Auto-resize textarea as content grows
@@ -175,20 +284,33 @@ const ChatPage = ({
   }, [initialConversationId, loadConversation]);
 
   // With flex-direction:column-reverse, scrollTop=0 is the visual bottom.
-  // Keep it pinned to 0 during streaming when the user hasn't scrolled up.
+  // When at bottom: pin to 0 so new streaming tokens stay in view.
+  // When scrolled up: compensate for scrollHeight growth so the user's
+  // visual position doesn't drift as new content appends at the bottom.
   React.useLayoutEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
     if (isAtBottomRef.current) {
-      const el = scrollContainerRef.current;
       // Some browsers use negative scrollTop for reversed containers; reset to 0 either way.
-      if (el && Math.abs(el.scrollTop) > 1) el.scrollTop = 0;
+      if (Math.abs(el.scrollTop) > 1) el.scrollTop = 0;
+    } else {
+      const heightDiff = el.scrollHeight - prevScrollHeightRef.current;
+      if (heightDiff > 0) {
+        // Move scrollTop away from 0 (visual bottom) to keep the same content visible.
+        // Chrome uses positive scrollTop; Firefox uses negative — handle both.
+        el.scrollTop += el.scrollTop < 0 ? -heightDiff : heightDiff;
+      }
     }
+
+    prevScrollHeightRef.current = el.scrollHeight;
   }, [messages]);
 
   const startNewChat = () => {
     setMessages([]);
     setConversationId(null);
     setModelTokens({});
-    if (router.pathname !== "/chat") {
+    if (!disableRouting && router.pathname !== "/chat") {
       router.push("/chat");
     }
     setTimeout(() => inputRef.current?.focus(), 50);
@@ -443,15 +565,46 @@ const ChatPage = ({
     [messages, loading, conversationId, messageEndpoint, extraPayload]
   );
 
+  const regenerateLastMessage = React.useCallback(async () => {
+    if (!conversationId || loading) return;
+    let lastUserMsg: ChatMessage | null = null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "user") { lastUserMsg = messages[i]; break; }
+    }
+    if (!lastUserMsg) return;
+
+    try {
+      await fetch(`${serverBase}${conversationsEndpoint}/${conversationId}/last-exchange`, {
+        method: "DELETE",
+        headers: { Authorization: getToken() ?? "" },
+      });
+    } catch {}
+
+    const lastUserContent = lastUserMsg.content;
+    setMessages((prev) => {
+      let idx = -1;
+      for (let i = prev.length - 1; i >= 0; i--) {
+        if (prev[i].role === "user") { idx = i; break; }
+      }
+      return idx >= 0 ? prev.slice(0, idx) : prev;
+    });
+
+    sendMessage(lastUserContent);
+  }, [conversationId, loading, messages, serverBase, conversationsEndpoint, sendMessage]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     sendMessage(input);
   };
 
   const isEmpty = messages.length === 0;
-  const cost = calcTotalCost(modelTokens);
-  const totalInputTokens = Object.values(modelTokens).reduce((s, t) => s + t.input, 0);
-  const totalOutputTokens = Object.values(modelTokens).reduce((s, t) => s + t.output, 0);
+  const cost = React.useMemo(() => calcTotalCost(modelTokens), [modelTokens]);
+  const totalInputTokens = React.useMemo(() => Object.values(modelTokens).reduce((s, t) => s + t.input, 0), [modelTokens]);
+  const totalOutputTokens = React.useMemo(() => Object.values(modelTokens).reduce((s, t) => s + t.output, 0), [modelTokens]);
+  const conversationTitle = React.useMemo(
+    () => conversations.find((c) => c.id === conversationId)?.title ?? "Analytics Assistant",
+    [conversations, conversationId]
+  );
 
   return (
     <Permission minRole={UserRoles.ProjectManager} type={null} showError>
@@ -502,7 +655,11 @@ const ChatPage = ({
                   convo={c}
                   isActive={c.id === conversationId}
                   onSelect={() => {
-                    router.push(`/chat/${c.id}`);
+                    if (disableRouting) {
+                      loadConversation(c.id);
+                    } else {
+                      router.push(`/chat/${c.id}`);
+                    }
                     setSidebarOpen(false);
                   }}
                   onRename={(title) => renameConversation(c.id, title)}
@@ -537,9 +694,7 @@ const ChatPage = ({
                 )}
                 <Box w={2} h={2} borderRadius="full" bg="green.400" />
                 <Text fontSize="sm" fontWeight="600" color="gray.700" letterSpacing="wide" noOfLines={1}>
-                  {conversationId
-                    ? (conversations.find((c) => c.id === conversationId)?.title ?? "Analytics Assistant")
-                    : "Analytics Assistant"}
+                  {conversationTitle}
                 </Text>
                 {isDesktop && (
                   <Text fontSize="xs" color="gray.400">
@@ -640,110 +795,32 @@ const ChatPage = ({
             >
               <Box px={6} py={6}>
                 <VStack spacing={4} align="stretch">
-                  {messages.map((msg) => (
-                    <Box key={msg.id} alignSelf={msg.role === "user" ? "flex-end" : "flex-start"} maxW="85%">
-                      {msg.role === "user" ? (
-                        <Box
-                          bg="blue.600"
-                          color="white"
-                          px={4}
-                          py={3}
-                          borderRadius="lg"
-                          borderBottomRightRadius="sm"
-                        >
-                          <Text fontSize="sm" lineHeight="1.6">
-                            {msg.content}
-                          </Text>
-                        </Box>
-                      ) : (
-                        <Box>
-                          {msg.toolCalls && msg.toolCalls.length > 0 && (
-                            <HStack spacing={1} mb={2} flexWrap="wrap">
-                              {Array.from(new Set(msg.toolCalls)).map((tool) => (
-                                <Box
-                                  key={tool}
-                                  px={2}
-                                  py={0.5}
-                                  bg="gray.100"
-                                  borderRadius="sm"
-                                  fontSize="xs"
-                                  color="gray.500"
-                                  fontFamily="mono"
-                                >
-                                  {tool}
-                                </Box>
-                              ))}
-                            </HStack>
-                          )}
-                          <Box
-                            bg="white"
-                            border="1px solid"
-                            borderColor="gray.200"
-                            px={4}
-                            py={3}
-                            borderRadius="lg"
-                            borderBottomLeftRadius="sm"
-                            shadow="sm"
-                          >
-                            {msg.isStreaming && msg.content === "" ? (
-                              <HStack spacing={2}>
-                                <Spinner size="xs" color="blue.400" />
-                                <Text fontSize="sm" color="gray.400">
-                                  {msg.toolCalls && msg.toolCalls.length > 0
-                                    ? "Querying database..."
-                                    : "Thinking..."}
-                                </Text>
-                              </HStack>
-                            ) : (
-                              <>
-                                <MarkdownContent content={msg.content} />
-                                {msg.isStreaming && (
-                                  <Box
-                                    display="inline-block"
-                                    w="2px"
-                                    h="14px"
-                                    bg="blue.500"
-                                    ml={0.5}
-                                    verticalAlign="middle"
-                                    animation="blink 1s step-end infinite"
-                                    sx={{
-                                      "@keyframes blink": {
-                                        "0%, 100%": { opacity: 1 },
-                                        "50%": { opacity: 0 },
-                                      },
-                                    }}
-                                  />
-                                )}
-                                {msg.model && !msg.isStreaming && (
-                                  <Text
-                                    fontSize="10px"
-                                    color="gray.400"
-                                    textAlign="right"
-                                    mt={1}
-                                    fontFamily="mono"
-                                  >
-                                    {modelLabel(msg.model)}
-                                  </Text>
-                                )}
-                              </>
-                            )}
-                          </Box>
-                          {msg.toolResults && msg.toolResults.length > 0 && (
-                            <Button
-                              variant="ghost"
+                  {messages.map((msg, idx) => {
+                    const isLastAssistant =
+                      msg.role === "assistant" &&
+                      !msg.isStreaming &&
+                      idx === messages.length - 1 &&
+                      !!conversationId &&
+                      !loading;
+                    return (
+                      <Box key={msg.id} alignSelf={msg.role === "user" ? "flex-end" : "flex-start"} maxW="85%">
+                        <MessageBubble msg={msg} onShowSources={setSourcesMessage} />
+                        {isLastAssistant && (
+                          <Tooltip label="Regenerate response" placement="bottom" fontSize="xs">
+                            <IconButton
+                              aria-label="Regenerate response"
+                              icon={<FiRefreshCw />}
                               size="xs"
+                              variant="ghost"
+                              colorScheme="gray"
                               mt={1}
-                              color="gray.500"
-                              fontWeight="normal"
-                              onClick={() => setSourcesMessage(msg)}
-                            >
-                              Sources ({msg.toolResults.length})
-                            </Button>
-                          )}
-                        </Box>
-                      )}
-                    </Box>
-                  ))}
+                              onClick={regenerateLastMessage}
+                            />
+                          </Tooltip>
+                        )}
+                      </Box>
+                    );
+                  })}
                 </VStack>
               </Box>
             </Box>

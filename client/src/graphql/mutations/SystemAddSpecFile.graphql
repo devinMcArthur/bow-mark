@@ -1,0 +1,5 @@
+mutation SystemAddSpecFile($fileId: ID!) {
+  systemAddSpecFile(fileId: $fileId) {
+    ...SystemSnippet
+  }
+}

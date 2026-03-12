@@ -146,6 +146,40 @@ export const publishProductionChange = createPublisher(ROUTING_KEYS.production);
  */
 export const publishInvoiceChange = createPublisher(ROUTING_KEYS.invoice);
 
+export interface SpecFileSummaryMessage {
+  fileObjectId: string;
+  fileId: string;
+  timestamp: string;
+}
+
+export const publishSpecFileCreated = async (
+  fileObjectId: string,
+  fileId: string
+): Promise<boolean> => {
+  const message: SpecFileSummaryMessage = {
+    fileObjectId,
+    fileId,
+    timestamp: new Date().toISOString(),
+  };
+  try {
+    const channel = await getChannel();
+    await setupTopology();
+    const success = channel.publish(
+      RABBITMQ_CONFIG.exchange.name,
+      ROUTING_KEYS.specFile.created,
+      Buffer.from(JSON.stringify(message)),
+      { persistent: true, contentType: "application/json" }
+    );
+    if (success) {
+      console.log(`[RabbitMQ] Published spec_file.created: ${fileId}`);
+    }
+    return success;
+  } catch (error) {
+    console.error(`[RabbitMQ] Failed to publish spec_file.created:`, error);
+    return false;
+  }
+};
+
 export interface TenderFileSummaryMessage {
   tenderId: string;
   fileObjectId: string;

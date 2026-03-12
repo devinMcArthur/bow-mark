@@ -15,6 +15,7 @@ import {
   Text,
   Th,
   Thead,
+  Tooltip,
   Tr,
   useToast,
   Wrap,
@@ -23,10 +24,18 @@ import {
 import { gql } from "@apollo/client";
 import * as Apollo from "@apollo/client";
 import React from "react";
-import { FiChevronDown, FiChevronRight, FiRefreshCw, FiTrash2 } from "react-icons/fi";
+import { FiChevronDown, FiChevronRight, FiExternalLink, FiRefreshCw, FiTrash2 } from "react-icons/fi";
 import { TenderDetail, TenderFileItem } from "./types";
-import { useFileCreateMutation } from "../../generated/graphql";
 import dataUrlToBlob from "../../utils/dataUrlToBlob";
+
+const FILE_CREATE = gql`
+  mutation TenderFileCreate($data: FileCreateData!) {
+    fileCreate(data: $data) {
+      _id
+    }
+  }
+`;
+import { localStorageTokenKey } from "../../contexts/Auth";
 
 // ─── GQL ─────────────────────────────────────────────────────────────────────
 
@@ -38,15 +47,23 @@ const TENDER_ADD_FILE = gql`
         _id
         documentType
         summaryStatus
+        summaryError
         pageCount
         summary {
           overview
           documentType
           keyTopics
+          chunks {
+            startPage
+            endPage
+            overview
+            keyTopics
+          }
         }
         file {
           _id
           mimetype
+          description
         }
       }
     }
@@ -61,15 +78,23 @@ const TENDER_REMOVE_FILE = gql`
         _id
         documentType
         summaryStatus
+        summaryError
         pageCount
         summary {
           overview
           documentType
           keyTopics
+          chunks {
+            startPage
+            endPage
+            overview
+            keyTopics
+          }
         }
         file {
           _id
           mimetype
+          description
         }
       }
     }
@@ -84,15 +109,23 @@ const TENDER_RETRY_SUMMARY = gql`
         _id
         documentType
         summaryStatus
+        summaryError
         pageCount
         summary {
           overview
           documentType
           keyTopics
+          chunks {
+            startPage
+            endPage
+            overview
+            keyTopics
+          }
         }
         file {
           _id
           mimetype
+          description
         }
       }
     }
@@ -132,6 +165,7 @@ function summaryStatusColor(status: string): string {
 
 interface FileRowProps {
   file: TenderFileItem;
+  tenderId: string;
   onRemove: (fileObjectId: string) => void;
   onRetry: (fileObjectId: string) => void;
   removingId: string | null;
@@ -140,6 +174,7 @@ interface FileRowProps {
 
 const FileRow = ({
   file,
+  tenderId,
   onRemove,
   onRetry,
   removingId,
@@ -148,10 +183,17 @@ const FileRow = ({
   const [expanded, setExpanded] = React.useState(false);
   const hasSummary = !!file.summary;
 
+  const serverBase = (process.env.NEXT_PUBLIC_API_URL as string).replace("/graphql", "");
+  const openFile = () => {
+    const token = typeof window !== "undefined" ? localStorage.getItem(localStorageTokenKey) : null;
+    if (!token) return;
+    window.open(`${serverBase}/api/tender-files/${tenderId}/${file._id}?token=${token}`, "_blank");
+  };
+
   return (
     <>
       <Tr>
-        <Td>
+        <Td overflow="hidden">
           <HStack spacing={1}>
             {hasSummary && (
               <IconButton
@@ -162,22 +204,44 @@ const FileRow = ({
                 onClick={() => setExpanded((v) => !v)}
               />
             )}
-            <Text fontSize="sm">
-              {file.summary?.documentType || file.documentType || (
-                <Text as="span" color="gray.400" fontStyle="italic">Detecting…</Text>
+            <Box minW={0}>
+              {file.file.description && (
+                <Tooltip label={file.file.description} placement="top" fontSize="xs" openDelay={500}>
+                  <Text fontSize="sm" fontWeight="medium" isTruncated>{file.file.description}</Text>
+                </Tooltip>
               )}
-            </Text>
+              <Text fontSize="xs" color="gray.500" isTruncated>
+                {file.summary?.documentType || file.documentType || (
+                  <Text as="span" fontStyle="italic">Detecting…</Text>
+                )}
+              </Text>
+            </Box>
           </HStack>
         </Td>
         <Td>
-          <Badge colorScheme={summaryStatusColor(file.summaryStatus)}>
-            {file.summaryStatus}
-          </Badge>
+          <Tooltip
+            label={file.summaryError ?? undefined}
+            isDisabled={!file.summaryError}
+            placement="top"
+            maxW="320px"
+            fontSize="xs"
+          >
+            <Badge colorScheme={summaryStatusColor(file.summaryStatus)} cursor={file.summaryError ? "help" : undefined}>
+              {file.summaryStatus}
+            </Badge>
+          </Tooltip>
         </Td>
         <Td isNumeric>{file.pageCount ?? "—"}</Td>
         <Td>
           <HStack spacing={1} justify="flex-end">
-            {file.summaryStatus === "failed" && (
+            <IconButton
+              aria-label="Open file"
+              icon={<FiExternalLink />}
+              size="xs"
+              variant="ghost"
+              onClick={openFile}
+            />
+            {(file.summaryStatus === "failed" || file.summaryStatus === "ready") && (
               <IconButton
                 aria-label="Retry summary"
                 icon={
@@ -260,7 +324,7 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
   const [isDragOver, setIsDragOver] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const [fileCreate] = useFileCreateMutation();
+  const [fileCreate] = Apollo.useMutation<{ fileCreate: { _id: string } }, { data: { file: File; description: string } }>(FILE_CREATE);
 
   const [tenderAddFile] = Apollo.useMutation<TenderFilesResult, TenderAddFileVars>(
     TENDER_ADD_FILE
@@ -301,7 +365,7 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
 
         const fileRes = await fileCreate({
           variables: {
-            data: { file: uploadFile },
+            data: { file: uploadFile, description: file.name },
           },
         });
 
@@ -413,12 +477,18 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
       )}
 
       {tender.files.length > 0 ? (
-        <Table variant="simple" size="sm" mb={4}>
+        <Table variant="simple" size="sm" mb={4} style={{ tableLayout: "fixed" }} w="100%">
+          <colgroup>
+            <col style={{ width: "auto" }} />
+            <col style={{ width: "90px" }} />
+            <col style={{ width: "58px" }} />
+            <col style={{ width: "88px" }} />
+          </colgroup>
           <Thead>
             <Tr>
-              <Th>Document Type</Th>
-              <Th>Status</Th>
-              <Th isNumeric>Pages</Th>
+              <Th whiteSpace="nowrap">File</Th>
+              <Th whiteSpace="nowrap">Status</Th>
+              <Th isNumeric whiteSpace="nowrap">Pages</Th>
               <Th></Th>
             </Tr>
           </Thead>
@@ -427,6 +497,7 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
               <FileRow
                 key={file._id}
                 file={file}
+                tenderId={tender._id}
                 onRemove={handleRemove}
                 onRetry={handleRetry}
                 removingId={removingId}
@@ -453,10 +524,10 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
         onDragLeave={() => setIsDragOver(false)}
         onDrop={handleDrop}
       >
-        <Text fontSize="sm" color="gray.500" mb={2}>
+        <Text fontSize="sm" color="gray.500" mb={2} textAlign="center">
           Drop a file here or click to upload. The AI will detect the document type automatically.
         </Text>
-        <HStack>
+        <HStack justify="center">
           <Button
             size="sm"
             colorScheme="blue"

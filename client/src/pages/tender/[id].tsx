@@ -6,6 +6,7 @@ import {
   Spinner,
   Text,
 } from "@chakra-ui/react";
+import { navbarHeight } from "../../constants/styles";
 import { gql } from "@apollo/client";
 import * as Apollo from "@apollo/client";
 import { useRouter } from "next/router";
@@ -35,6 +36,7 @@ const TENDER_QUERY = gql`
         _id
         documentType
         summaryStatus
+        summaryError
         pageCount
         summary {
           overview
@@ -44,6 +46,7 @@ const TENDER_QUERY = gql`
         file {
           _id
           mimetype
+          description
         }
       }
       jobsite {
@@ -78,7 +81,7 @@ const TenderDetailPage = () => {
   const { id } = router.query;
   const tenderId = typeof id === "string" ? id : "";
 
-  const { data, loading, refetch } = Apollo.useQuery<
+  const { data, loading, refetch, startPolling, stopPolling } = Apollo.useQuery<
     TenderQueryResult,
     TenderQueryVars
   >(TENDER_QUERY, {
@@ -87,6 +90,18 @@ const TenderDetailPage = () => {
   });
 
   const tender = data?.tender;
+
+  // Poll every 3s while any files are pending/processing, stop when all settle
+  React.useEffect(() => {
+    const hasProcessing = tender?.files.some(
+      (f) => f.summaryStatus === "pending" || f.summaryStatus === "processing"
+    );
+    if (hasProcessing) {
+      startPolling(3000);
+    } else {
+      stopPolling();
+    }
+  }, [tender?.files, startPolling, stopPolling]);
 
   if (loading) {
     return (
@@ -110,7 +125,7 @@ const TenderDetailPage = () => {
 
   return (
     <Permission minRole={UserRoles.ProjectManager} type={null} showError>
-      <Flex h="calc(100vh - 60px)" overflow="hidden">
+      <Flex h={`calc(100vh - ${navbarHeight})`} w="100%" overflow="hidden">
         {/* ── Left panel ─────────────────────────────────────────────────── */}
         <Box
           w="420px"
@@ -158,6 +173,7 @@ const TenderDetailPage = () => {
             conversationsEndpoint={`/tender-conversations/${tenderId}`}
             extraPayload={{ tenderId }}
             suggestions={TENDER_SUGGESTIONS}
+            disableRouting
           />
         </Box>
       </Flex>
