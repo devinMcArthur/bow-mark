@@ -1,6 +1,15 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
+declare global {
+  namespace Express {
+    interface Request {
+      userId: string;
+      token: string;
+    }
+  }
+}
+
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const token = req.headers.authorization;
   if (!token || !process.env.JWT_SECRET) {

@@ -97,7 +97,6 @@ import { getApolloClient , ApolloClientContext} from '../withApollo';
 
 
 
-
 export async function getServerPageArchivedEmployees
     (options: Omit<Apollo.QueryOptions<Types.ArchivedEmployeesQueryVariables>, 'query'>, ctx: ApolloClientContext ){
         const apolloClient = getApolloClient(ctx);
@@ -2337,6 +2336,41 @@ export const ssrProductivityBenchmarks = {
       getServerPage: getServerPageProductivityBenchmarks,
       withPage: withPageProductivityBenchmarks,
       usePage: useProductivityBenchmarks,
+    }
+export async function getServerPagePublicDocuments
+    (options: Omit<Apollo.QueryOptions<Types.PublicDocumentsQueryVariables>, 'query'>, ctx: ApolloClientContext ){
+        const apolloClient = getApolloClient(ctx);
+        
+        const data = await apolloClient.query<Types.PublicDocumentsQuery>({ ...options, query: Operations.PublicDocumentsDocument });
+        
+        const apolloState = apolloClient.cache.extract();
+
+        return {
+            props: {
+                apolloState: apolloState,
+                data: data?.data,
+                error: data?.error ?? data?.errors ?? null,
+            },
+        };
+      }
+export const usePublicDocuments = (
+  optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.PublicDocumentsQuery, Types.PublicDocumentsQueryVariables>) => {
+  const router = useRouter();
+  const options = optionsFunc ? optionsFunc(router) : {};
+  return useQuery(Operations.PublicDocumentsDocument, options);
+};
+export type PagePublicDocumentsComp = React.FC<{data?: Types.PublicDocumentsQuery, error?: Apollo.ApolloError}>;
+export const withPagePublicDocuments = (optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.PublicDocumentsQuery, Types.PublicDocumentsQueryVariables>) => (WrappedComponent:PagePublicDocumentsComp) : NextPage  => (props) => {
+                const router = useRouter()
+                const options = optionsFunc ? optionsFunc(router) : {};
+                const {data, error } = useQuery(Operations.PublicDocumentsDocument, options)    
+                return <WrappedComponent {...props} data={data} error={error} /> ;
+                   
+            }; 
+export const ssrPublicDocuments = {
+      getServerPage: getServerPagePublicDocuments,
+      withPage: withPagePublicDocuments,
+      usePage: usePublicDocuments,
     }
 export async function getServerPageSearch
     (options: Omit<Apollo.QueryOptions<Types.SearchQueryVariables>, 'query'>, ctx: ApolloClientContext ){

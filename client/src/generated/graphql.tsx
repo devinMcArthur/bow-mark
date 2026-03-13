@@ -1207,6 +1207,9 @@ export type Mutation = {
   productionCreate: ProductionClass;
   productionDelete: Scalars['String'];
   productionUpdate: ProductionClass;
+  publicDocumentCreate: PublicDocumentClass;
+  publicDocumentDelete: Scalars['Boolean'];
+  publicDocumentUpdate: PublicDocumentClass;
   reportNoteRemoveFile: ReportNoteClass;
   signup: Scalars['String'];
   signupCreate: SignupClass;
@@ -1617,6 +1620,22 @@ export type MutationProductionUpdateArgs = {
 };
 
 
+export type MutationPublicDocumentCreateArgs = {
+  data: PublicDocumentCreateData;
+};
+
+
+export type MutationPublicDocumentDeleteArgs = {
+  id: Scalars['String'];
+};
+
+
+export type MutationPublicDocumentUpdateArgs = {
+  data: PublicDocumentUpdateData;
+  id: Scalars['String'];
+};
+
+
 export type MutationReportNoteRemoveFileArgs = {
   fileId: Scalars['String'];
   reportNoteId: Scalars['String'];
@@ -1954,6 +1973,30 @@ export type ProductivityBenchmarkReport = {
   year: Scalars['Int'];
 };
 
+export type PublicDocumentClass = {
+  __typename?: 'PublicDocumentClass';
+  _id: Scalars['ID'];
+  createdAt: Scalars['DateTime'];
+  description?: Maybe<Scalars['String']>;
+  fileUrl?: Maybe<Scalars['String']>;
+  slug: Scalars['String'];
+  title: Scalars['String'];
+  viewCount: Scalars['Float'];
+};
+
+export type PublicDocumentCreateData = {
+  description?: InputMaybe<Scalars['String']>;
+  file: Scalars['Upload'];
+  slug: Scalars['String'];
+  title: Scalars['String'];
+};
+
+export type PublicDocumentUpdateData = {
+  description?: InputMaybe<Scalars['String']>;
+  file?: InputMaybe<Scalars['Upload']>;
+  title?: InputMaybe<Scalars['String']>;
+};
+
 export type Query = {
   __typename?: 'Query';
   archivedEmployees: Array<EmployeeClass>;
@@ -2002,6 +2045,7 @@ export type Query = {
   operatorDailyReport: OperatorDailyReportClass;
   operatorDailyReports: Array<OperatorDailyReportClass>;
   productivityBenchmarks: ProductivityBenchmarkReport;
+  publicDocuments: Array<PublicDocumentClass>;
   search: Array<SearchClass>;
   signup: SignupClass;
   system: SystemClass;
@@ -2870,6 +2914,8 @@ export type OperatorDailyReportFullSnippetFragment = { __typename?: 'OperatorDai
 
 export type ProductionCardSnippetFragment = { __typename?: 'ProductionClass', _id: string, jobTitle: string, quantity: number, unit: string, startTime: any, endTime: any, description?: string | null };
 
+export type PublicDocumentSnippetFragment = { __typename?: 'PublicDocumentClass', _id: string, slug: string, title: string, description?: string | null, viewCount: number, fileUrl?: string | null, createdAt: any };
+
 export type RateSnippetFragment = { __typename?: 'RateClass', date: any, rate: number };
 
 export type ReportIssueSnippetFragment = { __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }> } | null };
@@ -3376,6 +3422,28 @@ export type ProductionUpdateMutationVariables = Exact<{
 
 
 export type ProductionUpdateMutation = { __typename?: 'Mutation', productionUpdate: { __typename?: 'ProductionClass', _id: string, jobTitle: string, quantity: number, unit: string, startTime: any, endTime: any, description?: string | null } };
+
+export type PublicDocumentCreateMutationVariables = Exact<{
+  data: PublicDocumentCreateData;
+}>;
+
+
+export type PublicDocumentCreateMutation = { __typename?: 'Mutation', publicDocumentCreate: { __typename?: 'PublicDocumentClass', _id: string, slug: string, title: string, description?: string | null, viewCount: number, fileUrl?: string | null, createdAt: any } };
+
+export type PublicDocumentDeleteMutationVariables = Exact<{
+  id: Scalars['String'];
+}>;
+
+
+export type PublicDocumentDeleteMutation = { __typename?: 'Mutation', publicDocumentDelete: boolean };
+
+export type PublicDocumentUpdateMutationVariables = Exact<{
+  id: Scalars['String'];
+  data: PublicDocumentUpdateData;
+}>;
+
+
+export type PublicDocumentUpdateMutation = { __typename?: 'Mutation', publicDocumentUpdate: { __typename?: 'PublicDocumentClass', _id: string, slug: string, title: string, description?: string | null, viewCount: number, fileUrl?: string | null, createdAt: any } };
 
 export type ReportNoteRemoveFileMutationVariables = Exact<{
   reportNoteId: Scalars['String'];
@@ -4054,6 +4122,11 @@ export type ProductivityBenchmarksQueryVariables = Exact<{
 
 
 export type ProductivityBenchmarksQuery = { __typename?: 'Query', productivityBenchmarks: { __typename?: 'ProductivityBenchmarkReport', year: number, averageTonnesPerHour: number, totalTonnes: number, totalCrewHours: number, jobsiteCount: number, availableMaterials: Array<{ __typename?: 'BenchmarkMaterial', materialName: string, crewType?: string | null, jobTitle?: string | null, key: string, totalTonnes: number, shipmentCount: number }>, jobsites: Array<{ __typename?: 'JobsiteBenchmark', jobsiteId: string, jobsiteName: string, jobcode?: string | null, totalTonnes: number, totalCrewHours: number, tonnesPerHour: number, shipmentCount: number, percentFromAverage: number, expectedTonnesPerHour: number, percentFromExpected: number }>, crews: Array<{ __typename?: 'CrewBenchmark', crewId: string, crewName: string, crewType: string, totalTonnes: number, totalCrewHours: number, tonnesPerHour: number, dayCount: number, jobsiteCount: number, percentFromAverage: number }>, regression: { __typename?: 'RegressionCoefficients', intercept: number, slope: number } } };
+
+export type PublicDocumentsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type PublicDocumentsQuery = { __typename?: 'Query', publicDocuments: Array<{ __typename?: 'PublicDocumentClass', _id: string, slug: string, title: string, description?: string | null, viewCount: number, fileUrl?: string | null, createdAt: any }> };
 
 export type SearchQueryVariables = Exact<{
   searchString: Scalars['String'];
@@ -5338,6 +5411,17 @@ export const OperatorDailyReportFullSnippetFragmentDoc = gql`
 }
     ${OperatorDailyReportCardSnippetFragmentDoc}
 ${VehicleIssueCardSnippetFragmentDoc}`;
+export const PublicDocumentSnippetFragmentDoc = gql`
+    fragment PublicDocumentSnippet on PublicDocumentClass {
+  _id
+  slug
+  title
+  description
+  viewCount
+  fileUrl
+  createdAt
+}
+    `;
 export const SearchSnippetFragmentDoc = gql`
     fragment SearchSnippet on SearchClass {
   score
@@ -7576,6 +7660,104 @@ export function useProductionUpdateMutation(baseOptions?: Apollo.MutationHookOpt
 export type ProductionUpdateMutationHookResult = ReturnType<typeof useProductionUpdateMutation>;
 export type ProductionUpdateMutationResult = Apollo.MutationResult<ProductionUpdateMutation>;
 export type ProductionUpdateMutationOptions = Apollo.BaseMutationOptions<ProductionUpdateMutation, ProductionUpdateMutationVariables>;
+export const PublicDocumentCreateDocument = gql`
+    mutation PublicDocumentCreate($data: PublicDocumentCreateData!) {
+  publicDocumentCreate(data: $data) {
+    ...PublicDocumentSnippet
+  }
+}
+    ${PublicDocumentSnippetFragmentDoc}`;
+export type PublicDocumentCreateMutationFn = Apollo.MutationFunction<PublicDocumentCreateMutation, PublicDocumentCreateMutationVariables>;
+
+/**
+ * __usePublicDocumentCreateMutation__
+ *
+ * To run a mutation, you first call `usePublicDocumentCreateMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `usePublicDocumentCreateMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [publicDocumentCreateMutation, { data, loading, error }] = usePublicDocumentCreateMutation({
+ *   variables: {
+ *      data: // value for 'data'
+ *   },
+ * });
+ */
+export function usePublicDocumentCreateMutation(baseOptions?: Apollo.MutationHookOptions<PublicDocumentCreateMutation, PublicDocumentCreateMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<PublicDocumentCreateMutation, PublicDocumentCreateMutationVariables>(PublicDocumentCreateDocument, options);
+      }
+export type PublicDocumentCreateMutationHookResult = ReturnType<typeof usePublicDocumentCreateMutation>;
+export type PublicDocumentCreateMutationResult = Apollo.MutationResult<PublicDocumentCreateMutation>;
+export type PublicDocumentCreateMutationOptions = Apollo.BaseMutationOptions<PublicDocumentCreateMutation, PublicDocumentCreateMutationVariables>;
+export const PublicDocumentDeleteDocument = gql`
+    mutation PublicDocumentDelete($id: String!) {
+  publicDocumentDelete(id: $id)
+}
+    `;
+export type PublicDocumentDeleteMutationFn = Apollo.MutationFunction<PublicDocumentDeleteMutation, PublicDocumentDeleteMutationVariables>;
+
+/**
+ * __usePublicDocumentDeleteMutation__
+ *
+ * To run a mutation, you first call `usePublicDocumentDeleteMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `usePublicDocumentDeleteMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [publicDocumentDeleteMutation, { data, loading, error }] = usePublicDocumentDeleteMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function usePublicDocumentDeleteMutation(baseOptions?: Apollo.MutationHookOptions<PublicDocumentDeleteMutation, PublicDocumentDeleteMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<PublicDocumentDeleteMutation, PublicDocumentDeleteMutationVariables>(PublicDocumentDeleteDocument, options);
+      }
+export type PublicDocumentDeleteMutationHookResult = ReturnType<typeof usePublicDocumentDeleteMutation>;
+export type PublicDocumentDeleteMutationResult = Apollo.MutationResult<PublicDocumentDeleteMutation>;
+export type PublicDocumentDeleteMutationOptions = Apollo.BaseMutationOptions<PublicDocumentDeleteMutation, PublicDocumentDeleteMutationVariables>;
+export const PublicDocumentUpdateDocument = gql`
+    mutation PublicDocumentUpdate($id: String!, $data: PublicDocumentUpdateData!) {
+  publicDocumentUpdate(id: $id, data: $data) {
+    ...PublicDocumentSnippet
+  }
+}
+    ${PublicDocumentSnippetFragmentDoc}`;
+export type PublicDocumentUpdateMutationFn = Apollo.MutationFunction<PublicDocumentUpdateMutation, PublicDocumentUpdateMutationVariables>;
+
+/**
+ * __usePublicDocumentUpdateMutation__
+ *
+ * To run a mutation, you first call `usePublicDocumentUpdateMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `usePublicDocumentUpdateMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [publicDocumentUpdateMutation, { data, loading, error }] = usePublicDocumentUpdateMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      data: // value for 'data'
+ *   },
+ * });
+ */
+export function usePublicDocumentUpdateMutation(baseOptions?: Apollo.MutationHookOptions<PublicDocumentUpdateMutation, PublicDocumentUpdateMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<PublicDocumentUpdateMutation, PublicDocumentUpdateMutationVariables>(PublicDocumentUpdateDocument, options);
+      }
+export type PublicDocumentUpdateMutationHookResult = ReturnType<typeof usePublicDocumentUpdateMutation>;
+export type PublicDocumentUpdateMutationResult = Apollo.MutationResult<PublicDocumentUpdateMutation>;
+export type PublicDocumentUpdateMutationOptions = Apollo.BaseMutationOptions<PublicDocumentUpdateMutation, PublicDocumentUpdateMutationVariables>;
 export const ReportNoteRemoveFileDocument = gql`
     mutation ReportNoteRemoveFile($reportNoteId: String!, $fileId: String!) {
   reportNoteRemoveFile(reportNoteId: $reportNoteId, fileId: $fileId) {
@@ -11150,6 +11332,40 @@ export function useProductivityBenchmarksLazyQuery(baseOptions?: Apollo.LazyQuer
 export type ProductivityBenchmarksQueryHookResult = ReturnType<typeof useProductivityBenchmarksQuery>;
 export type ProductivityBenchmarksLazyQueryHookResult = ReturnType<typeof useProductivityBenchmarksLazyQuery>;
 export type ProductivityBenchmarksQueryResult = Apollo.QueryResult<ProductivityBenchmarksQuery, ProductivityBenchmarksQueryVariables>;
+export const PublicDocumentsDocument = gql`
+    query PublicDocuments {
+  publicDocuments {
+    ...PublicDocumentSnippet
+  }
+}
+    ${PublicDocumentSnippetFragmentDoc}`;
+
+/**
+ * __usePublicDocumentsQuery__
+ *
+ * To run a query within a React component, call `usePublicDocumentsQuery` and pass it any options that fit your needs.
+ * When your component renders, `usePublicDocumentsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = usePublicDocumentsQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function usePublicDocumentsQuery(baseOptions?: Apollo.QueryHookOptions<PublicDocumentsQuery, PublicDocumentsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<PublicDocumentsQuery, PublicDocumentsQueryVariables>(PublicDocumentsDocument, options);
+      }
+export function usePublicDocumentsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<PublicDocumentsQuery, PublicDocumentsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<PublicDocumentsQuery, PublicDocumentsQueryVariables>(PublicDocumentsDocument, options);
+        }
+export type PublicDocumentsQueryHookResult = ReturnType<typeof usePublicDocumentsQuery>;
+export type PublicDocumentsLazyQueryHookResult = ReturnType<typeof usePublicDocumentsLazyQuery>;
+export type PublicDocumentsQueryResult = Apollo.QueryResult<PublicDocumentsQuery, PublicDocumentsQueryVariables>;
 export const SearchDocument = gql`
     query Search($searchString: String!) {
   search(searchString: $searchString) {

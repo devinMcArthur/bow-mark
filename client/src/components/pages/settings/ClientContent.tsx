@@ -6,12 +6,13 @@ import { useAuth } from "../../../contexts/Auth";
 import CompanySettings from "./views/Companies";
 import MaterialSettings from "./views/Materials";
 import ProfileSettings from "./views/Profile";
+import PublicDocumentsSettings from "./views/PublicDocuments";
 import SystemSettings from "./views/System";
 import UserSettings from "./views/Users";
 
-const TAB_NAMES = ["profile", "system", "materials", "companies", "users"] as const;
+const TAB_NAMES = ["profile", "system", "materials", "companies", "users", "publicdocuments"] as const;
 type TabName = typeof TAB_NAMES[number];
-const PM_TABS: TabName[] = ["system", "materials", "companies", "users"];
+const PM_TABS: TabName[] = ["system", "materials", "companies", "users", "publicdocuments"];
 
 const SettingsClientContent = () => {
   const router = useRouter();
@@ -48,6 +49,7 @@ const SettingsClientContent = () => {
         {isPM && <Tab>Materials</Tab>}
         {isPM && <Tab>Companies</Tab>}
         {isPM && <Tab>Users</Tab>}
+        {isPM && <Tab>Public Documents</Tab>}
       </TabList>
       <TabPanels>
         <TabPanel>
@@ -57,6 +59,7 @@ const SettingsClientContent = () => {
         {isPM && <TabPanel><MaterialSettings /></TabPanel>}
         {isPM && <TabPanel><CompanySettings /></TabPanel>}
         {isPM && <TabPanel><UserSettings /></TabPanel>}
+        {isPM && <TabPanel><PublicDocumentsSettings /></TabPanel>}
       </TabPanels>
     </Tabs>
   );

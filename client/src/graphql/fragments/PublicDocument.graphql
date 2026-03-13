@@ -1,0 +1,9 @@
+fragment PublicDocumentSnippet on PublicDocumentClass {
+  _id
+  slug
+  title
+  description
+  viewCount
+  fileUrl
+  createdAt
+}

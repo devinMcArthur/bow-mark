@@ -17,6 +17,7 @@ import foremanJobsiteChatRouter from "./router/foreman-jobsite-chat";
 import pmJobsiteChatRouter from "./router/pm-jobsite-chat";
 import tenderConversationsRouter from "./router/tender-conversations";
 import enrichedFilesRouter from "./router/enriched-files";
+import publicDocumentsRouter from "./router/public-documents";
 
 import { IContext } from "@typescript/graphql";
 
@@ -62,6 +63,7 @@ import ReportNoteResolver from "@graphql/resolvers/reportNote";
 import SignupResolver from "@graphql/resolvers/signup";
 import SystemResolver from "@graphql/resolvers/system";
 import TenderResolver from "@graphql/resolvers/tender";
+import PublicDocumentResolver from "@graphql/resolvers/publicDocument";
 import TruckingReportResolver from "@graphql/resolvers/truckingReport";
 import UserResolver from "@graphql/resolvers/user";
 import VehicleResolver from "@graphql/resolvers/vehicle";
@@ -126,6 +128,7 @@ const createApp = async () => {
       SignupResolver,
       SystemResolver,
       TenderResolver,
+      PublicDocumentResolver,
       TruckingReportResolver,
       UserResolver,
       VehicleResolver,
@@ -222,6 +225,7 @@ const createApp = async () => {
   app.get("/health", (_req, res) => res.sendStatus(200));
 
   app.use("/file", fileRouter);
+  app.use("/public", publicDocumentsRouter);
   app.use("/api/chat", chatRouter);
   app.use("/conversations", conversationsRouter);
   app.use("/api/tender-chat", tenderChatRouter);

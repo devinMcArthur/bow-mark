@@ -357,6 +357,20 @@ export const Tender = getModelForClass(TenderClass, {
 });
 
 /**
+ * ----- Public Document -----
+ */
+
+import { PublicDocumentClass } from "./PublicDocument/class";
+
+export type PublicDocumentDocument = DocumentType<PublicDocumentClass>;
+
+export type PublicDocumentModel = ReturnModelType<typeof PublicDocumentClass>;
+
+export const PublicDocument = getModelForClass(PublicDocumentClass, {
+  schemaOptions: { collection: "publicdocuments" },
+});
+
+/**
  * ----- User -----
  */
 
@@ -413,6 +427,7 @@ export const VehicleWork = getModelForClass(VehicleWorkClass, {
 });
 
 export * from "./Conversation";
+export * from "./PublicDocument";
 
 /**
  * ----- Conversation -----
