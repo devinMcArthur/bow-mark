@@ -76,6 +76,7 @@ export default class TenderResolver {
       file!._id.toString(),
       data.documentType
     );
+    await enrichedFile.save();
 
     // Push the EnrichedFile ref onto the tender
     tender!.files.push(enrichedFile._id as any);

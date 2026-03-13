@@ -27,6 +27,7 @@ import React from "react";
 import { FiChevronDown, FiChevronRight, FiExternalLink, FiRefreshCw, FiTrash2 } from "react-icons/fi";
 import { TenderDetail, TenderFileItem } from "./types";
 import dataUrlToBlob from "../../utils/dataUrlToBlob";
+import { collectDroppedFiles } from "../../utils/collectDroppedFiles";
 
 const FILE_CREATE = gql`
   mutation TenderFileCreate($data: FileCreateData!) {
@@ -318,11 +319,16 @@ interface TenderDocumentsProps {
 const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
   const toast = useToast();
 
-  const [uploading, setUploading] = React.useState(false);
+  const [uploadProgress, setUploadProgress] = React.useState<{ done: number; total: number } | null>(null);
   const [removingId, setRemovingId] = React.useState<string | null>(null);
   const [retryingId, setRetryingId] = React.useState<string | null>(null);
   const [isDragOver, setIsDragOver] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const folderInputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    folderInputRef.current?.setAttribute("webkitdirectory", "");
+  }, []);
 
   const [fileCreate] = Apollo.useMutation<{ fileCreate: { _id: string } }, { data: { file: File; description: string } }>(FILE_CREATE);
 
@@ -348,49 +354,49 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
   // ── Upload handler ────────────────────────────────────────────────────────
 
   const handleUpload = React.useCallback(
-    async (file: File) => {
-      setUploading(true);
+    async (files: File[]) => {
+      if (files.length === 0) return;
+      setUploadProgress({ done: 0, total: files.length });
+      let failed = 0;
 
-      try {
-        // Step 1: Upload file via GraphQL multipart upload
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (ev) => resolve(ev.target!.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (ev) => resolve(ev.target!.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
 
-        const blob = dataUrlToBlob(dataUrl);
-        const uploadFile = new File([blob], file.name, { type: file.type });
+          const blob = dataUrlToBlob(dataUrl);
+          const uploadFile = new File([blob], file.name, { type: file.type });
 
-        const fileRes = await fileCreate({
-          variables: {
-            data: { file: uploadFile, description: file.name },
-          },
-        });
+          const fileRes = await fileCreate({
+            variables: { data: { file: uploadFile, description: file.name } },
+          });
 
-        const fileId = fileRes.data?.fileCreate._id;
-        if (!fileId) throw new Error("File upload failed: no ID returned");
+          const fileId = fileRes.data?.fileCreate._id;
+          if (!fileId) throw new Error("no ID returned");
 
-        // Step 2: Attach to tender
-        await tenderAddFile({
-          variables: {
-            id: tender._id,
-            data: { fileId },
-          },
-        });
+          await tenderAddFile({ variables: { id: tender._id, data: { fileId } } });
+        } catch {
+          failed++;
+        }
+        setUploadProgress({ done: i + 1, total: files.length });
+      }
 
-        if (fileInputRef.current) fileInputRef.current.value = "";
-        if (onUpdated) onUpdated();
-      } catch (e: any) {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (folderInputRef.current) folderInputRef.current.value = "";
+      setUploadProgress(null);
+      if (onUpdated) onUpdated();
+
+      if (failed > 0) {
         toast({
-          title: "Upload failed",
-          description: e.message,
+          title: `${failed} file${failed > 1 ? "s" : ""} failed to upload`,
           status: "error",
           isClosable: true,
         });
-      } finally {
-        setUploading(false);
       }
     },
     [tender._id, fileCreate, tenderAddFile, toast, onUpdated]
@@ -398,19 +404,19 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
 
   const handleFileChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) handleUpload(file);
+      const files = Array.from(e.target.files ?? []);
+      if (files.length) handleUpload(files);
     },
     [handleUpload]
   );
 
   const handleDrop = React.useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
+    async (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       e.stopPropagation();
       setIsDragOver(false);
-      const file = e.dataTransfer.files?.[0];
-      if (file) handleUpload(file);
+      const files = await collectDroppedFiles(e.dataTransfer);
+      if (files.length) handleUpload(files);
     },
     [handleUpload]
   );
@@ -525,22 +531,43 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
         onDrop={handleDrop}
       >
         <Text fontSize="sm" color="gray.500" mb={2} textAlign="center">
-          Drop a file here or click to upload.
+          Drop files or a folder here, or click to upload.
         </Text>
         <HStack justify="center">
           <Button
             size="sm"
             colorScheme="blue"
-            isLoading={uploading}
+            isLoading={uploadProgress !== null}
+            loadingText={
+              uploadProgress && uploadProgress.total > 1
+                ? `${uploadProgress.done} / ${uploadProgress.total}`
+                : undefined
+            }
             onClick={() => fileInputRef.current?.click()}
           >
-            Choose File
+            Choose Files
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            isDisabled={uploadProgress !== null}
+            onClick={() => folderInputRef.current?.click()}
+          >
+            Choose Folder
           </Button>
           <input
             ref={fileInputRef}
             type="file"
+            multiple
             style={{ display: "none" }}
             accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+            onChange={handleFileChange}
+          />
+          <input
+            ref={folderInputRef}
+            type="file"
+            multiple
+            style={{ display: "none" }}
             onChange={handleFileChange}
           />
         </HStack>
