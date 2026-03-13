@@ -276,7 +276,7 @@ const FileRow = ({ entry, jobsiteId, onRemove, onRetry, removingId, retryingId, 
           </Tooltip>
         </Td>
         <Td isNumeric>{file.pageCount ?? "—"}</Td>
-        <Td>
+        <Td textAlign="right">
           <Menu isLazy>
             <MenuButton
               as={IconButton}
