@@ -1,6 +1,8 @@
 import { NextPage } from "next";
 import { useRouter } from "next/router";
+import { Box } from "@chakra-ui/react";
 import ChatPage from "../../components/Chat/ChatPage";
+import { navbarHeight } from "../../constants/styles";
 
 const ChatConversationPage: NextPage = () => {
   const router = useRouter();
@@ -10,10 +12,13 @@ const ChatConversationPage: NextPage = () => {
   if (!router.isReady || typeof conversationId !== "string") return null;
 
   return (
-    <ChatPage
-      initialConversationId={conversationId}
-      conversationsEndpoint="/conversations?scope=all"
-    />
+    <Box h={`calc(100vh - ${navbarHeight})`} overflow="hidden" flex={1}>
+      <ChatPage
+        initialConversationId={conversationId}
+        conversationsEndpoint="/conversations?scope=all"
+        height="100%"
+      />
+    </Box>
   );
 };
 
