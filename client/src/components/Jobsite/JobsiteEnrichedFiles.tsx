@@ -8,6 +8,13 @@ import {
   Collapse,
   HStack,
   IconButton,
+  Menu,
+  MenuButton,
+  MenuDivider,
+  MenuItem,
+  MenuItemOption,
+  MenuList,
+  MenuOptionGroup,
   Spinner,
   Table,
   Tbody,
@@ -28,11 +35,13 @@ import {
   FiChevronDown,
   FiChevronRight,
   FiExternalLink,
+  FiMoreVertical,
   FiRefreshCw,
   FiTrash2,
 } from "react-icons/fi";
 import dataUrlToBlob from "../../utils/dataUrlToBlob";
 import { localStorageTokenKey } from "../../contexts/Auth";
+import { UserRoles } from "../../generated/graphql";
 
 // ─── GQL ─────────────────────────────────────────────────────────────────────
 
@@ -44,30 +53,34 @@ const FILE_CREATE = gql`
   }
 `;
 
-const ENRICHED_FILE_FRAGMENT = `
+const ENRICHED_FILE_ENTRY_FRAGMENT = `
   _id
-  documentType
-  summaryStatus
-  summaryError
-  pageCount
-  summary {
-    overview
-    documentType
-    keyTopics
-  }
-  file {
+  minRole
+  enrichedFile {
     _id
-    mimetype
-    description
+    documentType
+    summaryStatus
+    summaryError
+    pageCount
+    summary {
+      overview
+      documentType
+      keyTopics
+    }
+    file {
+      _id
+      mimetype
+      description
+    }
   }
 `;
 
 const JOBSITE_ADD_ENRICHED_FILE = gql`
-  mutation JobsiteAddEnrichedFile($id: ID!, $fileId: ID!) {
-    jobsiteAddEnrichedFile(id: $id, fileId: $fileId) {
+  mutation JobsiteAddEnrichedFile($id: ID!, $fileId: ID!, $minRole: UserRoles!) {
+    jobsiteAddEnrichedFile(id: $id, fileId: $fileId, minRole: $minRole) {
       _id
       enrichedFiles {
-        ${ENRICHED_FILE_FRAGMENT}
+        ${ENRICHED_FILE_ENTRY_FRAGMENT}
       }
     }
   }
@@ -78,7 +91,7 @@ const JOBSITE_REMOVE_ENRICHED_FILE = gql`
     jobsiteRemoveEnrichedFile(id: $id, fileObjectId: $fileObjectId) {
       _id
       enrichedFiles {
-        ${ENRICHED_FILE_FRAGMENT}
+        ${ENRICHED_FILE_ENTRY_FRAGMENT}
       }
     }
   }
@@ -89,7 +102,18 @@ const JOBSITE_RETRY_ENRICHED_FILE = gql`
     jobsiteRetryEnrichedFile(id: $id, fileObjectId: $fileObjectId) {
       _id
       enrichedFiles {
-        ${ENRICHED_FILE_FRAGMENT}
+        ${ENRICHED_FILE_ENTRY_FRAGMENT}
+      }
+    }
+  }
+`;
+
+const JOBSITE_UPDATE_ENRICHED_FILE_ROLE = gql`
+  mutation JobsiteUpdateEnrichedFileRole($id: ID!, $fileObjectId: ID!, $minRole: UserRoles!) {
+    jobsiteUpdateEnrichedFileRole(id: $id, fileObjectId: $fileObjectId, minRole: $minRole) {
+      _id
+      enrichedFiles {
+        ${ENRICHED_FILE_ENTRY_FRAGMENT}
       }
     }
   }
@@ -97,7 +121,7 @@ const JOBSITE_RETRY_ENRICHED_FILE = gql`
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface EnrichedFileItem {
+export interface EnrichedFileDetails {
   _id: string;
   documentType?: string | null;
   summaryStatus: string;
@@ -115,6 +139,18 @@ export interface EnrichedFileItem {
   };
 }
 
+export interface EnrichedFileItem {
+  _id: string;
+  minRole: UserRoles;
+  enrichedFile: EnrichedFileDetails;
+}
+
+const ROLE_LABELS: Record<UserRoles, string> = {
+  [UserRoles.User]: "All users",
+  [UserRoles.ProjectManager]: "PM & Admin",
+  [UserRoles.Admin]: "Admin only",
+};
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function summaryStatusColor(status: string): string {
@@ -127,16 +163,42 @@ function summaryStatusColor(status: string): string {
 // ─── File row ─────────────────────────────────────────────────────────────────
 
 interface FileRowProps {
-  file: EnrichedFileItem;
+  entry: EnrichedFileItem;
+  jobsiteId: string;
   onRemove: (id: string) => void;
   onRetry: (id: string) => void;
   removingId: string | null;
   retryingId: string | null;
+  readOnly?: boolean;
 }
 
-const FileRow = ({ file, onRemove, onRetry, removingId, retryingId }: FileRowProps) => {
+const FileRow = ({ entry, jobsiteId, onRemove, onRetry, removingId, retryingId, readOnly }: FileRowProps) => {
+  const { enrichedFile: file, minRole, _id: entryId } = entry;
   const [expanded, setExpanded] = React.useState(false);
   const hasSummary = !!file.summary;
+
+  const [updateRole] = Apollo.useMutation(
+    gql`
+      mutation JobsiteUpdateEnrichedFileRoleInline($id: ID!, $fileObjectId: ID!, $minRole: UserRoles!) {
+        jobsiteUpdateEnrichedFileRole(id: $id, fileObjectId: $fileObjectId, minRole: $minRole) {
+          _id
+          enrichedFiles {
+            _id
+            minRole
+            enrichedFile {
+              _id
+              documentType
+              summaryStatus
+              summaryError
+              pageCount
+              summary { overview documentType keyTopics }
+              file { _id mimetype description }
+            }
+          }
+        }
+      }
+    `
+  );
 
   const serverBase = (process.env.NEXT_PUBLIC_API_URL as string).replace("/graphql", "");
   const openFile = () => {
@@ -144,6 +206,28 @@ const FileRow = ({ file, onRemove, onRetry, removingId, retryingId }: FileRowPro
     if (!token) return;
     window.open(`${serverBase}/api/enriched-files/${file._id}?token=${token}`, "_blank");
   };
+
+  if (readOnly) {
+    return (
+      <Tr cursor="pointer" _hover={{ bg: "gray.50" }} onClick={openFile}>
+        <Td overflow="hidden">
+          <Text fontSize="sm" fontWeight="medium" isTruncated>
+            {file.file.description || "Untitled"}
+          </Text>
+          {(file.summary?.documentType || file.documentType) && (
+            <Text fontSize="xs" color="gray.500" isTruncated>
+              {file.summary?.documentType || file.documentType}
+            </Text>
+          )}
+        </Td>
+        <Td>
+          <HStack justify="flex-end">
+            <FiExternalLink color="gray" />
+          </HStack>
+        </Td>
+      </Tr>
+    );
+  }
 
   return (
     <>
@@ -193,35 +277,59 @@ const FileRow = ({ file, onRemove, onRetry, removingId, retryingId }: FileRowPro
         </Td>
         <Td isNumeric>{file.pageCount ?? "—"}</Td>
         <Td>
-          <HStack spacing={1} justify="flex-end">
-            <IconButton
-              aria-label="Open file"
-              icon={<FiExternalLink />}
+          <Menu isLazy>
+            <MenuButton
+              as={IconButton}
+              aria-label="Actions"
+              icon={<FiMoreVertical />}
               size="xs"
               variant="ghost"
-              onClick={openFile}
             />
-            {(file.summaryStatus === "failed" || file.summaryStatus === "ready") && (
-              <IconButton
-                aria-label="Retry summary"
-                icon={retryingId === file._id ? <Spinner size="xs" /> : <FiRefreshCw />}
-                size="xs"
-                colorScheme="orange"
-                variant="ghost"
-                isDisabled={retryingId === file._id}
-                onClick={() => onRetry(file._id)}
-              />
-            )}
-            <IconButton
-              aria-label="Remove file"
-              icon={removingId === file._id ? <Spinner size="xs" /> : <FiTrash2 />}
-              size="xs"
-              colorScheme="red"
-              variant="ghost"
-              isDisabled={removingId === file._id}
-              onClick={() => onRemove(file._id)}
-            />
-          </HStack>
+            <MenuList fontSize="sm" minW="160px">
+              <MenuItem icon={<FiExternalLink />} onClick={openFile}>
+                Open file
+              </MenuItem>
+              {(file.summaryStatus === "failed" || file.summaryStatus === "ready") && (
+                <MenuItem
+                  icon={retryingId === file._id ? <Spinner size="xs" /> : <FiRefreshCw />}
+                  isDisabled={retryingId === file._id}
+                  onClick={() => onRetry(file._id)}
+                >
+                  Retry summary
+                </MenuItem>
+              )}
+              <MenuDivider />
+              <MenuOptionGroup
+                title="Access"
+                type="radio"
+                value={minRole}
+                onChange={(val) =>
+                  updateRole({
+                    variables: {
+                      id: jobsiteId,
+                      fileObjectId: file._id,
+                      minRole: val as UserRoles,
+                    },
+                  })
+                }
+              >
+                {(Object.values(UserRoles).filter((v) => typeof v === "string") as UserRoles[]).map((role) => (
+                  <MenuItemOption key={role} value={role}>
+                    {ROLE_LABELS[role]}
+                  </MenuItemOption>
+                ))}
+              </MenuOptionGroup>
+              <MenuDivider />
+              <MenuItem
+                icon={removingId === file._id ? <Spinner size="xs" /> : <FiTrash2 />}
+                isDisabled={removingId === file._id}
+                color="red.500"
+                onClick={() => onRemove(file._id)}
+              >
+                Remove
+              </MenuItem>
+            </MenuList>
+          </Menu>
         </Td>
       </Tr>
       {hasSummary && (
@@ -264,12 +372,16 @@ interface JobsiteEnrichedFilesProps {
   jobsiteId: string;
   enrichedFiles: EnrichedFileItem[];
   onUpdated?: () => void;
+  hideUpload?: boolean;
+  readOnly?: boolean;
 }
 
 const JobsiteEnrichedFiles = ({
   jobsiteId,
   enrichedFiles,
   onUpdated,
+  hideUpload = false,
+  readOnly = false,
 }: JobsiteEnrichedFilesProps) => {
   const toast = useToast();
 
@@ -289,7 +401,9 @@ const JobsiteEnrichedFiles = ({
   const [retryEnrichedFile] = Apollo.useMutation(JOBSITE_RETRY_ENRICHED_FILE);
 
   const pendingCount = enrichedFiles.filter(
-    (f) => f.summaryStatus === "pending" || f.summaryStatus === "processing"
+    (entry) =>
+      entry.enrichedFile.summaryStatus === "pending" ||
+      entry.enrichedFile.summaryStatus === "processing"
   ).length;
 
   const handleUpload = React.useCallback(
@@ -313,7 +427,9 @@ const JobsiteEnrichedFiles = ({
         const fileId = fileRes.data?.fileCreate._id;
         if (!fileId) throw new Error("File upload failed: no ID returned");
 
-        await addEnrichedFile({ variables: { id: jobsiteId, fileId } });
+        await addEnrichedFile({
+          variables: { id: jobsiteId, fileId, minRole: UserRoles.ProjectManager },
+        });
 
         if (fileInputRef.current) fileInputRef.current.value = "";
         if (onUpdated) onUpdated();
@@ -392,7 +508,7 @@ const JobsiteEnrichedFiles = ({
 
   return (
     <Box>
-      {pendingCount > 0 && (
+      {pendingCount > 0 && !readOnly && (
         <Alert status="warning" mb={3} borderRadius="md" size="sm">
           <AlertIcon />
           <AlertDescription fontSize="sm">
@@ -406,79 +522,88 @@ const JobsiteEnrichedFiles = ({
         <Table
           variant="simple"
           size="sm"
-          mb={4}
+          mb={readOnly ? 0 : 4}
           style={{ tableLayout: "fixed" }}
           w="100%"
         >
-          <colgroup>
-            <col style={{ width: "auto" }} />
-            <col style={{ width: "90px" }} />
-            <col style={{ width: "58px" }} />
-            <col style={{ width: "88px" }} />
-          </colgroup>
-          <Thead>
-            <Tr>
-              <Th whiteSpace="nowrap">File</Th>
-              <Th whiteSpace="nowrap">Status</Th>
-              <Th isNumeric whiteSpace="nowrap">Pages</Th>
-              <Th></Th>
-            </Tr>
-          </Thead>
+          {!readOnly && (
+            <>
+              <colgroup>
+                <col style={{ width: "45%" }} />
+                <col style={{ width: "25%" }} />
+                <col style={{ width: "15%" }} />
+                <col style={{ width: "15%" }} />
+              </colgroup>
+              <Thead>
+                <Tr>
+                  <Th whiteSpace="nowrap">File</Th>
+                  <Th whiteSpace="nowrap">Status</Th>
+                  <Th isNumeric whiteSpace="nowrap">Pages</Th>
+                  <Th></Th>
+                </Tr>
+              </Thead>
+            </>
+          )}
           <Tbody>
-            {enrichedFiles.map((file) => (
+            {enrichedFiles.map((entry) => (
               <FileRow
-                key={file._id}
-                file={file}
+                key={entry._id}
+                entry={entry}
+                jobsiteId={jobsiteId}
                 onRemove={handleRemove}
                 onRetry={handleRetry}
                 removingId={removingId}
                 retryingId={retryingId}
+                readOnly={readOnly}
               />
             ))}
           </Tbody>
         </Table>
       ) : (
         <Text fontSize="sm" color="gray.500" mb={3}>
-          No documents yet. Upload jobsite-specific documents for the AI to reference.
+          {hideUpload || readOnly
+            ? "No documents have been uploaded for this jobsite."
+            : "No documents yet. Upload jobsite-specific documents here."}
         </Text>
       )}
 
-      <Box
-        border="2px dashed"
-        borderColor={isDragOver ? "blue.400" : "gray.200"}
-        borderRadius="md"
-        p={3}
-        bg={isDragOver ? "blue.50" : "gray.50"}
-        transition="border-color 0.15s, background 0.15s"
-        onDragOver={(e) => {
-          e.preventDefault();
-          setIsDragOver(true);
-        }}
-        onDragLeave={() => setIsDragOver(false)}
-        onDrop={handleDrop}
-      >
-        <Text fontSize="sm" color="gray.500" mb={2} textAlign="center">
-          Drop a file here or click to upload. The AI will detect the document type
-          automatically.
-        </Text>
-        <HStack justify="center">
-          <Button
-            size="sm"
-            colorScheme="blue"
-            isLoading={uploading}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            Choose File
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            style={{ display: "none" }}
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-            onChange={handleFileChange}
-          />
-        </HStack>
-      </Box>
+      {!hideUpload && !readOnly && (
+        <Box
+          border="2px dashed"
+          borderColor={isDragOver ? "blue.400" : "gray.200"}
+          borderRadius="md"
+          p={3}
+          bg={isDragOver ? "blue.50" : "gray.50"}
+          transition="border-color 0.15s, background 0.15s"
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragOver(true);
+          }}
+          onDragLeave={() => setIsDragOver(false)}
+          onDrop={handleDrop}
+        >
+          <Text fontSize="sm" color="gray.500" mb={2} textAlign="center">
+            Drop a file here or click to upload.
+          </Text>
+          <HStack justify="center">
+            <Button
+              size="sm"
+              colorScheme="blue"
+              isLoading={uploading}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              Choose File
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              style={{ display: "none" }}
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+              onChange={handleFileChange}
+            />
+          </HStack>
+        </Box>
+      )}
     </Box>
   );
 };

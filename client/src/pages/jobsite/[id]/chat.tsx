@@ -166,7 +166,7 @@ const JobsiteChatPage = () => {
         {isDesktop ? (
           /* ── Desktop: fixed left panel ─────────────────────────────────── */
           <Box
-            w="520px"
+            w="380px"
             flexShrink={0}
             borderRight="1px solid"
             borderColor="gray.200"
