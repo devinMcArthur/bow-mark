@@ -5,6 +5,7 @@ import { Tender, User, System } from "@models";
 import { isDocument } from "@typegoose/typegoose";
 import { streamConversation } from "../lib/streamConversation";
 import { READ_DOCUMENT_TOOL, makeReadDocumentExecutor } from "../lib/readDocumentExecutor";
+import { buildFileIndex } from "../lib/buildFileIndex";
 
 const router = Router();
 
@@ -72,37 +73,14 @@ router.post("/message", async (req, res) => {
 
   const tenderFiles = (tender.files as any[]);
   const specFiles = ((systemDoc?.specFiles ?? []) as any[]);
-  const readyFiles = tenderFiles.filter((f: any) => f.summaryStatus === "ready");
-  const pendingFiles = tenderFiles.filter(
-    (f: any) => f.summaryStatus === "pending" || f.summaryStatus === "processing"
-  );
-  const readySpecFiles = specFiles.filter((f: any) => f.summaryStatus === "ready");
 
   const serverBase = process.env.API_BASE_URL || `${req.protocol}://${req.get("host")}`;
-
-  const buildFileEntry = (f: any) => {
-    const summary = f.summary as any;
-    const chunks = summary?.chunks as Array<{ startPage: number; endPage: number; overview: string; keyTopics: string[] }> | undefined;
-    const chunkIndex =
-      chunks && chunks.length > 1
-        ? `\nPage Sections:\n${chunks.map((c) => `  Pages ${c.startPage}–${c.endPage}: ${c.keyTopics.slice(0, 6).join(", ")}`).join("\n")}`
-        : "";
-    return [
-      `**File ID: ${f._id}**`,
-      `Type: ${summary?.documentType || f.documentType || "Unknown"}`,
-      `URL: ${serverBase}/api/enriched-files/${f._id}?token=${token}`,
-      summary
-        ? `Overview: ${summary.overview}\nKey Topics: ${(summary.keyTopics as string[]).join(", ")}${chunkIndex}`
-        : "Summary: not yet available",
-    ].join("\n");
-  };
-
-  const fileIndex = readyFiles.map(buildFileEntry).join("\n\n---\n\n");
-  const specFileIndex = readySpecFiles.map(buildFileEntry).join("\n\n---\n\n");
-  const pendingNotice =
-    pendingFiles.length > 0
-      ? `\n\nNOTE: ${pendingFiles.length} document(s) are still being processed and are not yet available for reading. Mention this if your answer may be incomplete.`
-      : "";
+  const { fileIndex, specFileIndex, pendingNotice } = buildFileIndex(
+    tenderFiles,
+    specFiles,
+    serverBase,
+    token
+  );
 
   const systemPrompt = `${userContext ? userContext + "\n\n" : ""}You are an AI assistant helping to analyze tender documents for Bow-Mark, a paving and concrete company.
 
