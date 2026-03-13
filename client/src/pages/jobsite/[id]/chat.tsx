@@ -90,8 +90,9 @@ const JOBSITE_SUGGESTIONS = [
 
 const JobsiteChatPage = () => {
   const router = useRouter();
-  const { id } = router.query;
+  const { id, conversationId: conversationIdParam } = router.query;
   const jobsiteId = typeof id === "string" ? id : "";
+  const initialConversationId = typeof conversationIdParam === "string" ? conversationIdParam : undefined;
   const [isDesktop] = useMediaQuery("(min-width: 768px)");
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -211,6 +212,7 @@ const JobsiteChatPage = () => {
             extraPayload={{ jobsiteId }}
             suggestions={JOBSITE_SUGGESTIONS}
             disableRouting
+            initialConversationId={initialConversationId}
           />
         </Box>
       </Flex>

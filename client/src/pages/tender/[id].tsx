@@ -80,6 +80,8 @@ const TenderDetailPage = () => {
   const router = useRouter();
   const { id } = router.query;
   const tenderId = typeof id === "string" ? id : "";
+  const conversationIdParam = router.query.conversationId;
+  const initialConversationId = typeof conversationIdParam === "string" ? conversationIdParam : undefined;
 
   const { data, loading, refetch, startPolling, stopPolling } = Apollo.useQuery<
     TenderQueryResult,
@@ -174,6 +176,7 @@ const TenderDetailPage = () => {
             extraPayload={{ tenderId }}
             suggestions={TENDER_SUGGESTIONS}
             disableRouting
+            initialConversationId={initialConversationId}
           />
         </Box>
       </Flex>

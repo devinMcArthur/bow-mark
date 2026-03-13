@@ -50,7 +50,7 @@ function conversationHref(entry: ConversationEntry): string {
     return `/jobsite/${entry.context.id}/chat?conversationId=${entry.id}`;
   }
   if (entry.context?.type === "tender") {
-    return `/tender/${entry.context.id}/chat?conversationId=${entry.id}`;
+    return `/tender/${entry.context.id}?conversationId=${entry.id}`;
   }
   return `/chat/${entry.id}`;
 }
