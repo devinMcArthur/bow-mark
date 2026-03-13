@@ -71,6 +71,7 @@ export default class SystemResolver {
 
     // Create a standalone EnrichedFile document
     const enrichedFile = await EnrichedFile.createDocument(file!._id.toString());
+    await enrichedFile.save();
 
     // Push the ref to system.specFiles
     system.specFiles.push(enrichedFile._id as any);
