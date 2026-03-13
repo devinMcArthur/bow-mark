@@ -1,7 +1,7 @@
 import { Router } from "express";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
-import { ChatConversation } from "../models/ChatConversation";
+import { Conversation, Jobsite, Tender } from "@models";
 
 const router = Router();
 
@@ -26,10 +26,80 @@ const auth = (req: any, res: any, next: any) => {
 };
 
 // GET /conversations — list user's conversations (no messages)
+// ?jobsiteId=<id>  → jobsite-scoped conversations
+// (no param)       → general (no context) conversations only
 router.get("/", auth, async (req: any, res) => {
   try {
-    const convos = await ChatConversation.find(
-      { user: req.userId },
+    const { jobsiteId, scope } = req.query as { jobsiteId?: string; scope?: string };
+
+    if (scope === "all") {
+      // Return all conversations for this user across all contexts
+      const convos = await Conversation.find(
+        { user: req.userId },
+        "title aiModel totalInputTokens totalOutputTokens updatedAt createdAt jobsiteId tenderId"
+      )
+        .sort({ updatedAt: -1 })
+        .lean();
+
+      // Collect unique jobsite/tender IDs for name lookup
+      const jobsiteIds = [...new Set(convos.filter((c: any) => c.jobsiteId).map((c: any) => c.jobsiteId!.toString()))];
+      const tenderIds = [...new Set(convos.filter((c: any) => c.tenderId).map((c: any) => c.tenderId!.toString()))];
+
+      const [jobsites, tenders] = await Promise.all([
+        jobsiteIds.length > 0
+          ? Jobsite.find({ _id: { $in: jobsiteIds } }, "name jobcode").lean()
+          : [],
+        tenderIds.length > 0
+          ? Tender.find({ _id: { $in: tenderIds } }, "name").lean()
+          : [],
+      ]);
+
+      const jobsiteMap = new Map((jobsites as any[]).map((j: any) => [j._id.toString(), j]));
+      const tenderMap = new Map((tenders as any[]).map((t: any) => [t._id.toString(), t]));
+
+      return res.json(
+        convos.map((c: any) => {
+          let context: { type: string; id: string; name: string } | undefined;
+          if (c.jobsiteId) {
+            const j = jobsiteMap.get(c.jobsiteId.toString()) as any;
+            context = {
+              type: "jobsite",
+              id: c.jobsiteId.toString(),
+              name: j ? (j.jobcode ? `${j.jobcode} — ${j.name}` : j.name) : "Unknown jobsite",
+            };
+          } else if (c.tenderId) {
+            const t = tenderMap.get(c.tenderId.toString()) as any;
+            context = {
+              type: "tender",
+              id: c.tenderId.toString(),
+              name: t?.name ?? "Unknown tender",
+            };
+          }
+          return {
+            id: c._id.toString(),
+            title: c.title,
+            model: c.aiModel,
+            totalInputTokens: c.totalInputTokens,
+            totalOutputTokens: c.totalOutputTokens,
+            updatedAt: c.updatedAt,
+            createdAt: c.createdAt,
+            ...(context ? { context } : {}),
+          };
+        })
+      );
+    }
+
+    const query: Record<string, unknown> = { user: req.userId };
+    if (jobsiteId && mongoose.isValidObjectId(jobsiteId)) {
+      query.jobsiteId = new mongoose.Types.ObjectId(jobsiteId);
+    } else {
+      // General chat: exclude any context-scoped conversations
+      query.tenderId = { $exists: false };
+      query.jobsiteId = { $exists: false };
+    }
+
+    const convos = await Conversation.find(
+      query,
       "title aiModel totalInputTokens totalOutputTokens updatedAt createdAt"
     )
       .sort({ updatedAt: -1 })
@@ -59,12 +129,12 @@ router.get("/:id", auth, async (req: any, res) => {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    const convo = await ChatConversation.findById(req.params.id).lean();
+    const convo = await Conversation.findById(req.params.id).lean();
     if (!convo) {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    if (convo.user.toString() !== req.userId) {
+    if (String(convo.user) !== req.userId) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
@@ -100,12 +170,12 @@ router.patch("/:id/title", auth, async (req: any, res) => {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    const convo = await ChatConversation.findById(req.params.id);
+    const convo = await Conversation.findById(req.params.id);
     if (!convo) {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    if (convo.user.toString() !== req.userId) {
+    if (String(convo.user) !== req.userId) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
@@ -125,16 +195,15 @@ router.delete("/:id/last-exchange", auth, async (req: any, res) => {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    const convo = await ChatConversation.findById(req.params.id);
+    const convo = await Conversation.findById(req.params.id);
     if (!convo) {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    if (convo.user.toString() !== req.userId) {
+    if (String(convo.user) !== req.userId) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
-    // Find the last user message and trim from there
     const msgs = convo.messages as any[];
     let lastUserIdx = -1;
     for (let i = msgs.length - 1; i >= 0; i--) {
@@ -160,12 +229,12 @@ router.delete("/:id", auth, async (req: any, res) => {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    const convo = await ChatConversation.findById(req.params.id);
+    const convo = await Conversation.findById(req.params.id);
     if (!convo) {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    if (convo.user.toString() !== req.userId) {
+    if (String(convo.user) !== req.userId) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
