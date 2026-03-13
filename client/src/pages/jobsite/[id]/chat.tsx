@@ -34,7 +34,7 @@ import { UserRoles } from "../../../generated/graphql";
 // ─── GQL ─────────────────────────────────────────────────────────────────────
 
 const JOBSITE_CHAT_QUERY = gql`
-  query JobsiteChat($id: ID!) {
+  query JobsiteChat($id: String!) {
     jobsite(id: $id) {
       _id
       name
