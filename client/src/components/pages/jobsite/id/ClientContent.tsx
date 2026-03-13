@@ -1,6 +1,7 @@
 import {
   Box,
   Flex,
+  Heading,
   IconButton,
   Modal,
   ModalBody,
@@ -16,7 +17,7 @@ import {
 import NextLink from "next/link";
 import { useRouter } from "next/router";
 import React from "react";
-import { FiArchive, FiBarChart2, FiEdit, FiMap, FiTrash, FiUnlock } from "react-icons/fi";
+import { FiArchive, FiBarChart2, FiEdit, FiMap, FiMessageSquare, FiTrash, FiUnlock } from "react-icons/fi";
 import {
   useJobsiteAllDataLazyQuery,
   useJobsiteArchiveMutation,
@@ -35,6 +36,7 @@ import Permission from "../../../Common/Permission";
 import JobsiteUpdateForm from "../../../Forms/Jobsite/JobsiteUpdate";
 import ExpenseInvoices from "./views/ExpenseInvoices";
 import JobsiteFileObjects from "./views/FileObjects";
+import JobsiteEnrichedFiles, { EnrichedFileItem } from "../../../Jobsite/JobsiteEnrichedFiles";
 import JobsiteMaterialsCosting from "./views/JobsiteMaterials";
 import JobsiteRemoveModal from "./views/RemoveModal";
 import RevenueInvoices from "./views/RevenueInvoices";
@@ -52,7 +54,7 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
    * ----- Hook Initialization -----
    */
 
-  const { data } = useJobsiteFullQuery({
+  const { data, refetch, startPolling, stopPolling } = useJobsiteFullQuery({
     variables: { id },
   });
 
@@ -148,6 +150,17 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
     previousYears,
   ]);
 
+  React.useEffect(() => {
+    const hasProcessing = data?.jobsite?.enrichedFiles?.some(
+      (f) => f.enrichedFile?.summaryStatus === "pending" || f.enrichedFile?.summaryStatus === "processing"
+    );
+    if (hasProcessing) {
+      startPolling(3000);
+    } else {
+      stopPolling();
+    }
+  }, [data?.jobsite?.enrichedFiles, startPolling, stopPolling]);
+
   /**
    * ----- Rendering -----
    */
@@ -193,6 +206,18 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
                     />
                   </NextLink>
                 </Tooltip>
+                <Permission minRole={UserRoles.ProjectManager}>
+                  <Tooltip label="Chat">
+                    <NextLink href={`/jobsite/${jobsite._id}/chat`} passHref>
+                      <IconButton
+                        as="a"
+                        aria-label="chat"
+                        icon={<FiMessageSquare />}
+                        backgroundColor="transparent"
+                      />
+                    </NextLink>
+                  </Tooltip>
+                </Permission>
                 <IconButton
                   aria-label="location"
                   icon={<FiMap />}
@@ -255,7 +280,19 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
               </Flex>
             </Flex>
           </Card>
-          <JobsiteFileObjects jobsite={jobsite} />
+          {jobsite.fileObjects.length > 0 && (
+            <JobsiteFileObjects jobsite={jobsite} hideAdd />
+          )}
+          <Card>
+            <Heading size="sm" mb={3} color="gray.700">
+              Documents
+            </Heading>
+            <JobsiteEnrichedFiles
+              jobsiteId={jobsite._id}
+              enrichedFiles={(jobsite.enrichedFiles ?? []) as EnrichedFileItem[]}
+              onUpdated={() => refetch()}
+            />
+          </Card>
           <Permission minRole={UserRoles.ProjectManager}>
             <SimpleGrid columns={[1, 1, 1, 2]} spacingX={4} spacingY={2}>
               <JobsiteMaterialsCosting
@@ -341,7 +378,8 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
     archive,
     archiveLoading,
     unarchive,
-    unarchiveLoading
+    unarchiveLoading,
+    refetch,
   ]);
 };
 
