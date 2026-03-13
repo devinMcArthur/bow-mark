@@ -140,9 +140,7 @@ const JobsiteChatPage = () => {
         crumbs={[
           { title: "Jobsites", link: "/jobsites" },
           {
-            title: jobsite.jobcode
-              ? `${jobsite.jobcode} — ${jobsite.name}`
-              : jobsite.name,
+            title: jobsite.jobcode || jobsite.name,
             link: `/jobsite/${jobsite._id}`,
           },
           { title: "Chat", isCurrentPage: true },
@@ -168,7 +166,7 @@ const JobsiteChatPage = () => {
         {isDesktop ? (
           /* ── Desktop: fixed left panel ─────────────────────────────────── */
           <Box
-            w="380px"
+            w="520px"
             flexShrink={0}
             borderRight="1px solid"
             borderColor="gray.200"
