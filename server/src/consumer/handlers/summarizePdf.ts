@@ -1,6 +1,26 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { PDFDocument } from "pdf-lib";
 
+export async function withRateLimitRetry<T>(
+  fn: () => Promise<T>,
+  label: string,
+  maxRetries = 4
+): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      const isRateLimit = error?.status === 429 || error?.error?.type === "rate_limit_error";
+      if (!isRateLimit || attempt === maxRetries) throw error;
+      const retryAfterSec = parseInt(error?.headers?.["retry-after"] ?? "0", 10);
+      const waitMs = retryAfterSec > 0 ? retryAfterSec * 1000 : Math.min(60_000, 2_000 * 2 ** attempt);
+      console.warn(`[summarizePdf] Rate limited on ${label}. Waiting ${waitMs}ms (attempt ${attempt + 1}/${maxRetries})...`);
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
+  }
+  throw new Error("Max retries exceeded");
+}
+
 // 4 MB original → ~5.3 MB base64. Single-page chunks at this size work fine
 // against Anthropic's API — the original request_too_large errors were caused
 // by multi-page chunks where dense pages pushed the total far above this.
@@ -151,16 +171,19 @@ async function summarizePageAsText(
     };
   }
 
-  const response = await anthropic.messages.create({
-    model: "claude-haiku-4-5",
-    max_tokens: 512,
-    messages: [
-      {
-        role: "user",
-        content: `${summaryPrompt}\n\nDocument content (text extracted from page ${pageNumber}):\n${text.slice(0, 50000)}`,
-      },
-    ],
-  });
+  const response = await withRateLimitRetry(
+    () => anthropic.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 512,
+      messages: [
+        {
+          role: "user",
+          content: `${summaryPrompt}\n\nDocument content (text extracted from page ${pageNumber}):\n${text.slice(0, 50000)}`,
+        },
+      ],
+    }),
+    `page ${pageNumber} text`
+  );
 
   const responseText = response.content[0]?.type === "text" ? response.content[0].text.trim() : "";
   const cleaned = responseText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
@@ -178,26 +201,29 @@ async function sendChunk(
   summaryPrompt: string
 ): Promise<DocumentSummary> {
   const base64 = pdfBuffer.toString("base64");
-  const response = await anthropic.messages.create({
-    model: "claude-haiku-4-5",
-    max_tokens: 512,
-    messages: [
-      {
-        role: "user",
-        content: [
-          { type: "text" as const, text: summaryPrompt },
-          {
-            type: "document" as any,
-            source: {
-              type: "base64" as const,
-              media_type: "application/pdf" as const,
-              data: base64,
+  const response = await withRateLimitRetry(
+    () => anthropic.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 512,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text" as const, text: summaryPrompt },
+            {
+              type: "document" as any,
+              source: {
+                type: "base64" as const,
+                media_type: "application/pdf" as const,
+                data: base64,
+              },
             },
-          },
-        ],
-      },
-    ],
-  });
+          ],
+        },
+      ],
+    }),
+    "pdf chunk"
+  );
 
   const text = response.content[0]?.type === "text" ? response.content[0].text.trim() : "";
   const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
@@ -226,13 +252,14 @@ async function mergePartials(
     .map((p, i) => `Chunk ${i + 1}:\n${JSON.stringify(p, null, 2)}`)
     .join("\n\n");
 
-  const response = await anthropic.messages.create({
-    model: "claude-haiku-4-5",
-    max_tokens: 512,
-    messages: [
-      {
-        role: "user",
-        content: `You are merging partial document summaries from different sections of the same large document into a single cohesive summary.
+  const response = await withRateLimitRetry(
+    () => anthropic.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 512,
+      messages: [
+        {
+          role: "user",
+          content: `You are merging partial document summaries from different sections of the same large document into a single cohesive summary.
 
 Partial summaries:
 ${partialsText}
@@ -244,9 +271,11 @@ Return a single merged JSON object with exactly these fields:
   "keyTopics": ["merged", "deduplicated", "list", "of", "key", "topics"]
 }
 Return only valid JSON, no markdown, no explanation.`,
-      },
-    ],
-  });
+        },
+      ],
+    }),
+    "merge partials"
+  );
 
   const text = response.content[0]?.type === "text" ? response.content[0].text.trim() : "";
   const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();

@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { EnrichedFile } from "@models";
 import { getFile } from "@utils/fileStorage";
 import type { EnrichedFileSummaryMessage } from "../../rabbitmq/publisher";
-import { summarizePdf, DocumentSummary } from "./summarizePdf";
+import { summarizePdf, DocumentSummary, withRateLimitRetry } from "./summarizePdf";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -48,11 +48,14 @@ export const enrichedFileSummaryHandler = {
           const ws = workbook.Sheets[name];
           return `Sheet: ${name}\n${xlsx.utils.sheet_to_csv(ws)}`;
         }).join("\n\n");
-        const response = await anthropic.messages.create({
-          model: "claude-haiku-4-5",
-          max_tokens: 512,
-          messages: [{ role: "user", content: `${SUMMARY_PROMPT}\n\nDocument content:\n${sheets.slice(0, 50000)}` }],
-        });
+        const response = await withRateLimitRetry(
+          () => anthropic.messages.create({
+            model: "claude-haiku-4-5",
+            max_tokens: 512,
+            messages: [{ role: "user", content: `${SUMMARY_PROMPT}\n\nDocument content:\n${sheets.slice(0, 50000)}` }],
+          }),
+          "spreadsheet"
+        );
         const text = response.content[0]?.type === "text" ? response.content[0].text.trim() : "";
         const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
         try {
@@ -61,24 +64,27 @@ export const enrichedFileSummaryHandler = {
           throw new Error(`Claude returned invalid JSON: ${text.slice(0, 200)}`);
         }
       } else if (contentType.startsWith("image/")) {
-        const response = await anthropic.messages.create({
-          model: "claude-haiku-4-5",
-          max_tokens: 512,
-          messages: [{
-            role: "user",
-            content: [
-              { type: "text" as const, text: SUMMARY_PROMPT },
-              {
-                type: "image" as const,
-                source: {
-                  type: "base64" as const,
-                  media_type: contentType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
-                  data: base64,
+        const response = await withRateLimitRetry(
+          () => anthropic.messages.create({
+            model: "claude-haiku-4-5",
+            max_tokens: 512,
+            messages: [{
+              role: "user",
+              content: [
+                { type: "text" as const, text: SUMMARY_PROMPT },
+                {
+                  type: "image" as const,
+                  source: {
+                    type: "base64" as const,
+                    media_type: contentType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
+                    data: base64,
+                  },
                 },
-              },
-            ],
-          }],
-        });
+              ],
+            }],
+          }),
+          "image"
+        );
         const text = response.content[0]?.type === "text" ? response.content[0].text.trim() : "";
         const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
         try {
