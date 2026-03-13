@@ -2,7 +2,7 @@ import {
   Tender,
   TenderClass,
   TenderDocument,
-  TenderConversation,
+  Conversation,
   File,
   JobsiteClass,
   Jobsite,
@@ -127,7 +127,7 @@ export default class TenderResolver {
   @Mutation(() => Boolean)
   async tenderRemove(@Arg("id", () => ID) id: Id) {
     const tender = await Tender.getById(id, { throwError: true });
-    await TenderConversation.deleteMany({ tender: id });
+    await Conversation.deleteMany({ tenderId: id });
     // Clean up all associated EnrichedFile documents
     const fileIds = (tender!.files as any[]).map((f: any) => f.toString());
     if (fileIds.length > 0) {

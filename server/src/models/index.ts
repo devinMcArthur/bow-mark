@@ -412,5 +412,18 @@ export const VehicleWork = getModelForClass(VehicleWorkClass, {
   schemaOptions: { collection: "vehicleworks" },
 });
 
-export * from "./ChatConversation";
-export * from "./TenderConversation";
+export * from "./Conversation";
+
+/**
+ * ----- Conversation -----
+ */
+
+import { ConversationClass } from "./Conversation/class";
+
+export type ConversationDocument = DocumentType<ConversationClass>;
+
+export type ConversationModel = ReturnModelType<typeof ConversationClass>;
+
+export const Conversation = getModelForClass(ConversationClass, {
+  schemaOptions: { collection: "conversations", timestamps: true },
+});

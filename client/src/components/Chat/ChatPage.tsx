@@ -179,6 +179,8 @@ interface ChatPageProps {
   extraPayload?: Record<string, unknown>; // merged into POST body e.g. { tenderId }
   suggestions?: string[];          // overrides SUGGESTIONS constant if provided
   disableRouting?: boolean;        // when true, don't navigate on conversation select/new
+  height?: string;                 // override container height, default: calc(100vh - navbarHeight)
+  minRole?: UserRoles;             // minimum role required to access chat, default: ProjectManager
 }
 
 const ChatPage = ({
@@ -188,6 +190,8 @@ const ChatPage = ({
   extraPayload,
   suggestions: suggestionsProp,
   disableRouting = false,
+  height,
+  minRole = UserRoles.ProjectManager,
 }: ChatPageProps) => {
   const router = useRouter();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
@@ -217,6 +221,8 @@ const ChatPage = ({
   }, [input]);
 
   const serverBase = (process.env.NEXT_PUBLIC_API_URL as string).replace("/graphql", "");
+  // Base path without query string — used for per-conversation endpoints (/id, /title, etc.)
+  const conversationsBase = conversationsEndpoint.split("?")[0];
   const getToken = () =>
     typeof window !== "undefined" ? localStorage.getItem(localStorageTokenKey) : null;
 
@@ -236,7 +242,7 @@ const ChatPage = ({
   const loadConversation = React.useCallback(
     async (id: string) => {
       try {
-        const res = await fetch(`${serverBase}${conversationsEndpoint}/${id}`, {
+        const res = await fetch(`${serverBase}${conversationsBase}/${id}`, {
           headers: { Authorization: getToken() ?? "" },
         });
         if (!res.ok) return;
@@ -318,7 +324,7 @@ const ChatPage = ({
 
   const renameConversation = async (id: string, title: string) => {
     try {
-      const res = await fetch(`${serverBase}${conversationsEndpoint}/${id}/title`, {
+      const res = await fetch(`${serverBase}${conversationsBase}/${id}/title`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -336,7 +342,7 @@ const ChatPage = ({
 
   const deleteConversation = async (id: string) => {
     try {
-      const res = await fetch(`${serverBase}${conversationsEndpoint}/${id}`, {
+      const res = await fetch(`${serverBase}${conversationsBase}/${id}`, {
         method: "DELETE",
         headers: { Authorization: getToken() ?? "" },
       });
@@ -469,7 +475,7 @@ const ChatPage = ({
                 currentConvoId = event.id;
                 setConversationId(event.id);
                 // Update URL without triggering a navigation/re-render mid-stream
-                window.history.replaceState({}, "", `/chat/${event.id}`);
+                if (!disableRouting) window.history.replaceState({}, "", `/chat/${event.id}`);
                 setConversations((prev) => [
                   {
                     id: event.id!,
@@ -574,7 +580,7 @@ const ChatPage = ({
     if (!lastUserMsg) return;
 
     try {
-      await fetch(`${serverBase}${conversationsEndpoint}/${conversationId}/last-exchange`, {
+      await fetch(`${serverBase}${conversationsBase}/${conversationId}/last-exchange`, {
         method: "DELETE",
         headers: { Authorization: getToken() ?? "" },
       });
@@ -607,8 +613,8 @@ const ChatPage = ({
   );
 
   return (
-    <Permission minRole={UserRoles.ProjectManager} type={null} showError>
-      <Flex h={`calc(100vh - ${navbarHeight})`} overflow="hidden" w="100%">
+    <Permission minRole={minRole} type={null} showError>
+      <Flex h={height ?? `calc(100vh - ${navbarHeight})`} overflow="hidden" w="100%">
         {/* ── Sidebar ─────────────────────────────────────────────────────── */}
         {/* Mobile backdrop */}
         {!isDesktop && sidebarOpen && (

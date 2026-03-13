@@ -50,9 +50,10 @@ import VehicleWork from "./views/VehicleWork";
 
 interface IDailyReportClientContent {
   id: string;
+  showFloatingChat?: boolean;
 }
 
-const DailyReportClientContent = ({ id }: IDailyReportClientContent) => {
+const DailyReportClientContent = ({ id, showFloatingChat }: IDailyReportClientContent) => {
   /**
    * ----- Hook Initialization -----
    */
@@ -259,14 +260,16 @@ const DailyReportClientContent = ({ id }: IDailyReportClientContent) => {
                     backgroundColor="transparent"
                   />
                 </TextLink>
-                <Tooltip label="Chat with documents">
-                  <IconButton
-                    backgroundColor="transparent"
-                    icon={<FiMessageSquare />}
-                    aria-label="chat"
-                    onClick={onChatOpen}
-                  />
-                </Tooltip>
+                {!showFloatingChat && (data.dailyReport.jobsite.enrichedFiles?.length ?? 0) > 0 && (
+                  <Tooltip label="Chat with documents">
+                    <IconButton
+                      backgroundColor="transparent"
+                      icon={<FiMessageSquare />}
+                      aria-label="chat"
+                      onClick={onChatOpen}
+                    />
+                  </Tooltip>
+                )}
                 <Permission
                   minRole={UserRoles.ProjectManager}
                   otherCriteria={editPermission}
@@ -345,6 +348,22 @@ const DailyReportClientContent = ({ id }: IDailyReportClientContent) => {
                 readOnly
               />
             </Card>
+          )}
+
+          {showFloatingChat && !chatOpen && (data.dailyReport.jobsite.enrichedFiles?.length ?? 0) > 0 && (
+            <IconButton
+              aria-label="Chat with documents"
+              icon={<FiMessageSquare />}
+              colorScheme="blue"
+              size="lg"
+              borderRadius="full"
+              position="fixed"
+              bottom={8}
+              right={8}
+              zIndex={4}
+              onClick={onChatOpen}
+              boxShadow="lg"
+            />
           )}
 
           <DailyReportChatDrawer

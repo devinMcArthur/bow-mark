@@ -9,6 +9,7 @@ import {
   JobsiteClass,
   JobsiteDayReportClass,
   JobsiteDocument,
+  JobsiteEnrichedFileClass,
   JobsiteMaterialClass,
   JobsiteMonthReportClass,
   JobsiteYearReportClass,
@@ -16,6 +17,7 @@ import {
   File,
   EnrichedFile,
 } from "@models";
+import { UserRoles } from "@typescript/user";
 import { publishEnrichedFileCreated } from "../../../rabbitmq/publisher";
 import { isDocument } from "@typegoose/typegoose";
 import { IContext, ListOptionData } from "@typescript/graphql";
@@ -133,9 +135,28 @@ export default class JobsiteResolver {
     return jobsite.getYearReports();
   }
 
-  @FieldResolver(() => [EnrichedFileClass])
-  async enrichedFiles(@Root() jobsite: JobsiteDocument) {
-    return EnrichedFile.find({ _id: { $in: jobsite.enrichedFiles } }).populate("file");
+  @FieldResolver(() => [JobsiteEnrichedFileClass])
+  async enrichedFiles(
+    @Root() jobsite: JobsiteDocument,
+    @Ctx() context: IContext
+  ) {
+    const userRole = context.user?.role ?? UserRoles.User;
+    const allEntries = (jobsite.enrichedFiles as JobsiteEnrichedFileClass[]).filter(
+      (entry) => entry.enrichedFile != null
+    );
+    const allowedEntries = allEntries.filter(
+      (entry) => (entry.minRole ?? UserRoles.ProjectManager) <= userRole
+    );
+    const enrichedFileIds = allowedEntries.map((e) => e.enrichedFile);
+    const files = await EnrichedFile.find({ _id: { $in: enrichedFileIds } }).populate("file");
+    const fileMap = new Map(files.map((f) => [f._id.toString(), f]));
+    return allowedEntries
+      .map((entry) => ({
+        _id: entry._id,
+        minRole: entry.minRole,
+        enrichedFile: fileMap.get(entry.enrichedFile!.toString()),
+      }))
+      .filter((e) => e.enrichedFile != null);
   }
 
   /**
@@ -315,13 +336,19 @@ export default class JobsiteResolver {
   @Mutation(() => JobsiteClass)
   async jobsiteAddEnrichedFile(
     @Arg("id", () => ID) id: Id,
-    @Arg("fileId", () => ID) fileId: Id
+    @Arg("fileId", () => ID) fileId: Id,
+    @Arg("minRole", () => UserRoles, { defaultValue: UserRoles.ProjectManager }) minRole: UserRoles
   ) {
     const jobsite = await Jobsite.getById(id, { throwError: true });
     const file = await File.getById(fileId, { throwError: true });
 
     const enrichedFile = await EnrichedFile.createDocument(file!._id.toString());
-    (jobsite!.enrichedFiles as any[]).push(enrichedFile._id);
+    await enrichedFile.save();
+    // Strip any stale legacy entries (old plain-ObjectId format) before saving
+    jobsite!.enrichedFiles = (jobsite!.enrichedFiles as any[]).filter(
+      (e: any) => e.enrichedFile != null
+    ) as any;
+    (jobsite!.enrichedFiles as any[]).push({ enrichedFile: enrichedFile._id, minRole });
     await jobsite!.save();
 
     await publishEnrichedFileCreated(enrichedFile._id.toString(), file!._id.toString());
@@ -337,7 +364,7 @@ export default class JobsiteResolver {
   ) {
     const jobsite = await Jobsite.getById(id, { throwError: true });
     jobsite!.enrichedFiles = (jobsite!.enrichedFiles as any[]).filter(
-      (f: any) => f.toString() !== fileObjectId.toString()
+      (entry: any) => entry.enrichedFile.toString() !== fileObjectId.toString()
     ) as any;
     await jobsite!.save();
 
@@ -367,6 +394,23 @@ export default class JobsiteResolver {
 
     await publishEnrichedFileCreated(fileObjectId.toString(), fileId);
 
+    return Jobsite.getById(id);
+  }
+
+  @Authorized(["ADMIN", "PM"])
+  @Mutation(() => JobsiteClass)
+  async jobsiteUpdateEnrichedFileRole(
+    @Arg("id", () => ID) id: Id,
+    @Arg("fileObjectId", () => ID) fileObjectId: Id,
+    @Arg("minRole", () => UserRoles) minRole: UserRoles
+  ) {
+    const jobsite = await Jobsite.getById(id, { throwError: true });
+    const entry = (jobsite!.enrichedFiles as any[]).find(
+      (e: any) => e.enrichedFile.toString() === fileObjectId.toString()
+    );
+    if (!entry) throw new Error("File not found on jobsite");
+    entry.minRole = minRole;
+    await jobsite!.save();
     return Jobsite.getById(id);
   }
 }

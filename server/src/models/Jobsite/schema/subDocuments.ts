@@ -4,6 +4,7 @@ import { TruckingRateTypes } from "@typescript/jobsite";
 import { DefaultRateClass, RateClass } from "@typescript/models";
 import { Field, ID, ObjectType } from "type-graphql";
 import { FileClass } from "@models";
+import { EnrichedFileClass } from "../../EnrichedFile/class";
 import { UserRoles } from "@typescript/user";
 
 @ObjectType()
@@ -69,3 +70,21 @@ export class JobsiteContractClass {
 }
 
 export type JobsiteFileObjectDocument = DocumentType<JobsiteFileObjectClass>;
+
+@ObjectType()
+export class JobsiteEnrichedFileClass {
+  @Field(() => ID, { nullable: true })
+  public _id?: Types.ObjectId;
+
+  @Field(() => EnrichedFileClass, { nullable: false })
+  @prop({ ref: () => EnrichedFileClass, required: true })
+  public enrichedFile!: Ref<EnrichedFileClass>;
+
+  @Field(() => UserRoles, { nullable: false })
+  @prop({
+    enum: UserRoles,
+    required: true,
+    default: UserRoles.ProjectManager,
+  })
+  public minRole!: UserRoles;
+}

@@ -6,7 +6,7 @@ import {
   InvoiceClass,
   JobsiteMaterialClass,
 } from "@models";
-import { EnrichedFileClass } from "../../EnrichedFile/class";
+import { JobsiteEnrichedFileClass } from "./subDocuments";
 import { search_UpdateJobsite } from "@search";
 import { post, prop, Ref } from "@typegoose/typegoose";
 import { LocationClass } from "@typescript/location";
@@ -105,9 +105,9 @@ export class JobsiteSchema {
   @prop({ type: () => JobsiteFileObjectClass, default: [] })
   public fileObjects!: JobsiteFileObjectClass[];
 
-  @Field(() => [EnrichedFileClass])
-  @prop({ ref: () => EnrichedFileClass, type: () => [Types.ObjectId], default: [] })
-  public enrichedFiles!: Ref<EnrichedFileClass>[];
+  @Field(() => [JobsiteEnrichedFileClass])
+  @prop({ type: () => [JobsiteEnrichedFileClass], default: [] })
+  public enrichedFiles!: JobsiteEnrichedFileClass[];
 
   @Field()
   @prop({ required: true, default: SchemaVersions.Jobsite })

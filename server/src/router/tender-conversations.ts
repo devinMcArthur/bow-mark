@@ -1,7 +1,7 @@
 import { Router } from "express";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
-import { TenderConversation } from "../models/TenderConversation";
+import { Conversation } from "@models";
 
 const router = Router();
 
@@ -33,8 +33,8 @@ router.get("/:tenderId", auth, async (req: any, res) => {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    const convos = await TenderConversation.find(
-      { tender: tenderId, user: req.userId },
+    const convos = await Conversation.find(
+      { tenderId: new mongoose.Types.ObjectId(tenderId), user: req.userId },
       "title aiModel totalInputTokens totalOutputTokens updatedAt createdAt"
     )
       .sort({ updatedAt: -1 })
@@ -64,12 +64,12 @@ router.get("/:tenderId/:id", auth, async (req: any, res) => {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    const convo = await TenderConversation.findById(req.params.id).lean();
+    const convo = await Conversation.findById(req.params.id).lean();
     if (!convo) {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    if (convo.user.toString() !== req.userId) {
+    if (String(convo.user) !== req.userId) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
@@ -105,12 +105,12 @@ router.patch("/:tenderId/:id/title", auth, async (req: any, res) => {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    const convo = await TenderConversation.findById(req.params.id);
+    const convo = await Conversation.findById(req.params.id);
     if (!convo) {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    if (convo.user.toString() !== req.userId) {
+    if (String(convo.user) !== req.userId) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
@@ -130,12 +130,12 @@ router.delete("/:tenderId/:id/last-exchange", auth, async (req: any, res) => {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    const convo = await TenderConversation.findById(req.params.id);
+    const convo = await Conversation.findById(req.params.id);
     if (!convo) {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    if (convo.user.toString() !== req.userId) {
+    if (String(convo.user) !== req.userId) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
@@ -164,12 +164,12 @@ router.delete("/:tenderId/:id", auth, async (req: any, res) => {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    const convo = await TenderConversation.findById(req.params.id);
+    const convo = await Conversation.findById(req.params.id);
     if (!convo) {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    if (convo.user.toString() !== req.userId) {
+    if (String(convo.user) !== req.userId) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }

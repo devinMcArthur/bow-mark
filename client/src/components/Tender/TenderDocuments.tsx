@@ -372,7 +372,7 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
         const fileId = fileRes.data?.fileCreate._id;
         if (!fileId) throw new Error("File upload failed: no ID returned");
 
-        // Step 2: Attach to tender (AI will detect document type)
+        // Step 2: Attach to tender
         await tenderAddFile({
           variables: {
             id: tender._id,
@@ -525,7 +525,7 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
         onDrop={handleDrop}
       >
         <Text fontSize="sm" color="gray.500" mb={2} textAlign="center">
-          Drop a file here or click to upload. The AI will detect the document type automatically.
+          Drop a file here or click to upload.
         </Text>
         <HStack justify="center">
           <Button
