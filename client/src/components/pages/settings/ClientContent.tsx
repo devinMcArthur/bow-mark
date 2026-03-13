@@ -18,7 +18,7 @@ const SettingsClientContent = () => {
           <Tab>Materials</Tab>
           <Tab>Companies</Tab>
           <Tab>Users</Tab>
-          <Permission>
+          <Permission minRole={UserRoles.ProjectManager}>
             <Tab>Public Documents</Tab>
           </Permission>
         </Permission>
