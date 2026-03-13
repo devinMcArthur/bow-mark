@@ -58,7 +58,7 @@ export default class PublicDocumentResolver {
    * ----- Queries -----
    */
 
-  @Authorized(["ADMIN"])
+  @Authorized(["ADMIN", "PM"])
   @Query(() => [PublicDocumentClass])
   async publicDocuments() {
     return PublicDocument.getAll();
@@ -68,7 +68,7 @@ export default class PublicDocumentResolver {
    * ----- Mutations -----
    */
 
-  @Authorized(["ADMIN"])
+  @Authorized(["ADMIN", "PM"])
   @Mutation(() => PublicDocumentClass)
   async publicDocumentCreate(
     @Arg("data") data: PublicDocumentCreateData
@@ -91,7 +91,7 @@ export default class PublicDocumentResolver {
     return doc;
   }
 
-  @Authorized(["ADMIN"])
+  @Authorized(["ADMIN", "PM"])
   @Mutation(() => PublicDocumentClass)
   async publicDocumentUpdate(
     @Arg("id") id: string,
@@ -121,7 +121,7 @@ export default class PublicDocumentResolver {
     return doc;
   }
 
-  @Authorized(["ADMIN"])
+  @Authorized(["ADMIN", "PM"])
   @Mutation(() => Boolean)
   async publicDocumentDelete(@Arg("id") id: string): Promise<boolean> {
     const doc = await PublicDocument.findById(id).populate("file");
