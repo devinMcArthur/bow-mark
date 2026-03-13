@@ -84,6 +84,13 @@ export const RABBITMQ_CONFIG = {
         durable: true,
       },
     },
+    enrichedFile: {
+      name: "enriched.file_summary",
+      bindings: ["enriched_file.*"],
+      options: {
+        durable: true,
+      },
+    },
   },
 } as const;
 
@@ -135,6 +142,9 @@ export const ROUTING_KEYS = {
     created: "invoice.created",
     updated: "invoice.updated",
     deleted: "invoice.deleted",
+  },
+  enrichedFile: {
+    created: "enriched_file.created",
   },
 } as const;
 

@@ -11,4 +11,27 @@ fragment SystemSnippet on SystemClass {
   internalExpenseOverheadRate {
     ...RateSnippet
   }
+  specFiles {
+    _id
+    documentType
+    summaryStatus
+    summaryError
+    pageCount
+    summary {
+      overview
+      documentType
+      keyTopics
+      chunks {
+        startPage
+        endPage
+        overview
+        keyTopics
+      }
+    }
+    file {
+      _id
+      mimetype
+      description
+    }
+  }
 }

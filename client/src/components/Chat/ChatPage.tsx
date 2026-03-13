@@ -18,8 +18,8 @@ import {
   DrawerBody,
   DrawerCloseButton,
 } from "@chakra-ui/react";
-import { useRouter } from "next/router";
-import { FiSend, FiPlus, FiArrowDown, FiMenu } from "react-icons/fi";
+import { useRouter, NextRouter } from "next/router";
+import { FiSend, FiPlus, FiArrowDown, FiMenu, FiRefreshCw } from "react-icons/fi";
 import Permission from "../Common/Permission";
 import { SourcesDrawer } from "./SourcesDrawer";
 import { UserRoles } from "../../generated/graphql";
@@ -64,13 +64,230 @@ const SUGGESTIONS = [
   "Show me crew productivity rankings for 2025",
 ];
 
+// ─── MessageBubble (memoized so typing doesn't re-render existing messages) ───
+
+interface MessageBubbleProps {
+  msg: ChatMessage;
+  onShowSources: (msg: ChatMessage) => void;
+}
+
+const MessageBubble = React.memo(({ msg, onShowSources }: MessageBubbleProps) => {
+  if (msg.role === "user") {
+    return (
+      <Box
+        bg="blue.600"
+        color="white"
+        px={4}
+        py={3}
+        borderRadius="lg"
+        borderBottomRightRadius="sm"
+      >
+        <Text fontSize="sm" lineHeight="1.6">{msg.content}</Text>
+      </Box>
+    );
+  }
+
+  return (
+    <Box>
+      {msg.toolCalls && msg.toolCalls.length > 0 && (
+        <HStack spacing={1} mb={2} flexWrap="wrap">
+          {Array.from(new Set(msg.toolCalls)).map((tool) => (
+            <Box
+              key={tool}
+              px={2}
+              py={0.5}
+              bg="gray.100"
+              borderRadius="sm"
+              fontSize="xs"
+              color="gray.500"
+              fontFamily="mono"
+            >
+              {tool}
+            </Box>
+          ))}
+        </HStack>
+      )}
+      <Box
+        bg="white"
+        border="1px solid"
+        borderColor="gray.200"
+        px={4}
+        py={3}
+        borderRadius="lg"
+        borderBottomLeftRadius="sm"
+        shadow="sm"
+      >
+        {msg.isStreaming && msg.content === "" ? (
+          <HStack spacing={2}>
+            <Spinner size="xs" color="blue.400" />
+            <Text fontSize="sm" color="gray.400">
+              {msg.toolCalls && msg.toolCalls.length > 0 ? "Querying database..." : "Thinking..."}
+            </Text>
+          </HStack>
+        ) : (
+          <>
+            <MarkdownContent content={msg.content} />
+            {msg.isStreaming && (
+              <Box
+                display="inline-block"
+                w="2px"
+                h="14px"
+                bg="blue.500"
+                ml={0.5}
+                verticalAlign="middle"
+                animation="blink 1s step-end infinite"
+                sx={{
+                  "@keyframes blink": {
+                    "0%, 100%": { opacity: 1 },
+                    "50%": { opacity: 0 },
+                  },
+                }}
+              />
+            )}
+            {msg.model && !msg.isStreaming && (
+              <Text fontSize="10px" color="gray.400" textAlign="right" mt={1} fontFamily="mono">
+                {modelLabel(msg.model)}
+              </Text>
+            )}
+          </>
+        )}
+      </Box>
+      {msg.toolResults && msg.toolResults.length > 0 && (
+        <Button
+          variant="ghost"
+          size="xs"
+          mt={1}
+          color="gray.500"
+          fontWeight="normal"
+          onClick={() => onShowSources(msg)}
+        >
+          Sources ({msg.toolResults.length})
+        </Button>
+      )}
+    </Box>
+  );
+});
+
+MessageBubble.displayName = "MessageBubble";
+
+// ─── Conversation Groups sidebar ─────────────────────────────────────────────
+
+interface ConversationGroupsProps {
+  conversations: ConversationSummary[];
+  conversationId: string | null;
+  disableRouting: boolean;
+  loadConversation: (id: string) => void;
+  setSidebarOpen: (open: boolean) => void;
+  renameConversation: (id: string, title: string) => void;
+  deleteConversation: (id: string) => void;
+  router: NextRouter;
+}
+
+function groupConversations(conversations: ConversationSummary[]) {
+  const analytics: ConversationSummary[] = [];
+  const jobsite: ConversationSummary[] = [];
+  const tender: ConversationSummary[] = [];
+  for (const c of conversations) {
+    if (c.context?.type === "jobsite") jobsite.push(c);
+    else if (c.context?.type === "tender") tender.push(c);
+    else analytics.push(c);
+  }
+  return { analytics, jobsite, tender };
+}
+
+const ConversationGroups = ({
+  conversations,
+  conversationId,
+  disableRouting,
+  loadConversation,
+  setSidebarOpen,
+  renameConversation,
+  deleteConversation,
+  router,
+}: ConversationGroupsProps) => {
+  const { analytics, jobsite, tender } = groupConversations(conversations);
+  const hasGroups = jobsite.length > 0 || tender.length > 0;
+
+  const handleSelect = (c: ConversationSummary) => {
+    if (c.context?.type === "jobsite") {
+      router.push(`/jobsite/${c.context.id}`);
+    } else if (c.context?.type === "tender") {
+      router.push(`/tender/${c.context.id}?conversationId=${c.id}`);
+    } else if (disableRouting) {
+      loadConversation(c.id);
+    } else {
+      router.push(`/chat/${c.id}`);
+    }
+    setSidebarOpen(false);
+  };
+
+  const renderGroup = (items: ConversationSummary[], label?: string) => {
+    if (items.length === 0) return null;
+    return (
+      <>
+        {label && (
+          <Text
+            fontSize="2xs"
+            fontWeight="700"
+            color="gray.400"
+            letterSpacing="wider"
+            textTransform="uppercase"
+            px={3}
+            pt={3}
+            pb={1}
+          >
+            {label}
+          </Text>
+        )}
+        <VStack spacing={1} align="stretch">
+          {items.map((c) => (
+            <ConversationItem
+              key={c.id}
+              convo={c}
+              isActive={c.id === conversationId}
+              context={c.context}
+              onSelect={() => handleSelect(c)}
+              onRename={(title) => renameConversation(c.id, title)}
+              onDelete={() => deleteConversation(c.id)}
+            />
+          ))}
+        </VStack>
+      </>
+    );
+  };
+
+  return (
+    <>
+      {renderGroup(analytics, hasGroups ? "Analytics" : undefined)}
+      {renderGroup(jobsite, "Jobsite")}
+      {renderGroup(tender, "Tender")}
+    </>
+  );
+};
+
 // ─── Chat Page ────────────────────────────────────────────────────────────────
 
 interface ChatPageProps {
   initialConversationId?: string;
+  messageEndpoint?: string;        // default: "/api/chat/message"
+  conversationsEndpoint?: string;  // default: "/conversations"
+  extraPayload?: Record<string, unknown>; // merged into POST body e.g. { tenderId }
+  suggestions?: string[];          // overrides SUGGESTIONS constant if provided
+  disableRouting?: boolean;        // when true, don't navigate on conversation select/new
+  height?: string;                 // override container height, default: calc(100vh - navbarHeight)
+  minRole?: UserRoles;             // minimum role required to access chat, default: ProjectManager
 }
 
-const ChatPage = ({ initialConversationId }: ChatPageProps) => {
+const ChatPage = ({
+  initialConversationId,
+  messageEndpoint = "/api/chat/message",
+  conversationsEndpoint = "/conversations",
+  extraPayload,
+  suggestions: suggestionsProp,
+  disableRouting = false,
+  height,
+  minRole = UserRoles.ProjectManager,
+}: ChatPageProps) => {
   const router = useRouter();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState("");
@@ -86,6 +303,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const isAtBottomRef = React.useRef(true);
+  const prevScrollHeightRef = React.useRef<number>(0);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
 
   // Auto-resize textarea as content grows
@@ -98,6 +316,8 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
   }, [input]);
 
   const serverBase = (process.env.NEXT_PUBLIC_API_URL as string).replace("/graphql", "");
+  // Base path without query string — used for per-conversation endpoints (/id, /title, etc.)
+  const conversationsBase = conversationsEndpoint.split("?")[0];
   const getToken = () =>
     typeof window !== "undefined" ? localStorage.getItem(localStorageTokenKey) : null;
 
@@ -105,7 +325,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
   React.useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch(`${serverBase}/conversations`, {
+        const res = await fetch(`${serverBase}${conversationsEndpoint}`, {
           headers: { Authorization: getToken() ?? "" },
         });
         if (res.ok) setConversations(await res.json());
@@ -117,7 +337,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
   const loadConversation = React.useCallback(
     async (id: string) => {
       try {
-        const res = await fetch(`${serverBase}/conversations/${id}`, {
+        const res = await fetch(`${serverBase}${conversationsBase}/${id}`, {
           headers: { Authorization: getToken() ?? "" },
         });
         if (!res.ok) return;
@@ -151,7 +371,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
         );
       } catch {}
     },
-    [serverBase]
+    [serverBase, conversationsEndpoint]
   );
 
   // Load conversation when URL param changes
@@ -165,20 +385,33 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
   }, [initialConversationId, loadConversation]);
 
   // With flex-direction:column-reverse, scrollTop=0 is the visual bottom.
-  // Keep it pinned to 0 during streaming when the user hasn't scrolled up.
+  // When at bottom: pin to 0 so new streaming tokens stay in view.
+  // When scrolled up: compensate for scrollHeight growth so the user's
+  // visual position doesn't drift as new content appends at the bottom.
   React.useLayoutEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
     if (isAtBottomRef.current) {
-      const el = scrollContainerRef.current;
       // Some browsers use negative scrollTop for reversed containers; reset to 0 either way.
-      if (el && Math.abs(el.scrollTop) > 1) el.scrollTop = 0;
+      if (Math.abs(el.scrollTop) > 1) el.scrollTop = 0;
+    } else {
+      const heightDiff = el.scrollHeight - prevScrollHeightRef.current;
+      if (heightDiff > 0) {
+        // Move scrollTop away from 0 (visual bottom) to keep the same content visible.
+        // Chrome uses positive scrollTop; Firefox uses negative — handle both.
+        el.scrollTop += el.scrollTop < 0 ? -heightDiff : heightDiff;
+      }
     }
+
+    prevScrollHeightRef.current = el.scrollHeight;
   }, [messages]);
 
   const startNewChat = () => {
     setMessages([]);
     setConversationId(null);
     setModelTokens({});
-    if (router.pathname !== "/chat") {
+    if (!disableRouting && router.pathname !== "/chat") {
       router.push("/chat");
     }
     setTimeout(() => inputRef.current?.focus(), 50);
@@ -186,7 +419,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
 
   const renameConversation = async (id: string, title: string) => {
     try {
-      const res = await fetch(`${serverBase}/conversations/${id}/title`, {
+      const res = await fetch(`${serverBase}${conversationsBase}/${id}/title`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -204,7 +437,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
 
   const deleteConversation = async (id: string) => {
     try {
-      const res = await fetch(`${serverBase}/conversations/${id}`, {
+      const res = await fetch(`${serverBase}${conversationsBase}/${id}`, {
         method: "DELETE",
         headers: { Authorization: getToken() ?? "" },
       });
@@ -242,16 +475,18 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
 
       try {
         const token = getToken();
-        const body: Record<string, unknown> = { messages: history };
-        if (conversationId) body.conversationId = conversationId;
 
-        const response = await fetch(`${serverBase}/api/chat/message`, {
+        const response = await fetch(`${serverBase}${messageEndpoint}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: token ?? "",
           },
-          body: JSON.stringify(body),
+          body: JSON.stringify({
+            messages: history,
+            ...(conversationId ? { conversationId } : {}),
+            ...extraPayload,
+          }),
         });
 
         if (!response.ok) {
@@ -335,7 +570,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
                 currentConvoId = event.id;
                 setConversationId(event.id);
                 // Update URL without triggering a navigation/re-render mid-stream
-                window.history.replaceState({}, "", `/chat/${event.id}`);
+                if (!disableRouting) window.history.replaceState({}, "", `/chat/${event.id}`);
                 setConversations((prev) => [
                   {
                     id: event.id!,
@@ -428,8 +663,35 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
         setTimeout(() => inputRef.current?.focus(), 50);
       }
     },
-    [messages, loading, conversationId]
+    [messages, loading, conversationId, messageEndpoint, extraPayload]
   );
+
+  const regenerateLastMessage = React.useCallback(async () => {
+    if (!conversationId || loading) return;
+    let lastUserMsg: ChatMessage | null = null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "user") { lastUserMsg = messages[i]; break; }
+    }
+    if (!lastUserMsg) return;
+
+    try {
+      await fetch(`${serverBase}${conversationsBase}/${conversationId}/last-exchange`, {
+        method: "DELETE",
+        headers: { Authorization: getToken() ?? "" },
+      });
+    } catch {}
+
+    const lastUserContent = lastUserMsg.content;
+    setMessages((prev) => {
+      let idx = -1;
+      for (let i = prev.length - 1; i >= 0; i--) {
+        if (prev[i].role === "user") { idx = i; break; }
+      }
+      return idx >= 0 ? prev.slice(0, idx) : prev;
+    });
+
+    sendMessage(lastUserContent);
+  }, [conversationId, loading, messages, serverBase, conversationsEndpoint, sendMessage]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -437,13 +699,17 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
   };
 
   const isEmpty = messages.length === 0;
-  const cost = calcTotalCost(modelTokens);
-  const totalInputTokens = Object.values(modelTokens).reduce((s, t) => s + t.input, 0);
-  const totalOutputTokens = Object.values(modelTokens).reduce((s, t) => s + t.output, 0);
+  const cost = React.useMemo(() => calcTotalCost(modelTokens), [modelTokens]);
+  const totalInputTokens = React.useMemo(() => Object.values(modelTokens).reduce((s, t) => s + t.input, 0), [modelTokens]);
+  const totalOutputTokens = React.useMemo(() => Object.values(modelTokens).reduce((s, t) => s + t.output, 0), [modelTokens]);
+  const conversationTitle = React.useMemo(
+    () => conversations.find((c) => c.id === conversationId)?.title ?? "Analytics Assistant",
+    [conversations, conversationId]
+  );
 
   return (
-    <Permission minRole={UserRoles.ProjectManager} type={null} showError>
-      <Flex h={`calc(100vh - ${navbarHeight})`} overflow="hidden" w="100%">
+    <Permission minRole={minRole} type={null} showError>
+      <Flex h={height ?? `calc(100vh - ${navbarHeight})`} overflow="hidden" w="100%">
         {/* ── Sidebar ─────────────────────────────────────────────────────── */}
         {/* Mobile backdrop */}
         {!isDesktop && sidebarOpen && (
@@ -483,21 +749,16 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
             </Button>
           </Box>
           <Box flex={1} overflowY="auto" px={2} py={2}>
-            <VStack spacing={1} align="stretch">
-              {conversations.map((c) => (
-                <ConversationItem
-                  key={c.id}
-                  convo={c}
-                  isActive={c.id === conversationId}
-                  onSelect={() => {
-                    router.push(`/chat/${c.id}`);
-                    setSidebarOpen(false);
-                  }}
-                  onRename={(title) => renameConversation(c.id, title)}
-                  onDelete={() => deleteConversation(c.id)}
-                />
-              ))}
-            </VStack>
+            <ConversationGroups
+              conversations={conversations}
+              conversationId={conversationId}
+              disableRouting={disableRouting}
+              loadConversation={loadConversation}
+              setSidebarOpen={setSidebarOpen}
+              renameConversation={renameConversation}
+              deleteConversation={deleteConversation}
+              router={router}
+            />
           </Box>
         </Flex>
 
@@ -525,9 +786,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
                 )}
                 <Box w={2} h={2} borderRadius="full" bg="green.400" />
                 <Text fontSize="sm" fontWeight="600" color="gray.700" letterSpacing="wide" noOfLines={1}>
-                  {conversationId
-                    ? (conversations.find((c) => c.id === conversationId)?.title ?? "Analytics Assistant")
-                    : "Analytics Assistant"}
+                  {conversationTitle}
                 </Text>
                 {isDesktop && (
                   <Text fontSize="xs" color="gray.400">
@@ -578,7 +837,7 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
                   </Text>
                 </VStack>
                 <VStack spacing={2} align="stretch" w="full" maxW="520px">
-                  {SUGGESTIONS.map((s) => (
+                  {(suggestionsProp ?? SUGGESTIONS).map((s) => (
                     <Box
                       key={s}
                       as="button"
@@ -628,110 +887,32 @@ const ChatPage = ({ initialConversationId }: ChatPageProps) => {
             >
               <Box px={6} py={6}>
                 <VStack spacing={4} align="stretch">
-                  {messages.map((msg) => (
-                    <Box key={msg.id} alignSelf={msg.role === "user" ? "flex-end" : "flex-start"} maxW="85%">
-                      {msg.role === "user" ? (
-                        <Box
-                          bg="blue.600"
-                          color="white"
-                          px={4}
-                          py={3}
-                          borderRadius="lg"
-                          borderBottomRightRadius="sm"
-                        >
-                          <Text fontSize="sm" lineHeight="1.6">
-                            {msg.content}
-                          </Text>
-                        </Box>
-                      ) : (
-                        <Box>
-                          {msg.toolCalls && msg.toolCalls.length > 0 && (
-                            <HStack spacing={1} mb={2} flexWrap="wrap">
-                              {Array.from(new Set(msg.toolCalls)).map((tool) => (
-                                <Box
-                                  key={tool}
-                                  px={2}
-                                  py={0.5}
-                                  bg="gray.100"
-                                  borderRadius="sm"
-                                  fontSize="xs"
-                                  color="gray.500"
-                                  fontFamily="mono"
-                                >
-                                  {tool}
-                                </Box>
-                              ))}
-                            </HStack>
-                          )}
-                          <Box
-                            bg="white"
-                            border="1px solid"
-                            borderColor="gray.200"
-                            px={4}
-                            py={3}
-                            borderRadius="lg"
-                            borderBottomLeftRadius="sm"
-                            shadow="sm"
-                          >
-                            {msg.isStreaming && msg.content === "" ? (
-                              <HStack spacing={2}>
-                                <Spinner size="xs" color="blue.400" />
-                                <Text fontSize="sm" color="gray.400">
-                                  {msg.toolCalls && msg.toolCalls.length > 0
-                                    ? "Querying database..."
-                                    : "Thinking..."}
-                                </Text>
-                              </HStack>
-                            ) : (
-                              <>
-                                <MarkdownContent content={msg.content} />
-                                {msg.isStreaming && (
-                                  <Box
-                                    display="inline-block"
-                                    w="2px"
-                                    h="14px"
-                                    bg="blue.500"
-                                    ml={0.5}
-                                    verticalAlign="middle"
-                                    animation="blink 1s step-end infinite"
-                                    sx={{
-                                      "@keyframes blink": {
-                                        "0%, 100%": { opacity: 1 },
-                                        "50%": { opacity: 0 },
-                                      },
-                                    }}
-                                  />
-                                )}
-                                {msg.model && !msg.isStreaming && (
-                                  <Text
-                                    fontSize="10px"
-                                    color="gray.400"
-                                    textAlign="right"
-                                    mt={1}
-                                    fontFamily="mono"
-                                  >
-                                    {modelLabel(msg.model)}
-                                  </Text>
-                                )}
-                              </>
-                            )}
-                          </Box>
-                          {msg.toolResults && msg.toolResults.length > 0 && (
-                            <Button
-                              variant="ghost"
+                  {messages.map((msg, idx) => {
+                    const isLastAssistant =
+                      msg.role === "assistant" &&
+                      !msg.isStreaming &&
+                      idx === messages.length - 1 &&
+                      !!conversationId &&
+                      !loading;
+                    return (
+                      <Box key={msg.id} alignSelf={msg.role === "user" ? "flex-end" : "flex-start"} maxW="85%">
+                        <MessageBubble msg={msg} onShowSources={setSourcesMessage} />
+                        {isLastAssistant && (
+                          <Tooltip label="Regenerate response" placement="bottom" fontSize="xs">
+                            <IconButton
+                              aria-label="Regenerate response"
+                              icon={<FiRefreshCw />}
                               size="xs"
+                              variant="ghost"
+                              colorScheme="gray"
                               mt={1}
-                              color="gray.500"
-                              fontWeight="normal"
-                              onClick={() => setSourcesMessage(msg)}
-                            >
-                              Sources ({msg.toolResults.length})
-                            </Button>
-                          )}
-                        </Box>
-                      )}
-                    </Box>
-                  ))}
+                              onClick={regenerateLastMessage}
+                            />
+                          </Tooltip>
+                        )}
+                      </Box>
+                    );
+                  })}
                 </VStack>
               </Box>
             </Box>

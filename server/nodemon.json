@@ -1,5 +1,0 @@
-{
-  "watch": ["src"],
-  "exec": "npx ts-node -r tsconfig-paths/register ./src/server.ts",
-  "ext": ".ts,.js"
-}

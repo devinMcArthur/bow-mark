@@ -1,6 +1,7 @@
 import {
   Box,
   Flex,
+  Heading,
   Icon,
   IconButton,
   Modal,
@@ -18,7 +19,8 @@ import {
 import dayjs from "dayjs";
 import { useRouter } from "next/router";
 import React from "react";
-import { FiArchive, FiDownload, FiEdit } from "react-icons/fi";
+import { FiArchive, FiDownload, FiEdit, FiMessageSquare } from "react-icons/fi";
+import DailyReportChatDrawer from "../../../DailyReport/DailyReportChatDrawer";
 import { useAuth } from "../../../../contexts/Auth";
 import { useDailyReportUpdateForm } from "../../../../forms/dailyReport";
 import {
@@ -39,6 +41,7 @@ import Permission from "../../../Common/Permission";
 import TextGrid from "../../../Common/TextGrid";
 import TextLink from "../../../Common/TextLink";
 import JobsiteFileObjects from "../../jobsite/id/views/FileObjects";
+import JobsiteEnrichedFiles, { EnrichedFileItem } from "../../../Jobsite/JobsiteEnrichedFiles";
 import EmployeeHours from "./views/EmployeeHours";
 import MaterialShipments from "./views/MaterialShipments";
 import Production from "./views/Production";
@@ -47,9 +50,10 @@ import VehicleWork from "./views/VehicleWork";
 
 interface IDailyReportClientContent {
   id: string;
+  showFloatingChat?: boolean;
 }
 
-const DailyReportClientContent = ({ id }: IDailyReportClientContent) => {
+const DailyReportClientContent = ({ id, showFloatingChat }: IDailyReportClientContent) => {
   /**
    * ----- Hook Initialization -----
    */
@@ -70,6 +74,12 @@ const DailyReportClientContent = ({ id }: IDailyReportClientContent) => {
     isOpen: editModalOpen,
     onOpen: onEditModalOpen,
     onClose: onEditModalClose,
+  } = useDisclosure();
+
+  const {
+    isOpen: chatOpen,
+    onOpen: onChatOpen,
+    onClose: onChatClose,
   } = useDisclosure();
 
   const [update, { loading }] = useDailyReportUpdateMutation();
@@ -250,6 +260,16 @@ const DailyReportClientContent = ({ id }: IDailyReportClientContent) => {
                     backgroundColor="transparent"
                   />
                 </TextLink>
+                {!showFloatingChat && (data.dailyReport.jobsite.enrichedFiles?.length ?? 0) > 0 && (
+                  <Tooltip label="Chat with documents">
+                    <IconButton
+                      backgroundColor="transparent"
+                      icon={<FiMessageSquare />}
+                      aria-label="chat"
+                      onClick={onChatOpen}
+                    />
+                  </Tooltip>
+                )}
                 <Permission
                   minRole={UserRoles.ProjectManager}
                   otherCriteria={editPermission}
@@ -317,6 +337,42 @@ const DailyReportClientContent = ({ id }: IDailyReportClientContent) => {
             editPermission={editPermission}
           />
 
+          {(data.dailyReport.jobsite.enrichedFiles?.length ?? 0) > 0 && (
+            <Card>
+              <Heading size="sm" mb={3} color="gray.700">
+                Documents
+              </Heading>
+              <JobsiteEnrichedFiles
+                jobsiteId={data.dailyReport.jobsite._id}
+                enrichedFiles={(data.dailyReport.jobsite.enrichedFiles ?? []) as EnrichedFileItem[]}
+                readOnly
+              />
+            </Card>
+          )}
+
+          {showFloatingChat && !chatOpen && (data.dailyReport.jobsite.enrichedFiles?.length ?? 0) > 0 && (
+            <IconButton
+              aria-label="Chat with documents"
+              icon={<FiMessageSquare />}
+              colorScheme="blue"
+              size="lg"
+              borderRadius="full"
+              position="fixed"
+              bottom={8}
+              right={8}
+              zIndex={4}
+              onClick={onChatOpen}
+              boxShadow="lg"
+            />
+          )}
+
+          <DailyReportChatDrawer
+            isOpen={chatOpen}
+            onClose={onChatClose}
+            jobsiteId={data.dailyReport.jobsite._id}
+            jobsiteName={data.dailyReport.jobsite.name}
+          />
+
           {/* REPORT EDIT MODAL */}
           <Modal isOpen={editModalOpen} onClose={onEditModalClose}>
             <ModalOverlay />
@@ -374,11 +430,14 @@ const DailyReportClientContent = ({ id }: IDailyReportClientContent) => {
     archive,
     archiveLoading,
     canUpdateJobsite,
+    chatOpen,
     data?.dailyReport,
     editModalOpen,
     editPermission,
     id,
     loading,
+    onChatClose,
+    onChatOpen,
     onEditModalClose,
     onEditModalOpen,
     payrollLoading,

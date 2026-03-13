@@ -145,3 +145,37 @@ export const publishProductionChange = createPublisher(ROUTING_KEYS.production);
  * Publish an Invoice change event
  */
 export const publishInvoiceChange = createPublisher(ROUTING_KEYS.invoice);
+
+export interface EnrichedFileSummaryMessage {
+  enrichedFileId: string;
+  fileId: string;
+  timestamp: string;
+}
+
+export const publishEnrichedFileCreated = async (
+  enrichedFileId: string,
+  fileId: string
+): Promise<boolean> => {
+  const message: EnrichedFileSummaryMessage = {
+    enrichedFileId,
+    fileId,
+    timestamp: new Date().toISOString(),
+  };
+  try {
+    const channel = await getChannel();
+    await setupTopology();
+    const success = channel.publish(
+      RABBITMQ_CONFIG.exchange.name,
+      ROUTING_KEYS.enrichedFile.created,
+      Buffer.from(JSON.stringify(message)),
+      { persistent: true, contentType: "application/json" }
+    );
+    if (success) {
+      console.log(`[RabbitMQ] Published enriched_file.created: ${enrichedFileId}`);
+    }
+    return success;
+  } catch (error) {
+    console.error(`[RabbitMQ] Failed to publish enriched_file.created:`, error);
+    return false;
+  }
+};

@@ -1,3 +1,9 @@
+/* Prevent off-screen fixed panels (e.g. chat drawer) from causing horizontal scroll */
+html,
+body {
+  overflow-x: hidden;
+}
+
 #jobsite-report-table th {
   position: sticky;
   top: 0;

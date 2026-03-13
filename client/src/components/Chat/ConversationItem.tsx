@@ -16,7 +16,7 @@ import {
   Portal,
 } from "@chakra-ui/react";
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
-import { ConversationSummary } from "./types";
+import { ConversationContext, ConversationSummary } from "./types";
 
 // ─── Sidebar conversation item ────────────────────────────────────────────────
 
@@ -26,12 +26,14 @@ const ConversationItem = ({
   onSelect,
   onRename,
   onDelete,
+  context,
 }: {
   convo: ConversationSummary;
   isActive: boolean;
   onSelect: () => void;
   onRename: (title: string) => void;
   onDelete: () => void;
+  context?: ConversationContext;
 }) => {
   const [editing, setEditing] = React.useState(false);
   const [editValue, setEditValue] = React.useState(convo.title);
@@ -97,7 +99,12 @@ const ConversationItem = ({
           <Text fontSize="xs" fontWeight="500" color="gray.700" noOfLines={1}>
             {convo.title}
           </Text>
-          <Text fontSize="xs" color="gray.400" mt={0.5}>
+          {context && (
+            <Text fontSize="xs" color="gray.500" noOfLines={1} mt={0.5}>
+              {context.name}
+            </Text>
+          )}
+          <Text fontSize="xs" color="gray.400" mt={context ? 0 : 0.5}>
             {relativeTime(convo.updatedAt)}
           </Text>
           <HStack

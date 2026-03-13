@@ -1,6 +1,7 @@
 import { DefaultRateData, RatesData } from "@graphql/types/mutation";
 import {
   Company,
+  Conversation,
   Invoice,
   Jobsite,
   JobsiteDocument,
@@ -300,6 +301,7 @@ const remove = async (id: Id, transferJobsiteId?: Id) => {
   const jobsite = await Jobsite.getById(id);
   if (!jobsite) throw new Error("Unable to find jobsite");
 
+  await Conversation.deleteMany({ jobsiteId: id });
   await jobsite.removeDocument(transferJobsiteId);
 
   return true;

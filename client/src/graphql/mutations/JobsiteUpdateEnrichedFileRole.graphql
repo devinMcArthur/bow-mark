@@ -1,0 +1,26 @@
+mutation JobsiteUpdateEnrichedFileRole($id: ID!, $fileObjectId: ID!, $minRole: UserRoles!) {
+  jobsiteUpdateEnrichedFileRole(id: $id, fileObjectId: $fileObjectId, minRole: $minRole) {
+    _id
+    enrichedFiles {
+      _id
+      minRole
+      enrichedFile {
+        _id
+        documentType
+        summaryStatus
+        summaryError
+        pageCount
+        summary {
+          overview
+          documentType
+          keyTopics
+        }
+        file {
+          _id
+          mimetype
+          description
+        }
+      }
+    }
+  }
+}

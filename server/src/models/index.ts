@@ -1,3 +1,4 @@
+export * from "./EnrichedFile";
 export * from "./Company";
 export * from "./Crew";
 export * from "./DailyReport";
@@ -18,6 +19,7 @@ export * from "./Production";
 export * from "./ReportNote";
 export * from "./Signup";
 export * from "./System";
+export * from "./Tender";
 export * from "./User";
 export * from "./Vehicle";
 export * from "./VehicleIssue";
@@ -28,6 +30,20 @@ import {
   DocumentType,
   ReturnModelType,
 } from "@typegoose/typegoose";
+
+/**
+ * ----- EnrichedFile -----
+ */
+
+import { EnrichedFileClass } from "./EnrichedFile/class";
+
+export type EnrichedFileDocument = DocumentType<EnrichedFileClass>;
+
+export type EnrichedFileModel = ReturnModelType<typeof EnrichedFileClass>;
+
+export const EnrichedFile = getModelForClass(EnrichedFileClass, {
+  schemaOptions: { collection: "enrichedfiles" },
+});
 
 /**
  * ----- Company -----
@@ -327,6 +343,20 @@ export const System = getModelForClass(SystemClass, {
 });
 
 /**
+ * ----- Tender -----
+ */
+
+import { TenderClass } from "./Tender/class";
+
+export type TenderDocument = DocumentType<TenderClass>;
+
+export type TenderModel = ReturnModelType<typeof TenderClass>;
+
+export const Tender = getModelForClass(TenderClass, {
+  schemaOptions: { collection: "tenders" },
+});
+
+/**
  * ----- Public Document -----
  */
 
@@ -396,5 +426,19 @@ export const VehicleWork = getModelForClass(VehicleWorkClass, {
   schemaOptions: { collection: "vehicleworks" },
 });
 
-export * from "./ChatConversation";
+export * from "./Conversation";
 export * from "./PublicDocument";
+
+/**
+ * ----- Conversation -----
+ */
+
+import { ConversationClass } from "./Conversation/class";
+
+export type ConversationDocument = DocumentType<ConversationClass>;
+
+export type ConversationModel = ReturnModelType<typeof ConversationClass>;
+
+export const Conversation = getModelForClass(ConversationClass, {
+  schemaOptions: { collection: "conversations", timestamps: true },
+});

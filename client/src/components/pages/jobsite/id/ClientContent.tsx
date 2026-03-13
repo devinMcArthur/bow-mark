@@ -1,6 +1,7 @@
 import {
   Box,
   Flex,
+  Heading,
   IconButton,
   Modal,
   ModalBody,
@@ -16,7 +17,8 @@ import {
 import NextLink from "next/link";
 import { useRouter } from "next/router";
 import React from "react";
-import { FiArchive, FiBarChart2, FiEdit, FiMap, FiTrash, FiUnlock } from "react-icons/fi";
+import { FiArchive, FiBarChart2, FiEdit, FiMap, FiMessageSquare, FiTrash, FiUnlock } from "react-icons/fi";
+import ChatDrawer from "../../../Chat/ChatDrawer";
 import {
   useJobsiteAllDataLazyQuery,
   useJobsiteArchiveMutation,
@@ -35,6 +37,7 @@ import Permission from "../../../Common/Permission";
 import JobsiteUpdateForm from "../../../Forms/Jobsite/JobsiteUpdate";
 import ExpenseInvoices from "./views/ExpenseInvoices";
 import JobsiteFileObjects from "./views/FileObjects";
+import JobsiteEnrichedFiles, { EnrichedFileItem } from "../../../Jobsite/JobsiteEnrichedFiles";
 import JobsiteMaterialsCosting from "./views/JobsiteMaterials";
 import JobsiteRemoveModal from "./views/RemoveModal";
 import RevenueInvoices from "./views/RevenueInvoices";
@@ -42,6 +45,8 @@ import TruckingRates from "./views/TruckingRates";
 import JobsiteContract from "./views/Contract";
 import Switch from "../../../Common/forms/Switch";
 import JobsiteLocationModal from "./views/LocationModal";
+import { useAuth } from "../../../../contexts/Auth";
+import { getJobsiteChatConfig } from "../../../Chat/jobsiteChatConfig";
 
 interface IJobsiteClientContent {
   id: string;
@@ -52,7 +57,7 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
    * ----- Hook Initialization -----
    */
 
-  const { data } = useJobsiteFullQuery({
+  const { data, refetch, startPolling, stopPolling } = useJobsiteFullQuery({
     variables: { id },
   });
 
@@ -79,10 +84,15 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
     onClose: onCloseRemove,
   } = useDisclosure();
   const { isOpen: isOpenLocation, onOpen: onOpenLocation, onClose: onCloseLocation } = useDisclosure();
+  const { isOpen: chatOpen, onOpen: onChatOpen, onClose: onChatClose } = useDisclosure();
 
   const router = useRouter();
 
   const [previousYears, setPreviousYears] = React.useState(false);
+
+  const { state: { user } } = useAuth();
+  const { messageEndpoint: chatMessageEndpoint, conversationsEndpoint: chatConversationsEndpoint, suggestions: chatSuggestions } =
+    getJobsiteChatConfig(user?.role, id);
 
   /**
    * ----- Variables -----
@@ -148,6 +158,17 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
     previousYears,
   ]);
 
+  React.useEffect(() => {
+    const hasProcessing = data?.jobsite?.enrichedFiles?.some(
+      (f) => f.enrichedFile?.summaryStatus === "pending" || f.enrichedFile?.summaryStatus === "processing"
+    );
+    if (hasProcessing) {
+      startPolling(3000);
+    } else {
+      stopPolling();
+    }
+  }, [data?.jobsite?.enrichedFiles, startPolling, stopPolling]);
+
   /**
    * ----- Rendering -----
    */
@@ -193,6 +214,16 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
                     />
                   </NextLink>
                 </Tooltip>
+                {(jobsite.enrichedFiles?.length ?? 0) > 0 && (
+                  <Permission minRole={UserRoles.User}>
+                    <IconButton
+                      aria-label="Chat with documents"
+                      icon={<FiMessageSquare />}
+                      backgroundColor="transparent"
+                      onClick={onChatOpen}
+                    />
+                  </Permission>
+                )}
                 <IconButton
                   aria-label="location"
                   icon={<FiMap />}
@@ -255,7 +286,9 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
               </Flex>
             </Flex>
           </Card>
-          <JobsiteFileObjects jobsite={jobsite} />
+          {jobsite.fileObjects.length > 0 && (
+            <JobsiteFileObjects jobsite={jobsite} hideAdd />
+          )}
           <Permission minRole={UserRoles.ProjectManager}>
             <SimpleGrid columns={[1, 1, 1, 2]} spacingX={4} spacingY={2}>
               <JobsiteMaterialsCosting
@@ -278,6 +311,16 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
             <SimpleGrid spacingY={2}>
               <JobsiteContract jobsite={jobsite} />
             </SimpleGrid>
+            <Card>
+              <Heading size="sm" mb={3} color="gray.700">
+                Documents
+              </Heading>
+              <JobsiteEnrichedFiles
+                jobsiteId={jobsite._id}
+                enrichedFiles={(jobsite.enrichedFiles ?? []) as EnrichedFileItem[]}
+                onUpdated={() => refetch()}
+              />
+            </Card>
             <SimpleGrid columns={[1, 1, 1, 2]} spacingX={4} spacingY={2}>
               <JobsiteYearlyReportList
                 jobsiteYearReports={jobsite.yearReports}
@@ -290,6 +333,35 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
           <DailyReportListCard
             dailyReports={dailyReports}
             jobsiteId={jobsite._id}
+          />
+
+          {!chatOpen && (jobsite.enrichedFiles?.length ?? 0) > 0 && (
+            <Permission minRole={UserRoles.User}>
+              <IconButton
+                aria-label="Chat with documents"
+                icon={<FiMessageSquare />}
+                colorScheme="blue"
+                size="lg"
+                borderRadius="full"
+                position="fixed"
+                bottom={8}
+                right={8}
+                zIndex={4}
+                onClick={onChatOpen}
+                boxShadow="lg"
+              />
+            </Permission>
+          )}
+
+          <ChatDrawer
+            isOpen={chatOpen}
+            onClose={onChatClose}
+            title={jobsite.name}
+            messageEndpoint={chatMessageEndpoint}
+            conversationsEndpoint={chatConversationsEndpoint}
+            extraPayload={{ jobsiteId: jobsite._id }}
+            suggestions={chatSuggestions}
+            minRole={UserRoles.User}
           />
 
           {/* EDIT MODAL */}
@@ -338,10 +410,14 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
     isOpenLocation,
     onCloseLocation,
     onOpenLocation,
+    chatOpen,
+    onChatOpen,
+    onChatClose,
     archive,
     archiveLoading,
     unarchive,
-    unarchiveLoading
+    unarchiveLoading,
+    refetch,
   ]);
 };
 

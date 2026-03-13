@@ -19,6 +19,7 @@ if (process.env.NODE_ENV === "development" || !process.env.NODE_ENV) {
   dotenv.config({ path: path.join(__dirname, "..", "..", ".env.development") });
 }
 
+import http from "http";
 import mongoose from "mongoose";
 import { ConsumeMessage } from "amqplib";
 import {
@@ -31,7 +32,9 @@ import {
   checkConnection as checkPostgres,
   closeConnection as closePostgres,
 } from "../db";
-import type { SyncMessage } from "../rabbitmq/publisher";
+import type { SyncMessage, EnrichedFileSummaryMessage } from "../rabbitmq/publisher";
+import { publishEnrichedFileCreated } from "../rabbitmq/publisher";
+import { EnrichedFile } from "@models";
 import {
   dailyReportSyncHandler,
   employeeWorkSyncHandler,
@@ -39,6 +42,7 @@ import {
   materialShipmentSyncHandler,
   productionSyncHandler,
   invoiceSyncHandler,
+  enrichedFileSummaryHandler,
 } from "./handlers";
 
 /**
@@ -93,6 +97,12 @@ async function processMessage(
         await invoiceSyncHandler.handle(message);
         break;
 
+      case RABBITMQ_CONFIG.queues.enrichedFile.name: {
+        const enrichedMsg: EnrichedFileSummaryMessage = JSON.parse(content);
+        await enrichedFileSummaryHandler.handle(enrichedMsg);
+        break;
+      }
+
       default:
         console.warn(`[Consumer] Unknown queue: ${queueName}`);
     }
@@ -101,6 +111,27 @@ async function processMessage(
   } catch (error) {
     console.error(`[Consumer] Error processing ${routingKey}:`, error);
     return false;
+  }
+}
+
+/**
+ * On startup, reset any EnrichedFile docs stuck in "processing" back to
+ * "pending" and republish their messages. This recovers from a consumer crash
+ * mid-processing.
+ */
+async function recoverStuckFiles(): Promise<void> {
+  const stuck = await EnrichedFile.find({ summaryStatus: "processing" })
+    .populate("file")
+    .lean();
+
+  for (const enrichedFile of stuck) {
+    await EnrichedFile.findByIdAndUpdate(enrichedFile._id, {
+      $set: { summaryStatus: "pending" },
+    });
+    if (!enrichedFile.file) continue;
+    const fileId = (enrichedFile.file as any)._id?.toString() ?? enrichedFile.file.toString();
+    await publishEnrichedFileCreated(enrichedFile._id.toString(), fileId);
+    console.log(`[Consumer] Recovered stuck enriched file ${enrichedFile._id}`);
   }
 }
 
@@ -131,6 +162,9 @@ async function startConsumer(): Promise<void> {
 
   // Set up RabbitMQ exchange and queues
   await setupTopology();
+
+  // Reset any files stuck in "processing" from a previous crash
+  await recoverStuckFiles();
 
   const channel = await getChannel();
 
@@ -201,8 +235,17 @@ process.on("unhandledRejection", (reason, promise) => {
   );
 });
 
+// Minimal health server — returns 503 until consumer is ready, then 200
+let consumerReady = false;
+http.createServer((_req, res) => {
+  res.writeHead(consumerReady ? 200 : 503);
+  res.end();
+}).listen(9090);
+
 // Start the consumer
-startConsumer().catch((error) => {
-  console.error("[Consumer] Failed to start:", error);
-  process.exit(1);
-});
+startConsumer()
+  .then(() => { consumerReady = true; })
+  .catch((error) => {
+    console.error("[Consumer] Failed to start:", error);
+    process.exit(1);
+  });

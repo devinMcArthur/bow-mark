@@ -10,4 +10,25 @@ fragment JobsiteForDailyReportSnippet on JobsiteClass {
   fileObjects {
     ...JobsiteFileObjectPreloadSnippet
   }
+  enrichedFiles {
+    _id
+    minRole
+    enrichedFile {
+      _id
+      documentType
+      summaryStatus
+      summaryError
+      pageCount
+      summary {
+        overview
+        documentType
+        keyTopics
+      }
+      file {
+        _id
+        mimetype
+        description
+      }
+    }
+  }
 }

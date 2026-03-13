@@ -23,6 +23,7 @@ export {
 } from "./materialShipmentSync";
 export { productionSyncHandler, upsertFactProduction } from "./productionSync";
 export { invoiceSyncHandler, upsertFactInvoice } from "./invoiceSync";
+export { enrichedFileSummaryHandler } from "./enrichedFileSummaryHandler";
 
 // Dimension helpers (shared across handlers)
 export {
