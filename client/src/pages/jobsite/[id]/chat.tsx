@@ -1,16 +1,27 @@
 import {
   Box,
   Divider,
+  Drawer,
+  DrawerBody,
+  DrawerCloseButton,
+  DrawerContent,
+  DrawerHeader,
+  DrawerOverlay,
   Flex,
   Heading,
+  IconButton,
   Spinner,
   Text,
+  Tooltip,
+  useDisclosure,
+  useMediaQuery,
 } from "@chakra-ui/react";
 import { navbarHeight } from "../../../constants/styles";
 import { gql } from "@apollo/client";
 import * as Apollo from "@apollo/client";
 import { useRouter } from "next/router";
 import React from "react";
+import { FiFileText } from "react-icons/fi";
 import Breadcrumbs from "../../../components/Common/Breadcrumbs";
 import Container from "../../../components/Common/Container";
 import Permission from "../../../components/Common/Permission";
@@ -30,19 +41,23 @@ const JOBSITE_CHAT_QUERY = gql`
       jobcode
       enrichedFiles {
         _id
-        documentType
-        summaryStatus
-        summaryError
-        pageCount
-        summary {
-          overview
-          documentType
-          keyTopics
-        }
-        file {
+        minRole
+        enrichedFile {
           _id
-          mimetype
-          description
+          documentType
+          summaryStatus
+          summaryError
+          pageCount
+          summary {
+            overview
+            documentType
+            keyTopics
+          }
+          file {
+            _id
+            mimetype
+            description
+          }
         }
       }
     }
@@ -77,6 +92,8 @@ const JobsiteChatPage = () => {
   const router = useRouter();
   const { id } = router.query;
   const jobsiteId = typeof id === "string" ? id : "";
+  const [isDesktop] = useMediaQuery("(min-width: 768px)");
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const { data, loading, refetch, startPolling, stopPolling } = Apollo.useQuery<
     JobsiteChatQueryResult,
@@ -88,10 +105,9 @@ const JobsiteChatPage = () => {
 
   const jobsite = data?.jobsite;
 
-  // Poll every 3s while any files are pending/processing
   React.useEffect(() => {
     const hasProcessing = jobsite?.enrichedFiles.some(
-      (f) => f.summaryStatus === "pending" || f.summaryStatus === "processing"
+      (f) => f.enrichedFile?.summaryStatus === "pending" || f.enrichedFile?.summaryStatus === "processing"
     );
     if (hasProcessing) {
       startPolling(3000);
@@ -103,9 +119,7 @@ const JobsiteChatPage = () => {
   if (loading) {
     return (
       <Permission minRole={UserRoles.ProjectManager} type={null} showError>
-        <Container>
-          <Spinner />
-        </Container>
+        <Container><Spinner /></Container>
       </Permission>
     );
   }
@@ -113,70 +127,87 @@ const JobsiteChatPage = () => {
   if (!jobsite && !loading) {
     return (
       <Permission minRole={UserRoles.ProjectManager} type={null} showError>
-        <Container>
-          <Text color="gray.500">Jobsite not found.</Text>
-        </Container>
+        <Container><Text color="gray.500">Jobsite not found.</Text></Container>
       </Permission>
     );
   }
 
+  // Shared left-panel content used in both desktop sidebar and mobile drawer
+  const panelContent = jobsite && (
+    <>
+      <Breadcrumbs
+        crumbs={[
+          { title: "Jobsites", link: "/jobsites" },
+          {
+            title: jobsite.jobcode
+              ? `${jobsite.jobcode} — ${jobsite.name}`
+              : jobsite.name,
+            link: `/jobsite/${jobsite._id}`,
+          },
+          { title: "Chat", isCurrentPage: true },
+        ]}
+      />
+      <Heading size="md" mb={1} mt={2}>{jobsite.name}</Heading>
+      {jobsite.jobcode && (
+        <Text fontSize="sm" color="gray.500" mb={4}>{jobsite.jobcode}</Text>
+      )}
+      <Divider my={4} />
+      <Heading size="sm" mb={3} color="gray.700">Documents</Heading>
+      <JobsiteEnrichedFiles
+        jobsiteId={jobsite._id}
+        enrichedFiles={jobsite.enrichedFiles}
+        onUpdated={() => refetch()}
+      />
+    </>
+  );
+
   return (
     <Permission minRole={UserRoles.ProjectManager} type={null} showError>
       <Flex h={`calc(100vh - ${navbarHeight})`} w="100%" overflow="hidden">
-        {/* ── Left panel ─────────────────────────────────────────────────── */}
-        <Box
-          w="420px"
-          flexShrink={0}
-          borderRight="1px solid"
-          borderColor="gray.200"
-          overflowY="auto"
-          p={5}
-        >
-          <Breadcrumbs
-            crumbs={[
-              { title: "Jobsites", link: "/jobsites" },
-              {
-                title: jobsite
-                  ? jobsite.jobcode
-                    ? `${jobsite.jobcode} — ${jobsite.name}`
-                    : jobsite.name
-                  : "...",
-                link: jobsite ? `/jobsite/${jobsite._id}` : undefined,
-              },
-              { title: "Chat", isCurrentPage: true },
-            ]}
-          />
+        {isDesktop ? (
+          /* ── Desktop: fixed left panel ─────────────────────────────────── */
+          <Box
+            w="380px"
+            flexShrink={0}
+            borderRight="1px solid"
+            borderColor="gray.200"
+            overflowY="auto"
+            p={5}
+          >
+            {panelContent}
+          </Box>
+        ) : (
+          /* ── Mobile: drawer ─────────────────────────────────────────────── */
+          <Drawer isOpen={isOpen} placement="left" onClose={onClose} size="full">
+            <DrawerOverlay />
+            <DrawerContent>
+              <DrawerCloseButton />
+              <DrawerHeader borderBottomWidth="1px">Documents</DrawerHeader>
+              <DrawerBody overflowY="auto">{panelContent}</DrawerBody>
+            </DrawerContent>
+          </Drawer>
+        )}
 
-          {jobsite && (
-            <>
-              <Heading size="md" mb={1}>
-                {jobsite.name}
-              </Heading>
-              {jobsite.jobcode && (
-                <Text fontSize="sm" color="gray.500" mb={4}>
-                  {jobsite.jobcode}
-                </Text>
-              )}
-
-              <Divider my={4} />
-
-              <Heading size="sm" mb={3} color="gray.700">
-                Documents
-              </Heading>
-              <JobsiteEnrichedFiles
-                jobsiteId={jobsite._id}
-                enrichedFiles={jobsite.enrichedFiles}
-                onUpdated={() => refetch()}
-              />
-            </>
+        {/* ── Chat ──────────────────────────────────────────────────────────── */}
+        <Box flex={1} overflow="hidden" position="relative">
+          {/* Mobile: documents toggle button overlaid on chat */}
+          {!isDesktop && (
+            <Box position="absolute" top={3} right={3} zIndex={5}>
+              <Tooltip label="View documents" placement="left">
+                <IconButton
+                  aria-label="Open documents"
+                  icon={<FiFileText />}
+                  size="sm"
+                  onClick={onOpen}
+                  colorScheme="blue"
+                  variant="outline"
+                />
+              </Tooltip>
+            </Box>
           )}
-        </Box>
-
-        {/* ── Right panel: Chat ───────────────────────────────────────────── */}
-        <Box flex={1} overflow="hidden">
           <ChatPage
             messageEndpoint="/api/jobsite-chat/message"
-            conversationsEndpoint="/conversations"
+            conversationsEndpoint={jobsiteId ? `/conversations?jobsiteId=${jobsiteId}` : "/conversations"}
             extraPayload={{ jobsiteId }}
             suggestions={JOBSITE_SUGGESTIONS}
             disableRouting
