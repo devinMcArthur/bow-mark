@@ -316,7 +316,6 @@ docker_build(
 
 k8s_yaml([
     'k8s-dev/server-deployment.yaml',
-    'k8s-dev/worker-deployment.yaml',
     'k8s-dev/consumer-deployment.yaml',
     'k8s-dev/mcp-server-deployment.yaml',
     'k8s-dev/client-deployment.yaml',
@@ -331,13 +330,6 @@ k8s_resource(
     'server-deployment',
     resource_deps=['mongo', 'postgres', 'rabbitmq', 'meilisearch', 'db-migrate', 'restore-mongo', 'restore-postgres'],
     port_forwards=['8080:8080'],
-    labels=['app'],
-)
-
-# Background worker - same deps as server
-k8s_resource(
-    'worker-deployment',
-    resource_deps=['mongo', 'postgres', 'rabbitmq', 'db-migrate', 'restore-mongo', 'restore-postgres'],
     labels=['app'],
 )
 

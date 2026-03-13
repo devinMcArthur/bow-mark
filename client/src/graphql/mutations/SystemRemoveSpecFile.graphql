@@ -1,0 +1,5 @@
+mutation SystemRemoveSpecFile($fileObjectId: ID!) {
+  systemRemoveSpecFile(fileObjectId: $fileObjectId) {
+    ...SystemSnippet
+  }
+}

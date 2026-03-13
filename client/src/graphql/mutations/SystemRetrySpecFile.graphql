@@ -1,0 +1,5 @@
+mutation SystemRetrySpecFile($fileObjectId: ID!) {
+  systemRetrySpecFile(fileObjectId: $fileObjectId) {
+    ...SystemSnippet
+  }
+}

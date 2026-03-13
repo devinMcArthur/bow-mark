@@ -1,4 +1,4 @@
-import { Heading } from "@chakra-ui/react";
+import { Heading, useMediaQuery } from "@chakra-ui/react";
 import { GetServerSideProps } from "next";
 import Breadcrumbs from "../../components/Common/Breadcrumbs";
 import ClientOnly from "../../components/Common/ClientOnly";
@@ -11,6 +11,8 @@ import {
 
 const DailyReport: PageDailyReportSsrComp = ({ data }) => {
   const name = `${data?.dailyReport.jobsite.jobcode}: ${data?.dailyReport.jobsite.name}`;
+  const [isDesktop] = useMediaQuery("(min-width: 768px)");
+  const breadcrumbTitle = isDesktop ? name : (data?.dailyReport.jobsite.jobcode ?? name);
 
   return (
     <Container>
@@ -21,14 +23,14 @@ const DailyReport: PageDailyReportSsrComp = ({ data }) => {
             link: "/daily-reports",
           },
           {
-            title: name,
+            title: breadcrumbTitle,
             isCurrentPage: true,
           },
         ]}
       />
       <Heading>{data?.dailyReport.crew.name}</Heading>
       <ClientOnly>
-        <DailyReportClientContent id={data?.dailyReport._id!} />
+        <DailyReportClientContent id={data?.dailyReport._id!} showFloatingChat />
       </ClientOnly>
     </Container>
   );

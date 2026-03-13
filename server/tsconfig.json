@@ -14,7 +14,8 @@
     "lib": [
       "ES6",
       "ES2017",
-      "ESNext.AsyncIterable"
+      "ESNext.AsyncIterable",
+      "DOM"
     ],
     "moduleResolution": "node",
     "resolveJsonModule": true,

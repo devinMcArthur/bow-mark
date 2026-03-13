@@ -18,6 +18,13 @@ spec:
           command: ["npm", "run", "start:mcp-dev"]
           ports:
             - containerPort: 8081
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            failureThreshold: 24
           resources:
             requests:
               cpu: "250m"
