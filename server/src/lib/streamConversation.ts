@@ -37,6 +37,7 @@ export interface StreamConversationOptions {
   tenderId?: string;
   /** Scopes the conversation to a jobsite — mutually exclusive with tenderId */
   jobsiteId?: string;
+  chatType?: string;
   messages: Array<{ role: "user" | "assistant"; content: string }>;
   systemPrompt: string;
   tools: Anthropic.Tool[];
@@ -59,6 +60,7 @@ export async function streamConversation(opts: StreamConversationOptions): Promi
     conversationId,
     tenderId,
     jobsiteId,
+    chatType,
     messages,
     systemPrompt,
     tools,
@@ -99,6 +101,7 @@ export async function streamConversation(opts: StreamConversationOptions): Promi
       };
       if (tenderId) createData.tenderId = new mongoose.Types.ObjectId(tenderId);
       if (jobsiteId) createData.jobsiteId = new mongoose.Types.ObjectId(jobsiteId);
+      if (chatType) createData.chatType = chatType;
       convo = await Conversation.create(createData);
       isNewConversation = true;
     }

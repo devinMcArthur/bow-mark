@@ -60,6 +60,10 @@ export class ConversationSchema {
   @prop({ ref: () => JobsiteClass, index: true })
   public jobsiteId?: Ref<JobsiteClass>;
 
+  @Field({ nullable: true })
+  @prop({ index: true })
+  public chatType?: string;
+
   @Field()
   @prop({ required: true, default: "New conversation" })
   public title!: string;
