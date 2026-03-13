@@ -150,16 +150,19 @@ export interface EnrichedFileSummaryMessage {
   enrichedFileId: string;
   fileId: string;
   timestamp: string;
+  attempt?: number;
 }
 
 export const publishEnrichedFileCreated = async (
   enrichedFileId: string,
-  fileId: string
+  fileId: string,
+  attempt = 0
 ): Promise<boolean> => {
   const message: EnrichedFileSummaryMessage = {
     enrichedFileId,
     fileId,
     timestamp: new Date().toISOString(),
+    attempt,
   };
   try {
     const channel = await getChannel();

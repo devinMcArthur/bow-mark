@@ -2,7 +2,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { EnrichedFile } from "@models";
 import { getFile } from "@utils/fileStorage";
 import type { EnrichedFileSummaryMessage } from "../../rabbitmq/publisher";
-import { summarizePdf, DocumentSummary, withRateLimitRetry } from "./summarizePdf";
+import { summarizePdf, DocumentSummary, withRateLimitRetry, RateLimitExhaustedError } from "./summarizePdf";
+import { publishEnrichedFileCreated } from "../../rabbitmq/publisher";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -15,10 +16,14 @@ Analyze this document and return a JSON object with exactly these fields:
 }
 Return only valid JSON, no markdown, no explanation.`;
 
+const MAX_MESSAGE_ATTEMPTS = 3;
+// Delay before republishing on rate limit exhaustion: 2min, 4min, 8min
+const messageRetryDelayMs = (attempt: number) => Math.min(8 * 60_000, 2 * 60_000 * 2 ** attempt);
+
 export const enrichedFileSummaryHandler = {
   async handle(message: EnrichedFileSummaryMessage): Promise<void> {
-    const { enrichedFileId, fileId } = message;
-    console.log(`[EnrichedFileSummary] Processing file ${fileId} (enrichedFile ${enrichedFileId})`);
+    const { enrichedFileId, fileId, attempt = 0 } = message;
+    console.log(`[EnrichedFileSummary] Processing file ${fileId} (enrichedFile ${enrichedFileId}, attempt ${attempt})`);
 
     await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
       $set: { summaryStatus: "processing" },
@@ -117,6 +122,21 @@ export const enrichedFileSummaryHandler = {
 
       console.log(`[EnrichedFileSummary] Done for file ${fileId}`);
     } catch (error) {
+      if (error instanceof RateLimitExhaustedError && attempt < MAX_MESSAGE_ATTEMPTS) {
+        const delayMs = messageRetryDelayMs(attempt);
+        console.warn(
+          `[EnrichedFileSummary] Rate limit exhausted for file ${fileId} (attempt ${attempt}). ` +
+          `Retrying in ${delayMs / 60_000} min...`
+        );
+        await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
+          $set: { summaryStatus: "pending" },
+          $unset: { summaryError: "" },
+        });
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        await publishEnrichedFileCreated(enrichedFileId, fileId, attempt + 1);
+        return;
+      }
+
       console.error(`[EnrichedFileSummary] Failed for file ${fileId}:`, error);
       const summaryError = error instanceof Error ? error.message : String(error);
       await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
