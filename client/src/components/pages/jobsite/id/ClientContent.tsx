@@ -46,20 +46,7 @@ import JobsiteContract from "./views/Contract";
 import Switch from "../../../Common/forms/Switch";
 import JobsiteLocationModal from "./views/LocationModal";
 import { useAuth } from "../../../../contexts/Auth";
-
-const FOREMAN_JOBSITE_SUGGESTIONS = [
-  "What do I need to know for today's work?",
-  "Are there any safety requirements I should be aware of?",
-  "What are the material or mix specifications for this job?",
-  "What are the compaction or quality requirements?",
-];
-
-const PM_JOBSITE_SUGGESTIONS = [
-  "How is this jobsite performing financially?",
-  "Summarize the key scope and contract requirements",
-  "What are the specification requirements for this job?",
-  "Compare this jobsite's productivity to similar jobs",
-];
+import { getJobsiteChatConfig } from "../../../Chat/jobsiteChatConfig";
 
 interface IJobsiteClientContent {
   id: string;
@@ -104,17 +91,8 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
   const [previousYears, setPreviousYears] = React.useState(false);
 
   const { state: { user } } = useAuth();
-  const isPM = user?.role === UserRoles.Admin || user?.role === UserRoles.ProjectManager;
-
-  const chatMessageEndpoint = isPM
-    ? "/api/pm-jobsite-chat/message"
-    : "/api/foreman-jobsite-chat/message";
-
-  const chatConversationsEndpoint = isPM
-    ? `/conversations?jobsiteId=${id}&chatType=jobsite-pm`
-    : `/conversations?jobsiteId=${id}&chatType=jobsite-foreman`;
-
-  const chatSuggestions = isPM ? PM_JOBSITE_SUGGESTIONS : FOREMAN_JOBSITE_SUGGESTIONS;
+  const { messageEndpoint: chatMessageEndpoint, conversationsEndpoint: chatConversationsEndpoint, suggestions: chatSuggestions } =
+    getJobsiteChatConfig(user?.role, id);
 
   /**
    * ----- Variables -----
@@ -440,7 +418,6 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
     unarchive,
     unarchiveLoading,
     refetch,
-    isPM,
   ]);
 };
 
