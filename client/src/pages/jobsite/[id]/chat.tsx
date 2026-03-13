@@ -117,7 +117,7 @@ const JobsiteChatPage = () => {
     }
   }, [jobsite?.enrichedFiles, startPolling, stopPolling]);
 
-  if (loading) {
+  if (loading || !jobsiteId) {
     return (
       <Permission minRole={UserRoles.ProjectManager} type={null} showError>
         <Container><Spinner /></Container>
@@ -125,7 +125,7 @@ const JobsiteChatPage = () => {
     );
   }
 
-  if (!jobsite && !loading) {
+  if (!jobsite) {
     return (
       <Permission minRole={UserRoles.ProjectManager} type={null} showError>
         <Container><Text color="gray.500">Jobsite not found.</Text></Container>
