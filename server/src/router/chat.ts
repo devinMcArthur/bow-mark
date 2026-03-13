@@ -1,15 +1,13 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { Router } from "express";
 import { isDocument } from "@typegoose/typegoose";
 import { User } from "@models";
 import { streamConversation } from "../lib/streamConversation";
 import { requireAuth } from "../lib/authMiddleware";
+import { connectMcp } from "../lib/mcpClient";
 
 const router = Router();
 
-const MCP_SERVER_URL = process.env.MCP_SERVER_URL || "http://mcp-analytics:8081";
 const APP_NAME = process.env.APP_NAME || "paving";
 
 const SYSTEM_PROMPT = `You are an analytics assistant for Bow-Mark's ${APP_NAME} division.
@@ -58,36 +56,11 @@ router.post("/message", requireAuth, async (req, res) => {
   const systemPrompt = userContext ? `${userContext}\n\n${SYSTEM_PROMPT}` : SYSTEM_PROMPT;
 
   // ── Connect to MCP server and fetch tools ──────────────────────────────────
-  const mcpClient = new Client({ name: "bow-mark-chat", version: "1.0.0" });
-  const transport = new StreamableHTTPClientTransport(new URL(`${MCP_SERVER_URL}/mcp`));
+  const mcpConnection = await connectMcp("bow-mark-chat", "[chat]", res);
+  if (!mcpConnection) return;
+  const { client: mcpClient, tools: mcpTools } = mcpConnection;
 
-  try {
-    await mcpClient.connect(transport);
-  } catch (err) {
-    console.error("Failed to connect to MCP server:", err);
-    res.status(503).json({ error: "Analytics server unavailable" });
-    return;
-  }
-
-  let anthropicTools: Anthropic.Tool[];
-  try {
-    const { tools: mcpTools } = await mcpClient.listTools();
-    anthropicTools = mcpTools.map((t) => ({
-      name: t.name,
-      description: t.description ?? "",
-      input_schema: (t.inputSchema as Anthropic.Tool["input_schema"]) ?? {
-        type: "object" as const,
-        properties: {},
-      },
-    }));
-  } catch (err) {
-    console.error("Failed to load MCP tools:", err);
-    await mcpClient.close();
-    res.status(503).json({ error: "Failed to load analytics tools" });
-    return;
-  }
-
-  // ── Stream (MCP client closed in executeTool's parent finally via factory) ─
+  // ── Stream (MCP client closed in finally block below) ──────────────────────
   try {
     await streamConversation({
       res,
@@ -95,7 +68,7 @@ router.post("/message", requireAuth, async (req, res) => {
       conversationId,
       messages: messages as Array<{ role: "user" | "assistant"; content: string }>,
       systemPrompt,
-      tools: anthropicTools,
+      tools: mcpTools,
       executeTool: async (name, input) => {
         const mcpResult = await mcpClient.callTool({ name, arguments: input });
         const text =

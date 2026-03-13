@@ -1,6 +1,4 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { Router } from "express";
 import mongoose from "mongoose";
 import { Jobsite, User, System, EnrichedFile } from "@models";
@@ -10,10 +8,9 @@ import { READ_DOCUMENT_TOOL, makeReadDocumentExecutor } from "../lib/readDocumen
 import { buildFileIndex } from "../lib/buildFileIndex";
 import { UserRoles } from "../typescript/user";
 import { requireAuth } from "../lib/authMiddleware";
+import { connectMcp } from "../lib/mcpClient";
 
 const router = Router();
-
-const MCP_SERVER_URL = process.env.MCP_SERVER_URL || "http://mcp-analytics:8081";
 
 router.post("/message", requireAuth, async (req, res) => {
   const { messages, conversationId, jobsiteId } = req.body as {
@@ -105,35 +102,10 @@ ${fileIndex || "No documents have been uploaded yet."}${pendingNotice}${specFile
   - Employee: [Name](/employee/{mongo_id})
 - Citations for document quotes: **[[Document Type, p.X]](URL#page=X)**`;
 
-  // ── Connect to MCP server ──────────────────────────────────────────────────
-  const mcpClient = new Client({ name: "bow-mark-pm-chat", version: "1.0.0" });
-  const transport = new StreamableHTTPClientTransport(new URL(`${MCP_SERVER_URL}/mcp`));
-
-  try {
-    await mcpClient.connect(transport);
-  } catch (err) {
-    console.error("[pm-jobsite-chat] Failed to connect to MCP server:", err);
-    res.status(503).json({ error: "Analytics server unavailable" });
-    return;
-  }
-
-  let mcpTools: Anthropic.Tool[];
-  try {
-    const { tools: rawTools } = await mcpClient.listTools();
-    mcpTools = rawTools.map((t) => ({
-      name: t.name,
-      description: t.description ?? "",
-      input_schema: (t.inputSchema as Anthropic.Tool["input_schema"]) ?? {
-        type: "object" as const,
-        properties: {},
-      },
-    }));
-  } catch (err) {
-    console.error("[pm-jobsite-chat] Failed to load MCP tools:", err);
-    await mcpClient.close();
-    res.status(503).json({ error: "Failed to load analytics tools" });
-    return;
-  }
+  // ── Connect to MCP server and fetch tools ──────────────────────────────────
+  const mcpConnection = await connectMcp("bow-mark-pm-chat", "[pm-jobsite-chat]", res);
+  if (!mcpConnection) return;
+  const { client: mcpClient, tools: mcpTools } = mcpConnection;
 
   // Combine read_document with MCP analytics tools
   const allTools: Anthropic.Tool[] = [READ_DOCUMENT_TOOL, ...mcpTools];
