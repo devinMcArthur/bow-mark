@@ -45,12 +45,20 @@ import TruckingRates from "./views/TruckingRates";
 import JobsiteContract from "./views/Contract";
 import Switch from "../../../Common/forms/Switch";
 import JobsiteLocationModal from "./views/LocationModal";
+import { useAuth } from "../../../../contexts/Auth";
 
-const JOBSITE_SUGGESTIONS = [
-  "Summarize the key scope of work from the documents",
-  "What are the main specification requirements for this jobsite?",
-  "Are there any environmental or safety requirements I should know about?",
-  "What materials or equipment are referenced in the documents?",
+const FOREMAN_JOBSITE_SUGGESTIONS = [
+  "What do I need to know for today's work?",
+  "Are there any safety requirements I should be aware of?",
+  "What are the material or mix specifications for this job?",
+  "What are the compaction or quality requirements?",
+];
+
+const PM_JOBSITE_SUGGESTIONS = [
+  "How is this jobsite performing financially?",
+  "Summarize the key scope and contract requirements",
+  "What are the specification requirements for this job?",
+  "Compare this jobsite's productivity to similar jobs",
 ];
 
 interface IJobsiteClientContent {
@@ -94,6 +102,19 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
   const router = useRouter();
 
   const [previousYears, setPreviousYears] = React.useState(false);
+
+  const { state: { user } } = useAuth();
+  const isPM = user?.role === UserRoles.Admin || user?.role === UserRoles.ProjectManager;
+
+  const chatMessageEndpoint = isPM
+    ? "/api/pm-jobsite-chat/message"
+    : "/api/foreman-jobsite-chat/message";
+
+  const chatConversationsEndpoint = isPM
+    ? `/conversations?jobsiteId=${id}&chatType=jobsite-pm`
+    : `/conversations?jobsiteId=${id}&chatType=jobsite-foreman`;
+
+  const chatSuggestions = isPM ? PM_JOBSITE_SUGGESTIONS : FOREMAN_JOBSITE_SUGGESTIONS;
 
   /**
    * ----- Variables -----
@@ -216,7 +237,7 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
                   </NextLink>
                 </Tooltip>
                 {(jobsite.enrichedFiles?.length ?? 0) > 0 && (
-                  <Permission minRole={UserRoles.ProjectManager}>
+                  <Permission minRole={UserRoles.User}>
                     <IconButton
                       aria-label="Chat with documents"
                       icon={<FiMessageSquare />}
@@ -290,16 +311,6 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
           {jobsite.fileObjects.length > 0 && (
             <JobsiteFileObjects jobsite={jobsite} hideAdd />
           )}
-          <Card>
-            <Heading size="sm" mb={3} color="gray.700">
-              Documents
-            </Heading>
-            <JobsiteEnrichedFiles
-              jobsiteId={jobsite._id}
-              enrichedFiles={(jobsite.enrichedFiles ?? []) as EnrichedFileItem[]}
-              onUpdated={() => refetch()}
-            />
-          </Card>
           <Permission minRole={UserRoles.ProjectManager}>
             <SimpleGrid columns={[1, 1, 1, 2]} spacingX={4} spacingY={2}>
               <JobsiteMaterialsCosting
@@ -322,6 +333,16 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
             <SimpleGrid spacingY={2}>
               <JobsiteContract jobsite={jobsite} />
             </SimpleGrid>
+            <Card>
+              <Heading size="sm" mb={3} color="gray.700">
+                Documents
+              </Heading>
+              <JobsiteEnrichedFiles
+                jobsiteId={jobsite._id}
+                enrichedFiles={(jobsite.enrichedFiles ?? []) as EnrichedFileItem[]}
+                onUpdated={() => refetch()}
+              />
+            </Card>
             <SimpleGrid columns={[1, 1, 1, 2]} spacingX={4} spacingY={2}>
               <JobsiteYearlyReportList
                 jobsiteYearReports={jobsite.yearReports}
@@ -337,7 +358,7 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
           />
 
           {!chatOpen && (jobsite.enrichedFiles?.length ?? 0) > 0 && (
-            <Permission minRole={UserRoles.ProjectManager}>
+            <Permission minRole={UserRoles.User}>
               <IconButton
                 aria-label="Chat with documents"
                 icon={<FiMessageSquare />}
@@ -358,10 +379,11 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
             isOpen={chatOpen}
             onClose={onChatClose}
             title={jobsite.name}
-            messageEndpoint="/api/jobsite-chat/message"
-            conversationsEndpoint={`/conversations?jobsiteId=${jobsite._id}`}
+            messageEndpoint={chatMessageEndpoint}
+            conversationsEndpoint={chatConversationsEndpoint}
             extraPayload={{ jobsiteId: jobsite._id }}
-            suggestions={JOBSITE_SUGGESTIONS}
+            suggestions={chatSuggestions}
+            minRole={UserRoles.User}
           />
 
           {/* EDIT MODAL */}
@@ -418,6 +440,7 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
     unarchive,
     unarchiveLoading,
     refetch,
+    isPM,
   ]);
 };
 
