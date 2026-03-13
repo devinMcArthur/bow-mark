@@ -2,10 +2,10 @@ import Anthropic from "@anthropic-ai/sdk";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { Router } from "express";
-import jwt from "jsonwebtoken";
 import { isDocument } from "@typegoose/typegoose";
 import { User } from "@models";
 import { streamConversation } from "../lib/streamConversation";
+import { requireAuth } from "../lib/authMiddleware";
 
 const router = Router();
 
@@ -36,27 +36,7 @@ Guidelines:
   - Vehicle: [Vehicle Name](/vehicle/{mongo_id})
 - Only link entities when their ID is known from tool results. Never guess or fabricate IDs.`;
 
-router.post("/message", async (req, res) => {
-  // ── Auth ───────────────────────────────────────────────────────────────────
-  const token = req.headers.authorization;
-  if (!token || !process.env.JWT_SECRET) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-
-  let userId: string;
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET) as jwt.JwtPayload;
-    userId = decoded?.userId;
-    if (!userId) {
-      res.status(401).json({ error: "Invalid token payload" });
-      return;
-    }
-  } catch {
-    res.status(401).json({ error: "Invalid token" });
-    return;
-  }
-
+router.post("/message", requireAuth, async (req, res) => {
   const { messages, conversationId } = req.body as {
     messages: Anthropic.MessageParam[];
     conversationId?: string;
@@ -67,7 +47,7 @@ router.post("/message", async (req, res) => {
   }
 
   // ── Build user-aware system prompt ─────────────────────────────────────────
-  const user = await User.findById(userId).populate("employee");
+  const user = await User.findById(req.userId).populate("employee");
   const employee = isDocument(user?.employee) ? user!.employee : null;
   const userContext = [
     user?.name && `The user's name is ${user.name}.`,
@@ -111,7 +91,7 @@ router.post("/message", async (req, res) => {
   try {
     await streamConversation({
       res,
-      userId,
+      userId: req.userId,
       conversationId,
       messages: messages as Array<{ role: "user" | "assistant"; content: string }>,
       systemPrompt,

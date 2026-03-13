@@ -1,35 +1,15 @@
 import { Router } from "express";
-import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { Tender, User, System } from "@models";
 import { isDocument } from "@typegoose/typegoose";
 import { streamConversation } from "../lib/streamConversation";
 import { READ_DOCUMENT_TOOL, makeReadDocumentExecutor } from "../lib/readDocumentExecutor";
 import { buildFileIndex } from "../lib/buildFileIndex";
+import { requireAuth } from "../lib/authMiddleware";
 
 const router = Router();
 
-router.post("/message", async (req, res) => {
-  // ── Auth ───────────────────────────────────────────────────────────────────
-  const token = req.headers.authorization;
-  if (!token || !process.env.JWT_SECRET) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-
-  let userId: string;
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET) as jwt.JwtPayload;
-    userId = decoded?.userId;
-    if (!userId) {
-      res.status(401).json({ error: "Invalid token payload" });
-      return;
-    }
-  } catch {
-    res.status(401).json({ error: "Invalid token" });
-    return;
-  }
-
+router.post("/message", requireAuth, async (req, res) => {
   const { messages, conversationId, tenderId } = req.body as {
     messages: Array<{ role: "user" | "assistant"; content: string }>;
     conversationId?: string;
@@ -55,7 +35,7 @@ router.post("/message", async (req, res) => {
       .populate({ path: "files", populate: { path: "file" } })
       .lean(),
     System.getSystem(),
-    User.findById(userId).populate("employee"),
+    User.findById(req.userId).populate("employee"),
   ]);
 
   if (!tender) {
@@ -79,7 +59,7 @@ router.post("/message", async (req, res) => {
     tenderFiles,
     specFiles,
     serverBase,
-    token
+    req.token
   );
 
   const systemPrompt = `${userContext ? userContext + "\n\n" : ""}You are an AI assistant helping to analyze tender documents for Bow-Mark, a paving and concrete company.
@@ -105,7 +85,7 @@ ${fileIndex || "No tender documents have been processed yet."}${pendingNotice}${
   // ── Stream ─────────────────────────────────────────────────────────────────
   await streamConversation({
     res,
-    userId,
+    userId: req.userId,
     conversationId,
     tenderId,
     messages,

@@ -2,7 +2,6 @@ import Anthropic from "@anthropic-ai/sdk";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { Router } from "express";
-import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { Jobsite, User, System, EnrichedFile } from "@models";
 import { isDocument } from "@typegoose/typegoose";
@@ -10,32 +9,13 @@ import { streamConversation } from "../lib/streamConversation";
 import { READ_DOCUMENT_TOOL, makeReadDocumentExecutor } from "../lib/readDocumentExecutor";
 import { buildFileIndex } from "../lib/buildFileIndex";
 import { UserRoles } from "../typescript/user";
+import { requireAuth } from "../lib/authMiddleware";
 
 const router = Router();
 
 const MCP_SERVER_URL = process.env.MCP_SERVER_URL || "http://mcp-analytics:8081";
 
-router.post("/message", async (req, res) => {
-  // ── Auth ─────────────────────────────────────────────────────────────────
-  const token = req.headers.authorization;
-  if (!token || !process.env.JWT_SECRET) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-
-  let userId: string;
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET) as jwt.JwtPayload;
-    userId = decoded?.userId;
-    if (!userId) {
-      res.status(401).json({ error: "Invalid token payload" });
-      return;
-    }
-  } catch {
-    res.status(401).json({ error: "Invalid token" });
-    return;
-  }
-
+router.post("/message", requireAuth, async (req, res) => {
   const { messages, conversationId, jobsiteId } = req.body as {
     messages: Array<{ role: "user" | "assistant"; content: string }>;
     conversationId?: string;
@@ -55,7 +35,7 @@ router.post("/message", async (req, res) => {
   const [jobsite, systemDoc, user] = await Promise.all([
     Jobsite.findById(jobsiteId).lean(),
     System.getSystem(),
-    User.findById(userId).populate("employee"),
+    User.findById(req.userId).populate("employee"),
   ]);
 
   if (!jobsite) {
@@ -93,7 +73,7 @@ router.post("/message", async (req, res) => {
     jobsiteFiles,
     specFiles,
     serverBase,
-    token
+    req.token
   );
 
   const APP_NAME = process.env.APP_NAME || "paving";
@@ -163,7 +143,7 @@ ${fileIndex || "No documents have been uploaded yet."}${pendingNotice}${specFile
   try {
     await streamConversation({
       res,
-      userId,
+      userId: req.userId,
       conversationId,
       jobsiteId,
       chatType: "jobsite-pm",
