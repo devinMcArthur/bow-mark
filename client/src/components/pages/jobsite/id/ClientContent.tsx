@@ -18,6 +18,7 @@ import NextLink from "next/link";
 import { useRouter } from "next/router";
 import React from "react";
 import { FiArchive, FiBarChart2, FiEdit, FiMap, FiMessageSquare, FiTrash, FiUnlock } from "react-icons/fi";
+import ChatDrawer from "../../../Chat/ChatDrawer";
 import {
   useJobsiteAllDataLazyQuery,
   useJobsiteArchiveMutation,
@@ -44,6 +45,13 @@ import TruckingRates from "./views/TruckingRates";
 import JobsiteContract from "./views/Contract";
 import Switch from "../../../Common/forms/Switch";
 import JobsiteLocationModal from "./views/LocationModal";
+
+const JOBSITE_SUGGESTIONS = [
+  "Summarize the key scope of work from the documents",
+  "What are the main specification requirements for this jobsite?",
+  "Are there any environmental or safety requirements I should know about?",
+  "What materials or equipment are referenced in the documents?",
+];
 
 interface IJobsiteClientContent {
   id: string;
@@ -81,6 +89,7 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
     onClose: onCloseRemove,
   } = useDisclosure();
   const { isOpen: isOpenLocation, onOpen: onOpenLocation, onClose: onCloseLocation } = useDisclosure();
+  const { isOpen: chatOpen, onOpen: onChatOpen, onClose: onChatClose } = useDisclosure();
 
   const router = useRouter();
 
@@ -206,18 +215,16 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
                     />
                   </NextLink>
                 </Tooltip>
-                <Permission minRole={UserRoles.ProjectManager}>
-                  <Tooltip label="Chat">
-                    <NextLink href={`/jobsite/${jobsite._id}/chat`} passHref>
-                      <IconButton
-                        as="a"
-                        aria-label="chat"
-                        icon={<FiMessageSquare />}
-                        backgroundColor="transparent"
-                      />
-                    </NextLink>
-                  </Tooltip>
-                </Permission>
+                {(jobsite.enrichedFiles?.length ?? 0) > 0 && (
+                  <Permission minRole={UserRoles.ProjectManager}>
+                    <IconButton
+                      aria-label="Chat with documents"
+                      icon={<FiMessageSquare />}
+                      backgroundColor="transparent"
+                      onClick={onChatOpen}
+                    />
+                  </Permission>
+                )}
                 <IconButton
                   aria-label="location"
                   icon={<FiMap />}
@@ -329,6 +336,34 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
             jobsiteId={jobsite._id}
           />
 
+          {!chatOpen && (jobsite.enrichedFiles?.length ?? 0) > 0 && (
+            <Permission minRole={UserRoles.ProjectManager}>
+              <IconButton
+                aria-label="Chat with documents"
+                icon={<FiMessageSquare />}
+                colorScheme="blue"
+                size="lg"
+                borderRadius="full"
+                position="fixed"
+                bottom={8}
+                right={8}
+                zIndex={4}
+                onClick={onChatOpen}
+                boxShadow="lg"
+              />
+            </Permission>
+          )}
+
+          <ChatDrawer
+            isOpen={chatOpen}
+            onClose={onChatClose}
+            title={jobsite.name}
+            messageEndpoint="/api/jobsite-chat/message"
+            conversationsEndpoint={`/conversations?jobsiteId=${jobsite._id}`}
+            extraPayload={{ jobsiteId: jobsite._id }}
+            suggestions={JOBSITE_SUGGESTIONS}
+          />
+
           {/* EDIT MODAL */}
           <Modal isOpen={isOpen} onClose={onClose}>
             <ModalOverlay />
@@ -375,6 +410,9 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
     isOpenLocation,
     onCloseLocation,
     onOpenLocation,
+    chatOpen,
+    onChatOpen,
+    onChatClose,
     archive,
     archiveLoading,
     unarchive,
