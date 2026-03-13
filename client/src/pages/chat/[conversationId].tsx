@@ -12,7 +12,7 @@ const ChatConversationPage: NextPage = () => {
   if (!router.isReady || typeof conversationId !== "string") return null;
 
   return (
-    <Box h={`calc(100vh - ${navbarHeight})`} overflow="hidden" flex={1}>
+    <Box position="fixed" top={navbarHeight} left={0} right={0} bottom={0} overflow="hidden">
       <ChatPage
         initialConversationId={conversationId}
         conversationsEndpoint="/conversations?scope=all"

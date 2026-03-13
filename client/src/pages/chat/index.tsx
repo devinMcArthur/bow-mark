@@ -5,7 +5,7 @@ import ChatPage from "../../components/Chat/ChatPage";
 import { navbarHeight } from "../../constants/styles";
 
 const ChatHubPage: NextPage = () => (
-  <Box h={`calc(100vh - ${navbarHeight})`} overflow="hidden" flex={1}>
+  <Box position="fixed" top={navbarHeight} left={0} right={0} bottom={0} overflow="hidden">
     <ChatPage
       conversationsEndpoint="/conversations?scope=all"
       height="100%"
