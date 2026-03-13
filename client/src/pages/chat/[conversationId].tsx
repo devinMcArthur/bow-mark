@@ -9,7 +9,12 @@ const ChatConversationPage: NextPage = () => {
   // Wait until the router is ready (query params populated)
   if (!router.isReady || typeof conversationId !== "string") return null;
 
-  return <ChatPage initialConversationId={conversationId} />;
+  return (
+    <ChatPage
+      initialConversationId={conversationId}
+      conversationsEndpoint="/conversations?scope=all"
+    />
+  );
 };
 
 export default ChatConversationPage;

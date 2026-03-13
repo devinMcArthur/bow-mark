@@ -18,7 +18,7 @@ import {
   DrawerBody,
   DrawerCloseButton,
 } from "@chakra-ui/react";
-import { useRouter } from "next/router";
+import { useRouter, NextRouter } from "next/router";
 import { FiSend, FiPlus, FiArrowDown, FiMenu, FiRefreshCw } from "react-icons/fi";
 import Permission from "../Common/Permission";
 import { SourcesDrawer } from "./SourcesDrawer";
@@ -169,6 +169,101 @@ const MessageBubble = React.memo(({ msg, onShowSources }: MessageBubbleProps) =>
 });
 
 MessageBubble.displayName = "MessageBubble";
+
+// ─── Conversation Groups sidebar ─────────────────────────────────────────────
+
+interface ConversationGroupsProps {
+  conversations: ConversationSummary[];
+  conversationId: string | null;
+  disableRouting: boolean;
+  loadConversation: (id: string) => void;
+  setSidebarOpen: (open: boolean) => void;
+  renameConversation: (id: string, title: string) => void;
+  deleteConversation: (id: string) => void;
+  router: NextRouter;
+}
+
+function groupConversations(conversations: ConversationSummary[]) {
+  const analytics: ConversationSummary[] = [];
+  const jobsite: ConversationSummary[] = [];
+  const tender: ConversationSummary[] = [];
+  for (const c of conversations) {
+    if (c.context?.type === "jobsite") jobsite.push(c);
+    else if (c.context?.type === "tender") tender.push(c);
+    else analytics.push(c);
+  }
+  return { analytics, jobsite, tender };
+}
+
+const ConversationGroups = ({
+  conversations,
+  conversationId,
+  disableRouting,
+  loadConversation,
+  setSidebarOpen,
+  renameConversation,
+  deleteConversation,
+  router,
+}: ConversationGroupsProps) => {
+  const { analytics, jobsite, tender } = groupConversations(conversations);
+  const hasGroups = jobsite.length > 0 || tender.length > 0;
+
+  const handleSelect = (c: ConversationSummary) => {
+    if (c.context?.type === "jobsite") {
+      router.push(`/jobsite/${c.context.id}`);
+    } else if (c.context?.type === "tender") {
+      router.push(`/tender/${c.context.id}?conversationId=${c.id}`);
+    } else if (disableRouting) {
+      loadConversation(c.id);
+    } else {
+      router.push(`/chat/${c.id}`);
+    }
+    setSidebarOpen(false);
+  };
+
+  const renderGroup = (items: ConversationSummary[], label?: string) => {
+    if (items.length === 0) return null;
+    return (
+      <>
+        {label && (
+          <Text
+            fontSize="2xs"
+            fontWeight="700"
+            color="gray.400"
+            letterSpacing="wider"
+            textTransform="uppercase"
+            px={3}
+            pt={3}
+            pb={1}
+          >
+            {label}
+          </Text>
+        )}
+        <VStack spacing={1} align="stretch">
+          {items.map((c) => (
+            <ConversationItem
+              key={c.id}
+              convo={c}
+              isActive={c.id === conversationId}
+              context={c.context}
+              onSelect={() => handleSelect(c)}
+              onRename={(title) => renameConversation(c.id, title)}
+              onDelete={() => deleteConversation(c.id)}
+            />
+          ))}
+        </VStack>
+      </>
+    );
+  };
+
+  return (
+    <>
+      {renderGroup(analytics, hasGroups ? "Analytics" : undefined)}
+      {renderGroup(jobsite, "Jobsite")}
+      {renderGroup(tender, "Tender")}
+    </>
+  );
+};
 
 // ─── Chat Page ────────────────────────────────────────────────────────────────
 
@@ -654,25 +749,16 @@ const ChatPage = ({
             </Button>
           </Box>
           <Box flex={1} overflowY="auto" px={2} py={2}>
-            <VStack spacing={1} align="stretch">
-              {conversations.map((c) => (
-                <ConversationItem
-                  key={c.id}
-                  convo={c}
-                  isActive={c.id === conversationId}
-                  onSelect={() => {
-                    if (disableRouting) {
-                      loadConversation(c.id);
-                    } else {
-                      router.push(`/chat/${c.id}`);
-                    }
-                    setSidebarOpen(false);
-                  }}
-                  onRename={(title) => renameConversation(c.id, title)}
-                  onDelete={() => deleteConversation(c.id)}
-                />
-              ))}
-            </VStack>
+            <ConversationGroups
+              conversations={conversations}
+              conversationId={conversationId}
+              disableRouting={disableRouting}
+              loadConversation={loadConversation}
+              setSidebarOpen={setSidebarOpen}
+              renameConversation={renameConversation}
+              deleteConversation={deleteConversation}
+              router={router}
+            />
           </Box>
         </Flex>
 

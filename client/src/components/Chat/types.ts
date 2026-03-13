@@ -15,6 +15,12 @@ export interface ChatMessage {
   model?: string;
 }
 
+export interface ConversationContext {
+  type: "jobsite" | "tender";
+  id: string;
+  name: string;
+}
+
 export interface ConversationSummary {
   id: string;
   title: string;
@@ -22,4 +28,5 @@ export interface ConversationSummary {
   totalInputTokens: number;
   totalOutputTokens: number;
   updatedAt: string;
+  context?: ConversationContext;
 }
