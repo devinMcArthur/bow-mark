@@ -30,13 +30,13 @@ const auth = (req: any, res: any, next: any) => {
 // (no param)       → general (no context) conversations only
 router.get("/", auth, async (req: any, res) => {
   try {
-    const { jobsiteId, scope } = req.query as { jobsiteId?: string; scope?: string };
+    const { jobsiteId, scope, chatType } = req.query as { jobsiteId?: string; scope?: string; chatType?: string };
 
     if (scope === "all") {
       // Return all conversations for this user across all contexts
       const convos = await Conversation.find(
         { user: req.userId },
-        "title aiModel totalInputTokens totalOutputTokens updatedAt createdAt jobsiteId tenderId"
+        "title aiModel totalInputTokens totalOutputTokens updatedAt createdAt jobsiteId tenderId chatType"
       )
         .sort({ updatedAt: -1 })
         .lean();
@@ -84,6 +84,7 @@ router.get("/", auth, async (req: any, res) => {
             updatedAt: c.updatedAt,
             createdAt: c.createdAt,
             ...(context ? { context } : {}),
+            ...(c.chatType ? { chatType: c.chatType } : {}),
           };
         })
       );
@@ -92,6 +93,7 @@ router.get("/", auth, async (req: any, res) => {
     const query: Record<string, unknown> = { user: req.userId };
     if (jobsiteId && mongoose.isValidObjectId(jobsiteId)) {
       query.jobsiteId = new mongoose.Types.ObjectId(jobsiteId);
+      if (chatType) query.chatType = chatType;
     } else {
       // General chat: exclude any context-scoped conversations
       query.tenderId = { $exists: false };
