@@ -1,24 +1,32 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { PDFDocument } from "pdf-lib";
 
+export class RateLimitExhaustedError extends Error {
+  constructor(label: string) {
+    super(`Rate limit retries exhausted for: ${label}`);
+    this.name = "RateLimitExhaustedError";
+  }
+}
+
 export async function withRateLimitRetry<T>(
   fn: () => Promise<T>,
   label: string,
-  maxRetries = 4
+  maxRetries = 6
 ): Promise<T> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
     } catch (error: any) {
       const isRateLimit = error?.status === 429 || error?.error?.type === "rate_limit_error";
-      if (!isRateLimit || attempt === maxRetries) throw error;
+      if (!isRateLimit) throw error;
+      if (attempt === maxRetries) throw new RateLimitExhaustedError(label);
       const retryAfterSec = parseInt(error?.headers?.["retry-after"] ?? "0", 10);
-      const waitMs = retryAfterSec > 0 ? retryAfterSec * 1000 : Math.min(60_000, 2_000 * 2 ** attempt);
-      console.warn(`[summarizePdf] Rate limited on ${label}. Waiting ${waitMs}ms (attempt ${attempt + 1}/${maxRetries})...`);
+      const waitMs = retryAfterSec > 0 ? retryAfterSec * 1000 : Math.min(90_000, 2_000 * 2 ** attempt);
+      console.warn(`[summarizePdf] Rate limited on ${label}. Waiting ${(waitMs / 1000).toFixed(0)}s (attempt ${attempt + 1}/${maxRetries})...`);
       await new Promise((resolve) => setTimeout(resolve, waitMs));
     }
   }
-  throw new Error("Max retries exceeded");
+  throw new RateLimitExhaustedError(label);
 }
 
 // 4 MB original → ~5.3 MB base64. Single-page chunks at this size work fine
@@ -70,8 +78,13 @@ export async function summarizePdf(
   }
 
   // Multi-chunk: collect summaries with their page ranges
+  // 5s inter-chunk delay keeps token usage well under the 50k/min Tier 1 limit
+  const INTER_CHUNK_DELAY_MS = 5_000;
   const partials: Array<{ summary: DocumentSummary; startPage: number; endPage: number }> = [];
   for (let start = 0; start < totalPages; start += initialChunkSize) {
+    if (partials.length > 0) {
+      await new Promise((resolve) => setTimeout(resolve, INTER_CHUNK_DELAY_MS));
+    }
     const end = Math.min(start + initialChunkSize, totalPages);
     const summary = await summarizeRange(anthropic, pdfDoc, start, end, summaryPrompt);
     partials.push({ summary, startPage: start + 1, endPage: end }); // 1-indexed
