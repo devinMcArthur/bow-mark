@@ -62,6 +62,12 @@ router.post("/message", async (req, res) => {
     return;
   }
 
+  // Server-side role guard: only PMs and Admins can use this endpoint
+  if (!user || (user.role ?? UserRoles.User) < UserRoles.ProjectManager) {
+    res.status(403).json({ error: "Forbidden: PM or Admin role required" });
+    return;
+  }
+
   const employee = isDocument(user?.employee) ? user!.employee : null;
   const userContext = [
     user?.name && `The user's name is ${user.name}.`,
