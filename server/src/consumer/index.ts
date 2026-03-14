@@ -24,6 +24,7 @@ import mongoose from "mongoose";
 import { ConsumeMessage } from "amqplib";
 import {
   getChannel,
+  getConnection,
   setupTopology,
   closeConnection as closeRabbitMQ,
   RABBITMQ_CONFIG,
@@ -168,9 +169,25 @@ async function startConsumer(): Promise<void> {
 
   const channel = await getChannel();
 
+  // Create a dedicated channel for enriched file summaries with prefetch(1).
+  // This ensures only one AI summarization runs at a time, preventing
+  // Anthropic rate limit saturation when many files are queued at once.
+  const conn = await getConnection();
+  const enrichedFileChannel = await conn.createChannel();
+  await enrichedFileChannel.prefetch(1);
+  enrichedFileChannel.on("error", (err: Error) => {
+    console.error("[RabbitMQ] Enriched file channel error:", err.message);
+  });
+  enrichedFileChannel.on("close", () => {
+    console.log("[RabbitMQ] Enriched file channel closed");
+  });
+
   // Consume from each queue
   for (const queueConfig of Object.values(RABBITMQ_CONFIG.queues)) {
-    await channel.consume(
+    const isEnrichedFileQueue = queueConfig.name === RABBITMQ_CONFIG.queues.enrichedFile.name;
+    const ch = isEnrichedFileQueue ? enrichedFileChannel : channel;
+
+    await ch.consume(
       queueConfig.name,
       async (msg) => {
         if (!msg) {
@@ -182,13 +199,13 @@ async function startConsumer(): Promise<void> {
 
         if (success) {
           // Acknowledge - message processed successfully
-          channel.ack(msg);
+          ch.ack(msg);
         } else {
           // Negative acknowledge - requeue the message for retry
           // The second param (false) means don't requeue immediately
           // (prevents infinite retry loops)
           // In production, you might use a dead-letter queue instead
-          channel.nack(msg, false, false);
+          ch.nack(msg, false, false);
           console.log("[Consumer] Message rejected and discarded");
         }
       },
@@ -197,7 +214,7 @@ async function startConsumer(): Promise<void> {
       }
     );
 
-    console.log(`[Consumer] Listening on queue: ${queueConfig.name}`);
+    console.log(`[Consumer] Listening on queue: ${queueConfig.name}${isEnrichedFileQueue ? " (prefetch=1)" : ""}`);
   }
 
   console.log("[Consumer] Ready and waiting for messages...");
