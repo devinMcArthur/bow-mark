@@ -357,7 +357,7 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
     async (files: File[]) => {
       if (files.length === 0) return;
       setUploadProgress({ done: 0, total: files.length });
-      let failed = 0;
+      const failedNames: string[] = [];
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -381,7 +381,7 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
 
           await tenderAddFile({ variables: { id: tender._id, data: { fileId } } });
         } catch {
-          failed++;
+          failedNames.push(file.name);
         }
         setUploadProgress({ done: i + 1, total: files.length });
       }
@@ -391,11 +391,13 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
       setUploadProgress(null);
       if (onUpdated) onUpdated();
 
-      if (failed > 0) {
+      if (failedNames.length > 0) {
         toast({
-          title: `${failed} file${failed > 1 ? "s" : ""} failed to upload`,
+          title: `${failedNames.length} file${failedNames.length > 1 ? "s" : ""} failed to upload`,
+          description: failedNames.join(", "),
           status: "error",
           isClosable: true,
+          duration: null,
         });
       }
     },
