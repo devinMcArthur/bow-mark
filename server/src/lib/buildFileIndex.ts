@@ -10,7 +10,7 @@ export function buildFileEntry(f: any, serverBase: string, token: string): strin
     `**File ID: ${f._id}**`,
     filename ? `Filename: ${filename}` : null,
     `Type: ${summary?.documentType || f.documentType || "Unknown"}`,
-    `URL: ${serverBase}/api/enriched-files/${f._id}?token=${token}`,
+    `URL: ${serverBase}/api/enriched-files/${f._id}`,
     summary
       ? `Overview: ${summary.overview}\nKey Topics: ${(summary.keyTopics as string[]).join(", ")}${chunkIndex}`
       : "Summary: not yet available",
