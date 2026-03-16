@@ -270,7 +270,7 @@ const ConversationGroups = ({
 interface ChatPageProps {
   initialConversationId?: string;
   messageEndpoint?: string;        // default: "/api/chat/message"
-  conversationsEndpoint?: string;  // default: "/conversations"
+  conversationsEndpoint?: string;  // default: "/api/conversations"
   extraPayload?: Record<string, unknown>; // merged into POST body e.g. { tenderId }
   suggestions?: string[];          // overrides SUGGESTIONS constant if provided
   disableRouting?: boolean;        // when true, don't navigate on conversation select/new
@@ -281,7 +281,7 @@ interface ChatPageProps {
 const ChatPage = ({
   initialConversationId,
   messageEndpoint = "/api/chat/message",
-  conversationsEndpoint = "/conversations",
+  conversationsEndpoint = "/api/conversations",
   extraPayload,
   suggestions: suggestionsProp,
   disableRouting = false,

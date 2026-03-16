@@ -227,11 +227,11 @@ const createApp = async () => {
   app.use("/file", fileRouter);
   app.use("/public", publicDocumentsRouter);
   app.use("/api/chat", chatRouter);
-  app.use("/conversations", conversationsRouter);
+  app.use("/api/conversations", conversationsRouter);
   app.use("/api/tender-chat", tenderChatRouter);
   app.use("/api/foreman-jobsite-chat", foremanJobsiteChatRouter);
   app.use("/api/pm-jobsite-chat", pmJobsiteChatRouter);
-  app.use("/tender-conversations", tenderConversationsRouter);
+  app.use("/api/tender-conversations", tenderConversationsRouter);
   app.use("/api/enriched-files", enrichedFilesRouter);
 
   await apolloServer.start();
