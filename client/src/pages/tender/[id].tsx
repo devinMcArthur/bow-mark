@@ -172,7 +172,7 @@ const TenderDetailPage = () => {
         <Box flex={1} overflow="hidden">
           <ChatPage
             messageEndpoint="/api/tender-chat/message"
-            conversationsEndpoint={`/tender-conversations/${tenderId}`}
+            conversationsEndpoint={`/api/tender-conversations/${tenderId}`}
             extraPayload={{ tenderId }}
             suggestions={TENDER_SUGGESTIONS}
             disableRouting

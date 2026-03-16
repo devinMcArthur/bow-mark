@@ -29,8 +29,8 @@ export function getJobsiteChatConfig(
       ? "/api/pm-jobsite-chat/message"
       : "/api/foreman-jobsite-chat/message",
     conversationsEndpoint: isPM
-      ? `/conversations?jobsiteId=${jobsiteId}&chatType=jobsite-pm`
-      : `/conversations?jobsiteId=${jobsiteId}&chatType=jobsite-foreman`,
+      ? `/api/conversations?jobsiteId=${jobsiteId}&chatType=jobsite-pm`
+      : `/api/conversations?jobsiteId=${jobsiteId}&chatType=jobsite-foreman`,
     suggestions: isPM ? PM_CHAT_SUGGESTIONS : FOREMAN_CHAT_SUGGESTIONS,
   };
 }
