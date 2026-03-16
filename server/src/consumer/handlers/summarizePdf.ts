@@ -61,8 +61,27 @@ export async function summarizePdf(
   buffer: Buffer,
   summaryPrompt: string
 ): Promise<DocumentSummary> {
-  const pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
-  const totalPages = pdfDoc.getPageCount();
+  // pdf-lib is used only for chunking large PDFs. Some files have malformed
+  // page trees that pdf-lib can't parse. In that case, send the raw buffer
+  // directly to Claude (which uses its own PDF renderer) or fall back to text.
+  let pdfDoc: PDFDocument | null = null;
+  let totalPages = 0;
+
+  try {
+    pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+    totalPages = pdfDoc.getPageCount();
+  } catch (err) {
+    console.warn(
+      `[summarizePdf] pdf-lib failed to parse page tree (${(err as Error).message}) — ` +
+      `sending raw buffer to Claude directly`
+    );
+    // Claude's own PDF renderer handles many PDFs that pdf-lib cannot.
+    if (buffer.length <= MAX_CHUNK_BYTES) {
+      return sendChunk(anthropic, buffer, summaryPrompt);
+    }
+    // Too large to send in one shot — fall back to text extraction.
+    return summarizePageAsText(anthropic, buffer, 1, summaryPrompt);
+  }
 
   const bytesPerPage = buffer.length / Math.max(totalPages, 1);
   const initialChunkSize = Math.max(1, Math.min(MAX_CHUNK_PAGES, Math.floor(MAX_CHUNK_BYTES / bytesPerPage)));
