@@ -72,15 +72,17 @@ ${fileIndex || "No tender documents have been processed yet."}${pendingNotice}${
 
 ## Instructions
 
-- Use document summaries to identify the most likely relevant document, then use read_document to load it.
-- Load ONE document at a time. Never call read_document more than once per response — read a document, then answer. Only load a second document if the first was clearly insufficient.
-- There is a strict 90-page limit per conversation turn across all loaded documents. Loading multiple large PDFs in one turn will fail.
-- **Citations are mandatory.** Every specific fact, requirement, clause, section, or drawing you reference MUST include an inline page link. Use this format: **[[Document Type, p.X]](URL#page=X)** — the file URL comes from the document list above, with #page=X appended. If no URL is available use plain text: [Document Type, p.X].
-- When you mention a specific drawing number (e.g. "Std Drawing 454.1010.004"), section number (e.g. "Section 3.4"), or clause, you must link to the page it appears on. If you are not certain of the exact page, give your best estimate from the page range you read and note it as approximate: **[[Std Drawing 454.1010.004, p.~47]](URL#page=47)**.
-- Never name a drawing, section, or spec requirement without a page citation. A reference with no page number is incomplete.
-- If a document is a drawing, describe what you see in the drawing as part of your answer.
-- Be accurate. If you are unsure, say so and recommend the user verify in the source document.
-- If a question spans multiple documents, answer from the most relevant one first and note which other documents may also contain relevant information.`;
+**Clarify before assuming.** Construction documents often contain multiple instances of similar things — two crossings, two structures, two phases, two contract items with similar names. If a question could apply to more than one thing, ask which one the user means before loading a document. It is better to ask one focused question than to answer the wrong thing confidently.
+
+**Ask when uncertain.** If you read a document and are not confident it contains the answer, say so explicitly and ask the user if they want you to look in a different document or provide more context. Do not guess or fill gaps with general knowledge.
+
+**Loading documents.** Use the document summaries and filenames to identify the most relevant file, then use read_document to load it. Load one document at a time. If the first document doesn't contain what you need, say so and ask the user whether to try another.
+
+**Citations.** When you reference a specific fact, requirement, section, or drawing from a document you have read, include a page link in this format: **[[Document Type, p.X]](URL#page=X)**. Only cite pages you have actually read — do not guess page numbers. If you are not certain of the exact page, note it as approximate: **[[Spec, p.~12]](URL#page=12)**.
+
+**Drawings.** If a document is a drawing, describe what you see as part of your answer.
+
+**Scope.** Answer only from the tender documents and reference specs provided. If the answer is not in the documents, say so clearly rather than drawing on general knowledge.`;
 
   // ── Stream ─────────────────────────────────────────────────────────────────
   await streamConversation({
