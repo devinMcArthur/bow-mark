@@ -69,6 +69,13 @@ spec:
                 name: server-cluster-ip-service
                 port:
                   number: 8080
+          - path: /tender-conversations/?(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: server-cluster-ip-service
+                port:
+                  number: 8080
     - host: paving.bowmark.ca
       http:
         paths:
@@ -114,6 +121,13 @@ spec:
                 name: server-cluster-ip-service
                 port:
                   number: 8080
+          - path: /tender-conversations/?(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: server-cluster-ip-service
+                port:
+                  number: 8080
     - host: concrete.bowmark.ca
       http:
         paths:
@@ -153,6 +167,13 @@ spec:
                 port:
                   number: 8081
           - path: /conversations/?(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: server-concrete-cluster-ip-service
+                port:
+                  number: 8081
+          - path: /tender-conversations/?(.*)
             pathType: Prefix
             backend:
               service:
