@@ -157,24 +157,15 @@ const MessageBubble = React.memo(({ msg, onShowSources, rateMessage }: MessageBu
       {(!msg.isStreaming || (msg.toolResults && msg.toolResults.length > 0)) && (
         <HStack spacing={2} align="center" flexWrap="wrap" mt={1}>
           {!msg.isStreaming && msg.messageId && (
-            <Box
-              sx={{
-                "@media (hover: hover)": {
-                  visibility: "hidden",
-                  ".message-container:hover &": { visibility: "visible" },
-                },
-              }}
-            >
-              <RatingButtons
-                messageId={msg.messageId}
-                rating={msg.rating}
-                ratingReasons={msg.ratingReasons}
-                ratingComment={msg.ratingComment}
-                onRate={(r, reasons, comment) =>
-                  rateMessage(msg.messageId!, r, reasons, comment)
-                }
-              />
-            </Box>
+            <RatingButtons
+              messageId={msg.messageId}
+              rating={msg.rating}
+              ratingReasons={msg.ratingReasons}
+              ratingComment={msg.ratingComment}
+              onRate={(r, reasons, comment) =>
+                rateMessage(msg.messageId!, r, reasons, comment)
+              }
+            />
           )}
           {msg.toolResults && msg.toolResults.length > 0 && (
             <Button
