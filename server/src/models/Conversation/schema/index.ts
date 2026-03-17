@@ -47,7 +47,7 @@ export class ConversationMessageClass {
   public rating?: "up" | "down";
 
   @Field(() => [String], { nullable: true })
-  @prop({ type: () => [String] })
+  @prop({ type: () => [String], default: undefined })
   public ratingReasons?: string[];
 
   @Field({ nullable: true })
