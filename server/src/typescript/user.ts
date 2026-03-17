@@ -8,7 +8,7 @@ export interface IUserCreate {
 
 export enum UserRoles {
   User = 1, // Lowerest power in UserType
-  ProjectManager = 2, // Highest power in UserType
+  ProjectManager = 2, // Highest role assignable to UserType users
   Admin = 3, // Type Independent, full power
   Developer = 4, // Developer-only tooling access
 }
