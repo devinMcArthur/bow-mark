@@ -6,6 +6,7 @@ import hashPassword from "@utils/hashPassword";
 export interface SeededUsers {
   base_foreman_1_user: UserDocument;
   admin_user: UserDocument;
+  developer_user: UserDocument;
 }
 
 const createUsers = async (): Promise<SeededUsers> => {
@@ -27,9 +28,19 @@ const createUsers = async (): Promise<SeededUsers> => {
     role: UserRoles.Admin,
   });
 
+  const developer_user = new User({
+    _id: _ids.users.developer_user._id,
+    name: "Developer User",
+    email: "developer@bowmark.ca",
+    password: await hashPassword("password"),
+    employee: _ids.employees.office_admin._id,
+    role: UserRoles.Developer,
+  });
+
   const users = {
     base_foreman_1_user,
     admin_user,
+    developer_user,
   };
 
   for (let i = 0; i < Object.values(users).length; i++) {
