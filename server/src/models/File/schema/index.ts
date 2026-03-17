@@ -9,7 +9,7 @@ export class FileSchema {
   @Field(() => ID, { nullable: false })
   public _id!: Types.ObjectId;
 
-  @Field({ nullable: false })
+  @Field(() => String, { nullable: false })
   @prop({ required: true, enum: SupportedMimeTypes })
   public mimetype!: SupportedMimeTypes;
 
