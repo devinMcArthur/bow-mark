@@ -18,6 +18,7 @@ import pmJobsiteChatRouter from "./router/pm-jobsite-chat";
 import tenderConversationsRouter from "./router/tender-conversations";
 import enrichedFilesRouter from "./router/enriched-files";
 import publicDocumentsRouter from "./router/public-documents";
+import developerRouter from "./router/developer";
 
 import { IContext } from "@typescript/graphql";
 
@@ -74,7 +75,7 @@ import VehicleWorkResolver from "@graphql/resolvers/vehicleWork";
 import SearchResolver from "@graphql/resolvers/search";
 
 import { logger } from "@logger";
-import { User, UserDocument } from "@models";
+import { User, UserDocument, Conversation } from "@models";
 import pubsub from "@pubsub";
 import authChecker from "@utils/authChecker";
 
@@ -233,6 +234,15 @@ const createApp = async () => {
   app.use("/api/pm-jobsite-chat", pmJobsiteChatRouter);
   app.use("/api/tender-conversations", tenderConversationsRouter);
   app.use("/api/enriched-files", enrichedFilesRouter);
+  app.use("/api/developer", developerRouter);
+
+  // Sparse index for developer ratings query — non-blocking, safe to re-run
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (Conversation.collection as any)
+    .createIndex({ "messages.rating": 1 }, { sparse: true, background: true })
+    .catch((err: { message: string }) =>
+      console.warn("Conversation ratings index:", err.message)
+    );
 
   await apolloServer.start();
 

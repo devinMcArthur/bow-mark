@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { User } from "@models";
+import { UserRoles } from "@typescript/user";
 
 declare global {
   namespace Express {
@@ -29,4 +31,17 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   } catch {
     res.status(401).json({ error: "Invalid token" });
   }
+}
+
+export async function requireDeveloper(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  const user = await User.findById(req.userId).lean();
+  if (!user || user.role !== UserRoles.Developer) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  next();
 }
