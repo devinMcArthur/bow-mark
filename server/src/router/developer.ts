@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Request, Response, Router } from "express";
 import { Conversation } from "@models";
 import { requireAuth, requireDeveloper } from "../lib/authMiddleware";
 
@@ -6,7 +6,7 @@ const router = Router();
 
 // GET /api/developer/ratings
 // Returns all rated assistant messages across all conversations.
-router.get("/ratings", requireAuth, requireDeveloper, async (req: any, res) => {
+router.get("/ratings", requireAuth, requireDeveloper, async (req: Request, res: Response) => {
   try {
     const { rating, reason, from, to } = req.query as {
       rating?: "up" | "down";

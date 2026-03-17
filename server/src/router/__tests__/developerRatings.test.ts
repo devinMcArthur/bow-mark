@@ -15,7 +15,6 @@ let app: Server;
 let adminToken: string;
 let developerToken: string;
 let conversationId: string;
-let assistantMsgId: string;
 
 beforeAll(async () => {
   mongoServer = await prepareDatabase();
@@ -43,7 +42,6 @@ beforeAll(async () => {
   });
   await convo.save();
   conversationId = convo._id.toString();
-  assistantMsgId = (convo.messages[1] as any)._id.toString();
 });
 
 afterAll(async () => {
