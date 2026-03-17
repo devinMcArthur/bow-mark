@@ -41,6 +41,18 @@ export class ConversationMessageClass {
   @Field(() => [ConversationToolResultClass], { nullable: true })
   @prop({ type: () => [ConversationToolResultClass], default: undefined })
   public toolResults?: ConversationToolResultClass[];
+
+  @Field({ nullable: true })
+  @prop({ enum: ["up", "down"] })
+  public rating?: "up" | "down";
+
+  @Field(() => [String], { nullable: true })
+  @prop({ type: () => [String] })
+  public ratingReasons?: string[];
+
+  @Field({ nullable: true })
+  @prop()
+  public ratingComment?: string;
 }
 
 @ObjectType()
