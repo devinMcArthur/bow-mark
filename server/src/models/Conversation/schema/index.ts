@@ -53,6 +53,10 @@ export class ConversationMessageClass {
   @Field({ nullable: true })
   @prop()
   public ratingComment?: string;
+
+  @Field({ nullable: true })
+  @prop()
+  public ratedAt?: Date;
 }
 
 @ObjectType()

@@ -311,14 +311,17 @@ router.patch("/:id/messages/:msgId/rating", auth, async (req: any, res) => {
       msgs[msgIdx].rating = undefined;
       msgs[msgIdx].ratingReasons = undefined;
       msgs[msgIdx].ratingComment = undefined;
+      msgs[msgIdx].ratedAt = undefined;
     } else if (rating === "up") {
       msgs[msgIdx].rating = "up";
       msgs[msgIdx].ratingReasons = undefined;
       msgs[msgIdx].ratingComment = undefined;
+      msgs[msgIdx].ratedAt = new Date();
     } else {
       msgs[msgIdx].rating = "down";
       msgs[msgIdx].ratingReasons = reasons;
       msgs[msgIdx].ratingComment = comment || undefined;
+      msgs[msgIdx].ratedAt = new Date();
     }
 
     convo.markModified("messages");

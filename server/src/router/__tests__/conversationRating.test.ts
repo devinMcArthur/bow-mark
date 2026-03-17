@@ -187,4 +187,52 @@ describe("PATCH /api/conversations/:id/messages/:msgId/rating", () => {
       expect(res.status).toBe(401);
     });
   });
+
+  describe("ratedAt timestamp", () => {
+    it("sets ratedAt when upvoting", async () => {
+      const before = new Date();
+      await request(app)
+        .patch(`/api/conversations/${conversationId}/messages/${assistantMsgId}/rating`)
+        .set("Authorization", token)
+        .send({ rating: "up" });
+      const convo = await Conversation.findById(conversationId).lean();
+      const msg = (convo!.messages as any[]).find(
+        (m) => m._id.toString() === assistantMsgId
+      );
+      expect(msg.ratedAt).toBeDefined();
+      expect(new Date(msg.ratedAt).getTime()).toBeGreaterThanOrEqual(before.getTime());
+    });
+
+    it("sets ratedAt when downvoting", async () => {
+      const before = new Date();
+      await request(app)
+        .patch(`/api/conversations/${conversationId}/messages/${assistantMsgId}/rating`)
+        .set("Authorization", token)
+        .send({ rating: "down", reasons: ["too_vague"] });
+      const convo = await Conversation.findById(conversationId).lean();
+      const msg = (convo!.messages as any[]).find(
+        (m) => m._id.toString() === assistantMsgId
+      );
+      expect(msg.ratedAt).toBeDefined();
+      expect(new Date(msg.ratedAt).getTime()).toBeGreaterThanOrEqual(before.getTime());
+    });
+
+    it("clears ratedAt when rating is null", async () => {
+      // First upvote to set ratedAt
+      await request(app)
+        .patch(`/api/conversations/${conversationId}/messages/${assistantMsgId}/rating`)
+        .set("Authorization", token)
+        .send({ rating: "up" });
+      // Then clear
+      await request(app)
+        .patch(`/api/conversations/${conversationId}/messages/${assistantMsgId}/rating`)
+        .set("Authorization", token)
+        .send({ rating: null });
+      const convo = await Conversation.findById(conversationId).lean();
+      const msg = (convo!.messages as any[]).find(
+        (m) => m._id.toString() === assistantMsgId
+      );
+      expect(msg.ratedAt).toBeUndefined();
+    });
+  });
 });
