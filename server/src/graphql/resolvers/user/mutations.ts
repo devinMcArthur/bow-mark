@@ -90,6 +90,9 @@ const passwordReset = async (
 };
 
 const role = async (id: Id, role: UserRoles): Promise<UserDocument> => {
+  if (role === UserRoles.Developer)
+    throw new Error("Cannot assign Developer role");
+
   const user = await User.getById(id, { throwError: true });
   if (!user) throw new Error("Unable to find user");
 
