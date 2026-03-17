@@ -44,15 +44,7 @@ const RatingButtons = ({
 
   return (
     <>
-      <HStack
-        spacing={0}
-        sx={{
-          "@media (hover: hover)": {
-            visibility: "hidden",
-            ".message-container:hover &": { visibility: "visible" },
-          },
-        }}
-      >
+      <HStack spacing={0}>
         <Tooltip label="Good response" placement="bottom" fontSize="xs">
           <IconButton
             aria-label="Upvote response"

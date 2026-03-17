@@ -71,9 +71,11 @@ interface MessageBubbleProps {
   msg: ChatMessage;
   onShowSources: (msg: ChatMessage) => void;
   rateMessage: (messageId: string, rating: "up" | "down" | null, reasons?: string[], comment?: string) => void;
+  isLastAssistant?: boolean;
+  onRegenerate?: () => void;
 }
 
-const MessageBubble = React.memo(({ msg, onShowSources, rateMessage }: MessageBubbleProps) => {
+const MessageBubble = React.memo(({ msg, onShowSources, rateMessage, isLastAssistant, onRegenerate }: MessageBubbleProps) => {
   if (msg.role === "user") {
     return (
       <Box
@@ -155,30 +157,46 @@ const MessageBubble = React.memo(({ msg, onShowSources, rateMessage }: MessageBu
         )}
       </Box>
       {(!msg.isStreaming || (msg.toolResults && msg.toolResults.length > 0)) && (
-        <HStack spacing={2} align="center" flexWrap="wrap" mt={1}>
-          {!msg.isStreaming && msg.messageId && (
-            <RatingButtons
-              messageId={msg.messageId}
-              rating={msg.rating}
-              ratingReasons={msg.ratingReasons}
-              ratingComment={msg.ratingComment}
-              onRate={(r, reasons, comment) =>
-                rateMessage(msg.messageId!, r, reasons, comment)
-              }
-            />
-          )}
-          {msg.toolResults && msg.toolResults.length > 0 && (
-            <Button
-              variant="ghost"
-              size="xs"
-              color="gray.500"
-              fontWeight="normal"
-              onClick={() => onShowSources(msg)}
-            >
-              Sources ({msg.toolResults.length})
-            </Button>
-          )}
-        </HStack>
+        <Flex justify="space-between" align="center" mt={1}>
+          <Box>
+            {msg.toolResults && msg.toolResults.length > 0 && (
+              <Button
+                variant="ghost"
+                size="xs"
+                color="gray.500"
+                fontWeight="normal"
+                onClick={() => onShowSources(msg)}
+              >
+                Sources ({msg.toolResults.length})
+              </Button>
+            )}
+          </Box>
+          <HStack spacing={0}>
+            {isLastAssistant && onRegenerate && (
+              <Tooltip label="Regenerate response" placement="bottom" fontSize="xs">
+                <IconButton
+                  aria-label="Regenerate response"
+                  icon={<FiRefreshCw />}
+                  size="xs"
+                  variant="ghost"
+                  colorScheme="gray"
+                  onClick={onRegenerate}
+                />
+              </Tooltip>
+            )}
+            {!msg.isStreaming && msg.messageId && (
+              <RatingButtons
+                messageId={msg.messageId}
+                rating={msg.rating}
+                ratingReasons={msg.ratingReasons}
+                ratingComment={msg.ratingComment}
+                onRate={(r, reasons, comment) =>
+                  rateMessage(msg.messageId!, r, reasons, comment)
+                }
+              />
+            )}
+          </HStack>
+        </Flex>
       )}
     </Box>
   );
@@ -989,20 +1007,13 @@ const ChatPage = ({
                       !loading;
                     return (
                       <Box key={msg.id} alignSelf={msg.role === "user" ? "flex-end" : "flex-start"} maxW="85%">
-                        <MessageBubble msg={msg} onShowSources={setSourcesMessage} rateMessage={rateMessage} />
-                        {isLastAssistant && (
-                          <Tooltip label="Regenerate response" placement="bottom" fontSize="xs">
-                            <IconButton
-                              aria-label="Regenerate response"
-                              icon={<FiRefreshCw />}
-                              size="xs"
-                              variant="ghost"
-                              colorScheme="gray"
-                              mt={1}
-                              onClick={regenerateLastMessage}
-                            />
-                          </Tooltip>
-                        )}
+                        <MessageBubble
+                          msg={msg}
+                          onShowSources={setSourcesMessage}
+                          rateMessage={rateMessage}
+                          isLastAssistant={isLastAssistant}
+                          onRegenerate={regenerateLastMessage}
+                        />
                       </Box>
                     );
                   })}
