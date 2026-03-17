@@ -28,6 +28,7 @@ import { navbarHeight } from "../../constants/styles";
 import { Role, ToolResult, ChatMessage, ConversationSummary } from "./types";
 import MarkdownContent from "./MarkdownContent";
 import ConversationItem from "./ConversationItem";
+import RatingButtons from "./RatingButtons";
 
 // ─── Pricing ──────────────────────────────────────────────────────────────────
 
@@ -69,9 +70,10 @@ const SUGGESTIONS = [
 interface MessageBubbleProps {
   msg: ChatMessage;
   onShowSources: (msg: ChatMessage) => void;
+  rateMessage: (messageId: string, rating: "up" | "down" | null, reasons?: string[], comment?: string) => void;
 }
 
-const MessageBubble = React.memo(({ msg, onShowSources }: MessageBubbleProps) => {
+const MessageBubble = React.memo(({ msg, onShowSources, rateMessage }: MessageBubbleProps) => {
   if (msg.role === "user") {
     return (
       <Box
@@ -88,7 +90,7 @@ const MessageBubble = React.memo(({ msg, onShowSources }: MessageBubbleProps) =>
   }
 
   return (
-    <Box>
+    <Box className="message-container">
       {msg.toolCalls && msg.toolCalls.length > 0 && (
         <HStack spacing={1} mb={2} flexWrap="wrap">
           {Array.from(new Set(msg.toolCalls)).map((tool) => (
@@ -152,17 +154,40 @@ const MessageBubble = React.memo(({ msg, onShowSources }: MessageBubbleProps) =>
           </>
         )}
       </Box>
-      {msg.toolResults && msg.toolResults.length > 0 && (
-        <Button
-          variant="ghost"
-          size="xs"
-          mt={1}
-          color="gray.500"
-          fontWeight="normal"
-          onClick={() => onShowSources(msg)}
-        >
-          Sources ({msg.toolResults.length})
-        </Button>
+      {(!msg.isStreaming || (msg.toolResults && msg.toolResults.length > 0)) && (
+        <HStack spacing={2} align="center" flexWrap="wrap" mt={1}>
+          {!msg.isStreaming && msg.messageId && (
+            <Box
+              sx={{
+                "@media (hover: hover)": {
+                  visibility: "hidden",
+                  ".message-container:hover &": { visibility: "visible" },
+                },
+              }}
+            >
+              <RatingButtons
+                messageId={msg.messageId}
+                rating={msg.rating}
+                ratingReasons={msg.ratingReasons}
+                ratingComment={msg.ratingComment}
+                onRate={(r, reasons, comment) =>
+                  rateMessage(msg.messageId!, r, reasons, comment)
+                }
+              />
+            </Box>
+          )}
+          {msg.toolResults && msg.toolResults.length > 0 && (
+            <Button
+              variant="ghost"
+              size="xs"
+              color="gray.500"
+              fontWeight="normal"
+              onClick={() => onShowSources(msg)}
+            >
+              Sources ({msg.toolResults.length})
+            </Button>
+          )}
+        </HStack>
       )}
     </Box>
   );
@@ -361,12 +386,16 @@ const ChatPage = ({
         setModelTokens(perModel);
         isAtBottomRef.current = true;
         setMessages(
-          data.messages.map((m: { role: Role; content: string; model?: string; toolResults?: ToolResult[] }) => ({
+          data.messages.map((m: { role: Role; content: string; model?: string; toolResults?: ToolResult[]; _id?: string; rating?: "up" | "down"; ratingReasons?: string[]; ratingComment?: string }) => ({
             id: genId(),
             role: m.role,
             content: m.content,
             model: m.model,
             toolResults: m.toolResults,
+            messageId: m._id,
+            rating: m.rating,
+            ratingReasons: m.ratingReasons,
+            ratingComment: m.ratingComment,
           }))
         );
       } catch {}
@@ -666,6 +695,79 @@ const ChatPage = ({
     [messages, loading, conversationId, messageEndpoint, extraPayload]
   );
 
+  // Ref used to snapshot prev rating state before optimistic update.
+  // This avoids both a stale `messages` closure and a side-effect inside a
+  // setMessages updater (which is a React anti-pattern / breaks Strict Mode).
+  const prevRatingSnapshot = React.useRef<{
+    rating?: "up" | "down";
+    ratingReasons?: string[];
+    ratingComment?: string;
+  } | null>(null);
+
+  const rateMessage = React.useCallback(
+    async (
+      messageId: string,
+      rating: "up" | "down" | null,
+      reasons?: string[],
+      comment?: string
+    ) => {
+      if (!conversationId) return;
+
+      // Snapshot happens inside the functional updater so it reads latest state,
+      // but we store it in a ref (not a local let) to avoid the side-effect anti-pattern.
+      setMessages((msgs) => {
+        const m = msgs.find((msg) => msg.messageId === messageId);
+        prevRatingSnapshot.current = {
+          rating: m?.rating,
+          ratingReasons: m?.ratingReasons,
+          ratingComment: m?.ratingComment,
+        };
+        return msgs.map((msg) =>
+          msg.messageId === messageId
+            ? {
+                ...msg,
+                rating: rating ?? undefined,
+                ratingReasons: reasons,
+                ratingComment: comment,
+              }
+            : msg
+        );
+      });
+
+      try {
+        const token = getToken();
+        const res = await fetch(
+          `${serverBase}/api/conversations/${conversationId}/messages/${messageId}/rating`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: token ?? "",
+            },
+            body: JSON.stringify({ rating, reasons, comment }),
+          }
+        );
+        if (!res.ok) throw new Error(`Rating failed: ${res.status}`);
+      } catch {
+        // Revert to previous state on error
+        const prev = prevRatingSnapshot.current;
+        setMessages((msgs) =>
+          msgs.map((msg) =>
+            msg.messageId === messageId
+              ? {
+                  ...msg,
+                  rating: prev?.rating,
+                  ratingReasons: prev?.ratingReasons,
+                  ratingComment: prev?.ratingComment,
+                }
+              : msg
+          )
+        );
+      }
+    },
+    [conversationId, serverBase]
+  );
+
   const regenerateLastMessage = React.useCallback(async () => {
     if (!conversationId || loading) return;
     let lastUserMsg: ChatMessage | null = null;
@@ -896,7 +998,7 @@ const ChatPage = ({
                       !loading;
                     return (
                       <Box key={msg.id} alignSelf={msg.role === "user" ? "flex-end" : "flex-start"} maxW="85%">
-                        <MessageBubble msg={msg} onShowSources={setSourcesMessage} />
+                        <MessageBubble msg={msg} onShowSources={setSourcesMessage} rateMessage={rateMessage} />
                         {isLastAssistant && (
                           <Tooltip label="Regenerate response" placement="bottom" fontSize="xs">
                             <IconButton
