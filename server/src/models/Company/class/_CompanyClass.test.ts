@@ -1,7 +1,7 @@
 import { MongoMemoryServer } from "mongodb-memory-server";
 
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
-import { disconnectAndStopServer, prepareDatabase } from "@testing/jestDB";
+import { disconnectAndStopServer, prepareDatabase } from "@testing/vitestDB";
 import { Company } from "@models";
 import { ICompanyCreate } from "@typescript/company";
 

@@ -1,7 +1,7 @@
 import { MongoMemoryServer } from "mongodb-memory-server";
 
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
-import { disconnectAndStopServer, prepareDatabase } from "@testing/jestDB";
+import { disconnectAndStopServer, prepareDatabase } from "@testing/vitestDB";
 import { JobsiteDayReport } from "@models";
 
 let documents: SeededDatabase, mongoServer: MongoMemoryServer;

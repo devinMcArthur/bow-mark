@@ -1,7 +1,7 @@
 import { MongoMemoryServer } from "mongodb-memory-server";
 
 import { File, Jobsite, System } from "@models";
-import { disconnectAndStopServer, prepareDatabase } from "@testing/jestDB";
+import { disconnectAndStopServer, prepareDatabase } from "@testing/vitestDB";
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 import {
   IJobsiteContract,
