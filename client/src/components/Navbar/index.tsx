@@ -27,6 +27,8 @@ const Navbar = () => {
 
   const isLarger = hasMounted ? isLargerThan480 : true;
 
+  const isDev = process.env.NODE_ENV !== "production";
+
   return (
     <Box
       shadow="bottomShadow"
@@ -35,7 +37,7 @@ const Navbar = () => {
       height={navbarHeight}
       width="100%"
       zIndex="998"
-      backgroundColor="red.500"
+      backgroundColor={isDev ? "orange.500" : "red.500"}
     >
       <Box
         display="flex"
@@ -59,7 +61,7 @@ const Navbar = () => {
             p="auto"
             mt={[1, 0]}
           >
-            {process.env.NEXT_PUBLIC_APP_NAME}
+            {process.env.NEXT_PUBLIC_APP_NAME}{isDev ? " · Dev" : ""}
           </Heading>
         </TextLink>
         <NavbarSearch />
