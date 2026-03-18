@@ -8,13 +8,16 @@ import _ids from "@testing/_ids";
 import { SignupData } from "@graphql/resolvers/user/mutations";
 import { Signup, User } from "@models";
 import { decode, JwtPayload } from "jsonwebtoken";
-import jestLogin from "@testing/vitestLogin";
+import vitestLogin from "@testing/vitestLogin";
 import { UserRoles } from "@typescript/user";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 
-
 let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
+let adminToken: string;
+let pmToken: string;
+let foremanToken: string;
+
 const setupDatabase = async () => {
   documents = await seedDatabase();
 
@@ -27,6 +30,10 @@ beforeAll(async () => {
   app = await createApp();
 
   await setupDatabase();
+
+  adminToken = await vitestLogin(app, "admin@bowmark.ca");
+  pmToken = await vitestLogin(app, "pm@bowmark.ca");
+  foremanToken = await vitestLogin(app, "baseforeman1@bowmark.ca");
 });
 
 afterAll(async () => {
@@ -125,7 +132,7 @@ describe("User Resolver", () => {
       const userQuery = `
         query User($query: UserQuery!) {
           user(query: $query) {
-            _id 
+            _id
             name
             email
             password
@@ -160,6 +167,44 @@ describe("User Resolver", () => {
             documents.employees.base_foreman_1.name
           );
         });
+      });
+
+      describe("validation", () => {
+        it("returns null for a non-existent user id", async () => {
+          const res = await request(app)
+            .post("/graphql")
+            .send({
+              query: `query { user(query: { id: "000000000000000000000001" }) { _id } }`,
+            });
+          expect(res.body.data.user).toBeNull();
+        });
+      });
+    });
+
+    describe("currentUser", () => {
+      const currentUserQuery = `
+        query CurrentUser {
+          currentUser {
+            _id
+            name
+          }
+        }
+      `;
+
+      it("succeeds as authenticated user", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .set("Authorization", foremanToken)
+          .send({ query: currentUserQuery });
+        expect(res.body.errors).toBeUndefined();
+        expect(res.body.data.currentUser).toBeDefined();
+      });
+
+      it("rejects unauthenticated", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .send({ query: currentUserQuery });
+        expect(res.body.errors).toBeDefined();
       });
     });
   });
@@ -256,7 +301,7 @@ describe("User Resolver", () => {
 
       describe("success", () => {
         test("should successfully update user role", async () => {
-          const token = await jestLogin(app, documents.users.admin_user.email);
+          const token = await vitestLogin(app, documents.users.admin_user.email);
 
           const res = await request(app)
             .post("/graphql")
@@ -277,6 +322,96 @@ describe("User Resolver", () => {
 
           expect(user?.role).toBe(UserRoles.ProjectManager);
         });
+      });
+
+      describe("authorization", () => {
+        const variables = {
+          id: _ids.users.base_foreman_1_user._id.toString(),
+          role: "Admin",
+        };
+
+        it("rejects ProjectManager", async () => {
+          const res = await request(app)
+            .post("/graphql")
+            .set("Authorization", pmToken)
+            .send({ query: userUpdateRole, variables });
+          expect(res.body.errors).toBeDefined();
+        });
+
+        it("rejects Foreman", async () => {
+          const res = await request(app)
+            .post("/graphql")
+            .set("Authorization", foremanToken)
+            .send({ query: userUpdateRole, variables });
+          expect(res.body.errors).toBeDefined();
+        });
+
+        it("rejects unauthenticated", async () => {
+          const res = await request(app)
+            .post("/graphql")
+            .send({ query: userUpdateRole, variables });
+          expect(res.body.errors).toBeDefined();
+        });
+      });
+    });
+
+    describe("userUpdateHomeView", () => {
+      const mutation = `
+        mutation UserUpdateHomeView($homeView: UserHomeViewSettings!) {
+          userUpdateHomeView(homeView: $homeView) {
+            _id
+          }
+        }
+      `;
+      const variables = { homeView: "MY_CREWS" };
+
+      it("succeeds as Foreman (any authenticated)", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .set("Authorization", foremanToken)
+          .send({ query: mutation, variables });
+        expect(res.body.errors).toBeUndefined();
+      });
+
+      it("rejects unauthenticated", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .send({ query: mutation, variables });
+        expect(res.body.errors).toBeDefined();
+      });
+    });
+
+    describe("userDelete", () => {
+      const mutation = `
+        mutation UserDelete($userId: String!) {
+          userDelete(userId: $userId)
+        }
+      `;
+      const variables = {
+        userId: _ids.users.base_foreman_1_user._id.toString(),
+      };
+
+      it("rejects ProjectManager", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .set("Authorization", pmToken)
+          .send({ query: mutation, variables });
+        expect(res.body.errors).toBeDefined();
+      });
+
+      it("rejects Foreman", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .set("Authorization", foremanToken)
+          .send({ query: mutation, variables });
+        expect(res.body.errors).toBeDefined();
+      });
+
+      it("rejects unauthenticated", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .send({ query: mutation, variables });
+        expect(res.body.errors).toBeDefined();
       });
     });
   });
