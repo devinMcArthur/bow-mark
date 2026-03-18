@@ -3,6 +3,7 @@ import _ids from "@testing/_ids";
 
 export interface SeededProduction {
   jobsite_1_base_1_1_production_1: ProductionDocument;
+  sync_production_1: ProductionDocument;
 }
 
 const createProductions = async (): Promise<SeededProduction> => {
@@ -16,8 +17,19 @@ const createProductions = async (): Promise<SeededProduction> => {
     description: "This is the description",
   });
 
+  const sync_production_1 = new Production({
+    _id: _ids.productions.sync_production_1._id,
+    jobTitle: "Grading",
+    quantity: 150,
+    unit: "tonnes",
+    startTime: new Date("2022-02-23T07:00:00"),
+    endTime: new Date("2022-02-23T15:00:00"),
+    description: "Grading production",
+  });
+
   const production = {
     jobsite_1_base_1_1_production_1,
+    sync_production_1,
   };
 
   for (let i = 0; i < Object.values(production).length; i++) {
