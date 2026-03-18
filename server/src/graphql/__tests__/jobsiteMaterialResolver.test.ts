@@ -4,15 +4,19 @@ import { prepareDatabase, disconnectAndStopServer } from "@testing/vitestDB";
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 
 import createApp from "../../app";
-import jestLogin from "@testing/vitestLogin";
+import _ids from "@testing/_ids";
+import vitestLogin from "@testing/vitestLogin";
 import { JobsiteMaterialUpdateData } from "@graphql/resolvers/jobsiteMaterial/mutations";
 import { JobsiteMaterial } from "@models";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 import { JobsiteMaterialCostType } from "@typescript/jobsiteMaterial";
 
-
 let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
+let adminToken: string;
+let pmToken: string;
+let foremanToken: string;
+
 const setupDatabase = async () => {
   documents = await seedDatabase();
 
@@ -25,6 +29,10 @@ beforeAll(async () => {
   app = await createApp();
 
   await setupDatabase();
+
+  adminToken = await vitestLogin(app, "admin@bowmark.ca");
+  pmToken = await vitestLogin(app, "pm@bowmark.ca");
+  foremanToken = await vitestLogin(app, "baseforeman1@bowmark.ca");
 });
 
 afterAll(async () => {
@@ -32,6 +40,22 @@ afterAll(async () => {
 });
 
 describe("Jobsite Material Resolver", () => {
+  describe("QUERIES", () => {
+    describe("jobsiteMaterial", () => {
+      describe("validation", () => {
+        it("returns null for a non-existent jobsite material id", async () => {
+          const res = await request(app)
+            .post("/graphql")
+            .set("Authorization", adminToken)
+            .send({
+              query: `query { jobsiteMaterial(id: "000000000000000000000001") { _id } }`,
+            });
+          expect(res.body.data.jobsiteMaterial).toBeNull();
+        });
+      });
+    });
+  });
+
   describe("MUTATIONS", () => {
     describe("jobsiteMaterialUpdate", () => {
       const jobsiteMaterialUpdate = `
@@ -55,7 +79,7 @@ describe("Jobsite Material Resolver", () => {
               title
               rates {
                 rate
-                date 
+                date
                 estimated
               }
             }
@@ -63,9 +87,21 @@ describe("Jobsite Material Resolver", () => {
         }
       `;
 
+      const updateVariables = {
+        data: {
+          quantity: 15,
+          rates: [{ date: new Date().toISOString(), rate: 125, estimated: true }],
+          supplierId: _ids.companies.company_1._id.toString(),
+          unit: "tonnes",
+          costType: "rate",
+          deliveredRates: [],
+        },
+        id: _ids.jobsiteMaterials.jobsite_2_material_1._id.toString(),
+      };
+
       describe("success", () => {
         test("should successfully update invoice w/o delivered", async () => {
-          const token = await jestLogin(app, documents.users.admin_user.email);
+          const token = await vitestLogin(app, documents.users.admin_user.email);
 
           const data: JobsiteMaterialUpdateData = {
             quantity: 15,
@@ -114,7 +150,7 @@ describe("Jobsite Material Resolver", () => {
         });
 
         test("should successfully update invoice w/ delivered", async () => {
-          const token = await jestLogin(app, documents.users.admin_user.email);
+          const token = await vitestLogin(app, documents.users.admin_user.email);
 
           const data: JobsiteMaterialUpdateData = {
             quantity: 15,
@@ -170,6 +206,102 @@ describe("Jobsite Material Resolver", () => {
             jobsiteMaterial?.deliveredRates[0].rates[0].estimated
           ).toBeTruthy();
         });
+      });
+
+      describe("authorization", () => {
+        it("rejects ProjectManager", async () => {
+          const res = await request(app)
+            .post("/graphql")
+            .set("Authorization", pmToken)
+            .send({ query: jobsiteMaterialUpdate, variables: updateVariables });
+          expect(res.body.errors).toBeDefined();
+        });
+
+        it("rejects Foreman", async () => {
+          const res = await request(app)
+            .post("/graphql")
+            .set("Authorization", foremanToken)
+            .send({ query: jobsiteMaterialUpdate, variables: updateVariables });
+          expect(res.body.errors).toBeDefined();
+        });
+
+        it("rejects unauthenticated", async () => {
+          const res = await request(app)
+            .post("/graphql")
+            .send({ query: jobsiteMaterialUpdate, variables: updateVariables });
+          expect(res.body.errors).toBeDefined();
+        });
+      });
+    });
+
+    describe("jobsiteMaterialRemove", () => {
+      const mutation = `
+        mutation JobsiteMaterialRemove($id: ID!) {
+          jobsiteMaterialRemove(id: $id)
+        }
+      `;
+      const variables = {
+        id: _ids.jobsiteMaterials.jobsite_3_material_1._id.toString(),
+      };
+
+      it("rejects Foreman", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .set("Authorization", foremanToken)
+          .send({ query: mutation, variables });
+        expect(res.body.errors).toBeDefined();
+      });
+
+      it("rejects unauthenticated", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .send({ query: mutation, variables });
+        expect(res.body.errors).toBeDefined();
+      });
+    });
+
+    describe("jobsiteMaterialAddInvoice", () => {
+      const mutation = `
+        mutation JobsiteMaterialAddInvoice($jobsiteMaterialId: ID!, $data: InvoiceData!) {
+          jobsiteMaterialAddInvoice(jobsiteMaterialId: $jobsiteMaterialId, data: $data) {
+            _id
+          }
+        }
+      `;
+      const variables = {
+        jobsiteMaterialId: _ids.jobsiteMaterials.jobsite_2_material_1._id.toString(),
+        data: {
+          companyId: _ids.companies.company_1._id.toString(),
+          cost: 200,
+          date: new Date().toISOString(),
+          internal: false,
+          invoiceNumber: "INV-001",
+          description: "test invoice",
+          accrual: false,
+        },
+      };
+
+      it("succeeds as Admin", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .set("Authorization", adminToken)
+          .send({ query: mutation, variables });
+        expect(res.body.errors).toBeUndefined();
+      });
+
+      it("rejects Foreman", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .set("Authorization", foremanToken)
+          .send({ query: mutation, variables });
+        expect(res.body.errors).toBeDefined();
+      });
+
+      it("rejects unauthenticated", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .send({ query: mutation, variables });
+        expect(res.body.errors).toBeDefined();
       });
     });
   });
