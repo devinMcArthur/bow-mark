@@ -21,6 +21,7 @@ import {
   Input,
 } from "@chakra-ui/react";
 import { localStorageTokenKey } from "../../../contexts/Auth";
+import MarkdownContent from "../../Chat/MarkdownContent";
 
 interface RatingItem {
   messageId: string;
@@ -234,15 +235,15 @@ const RatingsReview: React.FC = () => {
                           <Text fontSize="xs" fontWeight="bold" color="gray.500" mb={1}>
                             USER
                           </Text>
-                          <Text fontSize="sm">{item.userMessage || "—"}</Text>
+                          {item.userMessage
+                            ? <MarkdownContent content={item.userMessage} />
+                            : <Text fontSize="sm">—</Text>}
                         </Box>
                         <Box mb={item.comment ? 2 : 0}>
                           <Text fontSize="xs" fontWeight="bold" color="gray.500" mb={1}>
                             ASSISTANT
                           </Text>
-                          <Text fontSize="sm" whiteSpace="pre-wrap">
-                            {item.assistantMessage}
-                          </Text>
+                          <MarkdownContent content={item.assistantMessage} />
                         </Box>
                         {item.comment && (
                           <Box>
