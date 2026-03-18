@@ -32,6 +32,7 @@ import {
   UserRoles,
 } from "../../../../generated/graphql";
 import createLink from "../../../../utils/createLink";
+import hasPermission from "../../../../utils/hasPermission";
 
 import Card from "../../../Common/Card";
 import Checkbox from "../../../Common/forms/Checkbox";
@@ -138,7 +139,7 @@ const DailyReportClientContent = ({ id, showFloatingChat }: IDailyReportClientCo
           <Card>
             <Flex flexDir="row" justifyContent="space-evenly">
               <SimpleGrid
-                columns={user?.role === UserRoles.Admin ? [1, 1, 2] : 1}
+                columns={hasPermission(user?.role, UserRoles.Admin) ? [1, 1, 2] : 1}
                 spacing={4}
                 w={["85%", "90%", "95%"]}
               >

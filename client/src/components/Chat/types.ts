@@ -13,6 +13,10 @@ export interface ChatMessage {
   toolResults?: ToolResult[];
   isStreaming?: boolean;
   model?: string;
+  messageId?: string;       // MongoDB _id of the message subdocument
+  rating?: "up" | "down";
+  ratingReasons?: string[];
+  ratingComment?: string;
 }
 
 export interface ConversationContext {

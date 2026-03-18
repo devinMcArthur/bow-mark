@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import React from "react";
 import { UserRoles } from "../../../generated/graphql";
 import { useAuth } from "../../../contexts/Auth";
+import hasPermission from "../../../utils/hasPermission";
 import CompanySettings from "./views/Companies";
 import MaterialSettings from "./views/Materials";
 import ProfileSettings from "./views/Profile";
@@ -17,7 +18,7 @@ const PM_TABS: TabName[] = ["system", "materials", "companies", "users", "public
 const SettingsClientContent = () => {
   const router = useRouter();
   const { state: { user } } = useAuth();
-  const isPM = user?.role === UserRoles.Admin || user?.role === UserRoles.ProjectManager;
+  const isPM = hasPermission(user?.role, UserRoles.ProjectManager);
 
   const [tabIndex, setTabIndex] = React.useState(() => {
     if (typeof window === "undefined") return 0;

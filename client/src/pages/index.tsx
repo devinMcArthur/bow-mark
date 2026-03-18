@@ -9,6 +9,7 @@ import OperatorDailyReportFullPageList from "../components/Common/OperatorDailyR
 import VehicleIssueFullPageList from "../components/Common/VehicleIssue/ListFullPage";
 import { useAuth } from "../contexts/Auth";
 import { UserHomeViewSettings, UserRoles, UserTypes } from "../generated/graphql";
+import hasPermission from "../utils/hasPermission";
 
 interface ITabCatalogItem {
   tab: React.ReactChild;
@@ -33,7 +34,7 @@ const Home = () => {
   React.useEffect(() => {
     if (!user) return;
     const hasDashboardPermission =
-      user.role === UserRoles.Admin || user.role === UserRoles.ProjectManager;
+      hasPermission(user.role, UserRoles.ProjectManager);
     if (
       user.settings.homeView === UserHomeViewSettings.GeneralReports &&
       hasDashboardPermission
@@ -91,8 +92,8 @@ const Home = () => {
     const userTabs: ITabCatalogItem[] = [];
 
     if (user) {
-      if (user.role === UserRoles.Admin) {
-        // Admin
+      if (hasPermission(user.role, UserRoles.Admin)) {
+        // Admin or above
         userTabs.push(...Object.values(tabCatalog));
       } else if (user.role === UserRoles.ProjectManager) {
         // Project Manager

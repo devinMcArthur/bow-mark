@@ -2614,6 +2614,7 @@ export type UserQuery = {
 
 export enum UserRoles {
   Admin = 'Admin',
+  Developer = 'Developer',
   ProjectManager = 'ProjectManager',
   User = 'User'
 }

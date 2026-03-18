@@ -3,6 +3,15 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { Conversation, Jobsite, Tender } from "@models";
 
+const VALID_REASONS = new Set([
+  "wrong_answer",
+  "hallucinated_citation",
+  "couldnt_find_it",
+  "wrong_document",
+  "too_vague",
+  "misunderstood_question",
+]);
+
 const router = Router();
 
 // Middleware: verify JWT and extract userId
@@ -244,6 +253,83 @@ router.delete("/:id", auth, async (req: any, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error("DELETE /conversations/:id error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PATCH /conversations/:id/messages/:msgId/rating
+router.patch("/:id/messages/:msgId/rating", auth, async (req: any, res) => {
+  try {
+    if (
+      !mongoose.isValidObjectId(req.params.id) ||
+      !mongoose.isValidObjectId(req.params.msgId)
+    ) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+
+    const { rating, reasons, comment } = req.body as {
+      rating: "up" | "down" | null;
+      reasons?: string[];
+      comment?: string;
+    };
+
+    if (rating !== "up" && rating !== "down" && rating !== null) {
+      res.status(400).json({ error: "rating must be 'up', 'down', or null" });
+      return;
+    }
+
+    if (rating === "down") {
+      if (!reasons || !Array.isArray(reasons) || reasons.length === 0) {
+        res.status(400).json({ error: "reasons required for downvote" });
+        return;
+      }
+      if (reasons.some((r) => !VALID_REASONS.has(r))) {
+        res.status(400).json({ error: "invalid reason value" });
+        return;
+      }
+    }
+
+    const convo = await Conversation.findById(req.params.id);
+    if (!convo) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    if (String(convo.user) !== req.userId) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+
+    const msgs = convo.messages as any[];
+    const msgIdx = msgs.findIndex((m) => String(m._id) === req.params.msgId);
+    if (msgIdx === -1) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+
+    if (rating === null) {
+      msgs[msgIdx].rating = undefined;
+      msgs[msgIdx].ratingReasons = undefined;
+      msgs[msgIdx].ratingComment = undefined;
+      msgs[msgIdx].ratedAt = undefined;
+    } else if (rating === "up") {
+      msgs[msgIdx].rating = "up";
+      msgs[msgIdx].ratingReasons = undefined;
+      msgs[msgIdx].ratingComment = undefined;
+      msgs[msgIdx].ratedAt = new Date();
+    } else {
+      msgs[msgIdx].rating = "down";
+      msgs[msgIdx].ratingReasons = reasons;
+      msgs[msgIdx].ratingComment = comment || undefined;
+      msgs[msgIdx].ratedAt = new Date();
+    }
+
+    convo.markModified("messages");
+    await convo.save();
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("PATCH /conversations/:id/messages/:msgId/rating error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });

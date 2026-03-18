@@ -23,7 +23,7 @@ export class TenderSchema {
   @prop({ trim: true })
   public description?: string;
 
-  @Field({ nullable: false })
+  @Field(() => String, { nullable: false })
   @prop({
     required: true,
     enum: ["bidding", "won", "lost"],

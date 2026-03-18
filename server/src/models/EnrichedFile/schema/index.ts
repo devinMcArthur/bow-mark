@@ -37,7 +37,7 @@ export class EnrichedFileSchema {
   @prop({ type: () => Object, required: false })
   public summary?: IEnrichedFileSummary;
 
-  @Field()
+  @Field(() => String)
   @prop({
     required: true,
     enum: ["pending", "processing", "ready", "failed"],

@@ -3,6 +3,7 @@ import { Box, Code, Text } from "@chakra-ui/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CopyableTable } from "./CopyableTable";
+import { localStorageTokenKey } from "../../contexts/Auth";
 
 const MarkdownContent = ({ content }: { content: string }) => (
   <ReactMarkdown
@@ -47,19 +48,32 @@ const MarkdownContent = ({ content }: { content: string }) => (
       blockquote: ({ children }) => (
         <Box borderLeft="3px solid" borderColor="blue.300" pl={3} py={0.5} my={2} color="gray.600">{children}</Box>
       ),
-      a: ({ href, children }) => (
-        <Box
-          as="a"
-          href={href}
-          color="blue.600"
-          textDecoration="underline"
-          _hover={{ color: "blue.800" }}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {children}
-        </Box>
-      ),
+      a: ({ href, children }) => {
+        // For enriched-file links, append the current JWT at render time so
+        // links don't expire when the token baked into an old conversation ages out.
+        let resolvedHref = href;
+        if (href?.includes("/api/enriched-files/") && typeof window !== "undefined") {
+          const token = localStorage.getItem(localStorageTokenKey);
+          if (token) {
+            const url = new URL(href, window.location.origin);
+            url.searchParams.set("token", token);
+            resolvedHref = url.toString();
+          }
+        }
+        return (
+          <Box
+            as="a"
+            href={resolvedHref}
+            color="blue.600"
+            textDecoration="underline"
+            _hover={{ color: "blue.800" }}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {children}
+          </Box>
+        );
+      },
     }}
   >
     {content}

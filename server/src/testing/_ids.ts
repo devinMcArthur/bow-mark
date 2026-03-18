@@ -8,6 +8,9 @@ const _ids = {
     admin_user: {
       _id: Types.ObjectId("6241f81d8b757d1c8ae18b13"),
     },
+    developer_user: {
+      _id: Types.ObjectId("6241f81d8b757d1c8ae18b99"),
+    },
   },
   crews: {
     base_1: {

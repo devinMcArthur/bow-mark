@@ -5,14 +5,16 @@ export function buildFileEntry(f: any, serverBase: string, token: string): strin
     chunks && chunks.length > 1
       ? `\nPage Sections:\n${chunks.map((c) => `  Pages ${c.startPage}–${c.endPage}: ${c.keyTopics.slice(0, 6).join(", ")}`).join("\n")}`
       : "";
+  const filename = f.file?.description;
   return [
     `**File ID: ${f._id}**`,
+    filename ? `Filename: ${filename}` : null,
     `Type: ${summary?.documentType || f.documentType || "Unknown"}`,
-    `URL: ${serverBase}/api/enriched-files/${f._id}?token=${token}`,
+    `URL: ${serverBase}/api/enriched-files/${f._id}`,
     summary
       ? `Overview: ${summary.overview}\nKey Topics: ${(summary.keyTopics as string[]).join(", ")}${chunkIndex}`
       : "Summary: not yet available",
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 }
 
 export interface FileIndexResult {

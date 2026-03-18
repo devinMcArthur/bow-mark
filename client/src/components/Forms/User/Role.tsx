@@ -17,6 +17,7 @@ import {
 
 interface IUserUpdateRole {
   user: UserCardSnippetFragment;
+  includeDeveloper?: boolean;
   mutationOptions?:
     | MutationHookOptions<
         UserUpdateRoleMutation,
@@ -30,7 +31,7 @@ interface IUserUpdateRole {
     | undefined;
 }
 
-const UserUpdateRole = ({ user, mutationOptions }: IUserUpdateRole) => {
+const UserUpdateRole = ({ user, includeDeveloper = false, mutationOptions }: IUserUpdateRole) => {
   /**
    * ----- Hook Initialization -----
    */
@@ -93,6 +94,9 @@ const UserUpdateRole = ({ user, mutationOptions }: IUserUpdateRole) => {
             title: "Admin",
             value: UserRoles.Admin,
           },
+          ...(includeDeveloper
+            ? [{ title: "Developer", value: UserRoles.Developer }]
+            : []),
         ]}
       />
       {!loading && data?.userUpdateRole && (

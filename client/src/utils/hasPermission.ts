@@ -4,6 +4,7 @@ const ROLE_WEIGHTS: Record<UserRoles, number> = {
   [UserRoles.Admin]: 3,
   [UserRoles.ProjectManager]: 2,
   [UserRoles.User]: 1,
+  [UserRoles.Developer]: 4,
 };
 
 const hasPermission = (
