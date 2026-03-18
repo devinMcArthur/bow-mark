@@ -90,7 +90,7 @@ const passwordReset = async (
 };
 
 const role = async (id: Id, role: UserRoles): Promise<UserDocument> => {
-  if (role === UserRoles.Developer)
+  if (role === UserRoles.Developer && process.env.NODE_ENV === "production")
     throw new Error("Cannot assign Developer role");
 
   const user = await User.getById(id, { throwError: true });

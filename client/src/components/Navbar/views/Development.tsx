@@ -20,6 +20,7 @@ const Development = () => {
           <MenuList p={2}>
             <UserUpdateRole
               user={user}
+              includeDeveloper
               mutationOptions={{
                 refetchQueries: [CurrentUserDocument],
               }}
