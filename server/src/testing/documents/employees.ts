@@ -3,6 +3,7 @@ import _ids from "@testing/_ids";
 
 export interface SeededEmployees {
   base_foreman_1: EmployeeDocument;
+  base_foreman_2: EmployeeDocument;
   base_operator_1: EmployeeDocument;
   base_laborer_1: EmployeeDocument;
   base_laborer_2: EmployeeDocument;
@@ -10,6 +11,7 @@ export interface SeededEmployees {
   temp_1: EmployeeDocument;
   temp_2: EmployeeDocument;
   office_admin: EmployeeDocument;
+  pm_employee: EmployeeDocument;
 }
 
 const createEmployees = async (): Promise<SeededEmployees> => {
@@ -76,6 +78,18 @@ const createEmployees = async (): Promise<SeededEmployees> => {
     jobTitle: "Admin",
   });
 
+  const pm_employee = new Employee({
+    _id: _ids.employees.pm_employee._id,
+    name: "PM Employee",
+    jobTitle: "Project Manager",
+    rates: [
+      {
+        date: new Date("2022-01-01"),
+        rate: 35,
+      },
+    ],
+  });
+
   const employees = {
     base_foreman_1,
     base_operator_1,
@@ -85,6 +99,7 @@ const createEmployees = async (): Promise<SeededEmployees> => {
     temp_1,
     temp_2,
     office_admin,
+    pm_employee,
   };
 
   for (let i = 0; i < Object.values(employees).length; i++) {
