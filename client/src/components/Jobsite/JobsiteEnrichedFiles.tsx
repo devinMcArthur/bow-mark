@@ -150,6 +150,7 @@ const ROLE_LABELS: Record<UserRoles, string> = {
   [UserRoles.User]: "All users",
   [UserRoles.ProjectManager]: "PM & Admin",
   [UserRoles.Admin]: "Admin only",
+  [UserRoles.Developer]: "Developer only",
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
