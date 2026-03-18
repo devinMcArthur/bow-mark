@@ -10,7 +10,6 @@ import { InvoiceData } from "@graphql/resolvers/invoice/mutations";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 
-jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 
 let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
 const setupDatabase = async () => {
