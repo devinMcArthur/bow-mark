@@ -61,7 +61,7 @@ const Navbar = () => {
             p="auto"
             mt={[1, 0]}
           >
-            {process.env.NEXT_PUBLIC_APP_NAME}{isDev ? " · Dev" : ""}
+            {process.env.NEXT_PUBLIC_APP_NAME}
           </Heading>
         </TextLink>
         <NavbarSearch />
