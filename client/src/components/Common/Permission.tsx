@@ -7,6 +7,7 @@ import {
 import React from "react";
 import { useAuth } from "../../contexts/Auth";
 import { UserRoles, UserTypes } from "../../generated/graphql";
+import hasPermission from "../../utils/hasPermission";
 
 interface IPermission {
   minRole?: UserRoles;
@@ -42,14 +43,12 @@ const Permission: React.FC<IPermission> = ({
 
   // Still loading
   if (!user) return null;
-  // User Admin or Developer (Developer inherits all admin access)
-  if (user.role === UserRoles.Admin || user.role === UserRoles.Developer || otherCriteria) return <>{children}</>;
+  // Admin or above (Developer, etc.) bypass type checks
+  if (hasPermission(user.role, UserRoles.Admin) || otherCriteria) return <>{children}</>;
   // Project Manager
   if (user?.role === UserRoles.ProjectManager) {
     if (
-      (minRole === UserRoles.ProjectManager ||
-        minRole === UserRoles.User ||
-        otherCriteria) &&
+      (hasPermission(UserRoles.ProjectManager, minRole) || otherCriteria) &&
       (!type || user.types?.includes(type))
     )
       return <>{children}</>;

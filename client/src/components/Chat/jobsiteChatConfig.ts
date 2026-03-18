@@ -1,4 +1,5 @@
 import { UserRoles } from "../../generated/graphql";
+import hasPermission from "../../utils/hasPermission";
 
 export const FOREMAN_CHAT_SUGGESTIONS = [
   "What do I need to know for today's work?",
@@ -23,7 +24,7 @@ export function getJobsiteChatConfig(
   suggestions: string[];
 } {
   const isPM =
-    userRole === UserRoles.Admin || userRole === UserRoles.ProjectManager;
+    hasPermission(userRole, UserRoles.ProjectManager);
   return {
     messageEndpoint: isPM
       ? "/api/pm-jobsite-chat/message"
