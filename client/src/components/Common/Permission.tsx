@@ -42,8 +42,8 @@ const Permission: React.FC<IPermission> = ({
 
   // Still loading
   if (!user) return null;
-  // User Admin
-  if (user.role === UserRoles.Admin || otherCriteria) return <>{children}</>;
+  // User Admin or Developer (Developer inherits all admin access)
+  if (user.role === UserRoles.Admin || user.role === UserRoles.Developer || otherCriteria) return <>{children}</>;
   // Project Manager
   if (user?.role === UserRoles.ProjectManager) {
     if (
