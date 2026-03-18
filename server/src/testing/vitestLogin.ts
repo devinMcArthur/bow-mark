@@ -1,7 +1,7 @@
 import { Server } from "http";
 import request from "supertest";
 
-const jestLogin = async (app: Server, email: string, password = "password") => {
+const vitestLogin = async (app: Server, email: string, password = "password") => {
   const loginMutation = `
         mutation Login($data: LoginData!) {
           login(data: $data)
@@ -27,4 +27,4 @@ const jestLogin = async (app: Server, email: string, password = "password") => {
   return res.body.data.login;
 };
 
-export default jestLogin;
+export default vitestLogin;

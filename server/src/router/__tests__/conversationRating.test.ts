@@ -3,7 +3,7 @@ import { prepareDatabase, disconnectAndStopServer } from "@testing/vitestDB";
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 import createApp from "../../app";
 import { Conversation } from "@models";
-import jestLogin from "@testing/vitestLogin";
+import vitestLogin from "@testing/vitestLogin";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 
@@ -21,8 +21,8 @@ beforeAll(async () => {
   mongoServer = await prepareDatabase();
   app = await createApp();
   documents = await seedDatabase();
-  token = await jestLogin(app, "admin@bowmark.ca");
-  otherToken = await jestLogin(app, "baseforeman1@bowmark.ca");
+  token = await vitestLogin(app, "admin@bowmark.ca");
+  otherToken = await vitestLogin(app, "baseforeman1@bowmark.ca");
 
   const convo = new Conversation({
     user: documents.users.admin_user._id,

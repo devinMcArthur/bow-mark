@@ -3,7 +3,7 @@ import { prepareDatabase, disconnectAndStopServer } from "@testing/vitestDB";
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 import createApp from "../../app";
 import { Conversation } from "@models";
-import jestLogin from "@testing/vitestLogin";
+import vitestLogin from "@testing/vitestLogin";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 
@@ -19,8 +19,8 @@ beforeAll(async () => {
   mongoServer = await prepareDatabase();
   app = await createApp();
   documents = await seedDatabase();
-  adminToken = await jestLogin(app, "admin@bowmark.ca");
-  developerToken = await jestLogin(app, "developer@bowmark.ca");
+  adminToken = await vitestLogin(app, "admin@bowmark.ca");
+  developerToken = await vitestLogin(app, "developer@bowmark.ca");
 
   // Create a conversation with a rated message
   const jobsite = documents.jobsites.jobsite_1;
