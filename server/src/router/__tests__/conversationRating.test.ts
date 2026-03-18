@@ -1,9 +1,9 @@
 import request from "supertest";
-import { prepareDatabase, disconnectAndStopServer } from "@testing/jestDB";
+import { prepareDatabase, disconnectAndStopServer } from "@testing/vitestDB";
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 import createApp from "../../app";
 import { Conversation } from "@models";
-import jestLogin from "@testing/jestLogin";
+import jestLogin from "@testing/vitestLogin";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 

@@ -1,12 +1,12 @@
 import request from "supertest";
 
-import { prepareDatabase, disconnectAndStopServer } from "@testing/jestDB";
+import { prepareDatabase, disconnectAndStopServer } from "@testing/vitestDB";
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 
 import createApp from "../../app";
 import _ids from "@testing/_ids";
 import { EmployeeWorkCreateData } from "@graphql/resolvers/employeeWork/mutations";
-import jestLogin from "@testing/jestLogin";
+import jestLogin from "@testing/vitestLogin";
 import { DailyReport, EmployeeWork } from "@models";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";

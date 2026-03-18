@@ -1,11 +1,11 @@
 import request from "supertest";
 
-import { prepareDatabase, disconnectAndStopServer } from "@testing/jestDB";
+import { prepareDatabase, disconnectAndStopServer } from "@testing/vitestDB";
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 
 import createApp from "../../app";
 import _ids from "@testing/_ids";
-import jestLogin from "@testing/jestLogin";
+import jestLogin from "@testing/vitestLogin";
 import { JobsiteMaterialCreateData } from "@graphql/resolvers/jobsiteMaterial/mutations";
 import { Invoice, Jobsite, JobsiteMaterial, System } from "@models";
 import { InvoiceData } from "@graphql/resolvers/invoice/mutations";

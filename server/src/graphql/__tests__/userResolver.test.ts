@@ -1,6 +1,6 @@
 import request from "supertest";
 
-import { prepareDatabase, disconnectAndStopServer } from "@testing/jestDB";
+import { prepareDatabase, disconnectAndStopServer } from "@testing/vitestDB";
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 
 import createApp from "../../app";
@@ -8,7 +8,7 @@ import _ids from "@testing/_ids";
 import { SignupData } from "@graphql/resolvers/user/mutations";
 import { Signup, User } from "@models";
 import { decode, JwtPayload } from "jsonwebtoken";
-import jestLogin from "@testing/jestLogin";
+import jestLogin from "@testing/vitestLogin";
 import { UserRoles } from "@typescript/user";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
