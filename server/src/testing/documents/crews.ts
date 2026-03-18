@@ -4,6 +4,7 @@ import { CrewTypes } from "@typescript/crew";
 
 export interface SeededCrews {
   base_1: CrewDocument;
+  base_2: CrewDocument;
 }
 
 const createCrews = async (): Promise<SeededCrews> => {
@@ -25,8 +26,17 @@ const createCrews = async (): Promise<SeededCrews> => {
     ],
   });
 
+  const base_2 = new Crew({
+    _id: _ids.crews.base_2._id,
+    name: "Base Crew 2",
+    type: CrewTypes.Base,
+    employees: [_ids.employees.base_foreman_2._id],
+    vehicles: [_ids.vehicles.gravel_truck_2._id],
+  });
+
   const crews = {
     base_1,
+    base_2,
   };
 
   for (let i = 0; i < Object.values(crews).length; i++) {

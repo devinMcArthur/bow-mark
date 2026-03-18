@@ -32,11 +32,30 @@ const createEmployees = async (): Promise<SeededEmployees> => {
     ],
   });
 
+  const base_foreman_2 = new Employee({
+    _id: _ids.employees.base_foreman_2._id,
+    name: "Base Foreman 2",
+    jobTitle: "Foreman",
+    crews: [_ids.crews.base_2._id],
+    rates: [
+      {
+        date: new Date("2022-01-01"),
+        rate: 26,
+      },
+    ],
+  });
+
   const base_operator_1 = new Employee({
     _id: _ids.employees.base_operator_1._id,
     name: "Base Operator 1",
     jobTitle: "Operator",
     crews: [_ids.crews.base_1._id],
+    rates: [
+      {
+        date: new Date("2022-01-01"),
+        rate: 28,
+      },
+    ],
   });
 
   const base_laborer_1 = new Employee({
@@ -44,6 +63,12 @@ const createEmployees = async (): Promise<SeededEmployees> => {
     name: "Base Laborer 1",
     jobTitle: "Laborer",
     crews: [_ids.crews.base_1._id],
+    rates: [
+      {
+        date: new Date("2022-01-01"),
+        rate: 22,
+      },
+    ],
   });
 
   const base_laborer_2 = new Employee({
@@ -51,6 +76,12 @@ const createEmployees = async (): Promise<SeededEmployees> => {
     name: "Base Laborer 2",
     jobTitle: "Laborer",
     crews: [_ids.crews.base_1._id],
+    rates: [
+      {
+        date: new Date("2022-01-01"),
+        rate: 22,
+      },
+    ],
   });
 
   const base_laborer_3 = new Employee({
@@ -58,6 +89,12 @@ const createEmployees = async (): Promise<SeededEmployees> => {
     name: "Base Laborer 3",
     jobTitle: "Laborer",
     crews: [_ids.crews.base_1._id],
+    rates: [
+      {
+        date: new Date("2022-01-01"),
+        rate: 22,
+      },
+    ],
   });
 
   const temp_1 = new Employee({
@@ -92,6 +129,7 @@ const createEmployees = async (): Promise<SeededEmployees> => {
 
   const employees = {
     base_foreman_1,
+    base_foreman_2,
     base_operator_1,
     base_laborer_1,
     base_laborer_2,
