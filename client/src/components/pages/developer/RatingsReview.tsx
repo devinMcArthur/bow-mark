@@ -23,6 +23,7 @@ import {
 import { localStorageTokenKey } from "../../../contexts/Auth";
 
 interface RatingItem {
+  messageId: string;
   conversationId: string;
   context: string;
   contextType: "jobsite" | "tender" | null;
@@ -188,7 +189,7 @@ const RatingsReview: React.FC = () => {
           </Thead>
           <Tbody>
             {items.map((item) => {
-              const rowKey = `${item.conversationId}-${item.assistantMessage.slice(0, 20)}`;
+              const rowKey = item.messageId;
               const isExpanded = expandedId === rowKey;
               return (
                 <React.Fragment key={rowKey}>

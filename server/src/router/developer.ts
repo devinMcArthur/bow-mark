@@ -59,6 +59,7 @@ router.get("/ratings", requireAuth, requireDeveloper, async (req: Request, res: 
         const ratedByUser = convo.user as any;
 
         results.push({
+          messageId: msg._id.toString(),
           conversationId: convo._id.toString(),
           context,
           contextType,
