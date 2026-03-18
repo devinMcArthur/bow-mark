@@ -23,7 +23,7 @@ export default defineConfig({
     environment: "node",
     // Match the existing jest.config.js timeout of 60s
     testTimeout: 60000,
-    globalSetup: ["./src/testing/vitestGlobalSetup.ts"],
+    globalSetup: [path.resolve(__dirname, "src/testing/vitestGlobalSetup.ts")],
     // singleFork: all test files share one worker process, so db/index.ts is
     // loaded exactly once with the env vars set by globalSetup. Required for
     // the Kysely pool singleton to point at the Testcontainer.
