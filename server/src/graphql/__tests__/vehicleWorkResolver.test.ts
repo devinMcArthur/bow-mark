@@ -6,13 +6,16 @@ import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 import createApp from "../../app";
 import _ids from "@testing/_ids";
 import { VehicleWorkCreateData } from "@graphql/resolvers/vehicleWork/mutations";
-import jestLogin from "@testing/vitestLogin";
+import vitestLogin from "@testing/vitestLogin";
 import { DailyReport, VehicleWork } from "@models";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 
-
 let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
+let adminToken: string;
+let pmToken: string;
+let foremanToken: string;
+
 const setupDatabase = async () => {
   documents = await seedDatabase();
 
@@ -25,6 +28,10 @@ beforeAll(async () => {
   app = await createApp();
 
   await setupDatabase();
+
+  adminToken = await vitestLogin(app, "admin@bowmark.ca");
+  pmToken = await vitestLogin(app, "pm@bowmark.ca");
+  foremanToken = await vitestLogin(app, "baseforeman1@bowmark.ca");
 });
 
 afterAll(async () => {
@@ -37,7 +44,7 @@ describe("Vehicle Work Resolver", () => {
       const vehicleWorkCreateMutation = `
         mutation VehicleWorkCreate($dailyReportId: String!, $data: [VehicleWorkCreateData!]!) {
           vehicleWorkCreate(dailyReportId: $dailyReportId, data: $data) {
-            _id 
+            _id
             jobTitle
             hours
             vehicle {
@@ -49,7 +56,7 @@ describe("Vehicle Work Resolver", () => {
 
       describe("success", () => {
         test("should successfully create a batch of vehicle work", async () => {
-          const token = await jestLogin(
+          const token = await vitestLogin(
             app,
             documents.users.base_foreman_1_user.email
           );
@@ -115,9 +122,36 @@ describe("Vehicle Work Resolver", () => {
         });
       });
 
+      describe("authorization", () => {
+        const variables = {
+          dailyReportId: _ids.dailyReports.jobsite_1_base_1_1._id.toString(),
+          data: [
+            {
+              vehicles: [_ids.vehicles.skidsteer_1._id.toString()],
+              jobs: [{ jobTitle: "Auth Test", hours: 1 }],
+            },
+          ],
+        };
+
+        it("succeeds as Foreman (any authenticated)", async () => {
+          const res = await request(app)
+            .post("/graphql")
+            .set("Authorization", foremanToken)
+            .send({ query: vehicleWorkCreateMutation, variables });
+          expect(res.body.errors).toBeUndefined();
+        });
+
+        it("rejects unauthenticated", async () => {
+          const res = await request(app)
+            .post("/graphql")
+            .send({ query: vehicleWorkCreateMutation, variables });
+          expect(res.body.errors).toBeDefined();
+        });
+      });
+
       describe("error", () => {
         test("should error on empty vehicles array", async () => {
-          const token = await jestLogin(
+          const token = await vitestLogin(
             app,
             documents.users.base_foreman_1_user.email
           );
@@ -151,6 +185,55 @@ describe("Vehicle Work Resolver", () => {
             "must provide a vehicles array"
           );
         });
+      });
+    });
+
+    describe("vehicleWorkUpdate", () => {
+      const mutation = `
+        mutation VehicleWorkUpdate($id: String!, $data: VehicleWorkUpdateData!) {
+          vehicleWorkUpdate(id: $id, data: $data) {
+            _id
+          }
+        }
+      `;
+      const variables = {
+        id: _ids.vehicleWork.jobsite_1_base_1_1_skidsteer_1._id.toString(),
+        data: { hours: 5, jobTitle: "Updated Job" },
+      };
+
+      it("succeeds as Foreman (any authenticated)", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .set("Authorization", foremanToken)
+          .send({ query: mutation, variables });
+        expect(res.body.errors).toBeUndefined();
+      });
+
+      it("rejects unauthenticated", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .send({ query: mutation, variables });
+        expect(res.body.errors).toBeDefined();
+      });
+    });
+
+    describe("vehicleWorkDelete", () => {
+      const mutation = `
+        mutation VehicleWorkDelete($id: String!) {
+          vehicleWorkDelete(id: $id)
+        }
+      `;
+
+      it("rejects unauthenticated", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .send({
+            query: mutation,
+            variables: {
+              id: _ids.vehicleWork.jobsite_1_base_1_1_skidsteer_1._id.toString(),
+            },
+          });
+        expect(res.body.errors).toBeDefined();
       });
     });
   });
