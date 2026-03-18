@@ -225,6 +225,42 @@ describe("materialShipmentSyncHandler", () => {
     });
   });
 
+  describe("delivered rate cost type", () => {
+    it("writes to fact_material_shipment with correct quantity", async () => {
+      const mongoId =
+        documents.materialShipments.sync_shipment_delivered_rate_1._id.toString();
+      await materialShipmentSyncHandler.handle({ mongoId, action: "created" });
+
+      const row = await db
+        .selectFrom("fact_material_shipment")
+        .selectAll()
+        .where("mongo_id", "=", mongoId)
+        .executeTakeFirst();
+
+      expect(row).toBeDefined();
+      // sync_shipment_delivered_rate_1 has quantity = 8
+      expect(Number(row!.quantity)).toBe(8);
+    });
+
+    it("resolves rate from the specific deliveredRate entry", async () => {
+      const mongoId =
+        documents.materialShipments.sync_shipment_delivered_rate_1._id.toString();
+      await materialShipmentSyncHandler.handle({ mongoId, action: "created" });
+
+      const row = await db
+        .selectFrom("fact_material_shipment")
+        .select(["rate", "estimated", "delivered_rate_id"])
+        .where("mongo_id", "=", mongoId)
+        .executeTakeFirst();
+
+      // sync_jobsite_material_delivered_rate deliveredRate "Tandem" has rate = 25
+      expect(Number(row!.rate)).toBe(25);
+      expect(row!.estimated).toBe(false);
+      // delivered_rate_id should be stored on the fact row
+      expect(row!.delivered_rate_id).toBeDefined();
+    });
+  });
+
   describe("delete action", () => {
     it("sets archived_at on fact_material_shipment", async () => {
       const mongoId =

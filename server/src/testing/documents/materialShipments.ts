@@ -12,6 +12,7 @@ export interface SeededMaterialShipments {
   sync_shipment_non_costed_1: MaterialShipmentDocument;
   sync_shipment_trucking_1: MaterialShipmentDocument;
   sync_shipment_invoice_cost_1: MaterialShipmentDocument;
+  sync_shipment_delivered_rate_1: MaterialShipmentDocument;
 }
 
 const createMaterialShipments = async (): Promise<SeededMaterialShipments> => {
@@ -128,6 +129,22 @@ const createMaterialShipments = async (): Promise<SeededMaterialShipments> => {
     jobsiteMaterial: _ids.jobsiteMaterials.sync_jobsite_material_invoice_cost._id,
   });
 
+  const sync_shipment_delivered_rate_1 = new MaterialShipment({
+    _id: _ids.materialShipments.sync_shipment_delivered_rate_1._id,
+    quantity: 8,
+    unit: "tonnes",
+    noJobsiteMaterial: false,
+    jobsiteMaterial:
+      _ids.jobsiteMaterials.sync_jobsite_material_delivered_rate._id,
+    vehicleObject: {
+      source: "Company",
+      vehicleType: "Tandem",
+      deliveredRateId:
+        _ids.jobsiteMaterials.sync_jobsite_material_delivered_rate
+          .deliveredRateId,
+    },
+  });
+
   const materialShipments = {
     jobsite_1_base_1_1_shipment_1,
     jobsite_2_base_1_1_shipment_1,
@@ -139,6 +156,7 @@ const createMaterialShipments = async (): Promise<SeededMaterialShipments> => {
     sync_shipment_non_costed_1,
     sync_shipment_trucking_1,
     sync_shipment_invoice_cost_1,
+    sync_shipment_delivered_rate_1,
   };
 
   for (let i = 0; i < Object.values(materialShipments).length; i++) {

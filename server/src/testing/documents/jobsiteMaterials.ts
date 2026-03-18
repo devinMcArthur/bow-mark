@@ -7,6 +7,7 @@ export interface SeededJobsiteMaterials {
   jobsite_2_material_2: JobsiteMaterialDocument;
   jobsite_3_material_1: JobsiteMaterialDocument;
   sync_jobsite_material_invoice_cost: JobsiteMaterialDocument;
+  sync_jobsite_material_delivered_rate: JobsiteMaterialDocument;
 }
 
 const createJobsiteMaterials = async (): Promise<SeededJobsiteMaterials> => {
@@ -63,11 +64,34 @@ const createJobsiteMaterials = async (): Promise<SeededJobsiteMaterials> => {
     invoices: [_ids.invoices.sync_invoice_for_shipment_rate._id],
   });
 
+  const sync_jobsite_material_delivered_rate = new JobsiteMaterial({
+    _id: _ids.jobsiteMaterials.sync_jobsite_material_delivered_rate._id,
+    material: _ids.materials.material_1._id,
+    supplier: _ids.companies.company_1._id,
+    quantity: 500,
+    unit: "tonnes",
+    costType: JobsiteMaterialCostType.deliveredRate,
+    deliveredRates: [
+      {
+        _id: _ids.jobsiteMaterials.sync_jobsite_material_delivered_rate.deliveredRateId,
+        title: "Tandem",
+        rates: [
+          {
+            date: new Date("2022-01-01"),
+            rate: 25,
+            estimated: false,
+          },
+        ],
+      },
+    ],
+  });
+
   const jobsiteMaterials = {
     jobsite_2_material_1,
     jobsite_2_material_2,
     jobsite_3_material_1,
     sync_jobsite_material_invoice_cost,
+    sync_jobsite_material_delivered_rate,
   };
 
   for (let i = 0; i < Object.values(jobsiteMaterials).length; i++) {

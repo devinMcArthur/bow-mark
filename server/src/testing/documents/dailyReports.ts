@@ -111,6 +111,7 @@ const createDailyReports = async (): Promise<SeededDailyReports> => {
       _ids.materialShipments.sync_shipment_non_costed_1._id,
       _ids.materialShipments.sync_shipment_trucking_1._id,
       _ids.materialShipments.sync_shipment_invoice_cost_1._id,
+      _ids.materialShipments.sync_shipment_delivered_rate_1._id,
     ],
     temporaryEmployees: [],
     temporaryVehicles: [],

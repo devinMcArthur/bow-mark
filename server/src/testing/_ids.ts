@@ -172,6 +172,9 @@ const _ids = {
     sync_shipment_invoice_cost_1: {
       _id: Types.ObjectId("62166e38ef63bebc19532517"),
     },
+    sync_shipment_delivered_rate_1: {
+      _id: Types.ObjectId("62166e38ef63bebc19532518"),
+    },
   },
   reportNotes: {
     jobsite_1_base_1_1_note_1: {
@@ -219,6 +222,10 @@ const _ids = {
     },
     sync_jobsite_material_invoice_cost: {
       _id: Types.ObjectId("629a49205f76f65244785a11"),
+    },
+    sync_jobsite_material_delivered_rate: {
+      _id: Types.ObjectId("629a49205f76f65244785a12"),
+      deliveredRateId: Types.ObjectId("629a49205f76f65244785a13"),
     },
   },
   invoices: {
