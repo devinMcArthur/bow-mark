@@ -16,6 +16,10 @@ export async function setup() {
 
   // Set env vars BEFORE any test module is imported.
   // db/index.ts reads these at module load time.
+  // JWT_SECRET: required by createJWT (login mutation) and auth middleware.
+  if (!process.env.JWT_SECRET) {
+    process.env.JWT_SECRET = "test-jwt-secret-for-vitest";
+  }
   process.env.POSTGRES_HOST = pgContainer.getHost();
   process.env.POSTGRES_PORT = String(pgContainer.getPort());
   process.env.POSTGRES_USER = pgContainer.getUsername();
@@ -25,7 +29,8 @@ export async function setup() {
   // Run migrations against the test database.
   // Migrations live at db/migrations/ (repo root), relative to server/.
   const migrationsPath = path.resolve(__dirname, "../../../db/migrations");
-  const dbUrl = `postgres://bowmark:devpassword@${pgContainer.getHost()}:${pgContainer.getPort()}/bowmark_reports_test`;
+  // sslmode=disable: the Testcontainer runs without SSL
+  const dbUrl = `postgres://bowmark:devpassword@${pgContainer.getHost()}:${pgContainer.getPort()}/bowmark_reports_test?sslmode=disable`;
   execSync(`dbmate --url "${dbUrl}" --migrations-dir "${migrationsPath}" up`, {
     stdio: "inherit",
   });
