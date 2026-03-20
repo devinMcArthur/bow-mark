@@ -1,7 +1,6 @@
-import { MongoMemoryServer } from "mongodb-memory-server";
 
 import { File, Jobsite, System } from "@models";
-import { disconnectAndStopServer, prepareDatabase } from "@testing/jestDB";
+import { disconnectAndStopServer, prepareDatabase } from "@testing/vitestDB";
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 import {
   IJobsiteContract,
@@ -13,7 +12,7 @@ import dayjs from "dayjs";
 import fs from "fs";
 import path from "path";
 
-let documents: SeededDatabase, mongoServer: MongoMemoryServer;
+let documents: SeededDatabase;
 const setupDatabase = async () => {
   documents = await seedDatabase();
 
@@ -21,13 +20,13 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   await setupDatabase();
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("Jobsite Class", () => {
@@ -38,9 +37,13 @@ describe("Jobsite Class", () => {
           const materialShipments =
             await documents.jobsites.jobsite_2.getNonCostedMaterialShipments();
 
-          expect(materialShipments.length).toBe(1);
-          expect(materialShipments[0]._id.toString()).toBe(
+          expect(materialShipments.length).toBe(2);
+          const ids = materialShipments.map((s) => s._id.toString());
+          expect(ids).toContain(
             documents.materialShipments.jobsite_2_base_1_1_shipment_2._id.toString()
+          );
+          expect(ids).toContain(
+            documents.materialShipments.sync_shipment_non_costed_1._id.toString()
           );
         });
       });

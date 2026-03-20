@@ -1,9 +1,8 @@
-import { MongoMemoryServer } from "mongodb-memory-server";
 
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
-import { disconnectAndStopServer, prepareDatabase } from "@testing/jestDB";
+import { disconnectAndStopServer, prepareDatabase } from "@testing/vitestDB";
 
-let documents: SeededDatabase, mongoServer: MongoMemoryServer;
+let documents: SeededDatabase;
 const setupDatabase = async () => {
   documents = await seedDatabase();
 
@@ -11,13 +10,13 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   await setupDatabase();
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("Crew Class", () => {

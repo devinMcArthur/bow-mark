@@ -1,18 +1,19 @@
 import request from "supertest";
 
-import { prepareDatabase, disconnectAndStopServer } from "@testing/jestDB";
+import { prepareDatabase, disconnectAndStopServer } from "@testing/vitestDB";
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 
 import createApp from "../../app";
 import _ids from "@testing/_ids";
 import { Signup } from "@models";
-import jestLogin from "@testing/jestLogin";
-import { MongoMemoryServer } from "mongodb-memory-server";
+import vitestLogin from "@testing/vitestLogin";
 import { Server } from "http";
 
-jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
+let documents: SeededDatabase, app: Server;
+let adminToken: string;
+let pmToken: string;
+let foremanToken: string;
 
-let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
 const setupDatabase = async () => {
   documents = await seedDatabase();
 
@@ -20,24 +21,44 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   app = await createApp();
 
   await setupDatabase();
+
+  adminToken = await vitestLogin(app, "admin@bowmark.ca");
+  pmToken = await vitestLogin(app, "pm@bowmark.ca");
+  foremanToken = await vitestLogin(app, "baseforeman1@bowmark.ca");
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("Signup Resolver", () => {
+  describe("QUERIES", () => {
+    describe("signup", () => {
+      describe("validation", () => {
+        it("returns an error for a non-existent signup id", async () => {
+          const res = await request(app)
+            .post("/graphql")
+            .send({
+              query: `query { signup(id: "000000000000000000000001") { _id } }`,
+            });
+          expect(res.body.errors).toBeDefined();
+          expect(res.body.data).toBeNull();
+        });
+      });
+    });
+  });
+
   describe("MUTATIONS", () => {
     describe("signupCreate", () => {
       const signupCreate = `
         mutation SignupCreate($employeeId: String!) {
           signupCreate(employeeId: $employeeId) {
-            _id 
+            _id
             employee {
               name
               _id
@@ -48,7 +69,7 @@ describe("Signup Resolver", () => {
 
       describe("success", () => {
         test("should successfully create a signup for an employee w/ an existing document", async () => {
-          const token = await jestLogin(
+          const token = await vitestLogin(
             app,
             documents.users.base_foreman_1_user.email
           );
@@ -75,6 +96,33 @@ describe("Signup Resolver", () => {
 
           const fetchedSignup = await Signup.getById(signup._id);
           expect(fetchedSignup).toBeDefined();
+        });
+      });
+
+      describe("authorization", () => {
+        it("succeeds as Foreman (any authenticated)", async () => {
+          const res = await request(app)
+            .post("/graphql")
+            .set("Authorization", foremanToken)
+            .send({
+              query: signupCreate,
+              variables: {
+                employeeId: _ids.employees.base_laborer_2._id.toString(),
+              },
+            });
+          expect(res.body.errors).toBeUndefined();
+        });
+
+        it("rejects unauthenticated", async () => {
+          const res = await request(app)
+            .post("/graphql")
+            .send({
+              query: signupCreate,
+              variables: {
+                employeeId: _ids.employees.base_laborer_2._id.toString(),
+              },
+            });
+          expect(res.body.errors).toBeDefined();
         });
       });
     });

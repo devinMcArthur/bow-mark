@@ -1,19 +1,20 @@
 import request from "supertest";
 
-import { prepareDatabase, disconnectAndStopServer } from "@testing/jestDB";
+import { prepareDatabase, disconnectAndStopServer } from "@testing/vitestDB";
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 
 import createApp from "../../app";
 import _ids from "@testing/_ids";
 import { EmployeeWorkCreateData } from "@graphql/resolvers/employeeWork/mutations";
-import jestLogin from "@testing/jestLogin";
+import vitestLogin from "@testing/vitestLogin";
 import { DailyReport, EmployeeWork } from "@models";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 
-jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
+let documents: SeededDatabase, app: Server;
+let adminToken: string;
+let pmToken: string;
+let foremanToken: string;
 
-let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
 const setupDatabase = async () => {
   documents = await seedDatabase();
 
@@ -21,15 +22,19 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   app = await createApp();
 
   await setupDatabase();
+
+  adminToken = await vitestLogin(app, "admin@bowmark.ca");
+  pmToken = await vitestLogin(app, "pm@bowmark.ca");
+  foremanToken = await vitestLogin(app, "baseforeman1@bowmark.ca");
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("Employee Work Resolver", () => {
@@ -38,7 +43,7 @@ describe("Employee Work Resolver", () => {
       const employeeWorkCreateMutation = `
         mutation EmployeeWorkCreate($dailyReportId: String!, $data: [EmployeeWorkCreateData!]!) {
           employeeWorkCreate(dailyReportId: $dailyReportId, data: $data) {
-            _id 
+            _id
             jobTitle
             startTime
             endTime
@@ -51,7 +56,7 @@ describe("Employee Work Resolver", () => {
 
       describe("success", () => {
         test("should successfully create a batch of employee work", async () => {
-          const token = await jestLogin(
+          const token = await vitestLogin(
             app,
             documents.users.base_foreman_1_user.email
           );
@@ -122,9 +127,42 @@ describe("Employee Work Resolver", () => {
         });
       });
 
+      describe("authorization", () => {
+        const variables = {
+          dailyReportId: _ids.dailyReports.jobsite_1_base_1_1._id.toString(),
+          data: [
+            {
+              employees: [_ids.employees.base_foreman_1._id.toString()],
+              jobs: [
+                {
+                  jobTitle: "Auth Test",
+                  startTime: new Date("2022-03-01 6:00 am").toISOString(),
+                  endTime: new Date("2022-03-01 8:00 am").toISOString(),
+                },
+              ],
+            },
+          ],
+        };
+
+        it("succeeds as Foreman (any authenticated)", async () => {
+          const res = await request(app)
+            .post("/graphql")
+            .set("Authorization", foremanToken)
+            .send({ query: employeeWorkCreateMutation, variables });
+          expect(res.body.errors).toBeUndefined();
+        });
+
+        it("rejects unauthenticated", async () => {
+          const res = await request(app)
+            .post("/graphql")
+            .send({ query: employeeWorkCreateMutation, variables });
+          expect(res.body.errors).toBeDefined();
+        });
+      });
+
       describe("error", () => {
         test("should error if a job title is missing", async () => {
-          const token = await jestLogin(
+          const token = await vitestLogin(
             app,
             documents.users.base_foreman_1_user.email
           );
@@ -161,7 +199,7 @@ describe("Employee Work Resolver", () => {
         });
 
         test("should error on empty employees array", async () => {
-          const token = await jestLogin(
+          const token = await vitestLogin(
             app,
             documents.users.base_foreman_1_user.email
           );
@@ -196,6 +234,59 @@ describe("Employee Work Resolver", () => {
             "must provide an employees array"
           );
         });
+      });
+    });
+
+    describe("employeeWorkUpdate", () => {
+      const mutation = `
+        mutation EmployeeWorkUpdate($id: String!, $data: EmployeeWorkUpdateData!) {
+          employeeWorkUpdate(id: $id, data: $data) {
+            _id
+          }
+        }
+      `;
+      const variables = {
+        id: _ids.employeeWork.jobsite_1_base_1_1_base_foreman_1._id.toString(),
+        data: {
+          jobTitle: "Updated Title",
+          startTime: new Date("2022-03-01 7:00 am").toISOString(),
+          endTime: new Date("2022-03-01 9:00 am").toISOString(),
+        },
+      };
+
+      it("succeeds as Foreman (any authenticated)", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .set("Authorization", foremanToken)
+          .send({ query: mutation, variables });
+        expect(res.body.errors).toBeUndefined();
+      });
+
+      it("rejects unauthenticated", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .send({ query: mutation, variables });
+        expect(res.body.errors).toBeDefined();
+      });
+    });
+
+    describe("employeeWorkDelete", () => {
+      const mutation = `
+        mutation EmployeeWorkDelete($id: String!) {
+          employeeWorkDelete(id: $id)
+        }
+      `;
+
+      it("rejects unauthenticated", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .send({
+            query: mutation,
+            variables: {
+              id: _ids.employeeWork.jobsite_1_base_1_1_base_foreman_1._id.toString(),
+            },
+          });
+        expect(res.body.errors).toBeDefined();
       });
     });
   });

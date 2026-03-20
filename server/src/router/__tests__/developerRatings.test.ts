@@ -1,15 +1,12 @@
 import request from "supertest";
-import { prepareDatabase, disconnectAndStopServer } from "@testing/jestDB";
+import { prepareDatabase, disconnectAndStopServer } from "@testing/vitestDB";
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 import createApp from "../../app";
 import { Conversation } from "@models";
-import jestLogin from "@testing/jestLogin";
-import { MongoMemoryServer } from "mongodb-memory-server";
+import vitestLogin from "@testing/vitestLogin";
 import { Server } from "http";
 
-jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 
-let mongoServer: MongoMemoryServer;
 let documents: SeededDatabase;
 let app: Server;
 let adminToken: string;
@@ -17,11 +14,11 @@ let developerToken: string;
 let conversationId: string;
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
   app = await createApp();
   documents = await seedDatabase();
-  adminToken = await jestLogin(app, "admin@bowmark.ca");
-  developerToken = await jestLogin(app, "developer@bowmark.ca");
+  adminToken = await vitestLogin(app, "admin@bowmark.ca");
+  developerToken = await vitestLogin(app, "developer@bowmark.ca");
 
   // Create a conversation with a rated message
   const jobsite = documents.jobsites.jobsite_1;
@@ -45,7 +42,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("GET /api/developer/ratings", () => {

@@ -1,6 +1,6 @@
 \restrict dbmate
 
--- Dumped from database version 16.11 (Debian 16.11-1.pgdg13+1)
+-- Dumped from database version 15.17 (Debian 15.17-1.pgdg13+1)
 -- Dumped by pg_dump version 18.2
 
 SET statement_timeout = 0;
@@ -234,15 +234,15 @@ CREATE VIEW public.crew_max_hours AS
 --
 
 CREATE VIEW public.crew_hours_by_day AS
- SELECT jobsite_id,
-    work_date,
-    crew_type,
-    avg(crew_hours) AS avg_crew_hours,
-    sum(total_man_hours) AS total_man_hours,
-    sum(employee_count) AS total_employees,
+ SELECT crew_max_hours.jobsite_id,
+    crew_max_hours.work_date,
+    crew_max_hours.crew_type,
+    avg(crew_max_hours.crew_hours) AS avg_crew_hours,
+    sum(crew_max_hours.total_man_hours) AS total_man_hours,
+    sum(crew_max_hours.employee_count) AS total_employees,
     count(*) AS crew_count
    FROM public.crew_max_hours
-  GROUP BY jobsite_id, work_date, crew_type;
+  GROUP BY crew_max_hours.jobsite_id, crew_max_hours.work_date, crew_max_hours.crew_type;
 
 
 --
@@ -835,35 +835,35 @@ UNION ALL
 --
 
 CREATE VIEW public.jobsite_issues_summary AS
- SELECT jobsite_id,
-    date,
+ SELECT jobsite_report_issues.jobsite_id,
+    jobsite_report_issues.date,
     count(DISTINCT
         CASE
-            WHEN (issue_type = 'EMPLOYEE_RATE_ZERO'::text) THEN entity_id
+            WHEN (jobsite_report_issues.issue_type = 'EMPLOYEE_RATE_ZERO'::text) THEN jobsite_report_issues.entity_id
             ELSE NULL::uuid
         END) AS employees_with_zero_rate,
     count(DISTINCT
         CASE
-            WHEN (issue_type = 'VEHICLE_RATE_ZERO'::text) THEN entity_id
+            WHEN (jobsite_report_issues.issue_type = 'VEHICLE_RATE_ZERO'::text) THEN jobsite_report_issues.entity_id
             ELSE NULL::uuid
         END) AS vehicles_with_zero_rate,
     count(DISTINCT
         CASE
-            WHEN (issue_type = 'MATERIAL_RATE_ZERO'::text) THEN entity_id
+            WHEN (jobsite_report_issues.issue_type = 'MATERIAL_RATE_ZERO'::text) THEN jobsite_report_issues.entity_id
             ELSE NULL::uuid
         END) AS materials_with_zero_rate,
     count(DISTINCT
         CASE
-            WHEN (issue_type = 'MATERIAL_ESTIMATED_RATE'::text) THEN entity_id
+            WHEN (jobsite_report_issues.issue_type = 'MATERIAL_ESTIMATED_RATE'::text) THEN jobsite_report_issues.entity_id
             ELSE NULL::uuid
         END) AS materials_with_estimated_rate,
     sum(
         CASE
-            WHEN (issue_type = 'NON_COSTED_MATERIALS'::text) THEN occurrence_count
+            WHEN (jobsite_report_issues.issue_type = 'NON_COSTED_MATERIALS'::text) THEN jobsite_report_issues.occurrence_count
             ELSE (0)::bigint
         END) AS non_costed_material_shipments
    FROM public.jobsite_report_issues
-  GROUP BY jobsite_id, date;
+  GROUP BY jobsite_report_issues.jobsite_id, jobsite_report_issues.date;
 
 
 --
