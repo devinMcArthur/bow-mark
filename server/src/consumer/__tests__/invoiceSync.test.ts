@@ -2,15 +2,13 @@ import { prepareDatabase, disconnectAndStopServer } from "@testing/vitestDB";
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 import { truncateAllPgTables } from "@testing/vitestPgDB";
 import { db } from "../../db";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import { invoiceSyncHandler } from "../handlers/invoiceSync";
 import { Jobsite } from "@models";
 
-let mongoServer: MongoMemoryServer;
 let documents: SeededDatabase;
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
   documents = await seedDatabase();
 
   // Attach sync invoices to jobsite_1 so findJobsiteAndDirection can resolve them.
@@ -28,7 +26,7 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("invoiceSyncHandler", () => {

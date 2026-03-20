@@ -1,30 +1,31 @@
 import mongoose from "mongoose";
-import { MongoMemoryServer } from "mongodb-memory-server";
 
-const prepareDatabase = async () => {
-  const mongoServer = new MongoMemoryServer();
-  const mongoUri = await mongoServer.getUri();
-  await mongoose.connect(
-    mongoUri,
-    {
+// Mongoose connection is shared across all test suites in the single fork.
+// prepareDatabase() connects on first call; subsequent calls are no-ops.
+let connected = false;
+
+const prepareDatabase = async (): Promise<void> => {
+  if (!connected) {
+    const uri = process.env.MONGODB_URI;
+    if (!uri) {
+      throw new Error(
+        "MONGODB_URI not set — MongoDB container was not started by globalSetup"
+      );
+    }
+    await mongoose.connect(uri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       useCreateIndex: true,
-    },
-    (err) => {
-      if (err) console.error(err);
-    }
-  );
-
-  return mongoServer;
+    });
+    connected = true;
+  }
 };
 
-// Disconnect mongoose and stop server
-const disconnectAndStopServer = async (mongoServer: MongoMemoryServer) => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
-
-  return mongoServer;
+// No-op: the MongoDB container is started/stopped by vitestGlobalSetup.
+// Kept for API compatibility with existing test files.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const disconnectAndStopServer = async (_unused?: unknown): Promise<void> => {
+  // intentional no-op
 };
 
 export { prepareDatabase, disconnectAndStopServer };

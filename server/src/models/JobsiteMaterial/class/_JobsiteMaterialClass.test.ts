@@ -1,4 +1,3 @@
-import { MongoMemoryServer } from "mongodb-memory-server";
 
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 import { disconnectAndStopServer, prepareDatabase } from "@testing/vitestDB";
@@ -8,7 +7,7 @@ import {
   JobsiteMaterialCostType,
 } from "@typescript/jobsiteMaterial";
 
-let documents: SeededDatabase, mongoServer: MongoMemoryServer;
+let documents: SeededDatabase;
 const setupDatabase = async () => {
   documents = await seedDatabase();
 
@@ -16,13 +15,13 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   await setupDatabase();
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("Jobsite Material Class", () => {
@@ -33,9 +32,20 @@ describe("Jobsite Material Class", () => {
           const completed =
             await documents.jobsiteMaterials.jobsite_2_material_1.getCompletedQuantity();
 
-          expect(completed).toBe(
-            documents.materialShipments.jobsite_2_base_1_1_shipment_1.quantity
+          // getCompletedQuantity now returns quantities grouped by year.
+          // jobsite_2_material_1 has three shipments in the seed data that
+          // belong to daily reports: jobsite_2_base_1_1_shipment_1 (200),
+          // sync_shipment_costed_1 (5), and sync_shipment_trucking_1 (2).
+          const total = Object.values(completed).reduce(
+            (sum, q) => sum + q,
+            0
           );
+          const expected =
+            documents.materialShipments.jobsite_2_base_1_1_shipment_1
+              .quantity +
+            documents.materialShipments.sync_shipment_costed_1.quantity +
+            documents.materialShipments.sync_shipment_trucking_1.quantity;
+          expect(total).toBe(expected);
         });
       });
     });

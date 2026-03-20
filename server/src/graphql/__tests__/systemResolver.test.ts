@@ -6,10 +6,9 @@ import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 import createApp from "../../app";
 import vitestLogin from "@testing/vitestLogin";
 import { DefaultRateData } from "@graphql/types/mutation";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 
-let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
+let documents: SeededDatabase, app: Server;
 let adminToken: string;
 let pmToken: string;
 let foremanToken: string;
@@ -21,7 +20,7 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   app = await createApp();
 
@@ -33,7 +32,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("System Resolver", () => {

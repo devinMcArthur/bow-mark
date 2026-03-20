@@ -8,10 +8,9 @@ import _ids from "@testing/_ids";
 import { VehicleWorkCreateData } from "@graphql/resolvers/vehicleWork/mutations";
 import vitestLogin from "@testing/vitestLogin";
 import { DailyReport, VehicleWork } from "@models";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 
-let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
+let documents: SeededDatabase, app: Server;
 let adminToken: string;
 let pmToken: string;
 let foremanToken: string;
@@ -23,7 +22,7 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   app = await createApp();
 
@@ -35,7 +34,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("Vehicle Work Resolver", () => {

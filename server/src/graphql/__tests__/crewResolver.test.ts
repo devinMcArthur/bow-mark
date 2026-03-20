@@ -8,10 +8,9 @@ import _ids from "@testing/_ids";
 import vitestLogin from "@testing/vitestLogin";
 import { Crew } from "@models";
 import { CrewCreateData } from "@graphql/resolvers/crew/mutations";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 
-let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
+let documents: SeededDatabase, app: Server;
 let adminToken: string;
 let pmToken: string;
 let foremanToken: string;
@@ -23,7 +22,7 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   app = await createApp();
 
@@ -35,21 +34,22 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("Crew Resolver", () => {
   describe("QUERIES", () => {
     describe("crew", () => {
       describe("validation", () => {
-        it("returns null for a non-existent crew id", async () => {
+        it("returns an error for a non-existent crew id", async () => {
           const res = await request(app)
             .post("/graphql")
             .set("Authorization", adminToken)
             .send({
               query: `query { crew(id: "000000000000000000000001") { _id } }`,
             });
-          expect(res.body.data.crew).toBeNull();
+          expect(res.body.errors).toBeDefined();
+          expect(res.body.data).toBeNull();
         });
       });
     });
@@ -98,15 +98,14 @@ describe("Crew Resolver", () => {
       });
 
       describe("authorization", () => {
-        const variables = {
-          data: { name: "Auth Test Crew", type: "Base" },
-        };
-
         it("succeeds as Admin", async () => {
           const res = await request(app)
             .post("/graphql")
             .set("Authorization", adminToken)
-            .send({ query: crewCreate, variables });
+            .send({
+              query: crewCreate,
+              variables: { data: { name: "Auth Test Crew Admin", type: "Base" } },
+            });
           expect(res.body.errors).toBeUndefined();
         });
 
@@ -114,7 +113,10 @@ describe("Crew Resolver", () => {
           const res = await request(app)
             .post("/graphql")
             .set("Authorization", pmToken)
-            .send({ query: crewCreate, variables });
+            .send({
+              query: crewCreate,
+              variables: { data: { name: "Auth Test Crew PM", type: "Base" } },
+            });
           expect(res.body.errors).toBeUndefined();
         });
 
@@ -122,14 +124,20 @@ describe("Crew Resolver", () => {
           const res = await request(app)
             .post("/graphql")
             .set("Authorization", foremanToken)
-            .send({ query: crewCreate, variables });
+            .send({
+              query: crewCreate,
+              variables: { data: { name: "Auth Test Crew Foreman", type: "Base" } },
+            });
           expect(res.body.errors).toBeDefined();
         });
 
         it("rejects unauthenticated", async () => {
           const res = await request(app)
             .post("/graphql")
-            .send({ query: crewCreate, variables });
+            .send({
+              query: crewCreate,
+              variables: { data: { name: "Auth Test Crew Unauth", type: "Base" } },
+            });
           expect(res.body.errors).toBeDefined();
         });
       });
@@ -146,7 +154,7 @@ describe("Crew Resolver", () => {
       `;
       const variables = {
         id: _ids.crews.base_1._id.toString(),
-        data: { name: "Updated Crew" },
+        data: { name: "Updated Crew", type: "Base" },
       };
 
       it("succeeds as Admin", async () => {

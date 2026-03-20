@@ -27,7 +27,8 @@ const realPath = path.resolve(__dirname, "../utils/fileStorage/index.ts");
     uploadFile: (_name: string, _buffer: Buffer, _mimetype: string) =>
       Promise.resolve(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    getFile: (_name: string): Promise<any> => Promise.resolve(null),
+    getFile: (_name: string): Promise<any> =>
+      Promise.resolve({ Body: Buffer.from("mock-file-content") }),
     removeFile: (_name: string) => Promise.resolve(),
     getFileSignedUrl: (name: string) =>
       Promise.resolve(`https://test.example.com/${name}`),

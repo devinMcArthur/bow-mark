@@ -10,10 +10,9 @@ import { Signup, User } from "@models";
 import { decode, JwtPayload } from "jsonwebtoken";
 import vitestLogin from "@testing/vitestLogin";
 import { UserRoles } from "@typescript/user";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 
-let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
+let documents: SeededDatabase, app: Server;
 let adminToken: string;
 let pmToken: string;
 let foremanToken: string;
@@ -25,7 +24,7 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   app = await createApp();
 
@@ -37,7 +36,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("User Resolver", () => {
@@ -170,12 +169,13 @@ describe("User Resolver", () => {
       });
 
       describe("validation", () => {
-        it("returns null for a non-existent user id", async () => {
+        it("returns null for a non-existent user id (nullable query)", async () => {
           const res = await request(app)
             .post("/graphql")
             .send({
               query: `query { user(query: { id: "000000000000000000000001" }) { _id } }`,
             });
+          expect(res.body.errors).toBeUndefined();
           expect(res.body.data.user).toBeNull();
         });
       });
@@ -363,7 +363,7 @@ describe("User Resolver", () => {
           }
         }
       `;
-      const variables = { homeView: "MY_CREWS" };
+      const variables = { homeView: "DailyReports" };
 
       it("succeeds as Foreman (any authenticated)", async () => {
         const res = await request(app)

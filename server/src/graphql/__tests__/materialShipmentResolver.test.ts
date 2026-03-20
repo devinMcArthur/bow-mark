@@ -10,10 +10,9 @@ import {
   MaterialShipmentCreateData,
   MaterialShipmentUpdateData,
 } from "@graphql/resolvers/materialShipment/mutations";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 
-let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
+let documents: SeededDatabase, app: Server;
 let adminToken: string;
 let pmToken: string;
 let foremanToken: string;
@@ -25,7 +24,7 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   app = await createApp();
 
@@ -37,7 +36,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("Material Shipment Resolver", () => {

@@ -8,10 +8,9 @@ import _ids from "@testing/_ids";
 import vitestLogin from "@testing/vitestLogin";
 import { FileCreateData } from "@graphql/resolvers/file/mutations";
 import path from "path";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 
-let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
+let documents: SeededDatabase, app: Server;
 let adminToken: string;
 let pmToken: string;
 let foremanToken: string;
@@ -23,7 +22,7 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   app = await createApp();
 
@@ -35,7 +34,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("DailyReport Resolver", () => {
@@ -133,14 +132,15 @@ describe("DailyReport Resolver", () => {
       });
 
       describe("validation", () => {
-        it("returns null for a non-existent daily report id", async () => {
+        it("returns an error for a non-existent daily report id", async () => {
           const res = await request(app)
             .post("/graphql")
             .set("Authorization", adminToken)
             .send({
               query: `query { dailyReport(id: "000000000000000000000001") { _id } }`,
             });
-          expect(res.body.data.dailyReport).toBeNull();
+          expect(res.body.errors).toBeDefined();
+          expect(res.body.data).toBeNull();
         });
       });
     });
@@ -189,7 +189,10 @@ describe("DailyReport Resolver", () => {
       `;
       const variables = {
         id: _ids.dailyReports.jobsite_1_base_1_1._id.toString(),
-        data: { date: new Date().toISOString() },
+        data: {
+          date: new Date().toISOString(),
+          jobsiteId: _ids.jobsites.jobsite_1._id.toString(),
+        },
       };
 
       it("succeeds as Foreman (any authenticated)", async () => {

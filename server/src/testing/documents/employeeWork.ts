@@ -25,8 +25,8 @@ const createEmployeeWork = async (): Promise<SeededEmployeeWork> => {
 
   const sync_employee_work_1 = new EmployeeWork({
     _id: _ids.employeeWork.sync_employee_work_1._id,
-    startTime: new Date("2022-02-23T07:00:00"),
-    endTime: new Date("2022-02-23T15:00:00"),
+    startTime: new Date("2022-02-23T07:00:00Z"),
+    endTime: new Date("2022-02-23T15:00:00Z"),
     jobTitle: "Grading work",
     employee: _ids.employees.base_foreman_1._id,
   });

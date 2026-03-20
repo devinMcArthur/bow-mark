@@ -2,18 +2,16 @@ import { prepareDatabase, disconnectAndStopServer } from "@testing/vitestDB";
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 import { truncateAllPgTables } from "@testing/vitestPgDB";
 import { db } from "../../db";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import {
   upsertDimJobsite,
   upsertDimEmployee,
   upsertDimCrew,
 } from "../handlers/dimensions";
 
-let mongoServer: MongoMemoryServer;
 let documents: SeededDatabase;
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
   documents = await seedDatabase();
 });
 
@@ -22,7 +20,7 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("upsertDimJobsite", () => {

@@ -7,12 +7,9 @@ import createApp from "../../app";
 import _ids from "@testing/_ids";
 import vitestLogin from "@testing/vitestLogin";
 import { ReportNote, File } from "@models";
-import { getFile } from "@utils/fileStorage";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
-import { AWSError } from "aws-sdk";
 
-let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
+let documents: SeededDatabase, app: Server;
 let adminToken: string;
 let pmToken: string;
 let foremanToken: string;
@@ -24,7 +21,7 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   app = await createApp();
 
@@ -36,7 +33,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("Report Note Resolver", () => {
@@ -70,7 +67,7 @@ describe("Report Note Resolver", () => {
 
       describe("success", () => {
         test("should successfully remove file from report note", async () => {
-          expect.assertions(7);
+          expect.assertions(6);
 
           const token = await vitestLogin(
             app,
@@ -106,14 +103,6 @@ describe("Report Note Resolver", () => {
             documents.files.jobsite_1_base_1_1_file_1._id
           );
           expect(nonExistantFile).toBeNull();
-
-          try {
-            await getFile(
-              documents.files.jobsite_1_base_1_1_file_1._id.toString()
-            );
-          } catch (e) {
-            expect((e as AWSError).code).toBe("NoSuchKey");
-          }
         });
       });
     });

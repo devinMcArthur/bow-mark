@@ -8,10 +8,9 @@ import _ids from "@testing/_ids";
 import vitestLogin from "@testing/vitestLogin";
 import { RatesData } from "@graphql/types/mutation";
 import { Vehicle } from "@models";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 
-let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
+let documents: SeededDatabase, app: Server;
 let adminToken: string;
 let pmToken: string;
 let foremanToken: string;
@@ -23,7 +22,7 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   app = await createApp();
 
@@ -35,7 +34,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("Vehicle Resolver", () => {
@@ -77,14 +76,15 @@ describe("Vehicle Resolver", () => {
       });
 
       describe("validation", () => {
-        it("returns null for a non-existent vehicle id", async () => {
+        it("returns an error for a non-existent vehicle id", async () => {
           const res = await request(app)
             .post("/graphql")
             .set("Authorization", adminToken)
             .send({
               query: `query { vehicle(id: "000000000000000000000001") { _id } }`,
             });
-          expect(res.body.data.vehicle).toBeNull();
+          expect(res.body.errors).toBeDefined();
+          expect(res.body.data).toBeNull();
         });
       });
     });
@@ -131,7 +131,7 @@ describe("Vehicle Resolver", () => {
       `;
       const variables = {
         id: _ids.vehicles.skidsteer_1._id.toString(),
-        data: { name: "Updated Vehicle" },
+        data: { name: "Updated Vehicle", vehicleType: "Skidsteer", vehicleCode: "G-25" },
       };
 
       it("succeeds as Admin", async () => {

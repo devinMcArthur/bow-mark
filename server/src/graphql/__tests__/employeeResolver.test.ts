@@ -8,10 +8,9 @@ import _ids from "@testing/_ids";
 import vitestLogin from "@testing/vitestLogin";
 import { RatesData } from "@graphql/types/mutation";
 import { Employee } from "@models";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 
-let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
+let documents: SeededDatabase, app: Server;
 let adminToken: string;
 let pmToken: string;
 let foremanToken: string;
@@ -23,7 +22,7 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   app = await createApp();
 
@@ -35,7 +34,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("Employee Resolver", () => {
@@ -85,14 +84,15 @@ describe("Employee Resolver", () => {
       });
 
       describe("validation", () => {
-        it("returns null for a non-existent employee id", async () => {
+        it("returns an error for a non-existent employee id", async () => {
           const res = await request(app)
             .post("/graphql")
             .set("Authorization", adminToken)
             .send({
               query: `query { employee(id: "000000000000000000000001") { _id } }`,
             });
-          expect(res.body.data.employee).toBeNull();
+          expect(res.body.errors).toBeDefined();
+          expect(res.body.data).toBeNull();
         });
       });
     });
@@ -109,39 +109,49 @@ describe("Employee Resolver", () => {
           }
         }
       `;
-      const variables = { data: { name: "New Employee", jobTitle: "Laborer" } };
-
       it("creates an employee as Admin", async () => {
         const res = await request(app)
           .post("/graphql")
           .set("Authorization", adminToken)
-          .send({ query: mutation, variables });
+          .send({
+            query: mutation,
+            variables: { data: { name: "New Employee Admin", jobTitle: "Laborer" } },
+          });
         expect(res.body.errors).toBeUndefined();
-        expect(res.body.data.employeeCreate.name).toBe("New Employee");
+        expect(res.body.data.employeeCreate.name).toBe("New Employee Admin");
       });
 
       it("creates an employee as ProjectManager", async () => {
         const res = await request(app)
           .post("/graphql")
           .set("Authorization", pmToken)
-          .send({ query: mutation, variables });
+          .send({
+            query: mutation,
+            variables: { data: { name: "New Employee PM", jobTitle: "Laborer" } },
+          });
         expect(res.body.errors).toBeUndefined();
-        expect(res.body.data.employeeCreate.name).toBe("New Employee");
+        expect(res.body.data.employeeCreate.name).toBe("New Employee PM");
       });
 
       it("creates an employee as Foreman", async () => {
         const res = await request(app)
           .post("/graphql")
           .set("Authorization", foremanToken)
-          .send({ query: mutation, variables });
+          .send({
+            query: mutation,
+            variables: { data: { name: "New Employee Foreman", jobTitle: "Laborer" } },
+          });
         expect(res.body.errors).toBeUndefined();
-        expect(res.body.data.employeeCreate.name).toBe("New Employee");
+        expect(res.body.data.employeeCreate.name).toBe("New Employee Foreman");
       });
 
       it("rejects unauthenticated requests", async () => {
         const res = await request(app)
           .post("/graphql")
-          .send({ query: mutation, variables });
+          .send({
+            query: mutation,
+            variables: { data: { name: "New Employee Unauth", jobTitle: "Laborer" } },
+          });
         expect(res.body.errors).toBeDefined();
       });
     });

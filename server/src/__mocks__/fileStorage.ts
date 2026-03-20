@@ -12,7 +12,9 @@ export const uploadFile = async (
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const getFile = async (_name: string): Promise<any> => null;
+export const getFile = async (_name: string): Promise<any> => ({
+  Body: Buffer.from("mock-file-content"),
+});
 
 export const removeFile = async (_name: string): Promise<void> => {
   // no-op

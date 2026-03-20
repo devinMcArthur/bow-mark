@@ -20,7 +20,7 @@ const createJobsiteMaterials = async (): Promise<SeededJobsiteMaterials> => {
     costType: JobsiteMaterialCostType.rate,
     rates: [
       {
-        date: new Date(),
+        date: new Date("2022-01-01"),
         rate: 10,
       },
     ],

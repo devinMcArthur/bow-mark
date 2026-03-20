@@ -8,11 +8,10 @@ import _ids from "@testing/_ids";
 import vitestLogin from "@testing/vitestLogin";
 import { JobsiteMaterialUpdateData } from "@graphql/resolvers/jobsiteMaterial/mutations";
 import { JobsiteMaterial } from "@models";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 import { JobsiteMaterialCostType } from "@typescript/jobsiteMaterial";
 
-let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
+let documents: SeededDatabase, app: Server;
 let adminToken: string;
 let pmToken: string;
 let foremanToken: string;
@@ -24,7 +23,7 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   app = await createApp();
 
@@ -36,21 +35,22 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("Jobsite Material Resolver", () => {
   describe("QUERIES", () => {
     describe("jobsiteMaterial", () => {
       describe("validation", () => {
-        it("returns null for a non-existent jobsite material id", async () => {
+        it("returns an error for a non-existent jobsite material id", async () => {
           const res = await request(app)
             .post("/graphql")
             .set("Authorization", adminToken)
             .send({
               query: `query { jobsiteMaterial(id: "000000000000000000000001") { _id } }`,
             });
-          expect(res.body.data.jobsiteMaterial).toBeNull();
+          expect(res.body.errors).toBeDefined();
+          expect(res.body.data).toBeNull();
         });
       });
     });
@@ -269,13 +269,13 @@ describe("Jobsite Material Resolver", () => {
         }
       `;
       const variables = {
-        jobsiteMaterialId: _ids.jobsiteMaterials.jobsite_2_material_1._id.toString(),
+        jobsiteMaterialId: _ids.jobsiteMaterials.jobsite_2_material_2._id.toString(),
         data: {
           companyId: _ids.companies.company_1._id.toString(),
           cost: 200,
           date: new Date().toISOString(),
           internal: false,
-          invoiceNumber: "INV-001",
+          invoiceNumber: "INV-TEST-999",
           description: "test invoice",
           accrual: false,
         },

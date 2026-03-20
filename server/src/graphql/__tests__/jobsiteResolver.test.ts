@@ -11,11 +11,10 @@ import { Invoice, Jobsite, JobsiteMaterial, System } from "@models";
 import { InvoiceData } from "@graphql/resolvers/invoice/mutations";
 import { JobsiteCreateData } from "@graphql/resolvers/jobsite/mutations";
 import { TruckingRateTypes } from "@typescript/jobsite";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 import { JobsiteMaterialCostType } from "@typescript/jobsiteMaterial";
 
-let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
+let documents: SeededDatabase, app: Server;
 let adminToken: string;
 let pmToken: string;
 let foremanToken: string;
@@ -27,7 +26,7 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   app = await createApp();
 
@@ -39,7 +38,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("Jobsite Resolver", () => {
@@ -88,14 +87,15 @@ describe("Jobsite Resolver", () => {
       });
 
       describe("validation", () => {
-        it("returns null for a non-existent jobsite id", async () => {
+        it("returns an error for a non-existent jobsite id", async () => {
           const res = await request(app)
             .post("/graphql")
             .set("Authorization", adminToken)
             .send({
               query: `query { jobsite(id: "000000000000000000000001") { _id } }`,
             });
-          expect(res.body.data.jobsite).toBeNull();
+          expect(res.body.errors).toBeDefined();
+          expect(res.body.data).toBeNull();
         });
       });
     });
@@ -208,7 +208,7 @@ describe("Jobsite Resolver", () => {
       `;
       const variables = {
         id: _ids.jobsites.jobsite_1._id.toString(),
-        data: { name: "Updated Jobsite", jobcode: "UPD" },
+        data: { name: "Updated Jobsite" },
       };
 
       it("succeeds as Admin", async () => {

@@ -1,4 +1,3 @@
-import { MongoMemoryServer } from "mongodb-memory-server";
 
 import { DailyReport, EmployeeWork } from "@models";
 import { disconnectAndStopServer, prepareDatabase } from "@testing/vitestDB";
@@ -7,7 +6,7 @@ import { IDailyReportCreate } from "@typescript/dailyReport";
 import { timezoneStartOfDayinUTC } from "@utils/time";
 import dayjs from "dayjs";
 
-let documents: SeededDatabase, mongoServer: MongoMemoryServer;
+let documents: SeededDatabase;
 const setupDatabase = async () => {
   documents = await seedDatabase();
 
@@ -15,13 +14,13 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   await setupDatabase();
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("Daily Report Class", () => {

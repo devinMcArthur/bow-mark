@@ -4,11 +4,9 @@ import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 import createApp from "../../app";
 import { Conversation } from "@models";
 import vitestLogin from "@testing/vitestLogin";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 
 
-let mongoServer: MongoMemoryServer;
 let documents: SeededDatabase;
 let app: Server;
 let adminToken: string;
@@ -16,7 +14,7 @@ let developerToken: string;
 let conversationId: string;
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
   app = await createApp();
   documents = await seedDatabase();
   adminToken = await vitestLogin(app, "admin@bowmark.ca");
@@ -44,7 +42,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("GET /api/developer/ratings", () => {

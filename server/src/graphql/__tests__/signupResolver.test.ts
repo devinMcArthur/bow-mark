@@ -7,10 +7,9 @@ import createApp from "../../app";
 import _ids from "@testing/_ids";
 import { Signup } from "@models";
 import vitestLogin from "@testing/vitestLogin";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 
-let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
+let documents: SeededDatabase, app: Server;
 let adminToken: string;
 let pmToken: string;
 let foremanToken: string;
@@ -22,7 +21,7 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   app = await createApp();
 
@@ -34,20 +33,21 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("Signup Resolver", () => {
   describe("QUERIES", () => {
     describe("signup", () => {
       describe("validation", () => {
-        it("returns null for a non-existent signup id", async () => {
+        it("returns an error for a non-existent signup id", async () => {
           const res = await request(app)
             .post("/graphql")
             .send({
               query: `query { signup(id: "000000000000000000000001") { _id } }`,
             });
-          expect(res.body.data.signup).toBeNull();
+          expect(res.body.errors).toBeDefined();
+          expect(res.body.data).toBeNull();
         });
       });
     });

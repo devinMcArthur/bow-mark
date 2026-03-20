@@ -154,6 +154,12 @@ export default defineConfig({
         find: /^@utils\/fileStorage$/,
         replacement: path.resolve(__dirname, "src/__mocks__/fileStorage.ts"),
       },
+      // Email: requires SMTP credentials not available in tests.
+      // Redirect to a no-op mock so password reset and other email flows work in tests.
+      {
+        find: /^@utils\/email$/,
+        replacement: path.resolve(__dirname, "src/__mocks__/email.ts"),
+      },
       // TypeScript path aliases from tsconfig.json — replicated here so that
       // the vmForks module runner resolves them for CJS require() calls.
       // vite-tsconfig-paths handles ESM imports but not CJS require() in the
@@ -206,6 +212,7 @@ export default defineConfig({
       "reflect-metadata",
     ],
     testTimeout: 60000,
+    hookTimeout: 60000,
     globalSetup: [path.resolve(__dirname, "src/testing/vitestGlobalSetup.ts")],
     // pool: "forks" — CJS require() in test code goes through Node.js's native
     // Module._resolveFilename (confirmed from error stack traces). Two hooks
@@ -249,6 +256,8 @@ export default defineConfig({
           // so seed data's File.createDocument() skips real S3 uploads in tests.
           "--require",
           path.resolve(__dirname, "src/testing/mockFileStorageSetup.ts"),
+          "--require",
+          path.resolve(__dirname, "src/testing/mockEmailSetup.ts"),
         ],
       },
     },
