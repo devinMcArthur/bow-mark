@@ -98,6 +98,13 @@ const JobsiteMaterialCreate = ({
   const handleSubmit = React.useCallback(
     async (data: JobsiteMaterialCreateData) => {
       try {
+        if (costMode === "rateScenario") {
+          const invalid = scenarios.find((s) => s.delivered && !s.label);
+          if (invalid) {
+            toast({ status: "error", title: "Missing trucking type", description: "A delivered scenario must have a trucking type selected.", isClosable: true });
+            return;
+          }
+        }
         const submitData: JobsiteMaterialCreateData =
           costMode === "rateScenario"
             ? {

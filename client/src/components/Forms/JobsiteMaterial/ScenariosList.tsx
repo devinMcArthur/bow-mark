@@ -108,6 +108,7 @@ export const ScenarioForm = ({ draft, onChange, onSave, onCancel, isLoading, tru
           colorScheme="blue"
           onClick={onSave}
           isLoading={isLoading}
+          isDisabled={draft.delivered && !draft.label}
         />
       </Flex>
     </Flex>
