@@ -232,11 +232,14 @@ export async function upsertFactMaterialShipment(
   // Get the rate for this date based on the material's cost type
   const deliveredRateId =
     materialShipment.vehicleObject?.deliveredRateId?.toString();
+  const rateScenarioId =
+    materialShipment.vehicleObject?.rateScenarioId?.toString();
   const { rate, estimated } = await getMaterialShipmentRate(
     jobsiteMaterialId,
     populatedJobsiteMaterial,
     workDate,
-    deliveredRateId
+    deliveredRateId,
+    rateScenarioId
   );
 
   // Check if fact record exists
