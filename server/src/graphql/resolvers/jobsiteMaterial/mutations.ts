@@ -5,7 +5,10 @@ import {
   JobsiteMaterial,
   JobsiteMaterialDocument,
 } from "@models";
-import { JobsiteMaterialCostType } from "@typescript/jobsiteMaterial";
+import {
+  JobsiteMaterialCostModel,
+  JobsiteMaterialCostType,
+} from "@typescript/jobsiteMaterial";
 import { Id } from "@typescript/models";
 import { Field, Float, ID, InputType } from "type-graphql";
 import { InvoiceData } from "../invoice/mutations";
@@ -23,6 +26,18 @@ export class JobsiteMaterialDeliveredRateData implements DefaultRateData {
 
   @Field({ nullable: false })
   public title!: string;
+
+  @Field(() => [JobsiteMaterialRateData], { nullable: false })
+  public rates!: JobsiteMaterialRateData[];
+}
+
+@InputType()
+export class RateScenarioData {
+  @Field({ nullable: false })
+  public label!: string;
+
+  @Field({ nullable: false })
+  public delivered!: boolean;
 
   @Field(() => [JobsiteMaterialRateData], { nullable: false })
   public rates!: JobsiteMaterialRateData[];
@@ -53,6 +68,12 @@ export class JobsiteMaterialCreateData {
 
   @Field(() => Boolean, { nullable: true })
   public delivered?: boolean;
+
+  @Field(() => JobsiteMaterialCostModel, { nullable: true })
+  public costModel?: JobsiteMaterialCostModel;
+
+  @Field(() => [RateScenarioData], { nullable: true })
+  public scenarios?: RateScenarioData[];
 }
 
 @InputType()
@@ -77,6 +98,12 @@ export class JobsiteMaterialUpdateData {
 
   @Field(() => Boolean, { nullable: true })
   public delivered?: boolean;
+
+  @Field(() => JobsiteMaterialCostModel, { nullable: true })
+  public costModel?: JobsiteMaterialCostModel;
+
+  @Field(() => [RateScenarioData], { nullable: true })
+  public scenarios?: RateScenarioData[];
 }
 
 const update = async (

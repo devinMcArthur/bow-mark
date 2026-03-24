@@ -1,6 +1,7 @@
 import { CompanyDocument, JobsiteDocument, MaterialDocument } from "@models";
 import { prop } from "@typegoose/typegoose";
-import { Field, ObjectType, registerEnumType } from "type-graphql";
+import { Types } from "mongoose";
+import { Field, ID, ObjectType, registerEnumType } from "type-graphql";
 import {
   DefaultRateClass,
   IDefaultRateData,
@@ -18,6 +19,9 @@ export interface IJobsiteMaterialCreate {
   deliveredRates: IJobsiteMaterialDeliveredRateData[];
   delivered?: boolean;
   costType: JobsiteMaterialCostType;
+  // new fields
+  costModel?: JobsiteMaterialCostModel;
+  scenarios?: IRateScenarioData[];
 }
 
 export interface IJobsiteMaterialUpdate {
@@ -28,6 +32,9 @@ export interface IJobsiteMaterialUpdate {
   rates: IJobsiteMaterialRateData[];
   delivered?: boolean;
   deliveredRates: IJobsiteMaterialDeliveredRateData[];
+  // new fields
+  costModel?: JobsiteMaterialCostModel;
+  scenarios?: IRateScenarioData[];
 }
 
 export interface IJobsiteMaterialRateData extends IRatesData {
@@ -80,3 +87,35 @@ export enum JobsiteMaterialCostType {
 registerEnumType(JobsiteMaterialCostType, {
   name: "JobsiteMaterialCostType",
 });
+
+export enum JobsiteMaterialCostModel {
+  rate = "rate",
+  invoice = "invoice",
+}
+registerEnumType(JobsiteMaterialCostModel, {
+  name: "JobsiteMaterialCostModel",
+});
+
+export interface IRateScenarioData {
+  label: string;
+  delivered: boolean;
+  rates: IJobsiteMaterialRateData[];
+}
+
+@ObjectType()
+export class RateScenarioClass {
+  @Field(() => ID)
+  public _id!: Types.ObjectId;
+
+  @Field()
+  @prop({ required: true })
+  public label!: string;
+
+  @Field()
+  @prop({ required: true, default: false })
+  public delivered!: boolean;
+
+  @Field(() => [JobsiteMaterialRateClass])
+  @prop({ type: () => [JobsiteMaterialRateClass], required: true, default: [] })
+  public rates!: JobsiteMaterialRateClass[];
+}

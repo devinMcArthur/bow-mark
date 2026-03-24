@@ -19,6 +19,14 @@ const document = async (
 
   jobsiteMaterial.costType = data.costType;
 
+  if (data.costModel !== undefined) {
+    jobsiteMaterial.costModel = data.costModel;
+  }
+
+  if (data.scenarios !== undefined) {
+    jobsiteMaterial.scenarios = data.scenarios as any;
+  }
+
   await jobsiteMaterial.validateDocument();
 
   return;
