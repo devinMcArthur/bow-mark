@@ -1,0 +1,9 @@
+mutation JobsiteMaterialScenarioUpdate(
+  $id: ID!
+  $scenarioId: ID!
+  $data: RateScenarioData!
+) {
+  jobsiteMaterialScenarioUpdate(id: $id, scenarioId: $scenarioId, data: $data) {
+    ...JobsiteMaterialCardSnippet
+  }
+}

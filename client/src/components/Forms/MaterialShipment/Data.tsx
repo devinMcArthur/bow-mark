@@ -3,6 +3,7 @@ import React from "react";
 import { FiPlus, FiX } from "react-icons/fi";
 import { MaterialShipmentVehicleTypes } from "../../../constants/select";
 import {
+  JobsiteMaterialCostModel,
   JobsiteMaterialCostType,
   JobsiteMaterialForDailyReportSnippetFragment,
   MaterialShipmentCreateData,
@@ -99,6 +100,19 @@ const MaterialShipmentDataForm = ({
       return deliveredMaterial;
     }, [formData.shipments, jobsiteMaterials]);
 
+  const scenarioMaterial: JobsiteMaterialForDailyReportSnippetFragment | undefined =
+    React.useMemo(() => {
+      const shipment = formData.shipments[0];
+      if (shipment.noJobsiteMaterial === false) {
+        const material = jobsiteMaterials.find(
+          (material) => material._id === shipment.jobsiteMaterialId
+        );
+        if (material?.costModel === JobsiteMaterialCostModel.Rate)
+          return material;
+      }
+      return undefined;
+    }, [formData.shipments, jobsiteMaterials]);
+
   const vehicleTypeOptions: ISelect["options"] = React.useMemo(() => {
     if (deliveredMaterial) {
       return deliveredMaterial.deliveredRates.map((rate) => {
@@ -187,6 +201,18 @@ const MaterialShipmentDataForm = ({
     [formDataCopy, onChange]
   );
 
+  const updateScenario = React.useCallback(
+    (scenarioId: string) => {
+      if (!formDataCopy.vehicleObject)
+        formDataCopy.vehicleObject = initialVehicleObject;
+
+      formDataCopy.vehicleObject.rateScenarioId = scenarioId;
+
+      onChange(formDataCopy);
+    },
+    [formDataCopy, initialVehicleObject, onChange]
+  );
+
   /**
    * ----- Use-effects and other logic -----
    */
@@ -202,6 +228,14 @@ const MaterialShipmentDataForm = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deliveredMaterial]);
+
+  React.useEffect(() => {
+    if (scenarioMaterial) {
+      if (scenarioMaterial.scenarios?.[0])
+        updateScenario(scenarioMaterial.scenarios[0]._id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scenarioMaterial]);
 
   /**
    * ----- Rendering -----
@@ -250,6 +284,23 @@ const MaterialShipmentDataForm = ({
           isLoading={isLoading}
         />
       </Box>
+
+      {/* SCENARIO SELECTOR */}
+      {scenarioMaterial && (scenarioMaterial.scenarios?.length ?? 0) > 0 && (
+        <Box px={4} pt={2}>
+          <Select
+            name="rateScenarioId"
+            label="Rate Scenario"
+            options={(scenarioMaterial.scenarios ?? []).map((s) => ({
+              title: `${s.label} (${s.delivered ? "Delivered" : "Pickup"})`,
+              value: s._id,
+            }))}
+            value={formData.vehicleObject?.rateScenarioId ?? undefined}
+            onChange={(e) => updateScenario(e.target.value)}
+            isDisabled={isLoading}
+          />
+        </Box>
+      )}
 
       {/* VEHICLE OBJECT */}
       <SimpleGrid spacing={2} columns={[1, 1, 3]} p={4}>

@@ -1,0 +1,5 @@
+mutation JobsiteMaterialScenarioRemove($id: ID!, $scenarioId: ID!) {
+  jobsiteMaterialScenarioRemove(id: $id, scenarioId: $scenarioId) {
+    ...JobsiteMaterialCardSnippet
+  }
+}

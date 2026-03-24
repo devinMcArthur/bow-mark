@@ -113,11 +113,6 @@ const JobsiteMaterialRatesForm = ({
    * ----- Use-effects and other logic -----
    */
 
-  React.useEffect(() => {
-    if (onChange) onChange(ratesCopy);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   /**
    * ----- Rendering -----
    */
