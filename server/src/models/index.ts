@@ -20,6 +20,7 @@ export * from "./ReportNote";
 export * from "./Signup";
 export * from "./System";
 export * from "./Tender";
+export * from "./TenderPricingSheet";
 export * from "./User";
 export * from "./Vehicle";
 export * from "./VehicleIssue";
@@ -441,4 +442,18 @@ export type ConversationModel = ReturnModelType<typeof ConversationClass>;
 
 export const Conversation = getModelForClass(ConversationClass, {
   schemaOptions: { collection: "conversations", timestamps: true },
+});
+
+/**
+ * ----- TenderPricingSheet -----
+ */
+
+import { TenderPricingSheetClass } from "./TenderPricingSheet/class";
+
+export type TenderPricingSheetDocument = DocumentType<TenderPricingSheetClass>;
+
+export type TenderPricingSheetModel = ReturnModelType<typeof TenderPricingSheetClass>;
+
+export const TenderPricingSheet = getModelForClass(TenderPricingSheetClass, {
+  schemaOptions: { collection: "tenderpricingsheets" },
 });

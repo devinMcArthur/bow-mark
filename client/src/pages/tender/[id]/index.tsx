@@ -1,29 +1,30 @@
 import {
   Box,
+  Button,
   Divider,
   Flex,
   Heading,
   Spinner,
   Text,
 } from "@chakra-ui/react";
-import { navbarHeight } from "../../constants/styles";
+import { navbarHeight } from "../../../constants/styles";
 import { gql } from "@apollo/client";
 import * as Apollo from "@apollo/client";
 import { useRouter } from "next/router";
 import React from "react";
-import Breadcrumbs from "../../components/Common/Breadcrumbs";
-import Container from "../../components/Common/Container";
-import Permission from "../../components/Common/Permission";
-import TenderOverview from "../../components/Tender/TenderOverview";
-import TenderDocuments from "../../components/Tender/TenderDocuments";
-import ChatPage from "../../components/Chat/ChatPage";
-import { TenderDetail } from "../../components/Tender/types";
-import { UserRoles } from "../../generated/graphql";
+import Breadcrumbs from "../../../components/Common/Breadcrumbs";
+import Container from "../../../components/Common/Container";
+import Permission from "../../../components/Common/Permission";
+import TenderOverview from "../../../components/Tender/TenderOverview";
+import TenderDocuments from "../../../components/Tender/TenderDocuments";
+import ChatPage from "../../../components/Chat/ChatPage";
+import { TenderDetail } from "../../../components/Tender/types";
+import { UserRoles } from "../../../generated/graphql";
 
 // ─── GQL ─────────────────────────────────────────────────────────────────────
 
 const TENDER_QUERY = gql`
-  query TenderDetail($id: ID!) {
+  query TenderDetailIndex($id: ID!) {
     tender(id: $id) {
       _id
       name
@@ -149,6 +150,16 @@ const TenderDetailPage = () => {
 
           {tender && (
             <>
+              <Button
+                size="sm"
+                colorScheme="blue"
+                variant="outline"
+                mb={4}
+                onClick={() => router.push(`/tender/${tenderId}/pricing`)}
+              >
+                Pricing Sheet
+              </Button>
+
               <TenderOverview
                 key={tender._id}
                 tender={tender}

@@ -4,6 +4,7 @@ import { Tender, User, System } from "@models";
 import { isDocument } from "@typegoose/typegoose";
 import { streamConversation } from "../lib/streamConversation";
 import { READ_DOCUMENT_TOOL, makeReadDocumentExecutor } from "../lib/readDocumentExecutor";
+import { MAPS_URL_TOOL, mapsUrlExecutor } from "../lib/mapsUrlTool";
 import { buildFileIndex } from "../lib/buildFileIndex";
 import { requireAuth } from "../lib/authMiddleware";
 
@@ -85,6 +86,8 @@ ${fileIndex || "No tender documents have been processed yet."}${pendingNotice}${
 **Scope.** Answer only from the tender documents and reference specs provided. If the answer is not in the documents, say so clearly rather than drawing on general knowledge.`;
 
   // ── Stream ─────────────────────────────────────────────────────────────────
+  const readDocumentExecutor = makeReadDocumentExecutor([...tenderFiles, ...specFiles]);
+
   await streamConversation({
     res,
     userId: req.userId,
@@ -92,10 +95,13 @@ ${fileIndex || "No tender documents have been processed yet."}${pendingNotice}${
     tenderId,
     messages,
     systemPrompt,
-    tools: [READ_DOCUMENT_TOOL],
+    tools: [READ_DOCUMENT_TOOL, MAPS_URL_TOOL],
     toolChoice: { type: "auto", disable_parallel_tool_use: true },
     maxTokens: 8192,
-    executeTool: makeReadDocumentExecutor([...tenderFiles, ...specFiles]),
+    executeTool: async (name, input) =>
+      name === "get_maps_url"
+        ? mapsUrlExecutor(name, input)
+        : readDocumentExecutor(name, input),
     logPrefix: "[tender-chat]",
   });
 });
