@@ -4,6 +4,7 @@ import { disconnectAndStopServer, prepareDatabase } from "@testing/vitestDB";
 import { Jobsite, JobsiteMaterial } from "@models";
 import {
   IJobsiteMaterialCreate,
+  IRateScenarioData,
   JobsiteMaterialCostType,
 } from "@typescript/jobsiteMaterial";
 
@@ -192,6 +193,90 @@ describe("Jobsite Material Class", () => {
             expect((e as Error).message).toBe("Must provide delivered rates");
           }
         });
+      });
+    });
+  });
+
+  describe("UPDATE", () => {
+    describe("scenario management", () => {
+      const scenarioData: IRateScenarioData = {
+        label: "Pickup",
+        delivered: false,
+        rates: [{ date: new Date("2022-01-01"), rate: 30, estimated: false }],
+      };
+
+      test("addScenario: should add a scenario to the scenarios array", async () => {
+        const jm = documents.jobsiteMaterials.sync_jobsite_material_scenario;
+
+        const originalCount = jm.scenarios?.length ?? 0;
+
+        await jm.addScenario({
+          label: "T&P Delivered",
+          delivered: true,
+          rates: [{ date: new Date("2022-01-01"), rate: 50, estimated: true }],
+        });
+
+        expect(jm.scenarios?.length).toBe(originalCount + 1);
+        const added = jm.scenarios![jm.scenarios!.length - 1];
+        expect(added.label).toBe("T&P Delivered");
+        expect(added.delivered).toBe(true);
+        expect(added.rates[0].rate).toBe(50);
+        expect(added._id).toBeDefined();
+      });
+
+      test("updateScenario: should update label, delivered flag, and rates", async () => {
+        const jm = documents.jobsiteMaterials.sync_jobsite_material_scenario;
+        // Use the first scenario (Pickup) seeded in the fixture
+        const scenario = jm.scenarios![0];
+        const scenarioId = scenario._id.toString();
+
+        await jm.updateScenario(scenarioId, {
+          label: "Pickup Updated",
+          delivered: false,
+          rates: [{ date: new Date("2023-01-01"), rate: 35, estimated: true }],
+        });
+
+        const updated = jm.scenarios!.find(
+          (s) => s._id.toString() === scenarioId
+        );
+        expect(updated?.label).toBe("Pickup Updated");
+        expect(updated?.rates[0].rate).toBe(35);
+      });
+
+      test("updateScenario: should throw when scenario not found", async () => {
+        const jm = documents.jobsiteMaterials.sync_jobsite_material_scenario;
+
+        await expect(
+          jm.updateScenario("000000000000000000000000", scenarioData)
+        ).rejects.toThrow("Scenario not found");
+      });
+
+      test("removeScenario: should remove the scenario by id", async () => {
+        const jm = documents.jobsiteMaterials.sync_jobsite_material_scenario;
+        // Add a temporary scenario to remove
+        await jm.addScenario({
+          label: "To Remove",
+          delivered: false,
+          rates: [{ date: new Date("2022-01-01"), rate: 10, estimated: false }],
+        });
+
+        const toRemove = jm.scenarios![jm.scenarios!.length - 1];
+        const countBefore = jm.scenarios!.length;
+
+        await jm.removeScenario(toRemove._id.toString());
+
+        expect(jm.scenarios!.length).toBe(countBefore - 1);
+        expect(
+          jm.scenarios!.find((s) => s._id.toString() === toRemove._id.toString())
+        ).toBeUndefined();
+      });
+
+      test("removeScenario: should throw when scenario not found", async () => {
+        const jm = documents.jobsiteMaterials.sync_jobsite_material_scenario;
+
+        await expect(
+          jm.removeScenario("000000000000000000000000")
+        ).rejects.toThrow("Scenario not found");
       });
     });
   });

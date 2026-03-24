@@ -175,6 +175,12 @@ const _ids = {
     sync_shipment_delivered_rate_1: {
       _id: Types.ObjectId("62166e38ef63bebc19532518"),
     },
+    sync_shipment_scenario_pickup_1: {
+      _id: Types.ObjectId("62166e38ef63bebc19532519"),
+    },
+    sync_shipment_scenario_delivered_1: {
+      _id: Types.ObjectId("62166e38ef63bebc1953251a"),
+    },
   },
   reportNotes: {
     jobsite_1_base_1_1_note_1: {
@@ -226,6 +232,11 @@ const _ids = {
     sync_jobsite_material_delivered_rate: {
       _id: Types.ObjectId("629a49205f76f65244785a12"),
       deliveredRateId: Types.ObjectId("629a49205f76f65244785a13"),
+    },
+    sync_jobsite_material_scenario: {
+      _id: Types.ObjectId("629a49205f76f65244785a14"),
+      scenarioPickupId: Types.ObjectId("629a49205f76f65244785a15"),
+      scenarioDeliveredId: Types.ObjectId("629a49205f76f65244785a16"),
     },
   },
   invoices: {
