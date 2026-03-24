@@ -139,6 +139,52 @@ const remove = async (id: Id) => {
   return true;
 };
 
+const addScenario = async (
+  id: string,
+  data: RateScenarioData
+): Promise<JobsiteMaterialDocument> => {
+  const jobsiteMaterial = await JobsiteMaterial.getById(id, {
+    throwError: true,
+  });
+  if (!jobsiteMaterial) throw new Error("Unable to find jobsite material");
+
+  await jobsiteMaterial.addScenario(data);
+  await jobsiteMaterial.save();
+
+  return jobsiteMaterial;
+};
+
+const updateScenario = async (
+  id: string,
+  scenarioId: string,
+  data: RateScenarioData
+): Promise<JobsiteMaterialDocument> => {
+  const jobsiteMaterial = await JobsiteMaterial.getById(id, {
+    throwError: true,
+  });
+  if (!jobsiteMaterial) throw new Error("Unable to find jobsite material");
+
+  await jobsiteMaterial.updateScenario(scenarioId, data);
+  await jobsiteMaterial.save();
+
+  return jobsiteMaterial;
+};
+
+const removeScenario = async (
+  id: string,
+  scenarioId: string
+): Promise<JobsiteMaterialDocument> => {
+  const jobsiteMaterial = await JobsiteMaterial.getById(id, {
+    throwError: true,
+  });
+  if (!jobsiteMaterial) throw new Error("Unable to find jobsite material");
+
+  await jobsiteMaterial.removeScenario(scenarioId);
+  await jobsiteMaterial.save();
+
+  return jobsiteMaterial;
+};
+
 const addInvoice = async (jobsiteMaterialId: Id, data: InvoiceData) => {
   const jobsiteMaterial = await JobsiteMaterial.getById(jobsiteMaterialId);
   if (!jobsiteMaterial) throw new Error("Unable to find jobsite material");
@@ -167,5 +213,8 @@ const addInvoice = async (jobsiteMaterialId: Id, data: InvoiceData) => {
 export default {
   update,
   remove,
+  addScenario,
+  updateScenario,
+  removeScenario,
   addInvoice,
 };

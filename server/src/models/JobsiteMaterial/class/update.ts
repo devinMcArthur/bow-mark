@@ -1,5 +1,9 @@
 import { InvoiceDocument, JobsiteMaterialDocument } from "@models";
-import { IJobsiteMaterialUpdate } from "@typescript/jobsiteMaterial";
+import {
+  IJobsiteMaterialUpdate,
+  IRateScenarioData,
+} from "@typescript/jobsiteMaterial";
+import { Types } from "mongoose";
 
 const document = async (
   jobsiteMaterial: JobsiteMaterialDocument,
@@ -47,7 +51,63 @@ const addInvoice = async (
   await jobsiteMaterial.requestReportUpdate();
 };
 
+const addScenario = async (
+  jobsiteMaterial: JobsiteMaterialDocument,
+  data: IRateScenarioData
+) => {
+  if (!jobsiteMaterial.scenarios) {
+    jobsiteMaterial.scenarios = [] as any;
+  }
+
+  jobsiteMaterial.scenarios!.push({
+    _id: new Types.ObjectId(),
+    label: data.label,
+    delivered: data.delivered,
+    rates: data.rates as any,
+  } as any);
+
+  await jobsiteMaterial.validateDocument();
+};
+
+const updateScenario = async (
+  jobsiteMaterial: JobsiteMaterialDocument,
+  scenarioId: string,
+  data: IRateScenarioData
+) => {
+  const scenario = jobsiteMaterial.scenarios?.find(
+    (s) => s._id.toString() === scenarioId
+  );
+
+  if (!scenario) throw new Error("Scenario not found");
+
+  scenario.label = data.label;
+  scenario.delivered = data.delivered;
+  scenario.rates = data.rates as any;
+
+  await jobsiteMaterial.validateDocument();
+};
+
+const removeScenario = async (
+  jobsiteMaterial: JobsiteMaterialDocument,
+  scenarioId: string
+) => {
+  if (!jobsiteMaterial.scenarios) return;
+
+  const index = jobsiteMaterial.scenarios.findIndex(
+    (s) => s._id.toString() === scenarioId
+  );
+
+  if (index === -1) throw new Error("Scenario not found");
+
+  jobsiteMaterial.scenarios.splice(index, 1);
+
+  await jobsiteMaterial.validateDocument();
+};
+
 export default {
   document,
   addInvoice,
+  addScenario,
+  updateScenario,
+  removeScenario,
 };
