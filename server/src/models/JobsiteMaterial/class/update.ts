@@ -7,7 +7,7 @@ import {
   IJobsiteMaterialUpdate,
   IRateScenarioData,
 } from "@typescript/jobsiteMaterial";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 
 const document = async (
   jobsiteMaterial: JobsiteMaterialDocument,
@@ -116,23 +116,41 @@ const removeScenario = async (
 
   if (index === -1) throw new Error("Scenario not found");
 
-  // Block deletion if any MaterialShipment references this scenario —
-  // removing it would silently drop those shipments from cost reports.
-  const dependentShipment = await MaterialShipment.findOne({
-    "vehicleObject.rateScenarioId": jobsiteMaterial.scenarios[index]._id,
-    archivedAt: null,
-  });
-  if (dependentShipment) {
-    throw new Error(
-      "Cannot remove scenario: existing material shipments reference it. Archive or re-assign those shipments first."
+  const scenarioObjectId = jobsiteMaterial.scenarios[index]._id;
+
+  // Use a transaction so the dependency check and the splice+save are atomic.
+  // Without this, a new MaterialShipment referencing this scenario could be
+  // created between the findOne check and the save, leaving an orphaned reference
+  // that silently drops those shipments from cost reports.
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    const dependentShipment = await MaterialShipment.findOne(
+      { "vehicleObject.rateScenarioId": scenarioObjectId, archivedAt: null },
+      null,
+      { session }
     );
+    if (dependentShipment) {
+      await session.abortTransaction();
+      throw new Error(
+        "Cannot remove scenario: existing material shipments reference it. Archive or re-assign those shipments first."
+      );
+    }
+
+    jobsiteMaterial.scenarios.splice(index, 1);
+    jobsiteMaterial.markModified("scenarios");
+
+    await jobsiteMaterial.validateDocument();
+    await jobsiteMaterial.save({ session });
+
+    await session.commitTransaction();
+  } catch (e) {
+    await session.abortTransaction();
+    throw e;
+  } finally {
+    session.endSession();
   }
-
-  jobsiteMaterial.scenarios.splice(index, 1);
-
-  jobsiteMaterial.markModified("scenarios");
-
-  await jobsiteMaterial.validateDocument();
 
   await jobsiteMaterial.requestReportUpdate();
 };
