@@ -5,6 +5,7 @@ import { Jobsite, JobsiteMaterial } from "@models";
 import {
   IJobsiteMaterialCreate,
   IRateScenarioData,
+  JobsiteMaterialCostModel,
   JobsiteMaterialCostType,
 } from "@typescript/jobsiteMaterial";
 
@@ -193,6 +194,29 @@ describe("Jobsite Material Class", () => {
             expect((e as Error).message).toBe("Must provide delivered rates");
           }
         });
+
+        test("should error when costModel is set but scenarios is empty", async () => {
+          expect.assertions(1);
+
+          const data: IJobsiteMaterialCreate = {
+            jobsite: documents.jobsites.jobsite_2,
+            material: documents.materials.material_1,
+            supplier: documents.companies.company_1,
+            quantity: 1000,
+            rates: [],
+            unit: "tonnes",
+            deliveredRates: [],
+            costType: JobsiteMaterialCostType.rate,
+            costModel: JobsiteMaterialCostModel.rate,
+            scenarios: [],
+          };
+
+          try {
+            await JobsiteMaterial.createDocument(data);
+          } catch (e) {
+            expect((e as Error).message).toBe("Must provide at least one scenario");
+          }
+        });
       });
     });
   });
@@ -277,6 +301,17 @@ describe("Jobsite Material Class", () => {
         await expect(
           jm.removeScenario("000000000000000000000000")
         ).rejects.toThrow("Scenario not found");
+      });
+
+      test("removeScenario: should throw when dependent shipments exist", async () => {
+        const jm = documents.jobsiteMaterials.sync_jobsite_material_scenario;
+        // The seeded sync_shipment_scenario_pickup_1 references scenarioPickupId
+        const pickupScenarioId =
+          jm.scenarios![0]._id.toString(); // Pickup scenario is first
+
+        await expect(
+          jm.removeScenario(pickupScenarioId)
+        ).rejects.toThrow("Cannot remove scenario");
       });
     });
   });

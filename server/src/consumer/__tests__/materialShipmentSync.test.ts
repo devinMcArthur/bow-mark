@@ -269,7 +269,7 @@ describe("materialShipmentSyncHandler", () => {
 
         const row = await db
           .selectFrom("fact_material_shipment")
-          .select(["quantity", "rate", "estimated"])
+          .select(["quantity", "rate", "estimated", "rate_scenario_id"])
           .where("mongo_id", "=", mongoId)
           .executeTakeFirst();
 
@@ -279,6 +279,8 @@ describe("materialShipmentSyncHandler", () => {
         // Pickup scenario has rate=$30
         expect(Number(row!.rate)).toBe(30);
         expect(row!.estimated).toBe(false);
+        // rate_scenario_id should be stored so PG can group by scenario
+        expect(row!.rate_scenario_id).toBe("629a49205f76f65244785a15");
       });
 
       it("also writes to fact_trucking (pickup scenario has truckingRateId)", async () => {
@@ -308,7 +310,7 @@ describe("materialShipmentSyncHandler", () => {
 
         const row = await db
           .selectFrom("fact_material_shipment")
-          .select(["quantity", "rate", "estimated"])
+          .select(["quantity", "rate", "estimated", "rate_scenario_id"])
           .where("mongo_id", "=", mongoId)
           .executeTakeFirst();
 
@@ -317,6 +319,8 @@ describe("materialShipmentSyncHandler", () => {
         expect(Number(row!.quantity)).toBe(4);
         // Tandem Delivered scenario has rate=$45
         expect(Number(row!.rate)).toBe(45);
+        // rate_scenario_id should be stored for the delivered scenario
+        expect(row!.rate_scenario_id).toBe("629a49205f76f65244785a16");
       });
 
       it("does NOT write to fact_trucking (delivered scenario has no truckingRateId)", async () => {
