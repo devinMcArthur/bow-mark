@@ -329,12 +329,16 @@ const materialReports = async (
   const jobsiteMaterialObjects: {
     jobsiteMaterial: JobsiteMaterialDocument;
     deliveredRateId?: Id;
+    rateScenarioId?: Id;
     invoiceRate?: number;
     materialShipments: MaterialShipmentDocument[];
     crewType: CrewTypes;
   }[] = [];
   for (let i = 0; i < materialShipmentObjects.length; i++) {
     let matchedIndex = -1;
+    const shipmentRateScenarioId =
+      materialShipmentObjects[i].materialShipment.vehicleObject
+        ?.rateScenarioId;
     for (let j = 0; j < jobsiteMaterialObjects.length; j++) {
       if (
         jobsiteMaterialObjects[j].jobsiteMaterial._id.toString() ===
@@ -343,12 +347,16 @@ const materialReports = async (
           ].materialShipment.jobsiteMaterial?.toString() &&
         jobsiteMaterialObjects[j].crewType ===
           materialShipmentObjects[i].crewType &&
+        // Legacy deliveredRate grouping
         (jobsiteMaterialObjects[j].jobsiteMaterial.costType !==
           JobsiteMaterialCostType.deliveredRate ||
           jobsiteMaterialObjects[j].deliveredRateId?.toString() ===
             materialShipmentObjects[
               i
-            ].materialShipment.vehicleObject?.deliveredRateId?.toString())
+            ].materialShipment.vehicleObject?.deliveredRateId?.toString()) &&
+        // Scenario grouping — each scenario gets its own MaterialReport
+        jobsiteMaterialObjects[j].rateScenarioId?.toString() ===
+          shipmentRateScenarioId?.toString()
       )
         matchedIndex = j;
     }
@@ -368,6 +376,7 @@ const materialReports = async (
           deliveredRateId:
             materialShipmentObjects[i].materialShipment.vehicleObject
               ?.deliveredRateId,
+          rateScenarioId: shipmentRateScenarioId,
         });
       }
     } else {
@@ -392,6 +401,42 @@ const materialReports = async (
     // Create and push report
     try {
       const { jobsiteMaterial } = jobsiteMaterialObject;
+
+      // New scenario path — takes priority over legacy costType switch
+      if (jobsiteMaterialObject.rateScenarioId && jobsiteMaterial.scenarios) {
+        const scenario = jobsiteMaterial.scenarios.find(
+          (s) =>
+            s._id.toString() ===
+            jobsiteMaterialObject.rateScenarioId?.toString()
+        );
+
+        if (scenario) {
+          const rate = getRateObjectForTime(
+            scenario.rates,
+            jobsiteDayReport.date
+          );
+
+          if (rate) {
+            materialReports.push({
+              jobsiteMaterial: jobsiteMaterial._id,
+              rateScenarioId: scenario._id,
+              materialShipments: jobsiteMaterialObject.materialShipments.map(
+                (o) => o._id
+              ),
+              crewType: jobsiteMaterialObject.crewType,
+              quantity,
+              rate: rate.rate,
+              estimated: rate.estimated,
+            });
+          } else {
+            logger.info("Unable to find scenario rate");
+          }
+        } else {
+          logger.info("Could not find rate scenario on jobsite material");
+        }
+
+        continue;
+      }
 
       switch (jobsiteMaterial.costType) {
         case JobsiteMaterialCostType.deliveredRate: {
@@ -684,12 +729,26 @@ const truckingReports = async (
           jobsiteMaterials[jobsiteMaterialId] = jobsiteMaterial;
       }
 
-      if (
-        jobsiteMaterials[jobsiteMaterialId].costType ===
-          JobsiteMaterialCostType.invoice &&
-        jobsiteMaterials[jobsiteMaterialId].delivered === true
+      const jm = jobsiteMaterials[jobsiteMaterialId];
+      if (!jm) continue;
+
+      const shipmentRateScenarioId =
+        materialShipmentObjects[i].materialShipment.vehicleObject
+          ?.rateScenarioId;
+
+      if (shipmentRateScenarioId && jm.scenarios) {
+        // New scenario model: skip trucking if scenario is delivered
+        const scenario = jm.scenarios.find(
+          (s) => s._id.toString() === shipmentRateScenarioId.toString()
+        );
+        if (scenario?.delivered === true) {
+          continue;
+        }
+      } else if (
+        jm.costType === JobsiteMaterialCostType.invoice &&
+        jm.delivered === true
       ) {
-        // If the shipments material is a delivered invoice, continue this for loop
+        // Legacy: if the shipments material is a delivered invoice, skip trucking
         continue;
       }
     }

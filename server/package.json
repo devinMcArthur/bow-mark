@@ -19,7 +19,8 @@
     "lint:eslint": "eslint src/**/*.ts",
     "prettier:fix": "prettier --write \"src/**/**/!(*.d).{ts,json,md}\"",
     "db:migrate": "dbmate -d ../db/migrations up && ../scripts/generate-db-types.sh",
-    "db:backfill": "ts-node -r tsconfig-paths/register src/scripts/backfill-postgres.ts"
+    "db:backfill": "ts-node -r tsconfig-paths/register src/scripts/backfill-postgres.ts",
+    "seed:e2e": "ts-node --require ./src/testing/mockFileStorageSetup.ts --require ./src/testing/mockEmailSetup.ts --require ./src/testing/mockRabbitMQSetup.ts ./src/testing/seed-e2e.ts"
   },
   "author": "Devin McArthur",
   "license": "ISC",

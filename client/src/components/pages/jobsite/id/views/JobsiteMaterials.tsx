@@ -188,6 +188,7 @@ const JobsiteMaterialsCosting = ({
               key={jobsiteMaterial._id}
               selected={jobsiteMaterial._id === selectedJobsiteMaterial}
               showPreviousYears={showPreviousYears}
+              truckingRates={propJobsite.truckingRates}
             />
           ));
         } else {
@@ -213,6 +214,7 @@ const JobsiteMaterialsCosting = ({
               <JobsiteMaterialCreate
                 onSuccess={() => setAddForm(false)}
                 jobsiteId={jobsite._id}
+                truckingRates={propJobsite.truckingRates}
               />
             </FormContainer>
           )}

@@ -3,21 +3,25 @@ import { Center, SimpleGrid, Text, useToast } from "@chakra-ui/react";
 import { useJobsiteMaterialUpdateForm } from "../../../forms/jobsiteMaterial";
 import {
   JobsiteMaterialCardSnippetFragment,
+  JobsiteMaterialCostModel,
   JobsiteMaterialCostType,
   JobsiteMaterialUpdateData,
   useJobsiteMaterialUpdateMutation,
 } from "../../../generated/graphql";
 import SubmitButton from "../../Common/forms/SubmitButton";
 import InfoTooltip from "../../Common/Info";
+import ScenariosList from "./ScenariosList";
 
 interface IJobsiteMaterialUpdate {
   jobsiteMaterial: JobsiteMaterialCardSnippetFragment;
   onSuccess?: () => void;
+  truckingRates?: { title: string }[];
 }
 
 const JobsiteMaterialUpdate = ({
   jobsiteMaterial,
   onSuccess,
+  truckingRates,
 }: IJobsiteMaterialUpdate) => {
   /**
    * ----- Hook Initialization -----
@@ -94,24 +98,35 @@ const JobsiteMaterialUpdate = ({
       );
   }, [FormComponents, costType, loading]);
 
+  const isScenarioModel = jobsiteMaterial.costModel === JobsiteMaterialCostModel.Rate;
+
   return (
-    <FormComponents.Form submitHandler={handleSubmit}>
-      <FormComponents.Supplier isLoading={loading} />
-      <SimpleGrid spacing={2} columns={[1, 1, 2]}>
-        <FormComponents.Quantity isLoading={loading} />
-        <FormComponents.Unit isLoading={loading} />
-      </SimpleGrid>
-      <FormComponents.CostType isLoading={loading} />
-      <FormComponents.Delivered isLoading={loading} />
-      {costType === JobsiteMaterialCostType.Invoice && (
-        <InfoTooltip
-          mx={1}
-          description="If delivered, it will be assumed that trucking is included in the invoice and it will not be reported separately."
-        />
+    <>
+      <FormComponents.Form submitHandler={handleSubmit}>
+        <FormComponents.Supplier isLoading={loading} />
+        <SimpleGrid spacing={2} columns={[1, 1, 2]}>
+          <FormComponents.Quantity isLoading={loading} />
+          <FormComponents.Unit isLoading={loading} />
+        </SimpleGrid>
+        {!isScenarioModel && (
+          <>
+            <FormComponents.CostType isLoading={loading} />
+            <FormComponents.Delivered isLoading={loading} />
+            {costType === JobsiteMaterialCostType.Invoice && (
+              <InfoTooltip
+                mx={1}
+                description="If delivered, it will be assumed that trucking is included in the invoice and it will not be reported separately."
+              />
+            )}
+            {costTypeForm}
+          </>
+        )}
+        <SubmitButton isLoading={loading} />
+      </FormComponents.Form>
+      {isScenarioModel && (
+        <ScenariosList jobsiteMaterial={jobsiteMaterial} onMutated={() => {}} truckingRates={truckingRates} />
       )}
-      {costTypeForm}
-      <SubmitButton isLoading={loading} />
-    </FormComponents.Form>
+    </>
   );
 };
 

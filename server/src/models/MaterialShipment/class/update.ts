@@ -105,8 +105,26 @@ const jobsiteMaterial = async (
 
     // Validate vehicle object if provided
     if (materialShipment.vehicleObject) {
-      // Check for delivered rate costType
-      if (jobsiteMaterial.costType === JobsiteMaterialCostType.deliveredRate) {
+      if (materialShipment.vehicleObject.rateScenarioId) {
+        // Validate that the referenced scenario exists on this material
+        const scenario = jobsiteMaterial.scenarios?.find(
+          (s) =>
+            s._id?.toString() ===
+            materialShipment.vehicleObject!.rateScenarioId?.toString()
+        );
+        if (!scenario)
+          throw new Error(
+            "Could not find the rate scenario on this jobsite material"
+          );
+
+        // Delivered scenarios include trucking cost in the rate — no separate trucking needed.
+        // Pickup scenarios track trucking separately via truckingRateId — preserve it.
+        if (scenario.delivered) {
+          materialShipment.vehicleObject.truckingRateId = undefined;
+        }
+        // deliveredRateId is a legacy concept, not applicable to the scenario model
+        materialShipment.vehicleObject.deliveredRateId = undefined;
+      } else if (jobsiteMaterial.costType === JobsiteMaterialCostType.deliveredRate) {
         if (!materialShipment.vehicleObject?.deliveredRateId)
           throw new Error("Must provide a delivered rate Id");
 

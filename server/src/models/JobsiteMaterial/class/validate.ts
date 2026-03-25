@@ -4,6 +4,13 @@ import { JobsiteMaterialCostType } from "@typescript/jobsiteMaterial";
 const document = async (jobsiteMaterial: JobsiteMaterialDocument) => {
   await jobsiteMaterial.validate();
 
+  // New scenario model — legacy rates/deliveredRates validation does not apply
+  if (jobsiteMaterial.costModel !== undefined) {
+    if (!jobsiteMaterial.scenarios || jobsiteMaterial.scenarios.length === 0)
+      throw new Error("Must provide at least one scenario");
+    return;
+  }
+
   switch (jobsiteMaterial.costType) {
     case JobsiteMaterialCostType.deliveredRate: {
       if (

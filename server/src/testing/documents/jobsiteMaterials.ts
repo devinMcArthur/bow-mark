@@ -1,6 +1,9 @@
 import { JobsiteMaterial, JobsiteMaterialDocument } from "@models";
 import _ids from "@testing/_ids";
-import { JobsiteMaterialCostType } from "@typescript/jobsiteMaterial";
+import {
+  JobsiteMaterialCostModel,
+  JobsiteMaterialCostType,
+} from "@typescript/jobsiteMaterial";
 
 export interface SeededJobsiteMaterials {
   jobsite_2_material_1: JobsiteMaterialDocument;
@@ -8,6 +11,7 @@ export interface SeededJobsiteMaterials {
   jobsite_3_material_1: JobsiteMaterialDocument;
   sync_jobsite_material_invoice_cost: JobsiteMaterialDocument;
   sync_jobsite_material_delivered_rate: JobsiteMaterialDocument;
+  sync_jobsite_material_scenario: JobsiteMaterialDocument;
 }
 
 const createJobsiteMaterials = async (): Promise<SeededJobsiteMaterials> => {
@@ -86,12 +90,42 @@ const createJobsiteMaterials = async (): Promise<SeededJobsiteMaterials> => {
     ],
   });
 
+  // Material using the new costModel + scenarios system
+  // Pickup scenario: $30/t, delivered=false → trucking cost tracked separately
+  // Delivered scenario: $45/t, delivered=true → trucking cost embedded, no trucking record
+  const sync_jobsite_material_scenario = new JobsiteMaterial({
+    _id: _ids.jobsiteMaterials.sync_jobsite_material_scenario._id,
+    material: _ids.materials.material_1._id,
+    supplier: _ids.companies.company_1._id,
+    quantity: 500,
+    unit: "tonnes",
+    costType: JobsiteMaterialCostType.rate, // legacy field kept for compat
+    costModel: JobsiteMaterialCostModel.rate,
+    rates: [], // empty — scenarios[] is the source of truth
+    scenarios: [
+      {
+        _id: _ids.jobsiteMaterials.sync_jobsite_material_scenario.scenarioPickupId,
+        label: "Pickup",
+        delivered: false,
+        rates: [{ date: new Date("2022-01-01"), rate: 30, estimated: false }],
+      },
+      {
+        _id: _ids.jobsiteMaterials.sync_jobsite_material_scenario
+          .scenarioDeliveredId,
+        label: "Tandem Delivered",
+        delivered: true,
+        rates: [{ date: new Date("2022-01-01"), rate: 45, estimated: false }],
+      },
+    ],
+  });
+
   const jobsiteMaterials = {
     jobsite_2_material_1,
     jobsite_2_material_2,
     jobsite_3_material_1,
     sync_jobsite_material_invoice_cost,
     sync_jobsite_material_delivered_rate,
+    sync_jobsite_material_scenario,
   };
 
   for (let i = 0; i < Object.values(jobsiteMaterials).length; i++) {

@@ -13,12 +13,21 @@ fragment JobsiteMaterialCardSnippet on JobsiteMaterialClass {
   }
   unit
   costType
+  costModel
   delivered
   rates {
     ...JobsiteMaterialRateSnippet
   }
   deliveredRates {
     ...JobsiteMaterialDeliveredRateSnippet
+  }
+  scenarios {
+    _id
+    label
+    delivered
+    rates {
+      ...JobsiteMaterialRateSnippet
+    }
   }
   canRemove
 }
