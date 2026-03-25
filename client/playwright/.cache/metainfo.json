@@ -1,0 +1,3334 @@
+{
+  "version": "1.58.2",
+  "viteVersion": "6.4.1",
+  "registerSourceHash": "ed20ffae407b333f753f74a3130ce543fc5c44d3",
+  "components": [
+    {
+      "id": "_home_dev_work_bow_mark_client_src_components_Forms_MaterialShipment_Data",
+      "filename": "/home/dev/work/bow-mark/client/tests/component/MaterialShipment/Data.spec.tsx",
+      "importSource": "../../../src/components/Forms/MaterialShipment/Data"
+    }
+  ],
+  "sources": {
+    "/home/dev/work/bow-mark/client/playwright/index.html": {
+      "timestamp": 1774453487069.9023
+    },
+    "/home/dev/work/bow-mark/client/playwright/index.tsx": {
+      "timestamp": 1774453635324.6501
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react/jsx-runtime.js": {
+      "timestamp": 1757520917780.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/testing/index.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react/index.js": {
+      "timestamp": 1757520917780.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-dom/index.js": {
+      "timestamp": 1757520917792
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/react/dist/esm/index.js": {
+      "timestamp": 1757520906453
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@playwright/experimental-ct-react17/hooks.mjs": {
+      "timestamp": 1774453506804.0376
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/globals/index.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/testing/react/MockedProvider.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/react/dist/esm/chakra-provider.js": {
+      "timestamp": 1757520906453
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/testing/core/index.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/react/dist/esm/extend-theme.js": {
+      "timestamp": 1757520906453
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/alert/dist/esm/index.js": {
+      "timestamp": 1757520906512
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/accordion/dist/esm/index.js": {
+      "timestamp": 1757520907683
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/breadcrumb/dist/esm/index.js": {
+      "timestamp": 1757520907654.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/avatar/dist/esm/index.js": {
+      "timestamp": 1757520906986.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/button/dist/esm/index.js": {
+      "timestamp": 1757520907213.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/close-button/dist/esm/index.js": {
+      "timestamp": 1757520908046.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/counter/dist/esm/index.js": {
+      "timestamp": 1757520907329.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/css-reset/dist/esm/index.js": {
+      "timestamp": 1757520907719
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/editable/dist/esm/index.js": {
+      "timestamp": 1757520907490.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/form-control/dist/esm/index.js": {
+      "timestamp": 1757520908177.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/control-box/dist/esm/index.js": {
+      "timestamp": 1757520907951.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/index.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/icon/dist/esm/index.js": {
+      "timestamp": 1757520906868
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/image/dist/esm/index.js": {
+      "timestamp": 1757520906456
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/input/dist/esm/index.js": {
+      "timestamp": 1757520906733
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/index.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/media-query/dist/esm/index.js": {
+      "timestamp": 1757520908091
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/table/dist/esm/index.js": {
+      "timestamp": 1757520906815.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/index.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/menu/dist/esm/index.js": {
+      "timestamp": 1757520906545
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/dist/esm/index.js": {
+      "timestamp": 1757520906598
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/number-input/dist/esm/index.js": {
+      "timestamp": 1757520907950
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/pin-input/dist/esm/index.js": {
+      "timestamp": 1757520907599.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/checkbox/dist/esm/index.js": {
+      "timestamp": 1757520907671.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/popper/dist/esm/index.js": {
+      "timestamp": 1757520907125
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/popover/dist/esm/index.js": {
+      "timestamp": 1757520907295
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/portal/dist/esm/index.js": {
+      "timestamp": 1757520907171
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/radio/dist/esm/index.js": {
+      "timestamp": 1757520906641.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/select/dist/esm/index.js": {
+      "timestamp": 1757520907190
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/progress/dist/esm/index.js": {
+      "timestamp": 1757520907532.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/skeleton/dist/esm/index.js": {
+      "timestamp": 1757520907601
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/switch/dist/esm/index.js": {
+      "timestamp": 1757520907230.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/slider/dist/esm/index.js": {
+      "timestamp": 1757520907434.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/system/dist/esm/index.js": {
+      "timestamp": 1757520907282.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/stat/dist/esm/index.js": {
+      "timestamp": 1757520906565.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/spinner/dist/esm/index.js": {
+      "timestamp": 1757520907382.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/tag/dist/esm/index.js": {
+      "timestamp": 1757520906713.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/tabs/dist/esm/index.js": {
+      "timestamp": 1757520906507.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/textarea/dist/esm/index.js": {
+      "timestamp": 1757520907615
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/dist/esm/index.js": {
+      "timestamp": 1757520906865
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/tooltip/dist/esm/index.js": {
+      "timestamp": 1757520907477.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/visually-hidden/dist/esm/index.js": {
+      "timestamp": 1757520908028
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/transition/dist/esm/index.js": {
+      "timestamp": 1757520907881.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react/cjs/react-jsx-runtime.production.min.js": {
+      "timestamp": 1757520917780.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react/cjs/react.production.min.js": {
+      "timestamp": 1757520917780.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-dom/cjs/react-dom.production.min.js": {
+      "timestamp": 1757520917792
+    },
+    "/home/dev/work/bow-mark/client/src/components/Forms/MaterialShipment/Data.tsx": {
+      "timestamp": 1774394494261.221
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/globals/fix-graphql.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/ts-invariant/lib/invariant.js": {
+      "timestamp": 1757520906355.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/globals/global.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/globals/maybe.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/globals/DEV.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/tslib/tslib.es6.js": {
+      "timestamp": 1760543122179.2378
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/index.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/core/index.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/context/index.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/testing/core/mocking/mockLink.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/testing/core/mocking/mockSubscriptionLink.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/testing/core/subscribeAndCount.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/testing/core/itAsync.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/testing/core/mocking/mockClient.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/testing/core/withConsoleSpy.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/index.js": {
+      "timestamp": 1757520907065
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/alert/dist/esm/alert.js": {
+      "timestamp": 1757520906512
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/accordion/dist/esm/accordion.js": {
+      "timestamp": 1757520907683
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/accordion/dist/esm/use-accordion.js": {
+      "timestamp": 1757520907683
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/breadcrumb/dist/esm/breadcrumb.js": {
+      "timestamp": 1757520907654.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/avatar/dist/esm/avatar.js": {
+      "timestamp": 1757520906986.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/avatar/dist/esm/avatar-group.js": {
+      "timestamp": 1757520906986.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/button/dist/esm/button.js": {
+      "timestamp": 1757520907213.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/button/dist/esm/button-group.js": {
+      "timestamp": 1757520907213.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/button/dist/esm/icon-button.js": {
+      "timestamp": 1757520907213.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/close-button/dist/esm/close-button.js": {
+      "timestamp": 1757520908046.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/counter/dist/esm/use-counter.js": {
+      "timestamp": 1757520907329.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/css-reset/dist/esm/css-reset.js": {
+      "timestamp": 1757520907719
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/editable/dist/esm/editable.js": {
+      "timestamp": 1757520907490.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/editable/dist/esm/use-editable.js": {
+      "timestamp": 1757520907490.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/form-control/dist/esm/form-control.js": {
+      "timestamp": 1757520908177.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/form-control/dist/esm/use-form-control.js": {
+      "timestamp": 1757520908177.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/form-control/dist/esm/form-error.js": {
+      "timestamp": 1757520908177.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/form-control/dist/esm/form-label.js": {
+      "timestamp": 1757520908177.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/control-box/dist/esm/control-box.js": {
+      "timestamp": 1757520907951.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-clipboard.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-controllable.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-disclosure.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-focus-effect.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-id.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-interval.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-safe-layout-effect.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-focus-on-show.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-merge-refs.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-shortcut.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-update-effect.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-event-listener.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-boolean.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-force-update.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-const.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-dimensions.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-timeout.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-latest-ref.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-event-callback.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-unmount-effect.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-focus-on-hide.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-outside-click.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-previous.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-mouse-down-ref.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-why-update.js": {
+      "timestamp": 1757520906576.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/icon/dist/esm/icon.js": {
+      "timestamp": 1757520906868
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/icon/dist/esm/create-icon.js": {
+      "timestamp": 1757520906868
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/image/dist/esm/image.js": {
+      "timestamp": 1757520906456
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/image/dist/esm/use-image.js": {
+      "timestamp": 1757520906456
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/input/dist/esm/input.js": {
+      "timestamp": 1757520906733
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/input/dist/esm/input-addon.js": {
+      "timestamp": 1757520906733
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/input/dist/esm/input-group.js": {
+      "timestamp": 1757520906733
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/input/dist/esm/input-element.js": {
+      "timestamp": 1757520906733
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/badge.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/aspect-ratio.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/code.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/box.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/center.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/container.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/divider.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/flex.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/grid.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/heading.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/kbd.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/link.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/list.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/simple-grid.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/spacer.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/stack.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/text.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/wrap.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/link-box.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/media-query/dist/esm/media-query.js": {
+      "timestamp": 1757520908091
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/media-query/dist/esm/media-query.hook.js": {
+      "timestamp": 1757520908091
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/media-query/dist/esm/use-breakpoint.js": {
+      "timestamp": 1757520908091
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/media-query/dist/esm/use-media-query.js": {
+      "timestamp": 1757520908091
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/media-query/dist/esm/use-breakpoint-value.js": {
+      "timestamp": 1757520908091
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/table/dist/esm/table.js": {
+      "timestamp": 1757520906815.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/index.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/styles.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/index.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/menu/dist/esm/menu.js": {
+      "timestamp": 1757520906545
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/menu/dist/esm/use-menu.js": {
+      "timestamp": 1757520906545
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/dist/esm/modal.js": {
+      "timestamp": 1757520906598
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/dist/esm/use-modal.js": {
+      "timestamp": 1757520906598
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/dist/esm/alert-dialog.js": {
+      "timestamp": 1757520906598
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/dist/esm/drawer.js": {
+      "timestamp": 1757520906598
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/number-input/dist/esm/number-input.js": {
+      "timestamp": 1757520907950
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/number-input/dist/esm/use-number-input.js": {
+      "timestamp": 1757520907950
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/pin-input/dist/esm/use-pin-input.js": {
+      "timestamp": 1757520907599.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/pin-input/dist/esm/pin-input.js": {
+      "timestamp": 1757520907599.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/checkbox/dist/esm/use-checkbox.js": {
+      "timestamp": 1757520907671.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/checkbox/dist/esm/checkbox-group.js": {
+      "timestamp": 1757520907671.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/checkbox/dist/esm/checkbox.js": {
+      "timestamp": 1757520907671.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/checkbox/dist/esm/use-checkbox-group.js": {
+      "timestamp": 1757520907671.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/popper/dist/esm/use-popper.js": {
+      "timestamp": 1757520907125
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/popper/dist/esm/popper.utils.js": {
+      "timestamp": 1757520907125
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/popover/dist/esm/popover.js": {
+      "timestamp": 1757520907295
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/popover/dist/esm/use-popover.js": {
+      "timestamp": 1757520907295
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/portal/dist/esm/portal-manager.js": {
+      "timestamp": 1757520907171
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/portal/dist/esm/portal.js": {
+      "timestamp": 1757520907171
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/radio/dist/esm/use-radio.js": {
+      "timestamp": 1757520906641.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/radio/dist/esm/radio.js": {
+      "timestamp": 1757520906641.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/radio/dist/esm/use-radio-group.js": {
+      "timestamp": 1757520906641.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/radio/dist/esm/radio-group.js": {
+      "timestamp": 1757520906641.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/select/dist/esm/select.js": {
+      "timestamp": 1757520907190
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/progress/dist/esm/circular-progress.js": {
+      "timestamp": 1757520907532.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/progress/dist/esm/progress.js": {
+      "timestamp": 1757520907532.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/skeleton/dist/esm/skeleton.js": {
+      "timestamp": 1757520907601
+    },
+    "/home/dev/work/bow-mark/client/node_modules/object-assign/index.js": {
+      "timestamp": 1752614825854
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/switch/dist/esm/switch.js": {
+      "timestamp": 1757520907230.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/slider/dist/esm/slider.js": {
+      "timestamp": 1757520907434.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/color-mode/dist/esm/index.js": {
+      "timestamp": 1757520908513.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/slider/dist/esm/use-slider.js": {
+      "timestamp": 1757520907434.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@emotion/react/dist/emotion-react.browser.esm.js": {
+      "timestamp": 1757520909084
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/index.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/system/dist/esm/hooks.js": {
+      "timestamp": 1757520907282.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/system/dist/esm/system.types.js": {
+      "timestamp": 1757520907282.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/system/dist/esm/providers.js": {
+      "timestamp": 1757520907282.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/system/dist/esm/system.utils.js": {
+      "timestamp": 1757520907282.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/system/dist/esm/system.js": {
+      "timestamp": 1757520907282.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/system/dist/esm/forward-ref.js": {
+      "timestamp": 1757520907282.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/system/dist/esm/use-style-config.js": {
+      "timestamp": 1757520907282.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/system/dist/esm/should-forward-prop.js": {
+      "timestamp": 1757520907282.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/stat/dist/esm/stat.js": {
+      "timestamp": 1757520906565.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/spinner/dist/esm/spinner.js": {
+      "timestamp": 1757520907382.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/tag/dist/esm/tag.js": {
+      "timestamp": 1757520906713.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/tabs/dist/esm/tabs.js": {
+      "timestamp": 1757520906507.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/tabs/dist/esm/use-tabs.js": {
+      "timestamp": 1757520906507.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/textarea/dist/esm/textarea.js": {
+      "timestamp": 1757520907615
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/dist/esm/use-toast.js": {
+      "timestamp": 1757520906865
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/dist/esm/toast.types.js": {
+      "timestamp": 1757520906865
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/dist/esm/toast.class.js": {
+      "timestamp": 1757520906865
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/tooltip/dist/esm/tooltip.js": {
+      "timestamp": 1757520907477.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/tooltip/dist/esm/use-tooltip.js": {
+      "timestamp": 1757520907477.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-dom/node_modules/scheduler/index.js": {
+      "timestamp": 1757520917801
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/visually-hidden/dist/esm/visually-hidden.js": {
+      "timestamp": 1757520908028
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/transition/dist/esm/collapse.js": {
+      "timestamp": 1757520907881.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/transition/dist/esm/scale-fade.js": {
+      "timestamp": 1757520907881.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/transition/dist/esm/fade.js": {
+      "timestamp": 1757520907881.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/transition/dist/esm/slide.js": {
+      "timestamp": 1757520907881.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/transition/dist/esm/__utils.js": {
+      "timestamp": 1757520907881.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/transition/dist/esm/slide-fade.js": {
+      "timestamp": 1757520907881.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-icons/fi/index.esm.js": {
+      "timestamp": 1757520917832.999
+    },
+    "/home/dev/work/bow-mark/client/src/components/Forms/MaterialShipment/Shipment.tsx": {
+      "timestamp": 1774394465985.626
+    },
+    "/home/dev/work/bow-mark/client/src/components/Common/ContactOffice.tsx": {
+      "timestamp": 1730918890696.942
+    },
+    "/home/dev/work/bow-mark/client/src/utils/isEmpty.ts": {
+      "timestamp": 1730918890710.2742
+    },
+    "/home/dev/work/bow-mark/client/src/components/Common/FormContainer.tsx": {
+      "timestamp": 1730918890696.942
+    },
+    "/home/dev/work/bow-mark/client/src/constants/select.ts": {
+      "timestamp": 1730918890703.608
+    },
+    "/home/dev/work/bow-mark/client/node_modules/ts-invariant/process/index.js": {
+      "timestamp": 1757520906355.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/index.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/core/cache.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/core/types/Cache.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/index.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/core/types/common.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/helpers.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/entityStore.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/inMemoryCache.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/object-canon.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/policies.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/types.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/core/ApolloClient.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/core/networkStatus.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/core/ObservableQuery.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/reactiveVars.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/core/types.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/errors/index.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/core/index.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/index.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/utils/index.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql-tag/lib/index.js": {
+      "timestamp": 1757520906434.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/context/ApolloConsumer.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/context/ApolloContext.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/context/ApolloProvider.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@wry/equality/lib/index.js": {
+      "timestamp": 1760543122228.237
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/function.js": {
+      "timestamp": 1757520907065
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/types.js": {
+      "timestamp": 1757520907065
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/array.js": {
+      "timestamp": 1757520907065
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/dom.js": {
+      "timestamp": 1757520907065
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/object.js": {
+      "timestamp": 1757520907065
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/number.js": {
+      "timestamp": 1757520907065
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/dom-query.js": {
+      "timestamp": 1757520907065
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/tabbable.js": {
+      "timestamp": 1757520907065
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/assertion.js": {
+      "timestamp": 1757520907065
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/react-helpers.js": {
+      "timestamp": 1757520907065
+    },
+    "/home/dev/work/bow-mark/client/node_modules/css-box-model/dist/css-box-model.esm.js": {
+      "timestamp": 1757520908226
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/responsive.js": {
+      "timestamp": 1757520907065
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/alert/dist/esm/icons.js": {
+      "timestamp": 1757520906512
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/descendant/dist/esm/index.js": {
+      "timestamp": 1757520908170
+    },
+    "/home/dev/work/bow-mark/client/node_modules/copy-to-clipboard/index.js": {
+      "timestamp": 1757520907989
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/node_modules/@reach/auto-id/dist/auto-id.esm.js": {
+      "timestamp": 1760543122150.2383
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/stack.utils.js": {
+      "timestamp": 1757520907052
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/media-query/dist/esm/create-media-query.js": {
+      "timestamp": 1757520908091
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/breakpoints.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/radius.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/media-query/dist/esm/media-query.utils.js": {
+      "timestamp": 1757520908091
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/borders.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/colors.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/sizes.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/spacing.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/shadows.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/typography.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/transition.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/z-index.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme-tools/dist/esm/index.js": {
+      "timestamp": 1757520908305
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/accordion.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/avatar.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/alert.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/badge.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/breadcrumb.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/button.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/checkbox.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/close-button.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/code.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/container.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/divider.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/drawer.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/editable.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/form.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/form-label.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/heading.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/input.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/kbd.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/link.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/list.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/menu.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/modal.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/number-input.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/pin-input.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/popover.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/progress.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/radio.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/select.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/skeleton.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/skip-link.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/slider.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/stat.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/spinner.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/switch.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/table.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/tabs.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/tag.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/textarea.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/tooltip.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/form-error.js": {
+      "timestamp": 1757520906822
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/clickable/dist/esm/index.js": {
+      "timestamp": 1757520908292
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/dist/esm/index.js": {
+      "timestamp": 1757520908308
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/node_modules/react-remove-scroll/dist/es2015/index.js": {
+      "timestamp": 1760543122392.2344
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/dist/esm/modal-transition.js": {
+      "timestamp": 1757520906598
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/dist/esm/modal-manager.js": {
+      "timestamp": 1757520906598
+    },
+    "/home/dev/work/bow-mark/client/node_modules/aria-hidden/dist/es2015/index.js": {
+      "timestamp": 1760543122038.2402
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/number-input/dist/esm/icons.js": {
+      "timestamp": 1757520907950
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/number-input/dist/esm/utils.js": {
+      "timestamp": 1757520907950
+    },
+    "/home/dev/work/bow-mark/client/node_modules/framer-motion/dist/framer-motion.es.js": {
+      "timestamp": 1757520910711.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/checkbox/dist/esm/checkbox-icon.js": {
+      "timestamp": 1757520907671.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/popper/dist/esm/react-popper.js": {
+      "timestamp": 1757520907125
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/progress/dist/esm/progress.utils.js": {
+      "timestamp": 1757520907532.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-dom/node_modules/scheduler/cjs/scheduler.production.min.js": {
+      "timestamp": 1757520917801
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/number-input/dist/esm/use-spinner.js": {
+      "timestamp": 1757520907950
+    },
+    "/home/dev/work/bow-mark/client/src/components/Common/forms/TextField.tsx": {
+      "timestamp": 1730918890700.275
+    },
+    "/home/dev/work/bow-mark/client/src/components/Search/CompanySearch.tsx": {
+      "timestamp": 1730918890700.275
+    },
+    "/home/dev/work/bow-mark/client/src/components/Common/forms/Select.tsx": {
+      "timestamp": 1730918890700.275
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/color-mode/dist/esm/color-mode-provider.js": {
+      "timestamp": 1757520908513.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/color-mode/dist/esm/color-mode-script.js": {
+      "timestamp": 1757520908513.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/color-mode/dist/esm/storage-manager.js": {
+      "timestamp": 1757520908513.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/index.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@styled-system/core/dist/index.esm.js": {
+      "timestamp": 1757520908766.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/pseudo/index.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/css.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/parser.types.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/system.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/css.types.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-fast-compare/index.js": {
+      "timestamp": 1757520908375
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@emotion/styled/dist/emotion-styled.browser.esm.js": {
+      "timestamp": 1757520909132.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/dist/esm/toast-manager.js": {
+      "timestamp": 1757520906865
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@emotion/cache/dist/emotion-cache.browser.esm.js": {
+      "timestamp": 1760543122032.2402
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@babel/runtime/helpers/esm/extends.js": {
+      "timestamp": 1760543123913.21
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@emotion/react/dist/emotion-element-4fbd89c5.browser.esm.js": {
+      "timestamp": 1757520909084
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@emotion/react/node_modules/@emotion/weak-memoize/dist/weak-memoize.browser.esm.js": {
+      "timestamp": 1760543122255.2366
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@emotion/react/isolated-hoist-non-react-statics-do-not-use-this-in-your-code/dist/emotion-react-isolated-hoist-non-react-statics-do-not-use-this-in-your-code.browser.esm.js": {
+      "timestamp": 1757520909084
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@emotion/utils/dist/emotion-utils.browser.esm.js": {
+      "timestamp": 1760543122019.2405
+    },
+    "/home/dev/work/bow-mark/client/node_modules/hoist-non-react-statics/dist/hoist-non-react-statics.cjs.js": {
+      "timestamp": 1752614817404.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@emotion/serialize/dist/emotion-serialize.browser.esm.js": {
+      "timestamp": 1760543122019.2405
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@emotion/sheet/dist/emotion-sheet.browser.esm.js": {
+      "timestamp": 1760543122019.2405
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-icons/lib/esm/index.js": {
+      "timestamp": 1757520917832.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/toggle-selection/index.js": {
+      "timestamp": 1757520908417.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/version.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/type/index.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/language/index.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/graphql.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/execution/index.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/subscription/index.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/index.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/error/index.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/index.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/optimism/lib/bundle.esm.js": {
+      "timestamp": 1757520906348
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/graphql/directives.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/graphql/getFromAST.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/graphql/fragments.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/graphql/storeUtils.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/graphql/transform.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/observables/Observable.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/policies/pagination.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/mergeDeep.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/cloneDeep.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/maybeDeepFreeze.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/observables/iteration.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/observables/asyncMap.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/observables/Concast.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/observables/subclassing.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/arrays.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/objects.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/errorHandling.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/canUse.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/compact.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/makeUniqueId.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/stringifyForDisplay.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/mergeOptions.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/types/IsStrictlyAny.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@wry/trie/lib/trie.esm.js": {
+      "timestamp": 1757520906351.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/fixPolyfills.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/readFromStore.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/key-extractor.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/writeToStore.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/version.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/core/LocalState.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@wry/context/lib/index.js": {
+      "timestamp": 1760543122228.237
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/core/QueryManager.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/core/empty.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/core/from.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/core/split.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/core/concat.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/core/execute.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/core/ApolloLink.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/core/types.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/parseAndCheckHttpResponse.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/selectHttpOptionsAndBody.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/serializeFetchParameter.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/checkFetcher.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/createSignalIfSupported.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/selectURI.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/createHttpLink.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/HttpLink.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/rewriteURIForGET.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/utils/fromError.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/utils/toPromise.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/utils/fromPromise.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/utils/throwServerError.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/utils/validateOperation.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/utils/createOperation.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/utils/transformOperation.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/lodash.mergewith/index.js": {
+      "timestamp": 1757520908233.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/descendant/dist/esm/use-descendant.js": {
+      "timestamp": 1757520908170
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/node_modules/@reach/auto-id/node_modules/@reach/utils/dist/utils.esm.js": {
+      "timestamp": 1760543122319.2356
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme-tools/dist/esm/color.js": {
+      "timestamp": 1757520908305
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme-tools/dist/esm/component.js": {
+      "timestamp": 1757520908305
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme-tools/dist/esm/breakpoints.js": {
+      "timestamp": 1757520908305
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/clickable/dist/esm/use-clickable.js": {
+      "timestamp": 1757520908292
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/index.js": {
+      "timestamp": 1760543122495.2327
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/node_modules/react-remove-scroll/dist/es2015/Combination.js": {
+      "timestamp": 1760543122281.2363
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/popper.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/dequal/dist/index.mjs": {
+      "timestamp": 1757520908253.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/dayjs/dayjs.min.js": {
+      "timestamp": 1760543123753.2124
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-is/index.js": {
+      "timestamp": 1752614817407
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/background.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/color-mode/dist/esm/color-mode.utils.js": {
+      "timestamp": 1757520908513.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/border.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/flexbox.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/grid.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/color.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/layout.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/others.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/position.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/shadow.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/typography.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/list.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/outline.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/space.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/transition.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/transform.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/pseudo/pseudo.utils.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/pseudo/pseudo.types.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/pseudo/pseudo.selector.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/parser.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@emotion/styled/base/dist/emotion-styled-base.browser.esm.js": {
+      "timestamp": 1757520909132.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@emotion/is-prop-valid/dist/emotion-is-prop-valid.esm.js": {
+      "timestamp": 1760543122232.237
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/dist/esm/toast.js": {
+      "timestamp": 1757520906865
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/dist/esm/toast.utils.js": {
+      "timestamp": 1757520906865
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-icons/lib/esm/iconsManifest.js": {
+      "timestamp": 1757520917832.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-icons/lib/esm/iconBase.js": {
+      "timestamp": 1757520917832.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-icons/lib/esm/iconContext.js": {
+      "timestamp": 1757520917832.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/type/definition.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/type/directives.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/type/schema.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/type/validate.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/type/introspection.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/type/scalars.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/language/source.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/language/location.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/language/printLocation.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/language/kinds.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/language/tokenKind.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/language/lexer.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/language/printer.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/language/parser.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/language/visitor.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/language/ast.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/language/predicates.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/language/directiveLocation.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/Path.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/execution/execute.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/execution/values.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/isPromise.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/validate.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/subscription/subscribe.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/ValidationContext.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/specifiedRules.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/ExecutableDefinitionsRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/FieldsOnCorrectTypeRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/FragmentsOnCompositeTypesRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/KnownArgumentNamesRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/KnownDirectivesRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/KnownTypeNamesRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/LoneAnonymousOperationRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/NoFragmentCyclesRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/NoUndefinedVariablesRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/KnownFragmentNamesRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/NoUnusedFragmentsRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/NoUnusedVariablesRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/OverlappingFieldsCanBeMergedRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/PossibleFragmentSpreadsRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/ScalarLeafsRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/ProvidedRequiredArgumentsRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/SingleFieldSubscriptionsRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueDirectivesPerLocationRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueArgumentNamesRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueFragmentNamesRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueInputFieldNamesRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueOperationNamesRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueVariableNamesRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/ValuesOfCorrectTypeRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/VariablesAreInputTypesRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/VariablesInAllowedPositionRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/LoneSchemaDefinitionRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueTypeNamesRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueEnumValueNamesRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueOperationTypesRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueFieldDefinitionNamesRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/PossibleTypeExtensionsRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/custom/NoDeprecatedCustomRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueDirectiveNamesRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/custom/NoSchemaIntrospectionCustomRule.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/error/syntaxError.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/error/GraphQLError.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/error/locatedError.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/error/formatError.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/getIntrospectionQuery.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/getOperationAST.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/getOperationRootType.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/buildClientSchema.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/buildASTSchema.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/introspectionFromSchema.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/extendSchema.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/lexicographicSortSchema.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/typeFromAST.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/printSchema.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/valueFromAST.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/valueFromASTUntyped.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/astFromValue.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/TypeInfo.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/coerceInputValue.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/concatAST.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/separateOperations.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/stripIgnoredCharacters.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/typeComparators.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/assertValidName.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/findDeprecatedUsages.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/findBreakingChanges.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/symbol-observable/es/index.js": {
+      "timestamp": 1757520906355
+    },
+    "/home/dev/work/bow-mark/client/node_modules/zen-observable-ts/module.js": {
+      "timestamp": 1757520906433
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/filterInPlace.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@wry/context/lib/slot.js": {
+      "timestamp": 1760543122325.2356
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/core/QueryInfo.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/tinycolor2/tinycolor.js": {
+      "timestamp": 1757520908493.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/Combination.js": {
+      "timestamp": 1760543122392.2344
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/UI.js": {
+      "timestamp": 1760543123445.2175
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/clickable/dist/esm/use-event-listeners.js": {
+      "timestamp": 1757520908292
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/node_modules/tslib/tslib.es6.js": {
+      "timestamp": 1760543122281.2363
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/node_modules/react-remove-scroll/dist/es2015/UI.js": {
+      "timestamp": 1760543123365.2188
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/node_modules/react-remove-scroll/dist/es2015/sidecar.js": {
+      "timestamp": 1760543122495.2327
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/index.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/modifiers/eventListeners.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/modifiers/popperOffsets.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/modifiers/computeStyles.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/modifiers/applyStyles.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/modifiers/offset.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/modifiers/flip.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/modifiers/preventOverflow.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/modifiers/arrow.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/modifiers/hide.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/utils/index.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@emotion/memoize/dist/emotion-memoize.esm.js": {
+      "timestamp": 1760543122231.237
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/node_modules/@reach/alert/dist/alert.esm.js": {
+      "timestamp": 1760543122149.2383
+    },
+    "/home/dev/work/bow-mark/client/src/utils/convertHourToDate.ts": {
+      "timestamp": 1730918890710.2742
+    },
+    "/home/dev/work/bow-mark/client/src/components/Common/forms/Unit.tsx": {
+      "timestamp": 1730918890700.275
+    },
+    "/home/dev/work/bow-mark/client/src/constants/numbers.ts": {
+      "timestamp": 1730918890703.608
+    },
+    "/home/dev/work/bow-mark/client/src/utils/jobsiteMaterialName.ts": {
+      "timestamp": 1730918890710.2742
+    },
+    "/home/dev/work/bow-mark/client/src/components/Common/forms/Number.tsx": {
+      "timestamp": 1730918890700.275
+    },
+    "/home/dev/work/bow-mark/client/src/components/Search/MaterialSearch.tsx": {
+      "timestamp": 1730918890703.608
+    },
+    "/home/dev/work/bow-mark/client/node_modules/tiny-invariant/dist/esm/tiny-invariant.js": {
+      "timestamp": 1770318219083.5754
+    },
+    "/home/dev/work/bow-mark/client/src/utils/isObjectId.ts": {
+      "timestamp": 1730918890710.2742
+    },
+    "/home/dev/work/bow-mark/client/src/components/Common/forms/TextDropdown.tsx": {
+      "timestamp": 1730918890700.275
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/polyfills/objectEntries.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/inspect.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/polyfills/symbols.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/devAssert.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/toObjMap.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/instanceOf.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/isObjectLike.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/defineInspect.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/polyfills/arrayFrom.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/polyfills/objectValues.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/polyfills/find.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/invariant.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/polyfills/isFinite.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/polyfills/isInteger.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/language/blockString.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/keyMap.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/mapValue.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/keyValMap.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/didYouMean.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/identityFunc.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/suggestionList.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/printPathArray.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/subscription/mapAsyncIterator.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/isAsyncIterable.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/memoize3.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/promiseReduce.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/promiseForObject.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/symbol-observable/es/ponyfill.js": {
+      "timestamp": 1757520906355
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/isCollection.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@babel/runtime/helpers/esm/objectWithoutPropertiesLoose.js": {
+      "timestamp": 1760543123971.209
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/Trap.js": {
+      "timestamp": 1760543123414.218
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/Lock.js": {
+      "timestamp": 1760543122586.2312
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/AutoFocusInside.js": {
+      "timestamp": 1760543122281.2363
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/MoveFocusInside.js": {
+      "timestamp": 1760543123366.2188
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/FreeFocusInside.js": {
+      "timestamp": 1760543122471.4507
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/FocusGuard.js": {
+      "timestamp": 1760543122442.2336
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/node_modules/react-remove-scroll/dist/es2015/medium.js": {
+      "timestamp": 1760543122441.2336
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-remove-scroll-bar/dist/es2015/constants.js": {
+      "timestamp": 1760543122379.2346
+    },
+    "/home/dev/work/bow-mark/client/node_modules/use-callback-ref/dist/es2015/index.js": {
+      "timestamp": 1760543122467.2332
+    },
+    "/home/dev/work/bow-mark/client/node_modules/use-sidecar/dist/es2015/index.js": {
+      "timestamp": 1760543123369.2188
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/node_modules/react-remove-scroll/dist/es2015/SideEffect.js": {
+      "timestamp": 1760543122519.2324
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getWindow.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/computeOffsets.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getNodeName.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/instanceOf.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/enums.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/getBasePlacement.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/getOppositePlacement.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/getOppositeVariationPlacement.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/detectOverflow.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/computeAutoPlacement.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/getVariation.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/getMainAxisFromPlacement.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/getAltAxis.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/within.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getOffsetParent.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/getFreshSideObject.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getLayoutRect.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/utils/positive-or-negative.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/utils/types.js": {
+      "timestamp": 1757520908516
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@emotion/hash/dist/emotion-hash.esm.js": {
+      "timestamp": 1760543122231.237
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@emotion/unitless/dist/emotion-unitless.esm.js": {
+      "timestamp": 1760543122231.237
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-is/cjs/react-is.production.min.js": {
+      "timestamp": 1752614817407
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@emotion/weak-memoize/dist/emotion-weak-memoize.esm.js": {
+      "timestamp": 1760543122231.237
+    },
+    "/home/dev/work/bow-mark/client/node_modules/stylis/index.js": {
+      "timestamp": 1760543122026.3599
+    },
+    "/home/dev/work/bow-mark/client/node_modules/warning/warning.js": {
+      "timestamp": 1757520908727.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/use-callback-ref/dist/es2015/assignRef.js": {
+      "timestamp": 1760543122026.3599
+    },
+    "/home/dev/work/bow-mark/client/node_modules/use-callback-ref/dist/es2015/createRef.js": {
+      "timestamp": 1760543122398.797
+    },
+    "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/nodejsCustomInspectSymbol.mjs": {
+      "timestamp": 1757520910970
+    },
+    "/home/dev/work/bow-mark/client/node_modules/use-callback-ref/dist/es2015/useMergeRef.js": {
+      "timestamp": 1760543123409.218
+    },
+    "/home/dev/work/bow-mark/client/node_modules/use-callback-ref/dist/es2015/transformRef.js": {
+      "timestamp": 1760543122616.2307
+    },
+    "/home/dev/work/bow-mark/client/node_modules/use-callback-ref/dist/es2015/useRef.js": {
+      "timestamp": 1760543123441.2175
+    },
+    "/home/dev/work/bow-mark/client/node_modules/use-callback-ref/dist/es2015/mergeRef.js": {
+      "timestamp": 1760543122497.2327
+    },
+    "/home/dev/work/bow-mark/client/node_modules/use-callback-ref/dist/es2015/useTransformRef.js": {
+      "timestamp": 1760543123459.2173
+    },
+    "/home/dev/work/bow-mark/client/node_modules/use-callback-ref/dist/es2015/refToCallback.js": {
+      "timestamp": 1760543122580.2314
+    },
+    "/home/dev/work/bow-mark/client/node_modules/use-sidecar/dist/es2015/hoc.js": {
+      "timestamp": 1760543122497.2327
+    },
+    "/home/dev/work/bow-mark/client/node_modules/use-sidecar/dist/es2015/hook.js": {
+      "timestamp": 1760543122604.02
+    },
+    "/home/dev/work/bow-mark/client/node_modules/use-sidecar/dist/es2015/config.js": {
+      "timestamp": 1760543122026.3599
+    },
+    "/home/dev/work/bow-mark/client/node_modules/use-sidecar/dist/es2015/medium.js": {
+      "timestamp": 1760543123403.2183
+    },
+    "/home/dev/work/bow-mark/client/node_modules/use-sidecar/dist/es2015/renderProp.js": {
+      "timestamp": 1760543123432.2178
+    },
+    "/home/dev/work/bow-mark/client/node_modules/use-sidecar/dist/es2015/exports.js": {
+      "timestamp": 1760543122467.2332
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-remove-scroll-bar/dist/es2015/index.js": {
+      "timestamp": 1760543122449.2334
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-style-singleton/dist/es2015/index.js": {
+      "timestamp": 1760543122449.2334
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/node_modules/react-remove-scroll/dist/es2015/handleScroll.js": {
+      "timestamp": 1760543122348.235
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/node_modules/react-remove-scroll/dist/es2015/aggresiveCapture.js": {
+      "timestamp": 1760543121986.241
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getBoundingClientRect.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getClippingRect.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getDocumentElement.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/rectToClientRect.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/expandToHashMap.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/mergePaddingObject.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getComputedStyle.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/isTableElement.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getParentNode.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/src/generated/graphql.tsx": {
+      "timestamp": 1774382841701.984
+    },
+    "/home/dev/work/bow-mark/client/node_modules/css-get-unit/index.js": {
+      "timestamp": 1757520908776
+    },
+    "/home/dev/work/bow-mark/client/node_modules/stylis/src/Enum.js": {
+      "timestamp": 1760543121953.2415
+    },
+    "/home/dev/work/bow-mark/client/node_modules/stylis/src/Utility.js": {
+      "timestamp": 1760543122475.2332
+    },
+    "/home/dev/work/bow-mark/client/node_modules/stylis/src/Parser.js": {
+      "timestamp": 1760543122179.2378
+    },
+    "/home/dev/work/bow-mark/client/node_modules/stylis/src/Tokenizer.js": {
+      "timestamp": 1760543122467.2332
+    },
+    "/home/dev/work/bow-mark/client/node_modules/stylis/src/Prefixer.js": {
+      "timestamp": 1760543122268.2363
+    },
+    "/home/dev/work/bow-mark/client/node_modules/stylis/src/Serializer.js": {
+      "timestamp": 1760543122331.6235
+    },
+    "/home/dev/work/bow-mark/client/node_modules/stylis/src/Middleware.js": {
+      "timestamp": 1760543122097.2393
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/contains.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getCompositeRect.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/orderModifiers.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/debounce.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/listScrollParents.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/uniqueBy.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/mergeByName.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/validateModifiers.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/node_modules/@reach/alert/node_modules/@reach/utils/dist/utils.esm.js": {
+      "timestamp": 1760543122319.2356
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/node_modules/@reach/alert/node_modules/@reach/visually-hidden/dist/visually-hidden.esm.js": {
+      "timestamp": 1760543122219.2373
+    },
+    "/home/dev/work/bow-mark/client/node_modules/use-sidecar/dist/es2015/env.js": {
+      "timestamp": 1760543122398.797
+    },
+    "/home/dev/work/bow-mark/client/node_modules/prop-types/index.js": {
+      "timestamp": 1752614825851
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-remove-scroll-bar/dist/es2015/component.js": {
+      "timestamp": 1760543121956.2415
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-remove-scroll-bar/dist/es2015/utils.js": {
+      "timestamp": 1760543122487.233
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-style-singleton/dist/es2015/hook.js": {
+      "timestamp": 1760543122379.2346
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-style-singleton/dist/es2015/component.js": {
+      "timestamp": 1760543121956.2415
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-style-singleton/dist/es2015/singleton.js": {
+      "timestamp": 1760543122581.2314
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getViewportRect.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getDocumentRect.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/index.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/src/components/Common/TextLink.tsx": {
+      "timestamp": 1730918890700.275
+    },
+    "/home/dev/work/bow-mark/client/src/components/Common/Loading.tsx": {
+      "timestamp": 1730918890700.275
+    },
+    "/home/dev/work/bow-mark/client/src/contexts/System/index.tsx": {
+      "timestamp": 1730918890703.608
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getNodeScroll.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getWindowScrollBarX.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getScrollParent.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/isScrollParent.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/detect-node-es/esm/browser.js": {
+      "timestamp": 1757520908673
+    },
+    "/home/dev/work/bow-mark/client/node_modules/get-nonce/dist/es2015/index.js": {
+      "timestamp": 1757520908707.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getWindowScroll.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/constants.js": {
+      "timestamp": 1757520908710
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/util.js": {
+      "timestamp": 1760543123457.2173
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/medium.js": {
+      "timestamp": 1760543122611.231
+    },
+    "/home/dev/work/bow-mark/client/node_modules/react-clientside-effect/lib/index.es.js": {
+      "timestamp": 1760543121955.2415
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/format.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/index.js": {
+      "timestamp": 1757520908710
+    },
+    "/home/dev/work/bow-mark/client/node_modules/prop-types/factoryWithThrowingShims.js": {
+      "timestamp": 1752614825851
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/index.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/framer-motion/node_modules/tslib/tslib.es6.js": {
+      "timestamp": 1752614822302.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/index.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/framesync/dist/es/index.js": {
+      "timestamp": 1757520910723
+    },
+    "/home/dev/work/bow-mark/client/node_modules/hey-listen/dist/hey-listen.es.js": {
+      "timestamp": 1757520910907
+    },
+    "/home/dev/work/bow-mark/client/node_modules/style-value-types/dist/style-value-types.es.js": {
+      "timestamp": 1757520910809
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/link.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/use-immer/dist/use-immer.module.js": {
+      "timestamp": 1757520917986
+    },
+    "/home/dev/work/bow-mark/client/node_modules/prop-types/lib/ReactPropTypesSecret.js": {
+      "timestamp": 1752614825851
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getHTMLElementScroll.js": {
+      "timestamp": 1757520908315
+    },
+    "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/focusMerge.js": {
+      "timestamp": 1757520908710
+    },
+    "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/focusIsHidden.js": {
+      "timestamp": 1757520908710
+    },
+    "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/setFocus.js": {
+      "timestamp": 1757520908710
+    },
+    "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/tabHook.js": {
+      "timestamp": 1757520908710
+    },
+    "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/utils/all-affected.js": {
+      "timestamp": 1757520908710
+    },
+    "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/focusInside.js": {
+      "timestamp": 1757520908710
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/hooks/index.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/parser/index.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/types/types.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/animations/index.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/animations/inertia.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/animations/generators/decay.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/animations/generators/keyframes.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/animations/generators/spring.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/angle.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/apply-offset.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/attract.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/clamp.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/degrees-to-radians.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/distance.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/interpolate.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/is-point-3d.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/is-point.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/mix-color.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/mix-complex.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/pipe.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/mix.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/point-from-vector.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/progress.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/radians-to-degrees.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/smooth-frame.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/smooth.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/snap.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/to-decimal.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/velocity-per-frame.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/velocity-per-second.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/wrap.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/easing/index.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/easing/cubic-bezier.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/easing/steps.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/easing/utils.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/framesync/dist/es/on-next-frame.js": {
+      "timestamp": 1757520910723
+    },
+    "/home/dev/work/bow-mark/client/node_modules/framesync/dist/es/create-render-step.js": {
+      "timestamp": 1757520910723
+    },
+    "/home/dev/work/bow-mark/client/node_modules/style-value-types/node_modules/tslib/tslib.es6.js": {
+      "timestamp": 1752614822302.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/client/link.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/immer/dist/immer.esm.mjs": {
+      "timestamp": 1757520910987.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@babel/runtime/helpers/esm/inheritsLoose.js": {
+      "timestamp": 1760543123927.2097
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@babel/runtime/helpers/esm/defineProperty.js": {
+      "timestamp": 1760543123908.21
+    },
+    "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/utils/array.js": {
+      "timestamp": 1757520908710
+    },
+    "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/utils/firstFocus.js": {
+      "timestamp": 1757520908710
+    },
+    "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/utils/DOMutils.js": {
+      "timestamp": 1757520908710
+    },
+    "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/utils/correctFocus.js": {
+      "timestamp": 1757520908710
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/hooks/useApolloClient.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/hooks/useLazyQuery.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/hooks/useMutation.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/hooks/useQuery.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/hooks/useSubscription.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/animations/utils/detect-animation-from-options.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/hooks/useReactiveVar.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/animations/utils/elapsed.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/animations/utils/find-spring.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/inc.js": {
+      "timestamp": 1757520910829.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/index.js": {
+      "timestamp": 1757520910881
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/client/router.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/client/use-intersection.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/shared/lib/router/router.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@babel/runtime/helpers/esm/setPrototypeOf.js": {
+      "timestamp": 1760543123986.2087
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@babel/runtime/helpers/esm/toPropertyKey.js": {
+      "timestamp": 1760543124010.2085
+    },
+    "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/utils/tabOrder.js": {
+      "timestamp": 1757520908710
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/hooks/useSyncExternalStore.js": {
+      "timestamp": 1757520906351
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/numbers/index.js": {
+      "timestamp": 1757520910881
+    },
+    "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/utils/tabUtils.js": {
+      "timestamp": 1757520908710
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/color/hsla.js": {
+      "timestamp": 1757520910881
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/numbers/units.js": {
+      "timestamp": 1757520910881
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/color/rgba.js": {
+      "timestamp": 1757520910881
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/color/hex.js": {
+      "timestamp": 1757520910881
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/complex/index.js": {
+      "timestamp": 1757520910881
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/complex/filter.js": {
+      "timestamp": 1757520910881
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/color/index.js": {
+      "timestamp": 1757520910881
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/shared/lib/router-context.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/lib/is-error.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/client/with-router.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/client/request-idle-callback.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@babel/runtime/helpers/esm/toPrimitive.js": {
+      "timestamp": 1760543124009.2085
+    },
+    "/home/dev/work/bow-mark/client/node_modules/@babel/runtime/helpers/esm/typeof.js": {
+      "timestamp": 1760543124012.2083
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/utils.js": {
+      "timestamp": 1757520910881
+    },
+    "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/utils/tabbables.js": {
+      "timestamp": 1757520908710
+    },
+    "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/color/utils.js": {
+      "timestamp": 1757520910881
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/client/normalize-trailing-slash.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/shared/lib/i18n/normalize-locale-path.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/client/route-loader.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/server/denormalize-page-path.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/shared/lib/utils.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/shared/lib/mitt.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/shared/lib/router/utils/is-dynamic.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/shared/lib/router/utils/parse-relative-url.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/shared/lib/router/utils/querystring.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/shared/lib/router/utils/resolve-rewrites.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/shared/lib/router/utils/route-matcher.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/shared/lib/router/utils/route-regex.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/shared/lib/router/utils/get-middleware-regex.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/shared/lib/i18n/detect-domain-locale.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/shared/lib/router/utils/path-match.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/shared/lib/router/utils/prepare-destination.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/shared/lib/router/utils/format-url.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/shared/lib/router/utils/get-asset-path-from-route.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/compiled/path-to-regexp/index.js": {
+      "timestamp": 1757520911734.999
+    },
+    "/home/dev/work/bow-mark/client/node_modules/next/dist/shared/lib/router/utils/parse-url.js": {
+      "timestamp": 1757520911734.999
+    }
+  },
+  "deps": {
+    "/home/dev/work/bow-mark/client/src/components/Forms/MaterialShipment/Data.tsx": [
+      "/home/dev/work/bow-mark/client/src/components/Forms/MaterialShipment/Data.tsx",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/react/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/react/dist/esm/chakra-provider.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/css-reset/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/css-reset/dist/esm/css-reset.js",
+      "/home/dev/work/bow-mark/client/node_modules/@emotion/react/dist/emotion-react.browser.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@emotion/cache/dist/emotion-cache.browser.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@emotion/sheet/dist/emotion-sheet.browser.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/stylis/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/stylis/src/Enum.js",
+      "/home/dev/work/bow-mark/client/node_modules/stylis/src/Utility.js",
+      "/home/dev/work/bow-mark/client/node_modules/stylis/src/Parser.js",
+      "/home/dev/work/bow-mark/client/node_modules/stylis/src/Tokenizer.js",
+      "/home/dev/work/bow-mark/client/node_modules/stylis/src/Prefixer.js",
+      "/home/dev/work/bow-mark/client/node_modules/stylis/src/Serializer.js",
+      "/home/dev/work/bow-mark/client/node_modules/stylis/src/Middleware.js",
+      "/home/dev/work/bow-mark/client/node_modules/@emotion/weak-memoize/dist/emotion-weak-memoize.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@emotion/memoize/dist/emotion-memoize.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@emotion/react/dist/emotion-element-4fbd89c5.browser.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@babel/runtime/helpers/esm/extends.js",
+      "/home/dev/work/bow-mark/client/node_modules/@emotion/react/node_modules/@emotion/weak-memoize/dist/weak-memoize.browser.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@emotion/react/isolated-hoist-non-react-statics-do-not-use-this-in-your-code/dist/emotion-react-isolated-hoist-non-react-statics-do-not-use-this-in-your-code.browser.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@emotion/utils/dist/emotion-utils.browser.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@emotion/serialize/dist/emotion-serialize.browser.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@emotion/hash/dist/emotion-hash.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@emotion/unitless/dist/emotion-unitless.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/portal/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/portal/dist/esm/portal-manager.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/function.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/assertion.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/types.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/dom.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/array.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/object.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/number.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/dom-query.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/tabbable.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/react-helpers.js",
+      "/home/dev/work/bow-mark/client/node_modules/css-box-model/dist/css-box-model.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/tiny-invariant/dist/esm/tiny-invariant.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/utils/dist/esm/responsive.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-clipboard.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-controllable.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-disclosure.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-id.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/node_modules/@reach/auto-id/dist/auto-id.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/node_modules/@reach/auto-id/node_modules/@reach/utils/dist/utils.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-focus-effect.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-update-effect.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-interval.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-latest-ref.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-safe-layout-effect.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-focus-on-show.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-event-listener.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-merge-refs.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-shortcut.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-boolean.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-force-update.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-unmount-effect.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-const.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-dimensions.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-timeout.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-event-callback.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-focus-on-hide.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-outside-click.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-previous.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-mouse-down-ref.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/hooks/dist/esm/use-why-update.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/portal/dist/esm/portal.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/system/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/color-mode/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/color-mode/dist/esm/color-mode-provider.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/color-mode/dist/esm/color-mode.utils.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/color-mode/dist/esm/storage-manager.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/color-mode/dist/esm/color-mode-script.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/background.js",
+      "/home/dev/work/bow-mark/client/node_modules/@styled-system/core/dist/index.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/utils/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/utils/positive-or-negative.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/utils/types.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/border.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/color.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/flexbox.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/grid.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/layout.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/others.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/position.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/shadow.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/space.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/typography.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/outline.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/list.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/transition.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/config/transform.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/pseudo/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/pseudo/pseudo.utils.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/pseudo/pseudo.selector.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/pseudo/pseudo.types.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/css.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/parser.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/css.types.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/parser.types.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/styled-system/dist/esm/system.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/system/dist/esm/hooks.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/system/dist/esm/providers.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/system/dist/esm/system.utils.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/system/dist/esm/system.types.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/system/dist/esm/system.js",
+      "/home/dev/work/bow-mark/client/node_modules/@emotion/styled/dist/emotion-styled.browser.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@emotion/is-prop-valid/dist/emotion-is-prop-valid.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@emotion/styled/base/dist/emotion-styled-base.browser.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/system/dist/esm/should-forward-prop.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/system/dist/esm/forward-ref.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/system/dist/esm/use-style-config.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/accordion.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/alert.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme-tools/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme-tools/dist/esm/color.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme-tools/dist/esm/component.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme-tools/dist/esm/breakpoints.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/avatar.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/sizes.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/spacing.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/badge.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/breadcrumb.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/button.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/checkbox.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/close-button.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/code.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/container.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/divider.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/drawer.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/modal.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/editable.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/form.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/form-label.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/heading.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/input.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/kbd.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/link.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/list.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/menu.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/number-input.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/pin-input.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/popover.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/progress.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/radio.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/select.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/skeleton.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/skip-link.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/slider.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/spinner.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/stat.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/switch.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/table.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/tabs.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/tag.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/textarea.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/tooltip.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/components/form-error.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/borders.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/breakpoints.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/colors.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/radius.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/shadows.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/transition.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/typography.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/foundations/z-index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/theme/dist/esm/styles.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/react/dist/esm/extend-theme.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/accordion/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/accordion/dist/esm/accordion.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/icon/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/icon/dist/esm/icon.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/icon/dist/esm/create-icon.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/transition/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/transition/dist/esm/collapse.js",
+      "/home/dev/work/bow-mark/client/node_modules/framer-motion/dist/framer-motion.es.js",
+      "/home/dev/work/bow-mark/client/node_modules/framer-motion/node_modules/tslib/tslib.es6.js",
+      "/home/dev/work/bow-mark/client/node_modules/framesync/dist/es/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/framesync/dist/es/on-next-frame.js",
+      "/home/dev/work/bow-mark/client/node_modules/framesync/dist/es/create-render-step.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/animations/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/tslib/tslib.es6.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/animations/utils/detect-animation-from-options.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/animations/generators/spring.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/animations/utils/find-spring.js",
+      "/home/dev/work/bow-mark/client/node_modules/hey-listen/dist/hey-listen.es.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/clamp.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/animations/generators/keyframes.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/interpolate.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/progress.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/mix.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/mix-color.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/numbers/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/utils.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/numbers/units.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/color/hsla.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/color/utils.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/color/rgba.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/color/hex.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/color/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/complex/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/node_modules/style-value-types/dist/es/complex/filter.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/mix-complex.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/inc.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/pipe.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/easing/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/easing/utils.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/animations/generators/decay.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/animations/utils/elapsed.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/animations/inertia.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/velocity-per-second.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/angle.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/radians-to-degrees.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/apply-offset.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/attract.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/degrees-to-radians.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/distance.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/is-point.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/is-point-3d.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/point-from-vector.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/smooth-frame.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/to-decimal.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/smooth.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/snap.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/velocity-per-frame.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/utils/wrap.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/easing/cubic-bezier.js",
+      "/home/dev/work/bow-mark/client/node_modules/popmotion/dist/es/easing/steps.js",
+      "/home/dev/work/bow-mark/client/node_modules/style-value-types/dist/style-value-types.es.js",
+      "/home/dev/work/bow-mark/client/node_modules/style-value-types/node_modules/tslib/tslib.es6.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/transition/dist/esm/__utils.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/transition/dist/esm/fade.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/transition/dist/esm/scale-fade.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/transition/dist/esm/slide.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/transition/dist/esm/slide-fade.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/accordion/dist/esm/use-accordion.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/descendant/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/descendant/dist/esm/use-descendant.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/alert/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/alert/dist/esm/alert.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/alert/dist/esm/icons.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/avatar/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/avatar/dist/esm/avatar.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/image/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/image/dist/esm/image.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/image/dist/esm/use-image.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/avatar/dist/esm/avatar-group.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/breadcrumb/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/breadcrumb/dist/esm/breadcrumb.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/button/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/button/dist/esm/button.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/spinner/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/spinner/dist/esm/spinner.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/visually-hidden/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/visually-hidden/dist/esm/visually-hidden.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/button/dist/esm/button-group.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/button/dist/esm/icon-button.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/checkbox/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/checkbox/dist/esm/checkbox-group.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/checkbox/dist/esm/use-checkbox-group.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/checkbox/dist/esm/checkbox.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/checkbox/dist/esm/checkbox-icon.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/checkbox/dist/esm/use-checkbox.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/close-button/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/close-button/dist/esm/close-button.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/counter/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/counter/dist/esm/use-counter.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/editable/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/editable/dist/esm/editable.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/editable/dist/esm/use-editable.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/form-control/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/form-control/dist/esm/form-control.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/form-control/dist/esm/use-form-control.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/form-control/dist/esm/form-error.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/form-control/dist/esm/form-label.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/control-box/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/control-box/dist/esm/control-box.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/input/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/input/dist/esm/input.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/input/dist/esm/input-addon.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/input/dist/esm/input-group.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/input/dist/esm/input-element.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/aspect-ratio.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/badge.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/box.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/center.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/code.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/container.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/divider.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/flex.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/grid.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/heading.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/kbd.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/link.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/list.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/simple-grid.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/spacer.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/stack.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/stack.utils.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/text.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/wrap.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/layout/dist/esm/link-box.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/media-query/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/media-query/dist/esm/media-query.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/media-query/dist/esm/use-media-query.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/media-query/dist/esm/media-query.hook.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/media-query/dist/esm/use-breakpoint.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/media-query/dist/esm/create-media-query.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/media-query/dist/esm/use-breakpoint-value.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/media-query/dist/esm/media-query.utils.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/table/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/table/dist/esm/table.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/menu/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/menu/dist/esm/menu.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/menu/dist/esm/use-menu.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/clickable/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/clickable/dist/esm/use-clickable.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/clickable/dist/esm/use-event-listeners.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/popper/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/popper/dist/esm/use-popper.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/popper/dist/esm/popper.utils.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/popper/dist/esm/react-popper.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/popper.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getCompositeRect.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getBoundingClientRect.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getNodeScroll.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getWindowScroll.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getWindow.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/instanceOf.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getHTMLElementScroll.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getNodeName.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getWindowScrollBarX.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getDocumentElement.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/isScrollParent.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getComputedStyle.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getLayoutRect.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/listScrollParents.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getScrollParent.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getParentNode.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getOffsetParent.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/isTableElement.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/orderModifiers.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/enums.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/debounce.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/validateModifiers.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/format.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/uniqueBy.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/getBasePlacement.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/mergeByName.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/detectOverflow.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getClippingRect.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getViewportRect.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/getDocumentRect.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/dom-utils/contains.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/rectToClientRect.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/computeOffsets.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/getVariation.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/getMainAxisFromPlacement.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/mergePaddingObject.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/getFreshSideObject.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/expandToHashMap.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/modifiers/eventListeners.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/modifiers/popperOffsets.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/modifiers/computeStyles.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/modifiers/applyStyles.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/modifiers/offset.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/modifiers/flip.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/getOppositePlacement.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/getOppositeVariationPlacement.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/computeAutoPlacement.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/modifiers/preventOverflow.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/getAltAxis.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/utils/within.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/modifiers/arrow.js",
+      "/home/dev/work/bow-mark/client/node_modules/@popperjs/core/lib/modifiers/hide.js",
+      "/home/dev/work/bow-mark/client/node_modules/dequal/dist/index.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/dist/esm/modal.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/Combination.js",
+      "/home/dev/work/bow-mark/client/node_modules/@babel/runtime/helpers/esm/objectWithoutPropertiesLoose.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/Lock.js",
+      "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/constants.js",
+      "/home/dev/work/bow-mark/client/node_modules/use-callback-ref/dist/es2015/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/use-callback-ref/dist/es2015/assignRef.js",
+      "/home/dev/work/bow-mark/client/node_modules/use-callback-ref/dist/es2015/useRef.js",
+      "/home/dev/work/bow-mark/client/node_modules/use-callback-ref/dist/es2015/createRef.js",
+      "/home/dev/work/bow-mark/client/node_modules/use-callback-ref/dist/es2015/mergeRef.js",
+      "/home/dev/work/bow-mark/client/node_modules/use-callback-ref/dist/es2015/useMergeRef.js",
+      "/home/dev/work/bow-mark/client/node_modules/use-callback-ref/dist/es2015/useTransformRef.js",
+      "/home/dev/work/bow-mark/client/node_modules/use-callback-ref/dist/es2015/transformRef.js",
+      "/home/dev/work/bow-mark/client/node_modules/use-callback-ref/dist/es2015/refToCallback.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/FocusGuard.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/medium.js",
+      "/home/dev/work/bow-mark/client/node_modules/use-sidecar/dist/es2015/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/use-sidecar/dist/es2015/hoc.js",
+      "/home/dev/work/bow-mark/client/node_modules/use-sidecar/dist/es2015/hook.js",
+      "/home/dev/work/bow-mark/client/node_modules/use-sidecar/dist/es2015/env.js",
+      "/home/dev/work/bow-mark/client/node_modules/detect-node-es/esm/browser.js",
+      "/home/dev/work/bow-mark/client/node_modules/use-sidecar/dist/es2015/config.js",
+      "/home/dev/work/bow-mark/client/node_modules/use-sidecar/dist/es2015/medium.js",
+      "/home/dev/work/bow-mark/client/node_modules/use-sidecar/dist/es2015/renderProp.js",
+      "/home/dev/work/bow-mark/client/node_modules/use-sidecar/dist/es2015/exports.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/Trap.js",
+      "/home/dev/work/bow-mark/client/node_modules/react-clientside-effect/lib/index.es.js",
+      "/home/dev/work/bow-mark/client/node_modules/@babel/runtime/helpers/esm/inheritsLoose.js",
+      "/home/dev/work/bow-mark/client/node_modules/@babel/runtime/helpers/esm/setPrototypeOf.js",
+      "/home/dev/work/bow-mark/client/node_modules/@babel/runtime/helpers/esm/defineProperty.js",
+      "/home/dev/work/bow-mark/client/node_modules/@babel/runtime/helpers/esm/toPropertyKey.js",
+      "/home/dev/work/bow-mark/client/node_modules/@babel/runtime/helpers/esm/typeof.js",
+      "/home/dev/work/bow-mark/client/node_modules/@babel/runtime/helpers/esm/toPrimitive.js",
+      "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/tabHook.js",
+      "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/focusMerge.js",
+      "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/utils/DOMutils.js",
+      "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/utils/tabOrder.js",
+      "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/utils/array.js",
+      "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/utils/tabUtils.js",
+      "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/utils/tabbables.js",
+      "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/utils/firstFocus.js",
+      "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/utils/correctFocus.js",
+      "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/utils/all-affected.js",
+      "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/focusInside.js",
+      "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/focusIsHidden.js",
+      "/home/dev/work/bow-mark/client/node_modules/focus-lock/dist/es2015/setFocus.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/util.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/UI.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/AutoFocusInside.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/MoveFocusInside.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/focus-lock/node_modules/react-focus-lock/dist/es2015/FreeFocusInside.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/node_modules/react-remove-scroll/dist/es2015/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/node_modules/react-remove-scroll/dist/es2015/Combination.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/node_modules/tslib/tslib.es6.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/node_modules/react-remove-scroll/dist/es2015/UI.js",
+      "/home/dev/work/bow-mark/client/node_modules/react-remove-scroll-bar/dist/es2015/constants.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/node_modules/react-remove-scroll/dist/es2015/medium.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/node_modules/react-remove-scroll/dist/es2015/sidecar.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/node_modules/react-remove-scroll/dist/es2015/SideEffect.js",
+      "/home/dev/work/bow-mark/client/node_modules/react-remove-scroll-bar/dist/es2015/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/react-remove-scroll-bar/dist/es2015/component.js",
+      "/home/dev/work/bow-mark/client/node_modules/react-style-singleton/dist/es2015/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/react-style-singleton/dist/es2015/component.js",
+      "/home/dev/work/bow-mark/client/node_modules/react-style-singleton/dist/es2015/hook.js",
+      "/home/dev/work/bow-mark/client/node_modules/react-style-singleton/dist/es2015/singleton.js",
+      "/home/dev/work/bow-mark/client/node_modules/get-nonce/dist/es2015/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/react-remove-scroll-bar/dist/es2015/utils.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/node_modules/react-remove-scroll/dist/es2015/handleScroll.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/node_modules/react-remove-scroll/dist/es2015/aggresiveCapture.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/dist/esm/modal-transition.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/dist/esm/use-modal.js",
+      "/home/dev/work/bow-mark/client/node_modules/aria-hidden/dist/es2015/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/dist/esm/modal-manager.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/dist/esm/alert-dialog.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/modal/dist/esm/drawer.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/number-input/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/number-input/dist/esm/number-input.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/number-input/dist/esm/icons.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/number-input/dist/esm/use-number-input.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/number-input/dist/esm/use-spinner.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/number-input/dist/esm/utils.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/pin-input/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/pin-input/dist/esm/pin-input.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/pin-input/dist/esm/use-pin-input.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/popover/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/popover/dist/esm/popover.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/popover/dist/esm/use-popover.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/progress/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/progress/dist/esm/circular-progress.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/progress/dist/esm/progress.utils.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/progress/dist/esm/progress.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/radio/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/radio/dist/esm/radio.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/radio/dist/esm/radio-group.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/radio/dist/esm/use-radio-group.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/radio/dist/esm/use-radio.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/select/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/select/dist/esm/select.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/skeleton/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/skeleton/dist/esm/skeleton.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/slider/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/slider/dist/esm/slider.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/slider/dist/esm/use-slider.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/stat/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/stat/dist/esm/stat.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/switch/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/switch/dist/esm/switch.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/tabs/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/tabs/dist/esm/tabs.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/tabs/dist/esm/use-tabs.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/tag/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/tag/dist/esm/tag.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/textarea/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/textarea/dist/esm/textarea.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/dist/esm/use-toast.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/dist/esm/toast.class.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/dist/esm/toast-manager.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/dist/esm/toast.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/node_modules/@reach/alert/dist/alert.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/node_modules/@reach/alert/node_modules/@reach/visually-hidden/dist/visually-hidden.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/node_modules/@reach/alert/node_modules/@reach/utils/dist/utils.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/dist/esm/toast.utils.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/toast/dist/esm/toast.types.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/tooltip/dist/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/tooltip/dist/esm/tooltip.js",
+      "/home/dev/work/bow-mark/client/node_modules/@chakra-ui/tooltip/dist/esm/use-tooltip.js",
+      "/home/dev/work/bow-mark/client/node_modules/react-icons/fi/index.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/react-icons/lib/esm/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/react-icons/lib/esm/iconsManifest.js",
+      "/home/dev/work/bow-mark/client/node_modules/react-icons/lib/esm/iconBase.js",
+      "/home/dev/work/bow-mark/client/node_modules/react-icons/lib/esm/iconContext.js",
+      "/home/dev/work/bow-mark/client/src/constants/select.ts",
+      "/home/dev/work/bow-mark/client/src/generated/graphql.tsx",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/core/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/globals/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/ts-invariant/lib/invariant.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/globals/DEV.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/globals/global.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/globals/maybe.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/globals/fix-graphql.js",
+      "/home/dev/work/bow-mark/client/node_modules/ts-invariant/process/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/index.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/version.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/graphql.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/isPromise.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/language/parser.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/error/syntaxError.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/error/GraphQLError.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/isObjectLike.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/polyfills/symbols.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/language/location.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/language/printLocation.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/language/kinds.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/language/ast.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/defineInspect.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/invariant.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/nodejsCustomInspectSymbol.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/language/tokenKind.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/language/source.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/inspect.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/devAssert.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/instanceOf.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/language/directiveLocation.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/language/lexer.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/language/blockString.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/validate.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/language/visitor.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/type/validate.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/polyfills/find.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/polyfills/objectValues.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/error/locatedError.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/assertValidName.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/typeComparators.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/type/definition.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/polyfills/objectEntries.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/keyMap.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/mapValue.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/toObjMap.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/keyValMap.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/didYouMean.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/identityFunc.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/suggestionList.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/language/printer.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/valueFromASTUntyped.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/type/schema.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/polyfills/arrayFrom.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/type/introspection.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/astFromValue.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/polyfills/isFinite.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/isCollection.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/type/scalars.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/polyfills/isInteger.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/type/directives.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/TypeInfo.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/typeFromAST.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/specifiedRules.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/ExecutableDefinitionsRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/language/predicates.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueOperationNamesRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/LoneAnonymousOperationRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/SingleFieldSubscriptionsRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/KnownTypeNamesRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/FragmentsOnCompositeTypesRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/VariablesAreInputTypesRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/ScalarLeafsRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/FieldsOnCorrectTypeRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueFragmentNamesRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/KnownFragmentNamesRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/NoUnusedFragmentsRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/PossibleFragmentSpreadsRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/NoFragmentCyclesRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueVariableNamesRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/NoUndefinedVariablesRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/NoUnusedVariablesRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/KnownDirectivesRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueDirectivesPerLocationRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/KnownArgumentNamesRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueArgumentNamesRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/ValuesOfCorrectTypeRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/ProvidedRequiredArgumentsRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/VariablesInAllowedPositionRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/OverlappingFieldsCanBeMergedRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueInputFieldNamesRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/LoneSchemaDefinitionRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueOperationTypesRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueTypeNamesRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueEnumValueNamesRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueFieldDefinitionNamesRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/UniqueDirectiveNamesRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/PossibleTypeExtensionsRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/ValidationContext.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/execution/execute.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/memoize3.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/promiseReduce.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/promiseForObject.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/Path.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/getOperationRootType.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/execution/values.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/printPathArray.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/valueFromAST.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/coerceInputValue.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/type/index.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/language/index.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/execution/index.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/subscription/index.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/subscription/subscribe.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/jsutils/isAsyncIterable.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/subscription/mapAsyncIterator.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/index.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/custom/NoDeprecatedCustomRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/validation/rules/custom/NoSchemaIntrospectionCustomRule.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/error/index.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/error/formatError.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/index.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/getIntrospectionQuery.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/getOperationAST.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/introspectionFromSchema.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/buildClientSchema.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/buildASTSchema.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/extendSchema.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/lexicographicSortSchema.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/printSchema.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/concatAST.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/separateOperations.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/stripIgnoredCharacters.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/findBreakingChanges.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/graphql/utilities/findDeprecatedUsages.mjs",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/core/ApolloClient.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/core/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/core/empty.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/core/ApolloLink.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/graphql/directives.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/graphql/fragments.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/graphql/getFromAST.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/graphql/storeUtils.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/objects.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/graphql/transform.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/filterInPlace.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/policies/pagination.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/mergeDeep.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/observables/Observable.js",
+      "/home/dev/work/bow-mark/client/node_modules/zen-observable-ts/module.js",
+      "/home/dev/work/bow-mark/client/node_modules/symbol-observable/es/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/symbol-observable/es/ponyfill.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/cloneDeep.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/maybeDeepFreeze.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/observables/iteration.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/observables/asyncMap.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/observables/Concast.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/observables/subclassing.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/canUse.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/arrays.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/errorHandling.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/compact.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/makeUniqueId.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/stringifyForDisplay.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/common/mergeOptions.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/utilities/types/IsStrictlyAny.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/utils/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/utils/fromError.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/utils/toPromise.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/utils/fromPromise.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/utils/throwServerError.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/utils/validateOperation.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/utils/createOperation.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/utils/transformOperation.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/core/from.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/core/split.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/core/concat.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/core/execute.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/core/types.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/version.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/parseAndCheckHttpResponse.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/serializeFetchParameter.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/selectHttpOptionsAndBody.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/checkFetcher.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/createSignalIfSupported.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/selectURI.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/createHttpLink.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/rewriteURIForGET.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/link/http/HttpLink.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/core/QueryManager.js",
+      "/home/dev/work/bow-mark/client/node_modules/@wry/equality/lib/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/core/cache.js",
+      "/home/dev/work/bow-mark/client/node_modules/optimism/lib/bundle.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@wry/trie/lib/trie.esm.js",
+      "/home/dev/work/bow-mark/client/node_modules/@wry/context/lib/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@wry/context/lib/slot.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/core/types/Cache.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/core/types/common.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/entityStore.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/helpers.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/inMemoryCache.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/fixPolyfills.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/readFromStore.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/object-canon.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/writeToStore.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/policies.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/reactiveVars.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/key-extractor.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/cache/inmemory/types.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/errors/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/core/ObservableQuery.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/core/networkStatus.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/core/LocalState.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/core/QueryInfo.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/core/types.js",
+      "/home/dev/work/bow-mark/client/node_modules/graphql-tag/lib/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/context/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/context/ApolloConsumer.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/context/ApolloContext.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/context/ApolloProvider.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/hooks/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/hooks/useApolloClient.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/hooks/useLazyQuery.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/hooks/useQuery.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/hooks/useSyncExternalStore.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/parser/index.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/hooks/useMutation.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/hooks/useSubscription.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/hooks/useReactiveVar.js",
+      "/home/dev/work/bow-mark/client/node_modules/@apollo/client/react/types/types.js",
+      "/home/dev/work/bow-mark/client/src/utils/isEmpty.ts",
+      "/home/dev/work/bow-mark/client/src/components/Common/ContactOffice.tsx",
+      "/home/dev/work/bow-mark/client/src/constants/numbers.ts",
+      "/home/dev/work/bow-mark/client/src/components/Common/FormContainer.tsx",
+      "/home/dev/work/bow-mark/client/src/components/Common/forms/Select.tsx",
+      "/home/dev/work/bow-mark/client/src/components/Common/forms/TextField.tsx",
+      "/home/dev/work/bow-mark/client/src/components/Search/CompanySearch.tsx",
+      "/home/dev/work/bow-mark/client/src/utils/isObjectId.ts",
+      "/home/dev/work/bow-mark/client/src/components/Common/forms/TextDropdown.tsx",
+      "/home/dev/work/bow-mark/client/src/components/Common/TextLink.tsx",
+      "/home/dev/work/bow-mark/client/src/components/Common/Loading.tsx",
+      "/home/dev/work/bow-mark/client/src/components/Forms/MaterialShipment/Shipment.tsx",
+      "/home/dev/work/bow-mark/client/src/utils/convertHourToDate.ts",
+      "/home/dev/work/bow-mark/client/src/utils/jobsiteMaterialName.ts",
+      "/home/dev/work/bow-mark/client/src/components/Common/forms/Number.tsx",
+      "/home/dev/work/bow-mark/client/src/components/Common/forms/Unit.tsx",
+      "/home/dev/work/bow-mark/client/src/contexts/System/index.tsx",
+      "/home/dev/work/bow-mark/client/node_modules/use-immer/dist/use-immer.module.js",
+      "/home/dev/work/bow-mark/client/node_modules/immer/dist/immer.esm.mjs",
+      "/home/dev/work/bow-mark/client/src/components/Search/MaterialSearch.tsx"
+    ]
+  }
+}

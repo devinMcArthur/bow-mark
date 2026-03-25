@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://agora.voto/sitemap.xml
