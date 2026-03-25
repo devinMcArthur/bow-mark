@@ -730,6 +730,8 @@ const truckingReports = async (
       }
 
       const jm = jobsiteMaterials[jobsiteMaterialId];
+      if (!jm) continue;
+
       const shipmentRateScenarioId =
         materialShipmentObjects[i].materialShipment.vehicleObject
           ?.rateScenarioId;

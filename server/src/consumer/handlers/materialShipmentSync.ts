@@ -261,6 +261,7 @@ export async function upsertFactMaterialShipment(
     rate: rate.toString(),
     estimated,
     delivered_rate_id: deliveredRateId || null,
+    rate_scenario_id: rateScenarioId || null,
     vehicle_type: materialShipment.vehicleObject?.vehicleType || null,
     archived_at: materialShipment.archivedAt || null,
     synced_at: new Date(),
