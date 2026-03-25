@@ -7,7 +7,7 @@ import {
   IJobsiteMaterialUpdate,
   IRateScenarioData,
 } from "@typescript/jobsiteMaterial";
-import mongoose, { Types } from "mongoose";
+import mongoose from "mongoose";
 
 const document = async (
   jobsiteMaterial: JobsiteMaterialDocument,
@@ -64,7 +64,7 @@ const addScenario = async (
   }
 
   jobsiteMaterial.scenarios!.push({
-    _id: new Types.ObjectId(),
+    _id: new mongoose.Types.ObjectId(),
     label: data.label,
     delivered: data.delivered,
     rates: data.rates as any,
@@ -132,7 +132,6 @@ const removeScenario = async (
       { session }
     );
     if (dependentShipment) {
-      await session.abortTransaction();
       throw new Error(
         "Cannot remove scenario: existing material shipments reference it. Archive or re-assign those shipments first."
       );

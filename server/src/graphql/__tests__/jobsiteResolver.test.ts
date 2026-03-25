@@ -325,7 +325,7 @@ describe("Jobsite Resolver", () => {
             deliveredRates: [],
           };
 
-          expect(documents.jobsites.jobsite_2.materials.length).toBe(2);
+          expect(documents.jobsites.jobsite_2.materials.length).toBe(3);
 
           const res = await request(app)
             .post("/graphql")
@@ -348,10 +348,10 @@ describe("Jobsite Resolver", () => {
             documents.jobsites.jobsite_2._id
           );
 
-          expect(jobsite?.materials.length).toBe(3);
+          expect(jobsite?.materials.length).toBe(4);
 
           const jobsiteMaterial = await JobsiteMaterial.getById(
-            jobsite?.materials[2]?.toString() || ""
+            jobsite?.materials[3]?.toString() || ""
           );
 
           expect(jobsiteMaterial?.supplier?.toString()).toBe(data.supplierId);
@@ -383,7 +383,7 @@ describe("Jobsite Resolver", () => {
             ],
           };
 
-          expect(documents.jobsites.jobsite_2.materials.length).toBe(2);
+          expect(documents.jobsites.jobsite_2.materials.length).toBe(3);
 
           const res = await request(app)
             .post("/graphql")
@@ -406,10 +406,10 @@ describe("Jobsite Resolver", () => {
             documents.jobsites.jobsite_2._id
           );
 
-          expect(jobsite?.materials.length).toBe(3);
+          expect(jobsite?.materials.length).toBe(4);
 
           const jobsiteMaterial = await JobsiteMaterial.getById(
-            jobsite?.materials[2]?.toString() || ""
+            jobsite?.materials[3]?.toString() || ""
           );
 
           expect(jobsiteMaterial?.supplier?.toString()).toBe(data.supplierId);

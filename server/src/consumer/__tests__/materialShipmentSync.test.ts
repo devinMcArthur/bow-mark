@@ -214,11 +214,8 @@ describe("materialShipmentSyncHandler", () => {
         .where("mongo_id", "=", mongoId)
         .executeTakeFirst();
 
-      // The current system returns 0 for invoice cost type rates.
-      // getInvoiceMonthRate requires the jobsiteMaterial.invoices to be populated,
-      // which may not work correctly through nested populate() calls.
-      // TODO: investigate if getInvoiceMonthRate works correctly in production.
-      expect(Number(row!.rate)).toBe(0);
+      // invoice cost = 500, total shipment quantity = 10, so per-unit rate = 50
+      expect(Number(row!.rate)).toBe(50);
       // Invoice rates are never estimated
       expect(row!.estimated).toBe(false);
     });
