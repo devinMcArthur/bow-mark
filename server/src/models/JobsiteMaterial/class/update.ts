@@ -88,6 +88,9 @@ const updateScenario = async (
 
   if (!scenario) throw new Error("Scenario not found");
 
+  if (!data.rates || data.rates.length === 0)
+    throw new Error("Must provide at least one rate for the scenario");
+
   scenario.label = data.label;
   scenario.delivered = data.delivered;
   scenario.rates = data.rates as any;

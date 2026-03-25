@@ -27,7 +27,7 @@ jobs:
       - name: Install dbmate
         run: |
           curl -fsSL -o /usr/local/bin/dbmate \
-            https://github.com/amacneil/dbmate/releases/latest/download/dbmate-linux-amd64
+            https://github.com/amacneil/dbmate/releases/download/v2.31.0/dbmate-linux-amd64
           chmod +x /usr/local/bin/dbmate
 
       - name: Install server dependencies
