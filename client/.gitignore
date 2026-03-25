@@ -2,3 +2,6 @@
 # Playwright auth state and build cache
 playwright/.auth/
 playwright/.cache/
+
+# Playwright test output
+test-results/
