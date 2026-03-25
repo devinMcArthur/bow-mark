@@ -1,4 +1,8 @@
-import { InvoiceDocument, JobsiteMaterialDocument } from "@models";
+import {
+  InvoiceDocument,
+  JobsiteMaterialDocument,
+  MaterialShipment,
+} from "@models";
 import {
   IJobsiteMaterialUpdate,
   IRateScenarioData,
@@ -66,7 +70,11 @@ const addScenario = async (
     rates: data.rates as any,
   } as any);
 
+  jobsiteMaterial.markModified("scenarios");
+
   await jobsiteMaterial.validateDocument();
+
+  await jobsiteMaterial.requestReportUpdate();
 };
 
 const updateScenario = async (
@@ -84,7 +92,13 @@ const updateScenario = async (
   scenario.delivered = data.delivered;
   scenario.rates = data.rates as any;
 
+  // markModified required: direct array reassignment on a subdocument isn't
+  // reliably detected as dirty by Mongoose 5's change tracking.
+  jobsiteMaterial.markModified("scenarios");
+
   await jobsiteMaterial.validateDocument();
+
+  await jobsiteMaterial.requestReportUpdate();
 };
 
 const removeScenario = async (
@@ -99,9 +113,25 @@ const removeScenario = async (
 
   if (index === -1) throw new Error("Scenario not found");
 
+  // Block deletion if any MaterialShipment references this scenario —
+  // removing it would silently drop those shipments from cost reports.
+  const dependentShipment = await MaterialShipment.findOne({
+    "vehicleObject.rateScenarioId": jobsiteMaterial.scenarios[index]._id,
+    archivedAt: null,
+  });
+  if (dependentShipment) {
+    throw new Error(
+      "Cannot remove scenario: existing material shipments reference it. Archive or re-assign those shipments first."
+    );
+  }
+
   jobsiteMaterial.scenarios.splice(index, 1);
 
+  jobsiteMaterial.markModified("scenarios");
+
   await jobsiteMaterial.validateDocument();
+
+  await jobsiteMaterial.requestReportUpdate();
 };
 
 export default {

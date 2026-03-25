@@ -55,7 +55,7 @@ const main = async () => {
       server.setTimeout(10 * 60 * 1000);
     }
 
-    if (process.env.NODE_ENV !== "test") {
+    if (process.env.NODE_ENV !== "test" && !process.env.SKIP_POST_STARTUP) {
       await System.validateSystem();
       await Company.validateCompanies();
 
