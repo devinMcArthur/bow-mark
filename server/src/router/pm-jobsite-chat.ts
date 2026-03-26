@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 import { Jobsite, User, System, EnrichedFile } from "@models";
 import { isDocument } from "@typegoose/typegoose";
 import { streamConversation } from "../lib/streamConversation";
-import { READ_DOCUMENT_TOOL, makeReadDocumentExecutor } from "../lib/readDocumentExecutor";
+import { READ_DOCUMENT_TOOL, LIST_DOCUMENT_PAGES_TOOL, makeReadDocumentExecutor } from "../lib/readDocumentExecutor";
 import { buildFileIndex } from "../lib/buildFileIndex";
 import { UserRoles } from "../typescript/user";
 import { requireAuth } from "../lib/authMiddleware";
@@ -73,6 +73,46 @@ router.post("/message", requireAuth, async (req, res) => {
     req.token
   );
 
+  // ── Query decomposition ────────────────────────────────────────────────────
+  const lastUserMessage = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
+  let decomposedQuestions: string[] = [];
+  if (lastUserMessage.trim()) {
+    try {
+      const anthropicForDecomp = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const decompResponse = await anthropicForDecomp.messages.create({
+        model: "claude-haiku-4-5",
+        max_tokens: 200,
+        messages: [
+          {
+            role: "user",
+            content: `Does this question contain multiple distinct parts that should each be answered separately from a document?
+If yes, list each part as a short, focused question (one per line, no numbering or bullets).
+If no, reply with exactly: SINGLE
+
+Question: "${lastUserMessage}"`,
+          },
+        ],
+      });
+      const decompText =
+        decompResponse.content[0]?.type === "text"
+          ? decompResponse.content[0].text.trim()
+          : "SINGLE";
+      if (decompText !== "SINGLE") {
+        decomposedQuestions = decompText
+          .split("\n")
+          .map((q) => q.trim())
+          .filter(Boolean);
+      }
+    } catch {
+      // Non-fatal — proceed without decomposition
+    }
+  }
+
+  const decompositionBlock =
+    decomposedQuestions.length > 1
+      ? `\n## This Question\nThis question has multiple parts — address each one:\n${decomposedQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}\n`
+      : "";
+
   const APP_NAME = process.env.APP_NAME || "paving";
 
   const systemPrompt = `${userContext ? userContext + "\n\n" : ""}You are a Project Manager assistant for Bow-Mark's ${APP_NAME} division.
@@ -80,17 +120,21 @@ router.post("/message", requireAuth, async (req, res) => {
 You are currently focused on jobsite: **${(jobsite as any).name}**${(jobsite as any).jobcode ? ` (Job Code: ${(jobsite as any).jobcode})` : ""}${(jobsite as any).description ? `\nJobsite description: ${(jobsite as any).description}` : ""}
 
 You have access to two types of tools:
-1. **read_document** — load and read jobsite specification and contract documents
+1. **list_document_pages** / **read_document** — navigate and read jobsite specification and contract documents
 2. **Analytics tools** — query the company's PostgreSQL reporting database for financial performance, productivity metrics, crew data, and more
 
 ## Jobsite Documents
 
 ${fileIndex || "No documents have been uploaded yet."}${pendingNotice}${specFileIndex ? `\n\n## Reference Specifications\n\n${specFileIndex}` : ""}
-
+${decompositionBlock}
 ## Instructions
 
-- For questions about specifications, contracts, or compliance: use read_document.
+- For questions about specifications, contracts, or compliance: use document tools.
 - For questions about financial performance, productivity, crew hours, material costs, or comparisons: use analytics tools.
+- **Loading documents — two steps.** For documents with a page index, call list_document_pages first to see the page-by-page breakdown, then call read_document with only the specific pages you need. Only skip list_document_pages if the document has no page index.
+- **Clarify before assuming.** If a question could apply to more than one thing, ask which one the user means before loading a document.
+- **Cross-references.** When you read a page that references another drawing, document, or standard, note it explicitly. Follow it automatically if it directly answers the question.
+- **Completeness.** Before giving your final answer, confirm you have addressed all parts of the question.
 - You can compare this jobsite to others — analytics tools are company-wide, not restricted to this jobsite.
 - Always use tools to fetch real data. Do not make up numbers.
 - When asked about this jobsite's performance, use search_jobsites to find it by jobcode/name, then fetch data.
@@ -107,8 +151,8 @@ ${fileIndex || "No documents have been uploaded yet."}${pendingNotice}${specFile
   if (!mcpConnection) return;
   const { client: mcpClient, tools: mcpTools } = mcpConnection;
 
-  // Combine read_document with MCP analytics tools
-  const allTools: Anthropic.Tool[] = [READ_DOCUMENT_TOOL, ...mcpTools];
+  // Combine document tools with MCP analytics tools
+  const allTools: Anthropic.Tool[] = [LIST_DOCUMENT_PAGES_TOOL, READ_DOCUMENT_TOOL, ...mcpTools];
 
   const docExecutor = makeReadDocumentExecutor([...jobsiteFiles, ...specFiles]);
 
@@ -125,7 +169,7 @@ ${fileIndex || "No documents have been uploaded yet."}${pendingNotice}${specFile
       maxTokens: 8192,
       executeTool: async (name, input) => {
         // Route to document executor or MCP
-        if (name === READ_DOCUMENT_TOOL.name) {
+        if (name === READ_DOCUMENT_TOOL.name || name === LIST_DOCUMENT_PAGES_TOOL.name) {
           return docExecutor(name, input);
         }
         const mcpResult = await mcpClient.callTool({ name, arguments: input });
