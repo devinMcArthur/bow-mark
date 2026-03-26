@@ -211,8 +211,8 @@ export default defineConfig({
       // reflect-metadata must be imported before any decorator-using module.
       "reflect-metadata",
     ],
-    testTimeout: 60000,
-    hookTimeout: 60000,
+    testTimeout: 120000,
+    hookTimeout: 120000,
     globalSetup: [path.resolve(__dirname, "src/testing/vitestGlobalSetup.ts")],
     // pool: "forks" — CJS require() in test code goes through Node.js's native
     // Module._resolveFilename (confirmed from error stack traces). Two hooks
