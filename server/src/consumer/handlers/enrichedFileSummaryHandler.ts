@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { EnrichedFile } from "@models";
 import { getFile } from "@utils/fileStorage";
 import type { EnrichedFileSummaryMessage } from "../../rabbitmq/publisher";
-import { summarizePdf, DocumentSummary, withRateLimitRetry, RateLimitExhaustedError } from "./summarizePdf";
+import { summarizePdf, DocumentSummary, withRateLimitRetry, RateLimitExhaustedError, generatePageIndex } from "./summarizePdf";
 import { publishEnrichedFileCreated } from "../../rabbitmq/publisher";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -119,6 +119,23 @@ export const enrichedFileSummaryHandler = {
           ...(pageCount !== undefined ? { pageCount } : {}),
         },
       });
+
+      // Generate page-level index for PDFs (not spreadsheets or images)
+      if (!isSpreadsheet && !contentType.startsWith("image/")) {
+        try {
+          console.log(`[EnrichedFileSummary] Generating page index for file ${fileId}...`);
+          const pageIndex = await generatePageIndex(anthropic, buffer);
+          if (pageIndex.length > 0) {
+            await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
+              $set: { pageIndex },
+            });
+            console.log(`[EnrichedFileSummary] Page index saved: ${pageIndex.length} pages for file ${fileId}`);
+          }
+        } catch (indexErr) {
+          // Non-fatal — document is still usable without page index
+          console.warn(`[EnrichedFileSummary] Page index generation failed for file ${fileId}:`, indexErr);
+        }
+      }
 
       console.log(`[EnrichedFileSummary] Done for file ${fileId}`);
     } catch (error) {
