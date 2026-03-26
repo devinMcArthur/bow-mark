@@ -25,6 +25,8 @@ import {
 } from "@models";
 import { JobsiteMaterialCostType } from "@typescript/jobsiteMaterial";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+dayjs.extend(utc);
 
 /**
  * Upsert a jobsite dimension record
@@ -655,8 +657,8 @@ async function getInvoiceMonthRate(
     return 0;
   }
 
-  const monthStart = dayjs(dayInMonth).startOf("month").toDate();
-  const monthEnd = dayjs(dayInMonth).endOf("month").toDate();
+  const monthStart = dayjs.utc(dayInMonth).startOf("month").toDate();
+  const monthEnd = dayjs.utc(dayInMonth).endOf("month").toDate();
 
   // Get all invoices for this material in this month
   const invoices = await Invoice.find({
