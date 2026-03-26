@@ -89,6 +89,7 @@ jobs:
         run: npm run build
         working-directory: client
         env:
+          NODE_OPTIONS: --openssl-legacy-provider
           NEXT_PUBLIC_APP_NAME: Paving
           NEXT_PUBLIC_API_URL: http://localhost:4001/graphql
           NEXT_PUBLIC_WS_API_URL: ws://localhost:4001/graphql
