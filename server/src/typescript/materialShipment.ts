@@ -7,6 +7,7 @@ interface IMaterialShipmentVehicleObject {
   vehicleCode: string;
   truckingRateId?: string;
   deliveredRateId?: Id;
+  rateScenarioId?: Id;
 }
 
 interface IMaterialShipmentCreateBase {

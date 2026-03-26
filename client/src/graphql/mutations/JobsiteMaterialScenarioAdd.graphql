@@ -1,0 +1,5 @@
+mutation JobsiteMaterialScenarioAdd($id: ID!, $data: RateScenarioData!) {
+  jobsiteMaterialScenarioAdd(id: $id, data: $data) {
+    ...JobsiteMaterialCardSnippet
+  }
+}

@@ -11,10 +11,16 @@ const _ids = {
     developer_user: {
       _id: Types.ObjectId("6241f81d8b757d1c8ae18b99"),
     },
+    project_manager_user: {
+      _id: Types.ObjectId("6241f81d8b757d1c8ae18b14"),
+    },
   },
   crews: {
     base_1: {
       _id: Types.ObjectId("62156102e79a8931895f2b2a"),
+    },
+    base_2: {
+      _id: Types.ObjectId("62156102e79a8931895f2b2b"),
     },
   },
   employees: {
@@ -32,6 +38,12 @@ const _ids = {
     },
     base_laborer_3: {
       _id: Types.ObjectId("6215623f22057ba3cfbd959a"),
+    },
+    base_foreman_2: {
+      _id: Types.ObjectId("6215623f22057ba3cfbd959b"),
+    },
+    pm_employee: {
+      _id: Types.ObjectId("6241f83c8542b250a1b765bb"),
     },
     temp_1: {
       _id: Types.ObjectId("622fcce9e0f9c395301fd290"),
@@ -52,6 +64,9 @@ const _ids = {
     },
     gravel_truck_1: {
       _id: Types.ObjectId("621565c67fbbbddff42b17e0"),
+    },
+    gravel_truck_2: {
+      _id: Types.ObjectId("621565c67fbbbddff42b17e1"),
     },
     temp_1: {
       _id: Types.ObjectId("622fd2be8e227b86fa70011b"),
@@ -89,6 +104,12 @@ const _ids = {
     jobsite_2_base_1_2: {
       _id: Types.ObjectId("629a4f158797abb2e41b6d3e"),
     },
+    jobsite_1_base_1_sync_1: {
+      _id: Types.ObjectId("621664558c026b7ac8fb32f0"),
+    },
+    jobsite_2_base_1_sync_1: {
+      _id: Types.ObjectId("621664558c026b7ac8fb32f1"),
+    },
   },
   employeeWork: {
     jobsite_1_base_1_1_base_foreman_1: {
@@ -97,15 +118,27 @@ const _ids = {
     jobsite_1_base_1_1_base_foreman_2: {
       _id: Types.ObjectId("62561436e466aa29d292a133"),
     },
+    sync_employee_work_1: {
+      _id: Types.ObjectId("621667718d92575bd6dc70d6"),
+    },
+    sync_employee_work_2: {
+      _id: Types.ObjectId("621667718d92575bd6dc70d7"),
+    },
   },
   vehicleWork: {
     jobsite_1_base_1_1_skidsteer_1: {
       _id: Types.ObjectId("62166a572a3444b242d7801c"),
     },
+    sync_vehicle_work_1: {
+      _id: Types.ObjectId("62166a572a3444b242d7801d"),
+    },
   },
   productions: {
     jobsite_1_base_1_1_production_1: {
       _id: Types.ObjectId("62166bd2bab11e05ea2f6c0d"),
+    },
+    sync_production_1: {
+      _id: Types.ObjectId("62166bd2bab11e05ea2f6c0e"),
     },
   },
   materialShipments: {
@@ -126,6 +159,27 @@ const _ids = {
     },
     jobsite_2_base_1_2_shipment_1: {
       _id: Types.ObjectId("629a4eb086b1168a8d05dfa2"),
+    },
+    sync_shipment_costed_1: {
+      _id: Types.ObjectId("62166e38ef63bebc19532514"),
+    },
+    sync_shipment_non_costed_1: {
+      _id: Types.ObjectId("62166e38ef63bebc19532515"),
+    },
+    sync_shipment_trucking_1: {
+      _id: Types.ObjectId("62166e38ef63bebc19532516"),
+    },
+    sync_shipment_invoice_cost_1: {
+      _id: Types.ObjectId("62166e38ef63bebc19532517"),
+    },
+    sync_shipment_delivered_rate_1: {
+      _id: Types.ObjectId("62166e38ef63bebc19532518"),
+    },
+    sync_shipment_scenario_pickup_1: {
+      _id: Types.ObjectId("62166e38ef63bebc19532519"),
+    },
+    sync_shipment_scenario_delivered_1: {
+      _id: Types.ObjectId("62166e38ef63bebc1953251a"),
     },
   },
   reportNotes: {
@@ -172,6 +226,18 @@ const _ids = {
     jobsite_3_material_1: {
       _id: Types.ObjectId("623e1a391900170e516390e7"),
     },
+    sync_jobsite_material_invoice_cost: {
+      _id: Types.ObjectId("629a49205f76f65244785a11"),
+    },
+    sync_jobsite_material_delivered_rate: {
+      _id: Types.ObjectId("629a49205f76f65244785a12"),
+      deliveredRateId: Types.ObjectId("629a49205f76f65244785a13"),
+    },
+    sync_jobsite_material_scenario: {
+      _id: Types.ObjectId("629a49205f76f65244785a14"),
+      scenarioPickupId: Types.ObjectId("629a49205f76f65244785a15"),
+      scenarioDeliveredId: Types.ObjectId("629a49205f76f65244785a16"),
+    },
   },
   invoices: {
     jobsite_3_invoice_1: {
@@ -185,6 +251,15 @@ const _ids = {
     },
     jobsite_2_material_1_invoice_2: {
       _id: Types.ObjectId("629a4f49b52ab2ee3d34104a"),
+    },
+    sync_invoice_revenue_1: {
+      _id: Types.ObjectId("6241fc1132d9ce63e6fbf374"),
+    },
+    sync_invoice_expense_1: {
+      _id: Types.ObjectId("6241fc1132d9ce63e6fbf375"),
+    },
+    sync_invoice_for_shipment_rate: {
+      _id: Types.ObjectId("6241fc1132d9ce63e6fbf376"),
     },
   },
 };

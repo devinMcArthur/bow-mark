@@ -7,6 +7,7 @@ export interface SeededUsers {
   base_foreman_1_user: UserDocument;
   admin_user: UserDocument;
   developer_user: UserDocument;
+  project_manager_user: UserDocument;
 }
 
 const createUsers = async (): Promise<SeededUsers> => {
@@ -37,10 +38,20 @@ const createUsers = async (): Promise<SeededUsers> => {
     role: UserRoles.Developer,
   });
 
+  const project_manager_user = new User({
+    _id: _ids.users.project_manager_user._id,
+    name: "Project Manager User",
+    email: "pm@bowmark.ca",
+    password: await hashPassword("password"),
+    employee: _ids.employees.pm_employee._id,
+    role: UserRoles.ProjectManager,
+  });
+
   const users = {
     base_foreman_1_user,
     admin_user,
     developer_user,
+    project_manager_user,
   };
 
   for (let i = 0; i < Object.values(users).length; i++) {

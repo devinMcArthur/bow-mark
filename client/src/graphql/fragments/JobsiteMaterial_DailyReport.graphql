@@ -8,8 +8,14 @@ fragment JobsiteMaterialForDailyReportSnippet on JobsiteMaterialClass {
   }
   unit
   costType
+  costModel
   delivered
   deliveredRates {
     ...JobsiteMaterialDeliveredRateSnippet
+  }
+  scenarios {
+    _id
+    label
+    delivered
   }
 }

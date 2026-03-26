@@ -19,7 +19,10 @@ import {
   Root,
 } from "type-graphql";
 import { InvoiceData } from "../invoice/mutations";
-import mutations, { JobsiteMaterialUpdateData } from "./mutations";
+import mutations, {
+  JobsiteMaterialUpdateData,
+  RateScenarioData,
+} from "./mutations";
 import { YearlyMaterialQuantity } from "@typescript/jobsiteMaterial";
 
 @Resolver(() => JobsiteMaterialClass)
@@ -91,6 +94,34 @@ export default class JobsiteMaterialResolver {
     @Arg("id", () => ID, { nullable: false }) id: Id
   ) {
     return mutations.remove(id);
+  }
+
+  @Authorized(["ADMIN"])
+  @Mutation(() => JobsiteMaterialClass)
+  async jobsiteMaterialScenarioAdd(
+    @Arg("id", () => ID) id: string,
+    @Arg("data") data: RateScenarioData
+  ) {
+    return mutations.addScenario(id, data);
+  }
+
+  @Authorized(["ADMIN"])
+  @Mutation(() => JobsiteMaterialClass)
+  async jobsiteMaterialScenarioUpdate(
+    @Arg("id", () => ID) id: string,
+    @Arg("scenarioId", () => ID) scenarioId: string,
+    @Arg("data") data: RateScenarioData
+  ) {
+    return mutations.updateScenario(id, scenarioId, data);
+  }
+
+  @Authorized(["ADMIN"])
+  @Mutation(() => JobsiteMaterialClass)
+  async jobsiteMaterialScenarioRemove(
+    @Arg("id", () => ID) id: string,
+    @Arg("scenarioId", () => ID) scenarioId: string
+  ) {
+    return mutations.removeScenario(id, scenarioId);
   }
 
   @Authorized(["ADMIN"])

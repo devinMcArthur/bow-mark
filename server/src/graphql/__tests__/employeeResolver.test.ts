@@ -1,19 +1,20 @@
 import request from "supertest";
 
-import { prepareDatabase, disconnectAndStopServer } from "@testing/jestDB";
+import { prepareDatabase, disconnectAndStopServer } from "@testing/vitestDB";
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 
 import createApp from "../../app";
 import _ids from "@testing/_ids";
-import jestLogin from "@testing/jestLogin";
+import vitestLogin from "@testing/vitestLogin";
 import { RatesData } from "@graphql/types/mutation";
 import { Employee } from "@models";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 
-jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
+let documents: SeededDatabase, app: Server;
+let adminToken: string;
+let pmToken: string;
+let foremanToken: string;
 
-let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
 const setupDatabase = async () => {
   documents = await seedDatabase();
 
@@ -21,15 +22,19 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   app = await createApp();
 
   await setupDatabase();
+
+  adminToken = await vitestLogin(app, "admin@bowmark.ca");
+  pmToken = await vitestLogin(app, "pm@bowmark.ca");
+  foremanToken = await vitestLogin(app, "baseforeman1@bowmark.ca");
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("Employee Resolver", () => {
@@ -38,7 +43,7 @@ describe("Employee Resolver", () => {
       const employeeQuery = `
         query Employee($id: String!) {
           employee(id: $id) {
-            _id 
+            _id
             name
             jobTitle
             user {
@@ -77,10 +82,120 @@ describe("Employee Resolver", () => {
           expect(employee.crews[0].name).toBe(documents.crews.base_1.name);
         });
       });
+
+      describe("validation", () => {
+        it("returns an error for a non-existent employee id", async () => {
+          const res = await request(app)
+            .post("/graphql")
+            .set("Authorization", adminToken)
+            .send({
+              query: `query { employee(id: "000000000000000000000001") { _id } }`,
+            });
+          expect(res.body.errors).toBeDefined();
+          expect(res.body.data).toBeNull();
+        });
+      });
     });
   });
 
   describe("MUTATIONS", () => {
+    describe("employeeCreate", () => {
+      const mutation = `
+        mutation EmployeeCreate($data: EmployeeCreateData!) {
+          employeeCreate(data: $data) {
+            _id
+            name
+            jobTitle
+          }
+        }
+      `;
+      it("creates an employee as Admin", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .set("Authorization", adminToken)
+          .send({
+            query: mutation,
+            variables: { data: { name: "New Employee Admin", jobTitle: "Laborer" } },
+          });
+        expect(res.body.errors).toBeUndefined();
+        expect(res.body.data.employeeCreate.name).toBe("New Employee Admin");
+      });
+
+      it("creates an employee as ProjectManager", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .set("Authorization", pmToken)
+          .send({
+            query: mutation,
+            variables: { data: { name: "New Employee PM", jobTitle: "Laborer" } },
+          });
+        expect(res.body.errors).toBeUndefined();
+        expect(res.body.data.employeeCreate.name).toBe("New Employee PM");
+      });
+
+      it("creates an employee as Foreman", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .set("Authorization", foremanToken)
+          .send({
+            query: mutation,
+            variables: { data: { name: "New Employee Foreman", jobTitle: "Laborer" } },
+          });
+        expect(res.body.errors).toBeUndefined();
+        expect(res.body.data.employeeCreate.name).toBe("New Employee Foreman");
+      });
+
+      it("rejects unauthenticated requests", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .send({
+            query: mutation,
+            variables: { data: { name: "New Employee Unauth", jobTitle: "Laborer" } },
+          });
+        expect(res.body.errors).toBeDefined();
+      });
+    });
+
+    describe("employeeUpdate", () => {
+      const mutation = `
+        mutation EmployeeUpdate($id: ID!, $data: EmployeeUpdateData!) {
+          employeeUpdate(id: $id, data: $data) {
+            _id
+            name
+            jobTitle
+          }
+        }
+      `;
+      const variables = {
+        id: _ids.employees.base_laborer_1._id,
+        data: { name: "Updated Employee", jobTitle: "Senior Laborer" },
+      };
+
+      it("updates an employee as Admin", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .set("Authorization", adminToken)
+          .send({ query: mutation, variables });
+        expect(res.body.errors).toBeUndefined();
+        expect(res.body.data.employeeUpdate.name).toBe("Updated Employee");
+      });
+
+      it("rejects Foreman from updating an employee", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .set("Authorization", foremanToken)
+          .send({ query: mutation, variables });
+        expect(res.body.errors).toBeDefined();
+      });
+
+      it("rejects unauthenticated requests", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .send({ query: mutation, variables });
+        expect(res.body.errors).toBeDefined();
+      });
+    });
+
     describe("employeeUpdateRates", () => {
       const employeeUpdateRates = `
         mutation EmployeeUpdateRates($id: String!, $data: [RatesData!]!) {
@@ -96,7 +211,7 @@ describe("Employee Resolver", () => {
 
       describe("success", () => {
         test("should successfully update employee rates", async () => {
-          const token = await jestLogin(app, documents.users.admin_user.email);
+          const token = await vitestLogin(app, documents.users.admin_user.email);
 
           const data: RatesData[] = [
             {
@@ -138,7 +253,7 @@ describe("Employee Resolver", () => {
 
       describe("error", () => {
         test("should error if no data is provided", async () => {
-          const token = await jestLogin(app, documents.users.admin_user.email);
+          const token = await vitestLogin(app, documents.users.admin_user.email);
 
           const data: RatesData[] = [];
 

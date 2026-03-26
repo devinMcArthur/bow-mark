@@ -5,7 +5,10 @@ import {
   JobsiteMaterial,
   JobsiteMaterialDocument,
 } from "@models";
-import { JobsiteMaterialCostType } from "@typescript/jobsiteMaterial";
+import {
+  JobsiteMaterialCostModel,
+  JobsiteMaterialCostType,
+} from "@typescript/jobsiteMaterial";
 import { Id } from "@typescript/models";
 import { Field, Float, ID, InputType } from "type-graphql";
 import { InvoiceData } from "../invoice/mutations";
@@ -23,6 +26,18 @@ export class JobsiteMaterialDeliveredRateData implements DefaultRateData {
 
   @Field({ nullable: false })
   public title!: string;
+
+  @Field(() => [JobsiteMaterialRateData], { nullable: false })
+  public rates!: JobsiteMaterialRateData[];
+}
+
+@InputType()
+export class RateScenarioData {
+  @Field({ nullable: false })
+  public label!: string;
+
+  @Field({ nullable: false })
+  public delivered!: boolean;
 
   @Field(() => [JobsiteMaterialRateData], { nullable: false })
   public rates!: JobsiteMaterialRateData[];
@@ -53,6 +68,12 @@ export class JobsiteMaterialCreateData {
 
   @Field(() => Boolean, { nullable: true })
   public delivered?: boolean;
+
+  @Field(() => JobsiteMaterialCostModel, { nullable: true })
+  public costModel?: JobsiteMaterialCostModel;
+
+  @Field(() => [RateScenarioData], { nullable: true })
+  public scenarios?: RateScenarioData[];
 }
 
 @InputType()
@@ -77,6 +98,12 @@ export class JobsiteMaterialUpdateData {
 
   @Field(() => Boolean, { nullable: true })
   public delivered?: boolean;
+
+  @Field(() => JobsiteMaterialCostModel, { nullable: true })
+  public costModel?: JobsiteMaterialCostModel;
+
+  @Field(() => [RateScenarioData], { nullable: true })
+  public scenarios?: RateScenarioData[];
 }
 
 const update = async (
@@ -112,6 +139,52 @@ const remove = async (id: Id) => {
   return true;
 };
 
+const addScenario = async (
+  id: string,
+  data: RateScenarioData
+): Promise<JobsiteMaterialDocument> => {
+  const jobsiteMaterial = await JobsiteMaterial.getById(id, {
+    throwError: true,
+  });
+  if (!jobsiteMaterial) throw new Error("Unable to find jobsite material");
+
+  await jobsiteMaterial.addScenario(data);
+  await jobsiteMaterial.save();
+
+  return jobsiteMaterial;
+};
+
+const updateScenario = async (
+  id: string,
+  scenarioId: string,
+  data: RateScenarioData
+): Promise<JobsiteMaterialDocument> => {
+  const jobsiteMaterial = await JobsiteMaterial.getById(id, {
+    throwError: true,
+  });
+  if (!jobsiteMaterial) throw new Error("Unable to find jobsite material");
+
+  await jobsiteMaterial.updateScenario(scenarioId, data);
+  await jobsiteMaterial.save();
+
+  return jobsiteMaterial;
+};
+
+const removeScenario = async (
+  id: string,
+  scenarioId: string
+): Promise<JobsiteMaterialDocument> => {
+  const jobsiteMaterial = await JobsiteMaterial.getById(id, {
+    throwError: true,
+  });
+  if (!jobsiteMaterial) throw new Error("Unable to find jobsite material");
+
+  await jobsiteMaterial.removeScenario(scenarioId);
+  await jobsiteMaterial.save();
+
+  return jobsiteMaterial;
+};
+
 const addInvoice = async (jobsiteMaterialId: Id, data: InvoiceData) => {
   const jobsiteMaterial = await JobsiteMaterial.getById(jobsiteMaterialId);
   if (!jobsiteMaterial) throw new Error("Unable to find jobsite material");
@@ -140,5 +213,8 @@ const addInvoice = async (jobsiteMaterialId: Id, data: InvoiceData) => {
 export default {
   update,
   remove,
+  addScenario,
+  updateScenario,
+  removeScenario,
   addInvoice,
 };

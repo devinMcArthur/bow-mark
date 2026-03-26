@@ -8,6 +8,13 @@ export interface SeededMaterialShipments {
   jobsite_2_base_1_1_shipment_3: MaterialShipmentDocument;
   jobsite_2_base_1_1_shipment_4: MaterialShipmentDocument;
   jobsite_2_base_1_2_shipment_1: MaterialShipmentDocument;
+  sync_shipment_costed_1: MaterialShipmentDocument;
+  sync_shipment_non_costed_1: MaterialShipmentDocument;
+  sync_shipment_trucking_1: MaterialShipmentDocument;
+  sync_shipment_invoice_cost_1: MaterialShipmentDocument;
+  sync_shipment_delivered_rate_1: MaterialShipmentDocument;
+  sync_shipment_scenario_pickup_1: MaterialShipmentDocument;
+  sync_shipment_scenario_delivered_1: MaterialShipmentDocument;
 }
 
 const createMaterialShipments = async (): Promise<SeededMaterialShipments> => {
@@ -83,6 +90,101 @@ const createMaterialShipments = async (): Promise<SeededMaterialShipments> => {
     },
   });
 
+  const sync_shipment_costed_1 = new MaterialShipment({
+    _id: _ids.materialShipments.sync_shipment_costed_1._id,
+    quantity: 5,
+    unit: "tonnes",
+    shipmentType: "Delivered",
+    noJobsiteMaterial: false,
+    jobsiteMaterial: _ids.jobsiteMaterials.jobsite_2_material_1._id,
+  });
+
+  const sync_shipment_non_costed_1 = new MaterialShipment({
+    _id: _ids.materialShipments.sync_shipment_non_costed_1._id,
+    quantity: 3,
+    unit: "tonnes",
+    noJobsiteMaterial: true,
+    shipmentType: "Gravel",
+    supplier: "Local Supplier",
+  });
+
+  const sync_shipment_trucking_1 = new MaterialShipment({
+    _id: _ids.materialShipments.sync_shipment_trucking_1._id,
+    quantity: 2,
+    unit: "tonnes",
+    noJobsiteMaterial: false,
+    jobsiteMaterial: _ids.jobsiteMaterials.jobsite_2_material_1._id,
+    startTime: new Date("2022-02-25T08:00:00"),
+    endTime: new Date("2022-02-25T10:00:00"),
+    vehicleObject: {
+      source: "Company",
+      vehicleType: "Tandem",
+      truckingRateId: _ids.jobsites.jobsite_2.truckingRates[0],
+    },
+  });
+
+  const sync_shipment_invoice_cost_1 = new MaterialShipment({
+    _id: _ids.materialShipments.sync_shipment_invoice_cost_1._id,
+    quantity: 10,
+    unit: "tonnes",
+    noJobsiteMaterial: false,
+    jobsiteMaterial: _ids.jobsiteMaterials.sync_jobsite_material_invoice_cost._id,
+  });
+
+  const sync_shipment_delivered_rate_1 = new MaterialShipment({
+    _id: _ids.materialShipments.sync_shipment_delivered_rate_1._id,
+    quantity: 8,
+    unit: "tonnes",
+    noJobsiteMaterial: false,
+    jobsiteMaterial:
+      _ids.jobsiteMaterials.sync_jobsite_material_delivered_rate._id,
+    vehicleObject: {
+      source: "Company",
+      vehicleType: "Tandem",
+      deliveredRateId:
+        _ids.jobsiteMaterials.sync_jobsite_material_delivered_rate
+          .deliveredRateId,
+    },
+  });
+
+  // Pickup scenario shipment: rateScenarioId → Pickup ($30/t), has truckingRateId → trucking fact expected
+  const sync_shipment_scenario_pickup_1 = new MaterialShipment({
+    _id: _ids.materialShipments.sync_shipment_scenario_pickup_1._id,
+    quantity: 6,
+    unit: "tonnes",
+    noJobsiteMaterial: false,
+    jobsiteMaterial:
+      _ids.jobsiteMaterials.sync_jobsite_material_scenario._id,
+    startTime: new Date("2022-02-25T08:00:00"),
+    endTime: new Date("2022-02-25T10:00:00"),
+    vehicleObject: {
+      source: "Company",
+      vehicleType: "Tandem",
+      vehicleCode: "T1",
+      truckingRateId: _ids.jobsites.jobsite_2.truckingRates[0],
+      rateScenarioId:
+        _ids.jobsiteMaterials.sync_jobsite_material_scenario.scenarioPickupId,
+    },
+  });
+
+  // Delivered scenario shipment: rateScenarioId → Tandem Delivered ($45/t), no truckingRateId → no trucking fact
+  const sync_shipment_scenario_delivered_1 = new MaterialShipment({
+    _id: _ids.materialShipments.sync_shipment_scenario_delivered_1._id,
+    quantity: 4,
+    unit: "tonnes",
+    noJobsiteMaterial: false,
+    jobsiteMaterial:
+      _ids.jobsiteMaterials.sync_jobsite_material_scenario._id,
+    vehicleObject: {
+      source: "Company",
+      vehicleType: "Tandem",
+      vehicleCode: "T2",
+      rateScenarioId:
+        _ids.jobsiteMaterials.sync_jobsite_material_scenario
+          .scenarioDeliveredId,
+    },
+  });
+
   const materialShipments = {
     jobsite_1_base_1_1_shipment_1,
     jobsite_2_base_1_1_shipment_1,
@@ -90,6 +192,13 @@ const createMaterialShipments = async (): Promise<SeededMaterialShipments> => {
     jobsite_2_base_1_1_shipment_3,
     jobsite_2_base_1_1_shipment_4,
     jobsite_2_base_1_2_shipment_1,
+    sync_shipment_costed_1,
+    sync_shipment_non_costed_1,
+    sync_shipment_trucking_1,
+    sync_shipment_invoice_cost_1,
+    sync_shipment_delivered_rate_1,
+    sync_shipment_scenario_pickup_1,
+    sync_shipment_scenario_delivered_1,
   };
 
   for (let i = 0; i < Object.values(materialShipments).length; i++) {

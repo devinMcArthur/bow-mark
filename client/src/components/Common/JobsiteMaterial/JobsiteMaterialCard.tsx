@@ -23,12 +23,14 @@ interface IJobsiteMaterialCard {
   jobsiteMaterial: JobsiteMaterialCardSnippetFragment;
   selected?: boolean;
   showPreviousYears?: boolean;
+  truckingRates?: { title: string }[];
 }
 
 const JobsiteMaterialCard = ({
   jobsiteMaterial,
   selected,
   showPreviousYears,
+  truckingRates,
 }: IJobsiteMaterialCard) => {
   /**
    * ----- Hook Initialization -----
@@ -158,7 +160,7 @@ const JobsiteMaterialCard = ({
       </Box>
       {edit && (
         <FormContainer>
-          <JobsiteMaterialUpdate jobsiteMaterial={jobsiteMaterial} />
+          <JobsiteMaterialUpdate jobsiteMaterial={jobsiteMaterial} truckingRates={truckingRates} />
         </FormContainer>
       )}
       {showInvoice && (!invoicesLoading ? (

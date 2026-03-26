@@ -189,6 +189,10 @@ export interface FactMaterialShipment {
   mongo_id: string;
   quantity: Numeric;
   rate: Numeric;
+  /**
+   * Scenario _id (24-char hex) from JobsiteMaterial.scenarios when the shipment is costed via the rate-model scenario system. NULL for legacy cost types.
+   */
+  rate_scenario_id: string | null;
   synced_at: Generated<Timestamp>;
   total_cost: Generated<Numeric | null>;
   unit: string;

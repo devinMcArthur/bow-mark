@@ -1,15 +1,12 @@
 import request from "supertest";
-import { prepareDatabase, disconnectAndStopServer } from "@testing/jestDB";
+import { prepareDatabase, disconnectAndStopServer } from "@testing/vitestDB";
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 import createApp from "../../app";
 import { Conversation } from "@models";
-import jestLogin from "@testing/jestLogin";
-import { MongoMemoryServer } from "mongodb-memory-server";
+import vitestLogin from "@testing/vitestLogin";
 import { Server } from "http";
 
-jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 
-let mongoServer: MongoMemoryServer;
 let documents: SeededDatabase;
 let app: Server;
 let token: string;
@@ -19,11 +16,11 @@ let userMsgId: string;
 let assistantMsgId: string;
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
   app = await createApp();
   documents = await seedDatabase();
-  token = await jestLogin(app, "admin@bowmark.ca");
-  otherToken = await jestLogin(app, "baseforeman1@bowmark.ca");
+  token = await vitestLogin(app, "admin@bowmark.ca");
+  otherToken = await vitestLogin(app, "baseforeman1@bowmark.ca");
 
   const convo = new Conversation({
     user: documents.users.admin_user._id,
@@ -41,7 +38,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("PATCH /api/conversations/:id/messages/:msgId/rating", () => {

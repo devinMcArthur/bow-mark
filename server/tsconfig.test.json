@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.json",
+  "ts-node": {
+    "require": ["tsconfig-paths/register"]
+  },
+  "compilerOptions": {
+    "paths": {
+      "@models": ["./models"],
+      "@workers": ["./workers"],
+      "@pubsub": ["./pubsub"],
+      "@events": ["./events"],
+      "@testing/*": ["testing/*"],
+      "@constants/*": ["constants/*"],
+      "@config/*": ["config/*"],
+      "@actors/*": ["actors/*"],
+      "@typescript/*": ["typescript/*"],
+      "@utils/fileStorage": ["./__mocks__/fileStorage"],
+      "@utils/*": ["utils/*"],
+      "@validation/*": ["validation/*"],
+      "@graphql/*": ["graphql/*"],
+      "@logger": ["./logger"],
+      "@search": ["./search"]
+    }
+  }
+}

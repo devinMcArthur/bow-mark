@@ -51,6 +51,7 @@ const createJobsites = async (): Promise<SeededJobsites> => {
     materials: [
       _ids.jobsiteMaterials.jobsite_2_material_1._id,
       _ids.jobsiteMaterials.jobsite_2_material_2._id,
+      _ids.jobsiteMaterials.sync_jobsite_material_scenario._id,
     ],
     crews: [_ids.crews.base_1._id],
     truckingRates: [

@@ -1,20 +1,22 @@
 import request from "supertest";
 
-import { prepareDatabase, disconnectAndStopServer } from "@testing/jestDB";
+import { prepareDatabase, disconnectAndStopServer } from "@testing/vitestDB";
 import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 
 import createApp from "../../app";
-import jestLogin from "@testing/jestLogin";
+import _ids from "@testing/_ids";
+import vitestLogin from "@testing/vitestLogin";
 import {
   MaterialShipmentCreateData,
   MaterialShipmentUpdateData,
 } from "@graphql/resolvers/materialShipment/mutations";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import { Server } from "http";
 
-jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
+let documents: SeededDatabase, app: Server;
+let adminToken: string;
+let pmToken: string;
+let foremanToken: string;
 
-let mongoServer: MongoMemoryServer, documents: SeededDatabase, app: Server;
 const setupDatabase = async () => {
   documents = await seedDatabase();
 
@@ -22,15 +24,19 @@ const setupDatabase = async () => {
 };
 
 beforeAll(async () => {
-  mongoServer = await prepareDatabase();
+  await prepareDatabase();
 
   app = await createApp();
 
   await setupDatabase();
+
+  adminToken = await vitestLogin(app, "admin@bowmark.ca");
+  pmToken = await vitestLogin(app, "pm@bowmark.ca");
+  foremanToken = await vitestLogin(app, "baseforeman1@bowmark.ca");
 });
 
 afterAll(async () => {
-  await disconnectAndStopServer(mongoServer);
+  await disconnectAndStopServer();
 });
 
 describe("Material Shipment Resolver", () => {
@@ -57,7 +63,7 @@ describe("Material Shipment Resolver", () => {
 
       describe("success", () => {
         test("should successfully create both types of material shipments and once without vehicle object", async () => {
-          const token = await jestLogin(
+          const token = await vitestLogin(
             app,
             documents.users.base_foreman_1_user.email
           );
@@ -144,6 +150,41 @@ describe("Material Shipment Resolver", () => {
           ).toBeUndefined();
         });
       });
+
+      describe("authorization", () => {
+        const variables = {
+          dailyReportId: _ids.dailyReports.jobsite_2_base_1_1._id.toString(),
+          data: [
+            {
+              shipments: [
+                {
+                  noJobsiteMaterial: true,
+                  jobsiteMaterialId: "",
+                  quantity: 10,
+                  shipmentType: "Auth Test",
+                  supplier: "Test",
+                  unit: "tonnes",
+                },
+              ],
+            },
+          ],
+        };
+
+        it("succeeds as Foreman (any authenticated)", async () => {
+          const res = await request(app)
+            .post("/graphql")
+            .set("Authorization", foremanToken)
+            .send({ query: materialShipmentCreate, variables });
+          expect(res.body.errors).toBeUndefined();
+        });
+
+        it("rejects unauthenticated", async () => {
+          const res = await request(app)
+            .post("/graphql")
+            .send({ query: materialShipmentCreate, variables });
+          expect(res.body.errors).toBeDefined();
+        });
+      });
     });
 
     describe("materialShipmentUpdate", () => {
@@ -158,7 +199,7 @@ describe("Material Shipment Resolver", () => {
 
       describe("success", () => {
         test("should successfully update material shipment w/ jobsite material", async () => {
-          const token = await jestLogin(
+          const token = await vitestLogin(
             app,
             documents.users.base_foreman_1_user.email
           );
@@ -200,7 +241,7 @@ describe("Material Shipment Resolver", () => {
         });
 
         test("should successfully update material shipment w/o jobsite material", async () => {
-          const token = await jestLogin(
+          const token = await vitestLogin(
             app,
             documents.users.base_foreman_1_user.email
           );
@@ -242,6 +283,61 @@ describe("Material Shipment Resolver", () => {
             data.noJobsiteMaterial
           );
         });
+      });
+
+      describe("authorization", () => {
+        it("rejects unauthenticated", async () => {
+          const res = await request(app)
+            .post("/graphql")
+            .send({
+              query: materialShipmentUpdate,
+              variables: {
+                id: _ids.materialShipments.jobsite_2_base_1_1_shipment_1._id.toString(),
+                data: {
+                  noJobsiteMaterial: true,
+                  jobsiteMaterialId: "",
+                  quantity: 10,
+                  shipmentType: "Type",
+                  supplier: "Test",
+                  unit: "tonnes",
+                },
+              },
+            });
+          expect(res.body.errors).toBeDefined();
+        });
+      });
+    });
+
+    describe("materialShipmentDelete", () => {
+      const mutation = `
+        mutation MaterialShipmentDelete($id: String!) {
+          materialShipmentDelete(id: $id)
+        }
+      `;
+
+      it("succeeds as Foreman (any authenticated)", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .set("Authorization", foremanToken)
+          .send({
+            query: mutation,
+            variables: {
+              id: _ids.materialShipments.jobsite_1_base_1_1_shipment_1._id.toString(),
+            },
+          });
+        expect(res.body.errors).toBeUndefined();
+      });
+
+      it("rejects unauthenticated", async () => {
+        const res = await request(app)
+          .post("/graphql")
+          .send({
+            query: mutation,
+            variables: {
+              id: _ids.materialShipments.jobsite_2_base_1_1_shipment_2._id.toString(),
+            },
+          });
+        expect(res.body.errors).toBeDefined();
       });
     });
   });

@@ -5,6 +5,7 @@ export interface SeededVehicles {
   personnel_truck_1: VehicleDocument;
   skidsteer_1: VehicleDocument;
   gravel_truck_1: VehicleDocument;
+  gravel_truck_2: VehicleDocument;
   temp_1: VehicleDocument;
   temp_2: VehicleDocument;
 }
@@ -24,6 +25,12 @@ const createVehicles = async (): Promise<SeededVehicles> => {
     vehicleCode: "G-25",
     vehicleType: "Skidsteer",
     crews: [_ids.crews.base_1._id],
+    rates: [
+      {
+        date: new Date("2022-01-01"),
+        rate: 85,
+      },
+    ],
   });
 
   const gravel_truck_1 = new Vehicle({
@@ -32,6 +39,26 @@ const createVehicles = async (): Promise<SeededVehicles> => {
     vehicleCode: "T-12",
     vehicleType: "Gravel Truck",
     crews: [_ids.crews.base_1._id],
+    rates: [
+      {
+        date: new Date("2022-01-01"),
+        rate: 95,
+      },
+    ],
+  });
+
+  const gravel_truck_2 = new Vehicle({
+    _id: _ids.vehicles.gravel_truck_2._id,
+    name: "T-13",
+    vehicleCode: "T-13",
+    vehicleType: "Gravel Truck",
+    crews: [_ids.crews.base_2._id],
+    rates: [
+      {
+        date: new Date("2022-01-01"),
+        rate: 95,
+      },
+    ],
   });
 
   const temp_1 = new Vehicle({
@@ -52,6 +79,7 @@ const createVehicles = async (): Promise<SeededVehicles> => {
     personnel_truck_1,
     skidsteer_1,
     gravel_truck_1,
+    gravel_truck_2,
     temp_1,
     temp_2,
   };

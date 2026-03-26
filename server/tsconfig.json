@@ -34,7 +34,7 @@
       "./node_modules/@types"
     ],
     "types": [
-      "jest",
+      "vitest/globals",
       "node"
     ],
     "baseUrl": "src",

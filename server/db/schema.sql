@@ -1,6 +1,6 @@
 \restrict dbmate
 
--- Dumped from database version 16.11 (Debian 16.11-1.pgdg13+1)
+-- Dumped from database version 15.17 (Debian 15.17-1.pgdg13+1)
 -- Dumped by pg_dump version 18.2
 
 SET statement_timeout = 0;
@@ -234,15 +234,15 @@ CREATE VIEW public.crew_max_hours AS
 --
 
 CREATE VIEW public.crew_hours_by_day AS
- SELECT jobsite_id,
-    work_date,
-    crew_type,
-    avg(crew_hours) AS avg_crew_hours,
-    sum(total_man_hours) AS total_man_hours,
-    sum(employee_count) AS total_employees,
+ SELECT crew_max_hours.jobsite_id,
+    crew_max_hours.work_date,
+    crew_max_hours.crew_type,
+    avg(crew_max_hours.crew_hours) AS avg_crew_hours,
+    sum(crew_max_hours.total_man_hours) AS total_man_hours,
+    sum(crew_max_hours.employee_count) AS total_employees,
     count(*) AS crew_count
    FROM public.crew_max_hours
-  GROUP BY jobsite_id, work_date, crew_type;
+  GROUP BY crew_max_hours.jobsite_id, crew_max_hours.work_date, crew_max_hours.crew_type;
 
 
 --
@@ -431,7 +431,8 @@ CREATE TABLE public.fact_material_shipment (
     delivered_rate_id character varying(24),
     archived_at timestamp with time zone,
     synced_at timestamp with time zone DEFAULT now() NOT NULL,
-    vehicle_type character varying(100)
+    vehicle_type character varying(100),
+    rate_scenario_id character varying(24)
 );
 
 
@@ -440,6 +441,13 @@ CREATE TABLE public.fact_material_shipment (
 --
 
 COMMENT ON COLUMN public.fact_material_shipment.vehicle_type IS 'Vehicle type from vehicleObject (e.g., "Tandem", "Tri-axle"). Used for load-to-tonne conversions.';
+
+
+--
+-- Name: COLUMN fact_material_shipment.rate_scenario_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.fact_material_shipment.rate_scenario_id IS 'Scenario _id (24-char hex) from JobsiteMaterial.scenarios when the shipment is costed via the rate-model scenario system. NULL for legacy cost types.';
 
 
 --
@@ -835,35 +843,35 @@ UNION ALL
 --
 
 CREATE VIEW public.jobsite_issues_summary AS
- SELECT jobsite_id,
-    date,
+ SELECT jobsite_report_issues.jobsite_id,
+    jobsite_report_issues.date,
     count(DISTINCT
         CASE
-            WHEN (issue_type = 'EMPLOYEE_RATE_ZERO'::text) THEN entity_id
+            WHEN (jobsite_report_issues.issue_type = 'EMPLOYEE_RATE_ZERO'::text) THEN jobsite_report_issues.entity_id
             ELSE NULL::uuid
         END) AS employees_with_zero_rate,
     count(DISTINCT
         CASE
-            WHEN (issue_type = 'VEHICLE_RATE_ZERO'::text) THEN entity_id
+            WHEN (jobsite_report_issues.issue_type = 'VEHICLE_RATE_ZERO'::text) THEN jobsite_report_issues.entity_id
             ELSE NULL::uuid
         END) AS vehicles_with_zero_rate,
     count(DISTINCT
         CASE
-            WHEN (issue_type = 'MATERIAL_RATE_ZERO'::text) THEN entity_id
+            WHEN (jobsite_report_issues.issue_type = 'MATERIAL_RATE_ZERO'::text) THEN jobsite_report_issues.entity_id
             ELSE NULL::uuid
         END) AS materials_with_zero_rate,
     count(DISTINCT
         CASE
-            WHEN (issue_type = 'MATERIAL_ESTIMATED_RATE'::text) THEN entity_id
+            WHEN (jobsite_report_issues.issue_type = 'MATERIAL_ESTIMATED_RATE'::text) THEN jobsite_report_issues.entity_id
             ELSE NULL::uuid
         END) AS materials_with_estimated_rate,
     sum(
         CASE
-            WHEN (issue_type = 'NON_COSTED_MATERIALS'::text) THEN occurrence_count
+            WHEN (jobsite_report_issues.issue_type = 'NON_COSTED_MATERIALS'::text) THEN jobsite_report_issues.occurrence_count
             ELSE (0)::bigint
         END) AS non_costed_material_shipments
    FROM public.jobsite_report_issues
-  GROUP BY jobsite_id, date;
+  GROUP BY jobsite_report_issues.jobsite_id, jobsite_report_issues.date;
 
 
 --
@@ -1839,4 +1847,5 @@ ALTER TABLE ONLY public.fact_vehicle_work
 INSERT INTO public.schema_migrations (version) VALUES
     ('20260128205200'),
     ('20260202120000'),
-    ('20260203100000');
+    ('20260203100000'),
+    ('20260325120000');

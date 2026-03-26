@@ -127,7 +127,8 @@ const MaterialShipmentCreate = ({
           unit: undefined,
         };
 
-        if (isEmpty(formData[i].shipments[j].quantity)) {
+        const qty = formData[i].shipments[j].quantity as unknown as number;
+        if (isEmpty(qty) || !qty || isNaN(qty)) {
           shipments[j].quantity = "please provide a quantity";
           valid = false;
         }
@@ -150,7 +151,18 @@ const MaterialShipmentCreate = ({
         }
       }
 
-      if (formData[i].vehicleObject) {
+      // For rate-model delivered scenarios, vehicleObject holds rateScenarioId but
+      // the vehicle section is hidden — skip vehicle validation in that case.
+      const firstMaterialId = formData[i].shipments[0]?.jobsiteMaterialId;
+      const firstMaterial = dailyReport.jobsite.materials.find(
+        (m) => m._id === firstMaterialId
+      );
+      const scenarioId = formData[i].vehicleObject?.rateScenarioId;
+      const isDeliveredScenario =
+        firstMaterial?.scenarios?.find((s) => s._id === scenarioId)
+          ?.delivered ?? false;
+
+      if (formData[i].vehicleObject && !isDeliveredScenario) {
         if (isEmpty(formData[i].vehicleObject!.source)) {
           vehicleObject.source = "please provide a vehicle source";
           valid = false;
@@ -166,7 +178,10 @@ const MaterialShipmentCreate = ({
           valid = false;
         }
 
-        if (isEmpty(formData[i].vehicleObject!.truckingRateId)) {
+        // For rate-model scenarios the rate is in rateScenarioId — skip the
+        // truckingRateId check which only applies to legacy materials.
+        const isRateModelScenario = !!formData[i].vehicleObject!.rateScenarioId;
+        if (!isRateModelScenario && isEmpty(formData[i].vehicleObject!.truckingRateId)) {
           vehicleObject.vehicleType =
             "something went wrong, please contact support";
           valid = false;
@@ -182,7 +197,7 @@ const MaterialShipmentCreate = ({
     setFormErrors(formErrors);
 
     return valid;
-  }, [formData]);
+  }, [formData, dailyReport.jobsite.materials]);
 
   const trySubmit = React.useCallback(() => {
     setHasTriedSubmit(true);
