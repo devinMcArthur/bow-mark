@@ -9,6 +9,7 @@ import { MdDelete } from "react-icons/md";
 import { gql } from "@apollo/client";
 import * as Apollo from "@apollo/client";
 import React from "react";
+import ReactMarkdown from "react-markdown";
 import { TenderDetail, timeAgo } from "./types";
 
 const DELETE_NOTE = gql`
@@ -67,9 +68,14 @@ const TenderNotesTab: React.FC<Props> = ({ tender, onUpdated }) => {
           py={2}
         >
           <HStack justify="space-between" align="flex-start">
-            <Text fontSize="sm" flex={1} mr={2}>
-              {note.content}
-            </Text>
+            <Box
+              fontSize="sm"
+              flex={1}
+              mr={2}
+              sx={{ "p": { mb: 1 }, "ul, ol": { pl: 4 }, "li": { mb: 0.5 } }}
+            >
+              <ReactMarkdown>{note.content}</ReactMarkdown>
+            </Box>
             <IconButton
               aria-label="Delete note"
               icon={<MdDelete />}

@@ -237,6 +237,11 @@ const TenderDetailPage = () => {
             suggestions={TENDER_SUGGESTIONS}
             disableRouting
             initialConversationId={initialConversationId}
+            onToolResult={(toolName) => {
+              if (toolName === "save_tender_note" || toolName === "delete_tender_note") {
+                refetch();
+              }
+            }}
           />
         </Box>
       </Flex>
