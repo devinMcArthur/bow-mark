@@ -12,6 +12,7 @@ export class TenderNoteClass {
   public _id!: Types.ObjectId;
 
   @Field()
+  @prop({ required: true })
   public content!: string;
 
   @Field(() => UserClass, { nullable: true })
@@ -19,24 +20,30 @@ export class TenderNoteClass {
   public savedBy?: Ref<UserClass>;
 
   @Field()
+  @prop({ required: true })
   public savedAt!: Date;
 
   @Field()
+  @prop({ required: true })
   public conversationId!: string;
 }
 
 @ObjectType()
 export class TenderJobSummaryClass {
   @Field()
+  @prop({ required: true })
   public content!: string;
 
   @Field()
+  @prop({ required: true })
   public generatedAt!: Date;
 
   @Field()
+  @prop({ required: true })
   public generatedBy!: string;
 
   @Field(() => [String])
+  @prop({ type: () => [String], required: true, default: [] })
   public generatedFrom!: string[];
 }
 
