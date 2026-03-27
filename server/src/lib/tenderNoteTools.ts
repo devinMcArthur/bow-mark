@@ -18,12 +18,8 @@ export const SAVE_TENDER_NOTE_TOOL: Anthropic.Tool = {
         type: "string",
         description: "The note text to save, as confirmed by the user.",
       },
-      conversationId: {
-        type: "string",
-        description: "The current conversation ID for traceability.",
-      },
     },
-    required: ["content", "conversationId"],
+    required: ["content"],
   },
 };
 
@@ -57,7 +53,7 @@ export function makeTenderNoteExecutor(
   return async (name: string, input: Record<string, unknown>): Promise<ToolExecutionResult> => {
     if (name === "save_tender_note") {
       const content = input.content as string;
-      const convId = (input.conversationId as string | undefined) ?? conversationId ?? "";
+      const convId = conversationId ?? "";
 
       await (Tender as any).findByIdAndUpdate(tenderId, {
         $push: {
@@ -85,9 +81,17 @@ export function makeTenderNoteExecutor(
     if (name === "delete_tender_note") {
       const noteId = input.noteId as string;
 
-      await (Tender as any).findByIdAndUpdate(tenderId, {
-        $pull: { notes: { _id: new mongoose.Types.ObjectId(noteId) } },
-      });
+      const result = await (Tender as any).updateOne(
+        { _id: tenderId },
+        { $pull: { notes: { _id: new mongoose.Types.ObjectId(noteId) } } }
+      );
+
+      if (result.modifiedCount === 0) {
+        return {
+          content: `Error: Note not found — nothing was deleted.`,
+          summary: `Note delete failed: noteId not found on tender`,
+        };
+      }
 
       // Fire-and-forget summary regeneration
       generateTenderSummary(tenderId).catch((err) =>
