@@ -25,9 +25,6 @@ vi.mock("@models", () => ({
     findById: mockFindById,
     findByIdAndUpdate: mockFindByIdAndUpdate,
   },
-  EnrichedFile: {
-    find: vi.fn().mockResolvedValue([]),
-  },
 }));
 
 import { generateTenderSummary } from "../lib/generateTenderSummary";
@@ -47,7 +44,14 @@ describe("generateTenderSummary", () => {
       name: "Test Tender",
       jobcode: "T-001",
       notes: [{ _id: noteId1, content: "Busy road", savedAt: new Date() }],
-      files: [fileId1],
+      files: [
+        {
+          _id: fileId1,
+          summaryStatus: "ready",
+          summary: { overview: "Road paving project", keyTopics: ["asphalt", "culvert"] },
+          pageIndex: [{ page: 1, summary: "Cover page" }],
+        },
+      ],
     };
 
     mockFindById.mockReturnValue({
@@ -55,17 +59,6 @@ describe("generateTenderSummary", () => {
         lean: vi.fn().mockResolvedValue(mockTender),
       }),
     });
-
-    // Mock EnrichedFile.find to return a ready file
-    const { EnrichedFile } = await import("@models");
-    (EnrichedFile.find as any).mockResolvedValue([
-      {
-        _id: fileId1,
-        summaryStatus: "ready",
-        summary: { overview: "Road paving project", keyTopics: ["asphalt", "culvert"] },
-        pageIndex: [{ page: 1, summary: "Cover page" }],
-      },
-    ]);
 
     await generateTenderSummary(tenderId);
 
@@ -80,7 +73,7 @@ describe("generateTenderSummary", () => {
             content: expect.any(String),
             generatedAt: expect.any(Date),
             generatedBy: "auto",
-            generatedFrom: expect.arrayContaining([fileId1, noteId1]),
+            generatedFrom: [fileId1, noteId1],
           }),
         }),
       })
@@ -96,5 +89,32 @@ describe("generateTenderSummary", () => {
 
     // Should not throw
     await expect(generateTenderSummary("nonexistent")).resolves.toBeUndefined();
+  });
+
+  it("returns early without saving if Anthropic returns empty content", async () => {
+    const tenderId = new mongoose.Types.ObjectId().toString();
+
+    mockFindById.mockReturnValue({
+      populate: vi.fn().mockReturnValue({
+        lean: vi.fn().mockResolvedValue({
+          _id: tenderId,
+          name: "Empty Response Tender",
+          jobcode: "T-002",
+          notes: [],
+          files: [],
+        }),
+      }),
+    });
+
+    // Override Anthropic mock to return empty content for this test
+    const AnthropicModule = await import("@anthropic-ai/sdk");
+    const mockCreate = vi.fn().mockResolvedValue({ content: [] });
+    (AnthropicModule.default as any).mockImplementation(() => ({
+      messages: { create: mockCreate },
+    }));
+
+    await generateTenderSummary(tenderId);
+
+    expect(mockFindByIdAndUpdate).not.toHaveBeenCalled();
   });
 });

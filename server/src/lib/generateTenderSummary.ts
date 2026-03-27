@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { Tender, EnrichedFile } from "@models";
+import { Tender } from "@models";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -36,17 +36,9 @@ export async function generateTenderSummary(tenderId: string): Promise<void> {
     return;
   }
 
-  const fileIds = ((tender.files as any[]) ?? []).map((f: any) =>
-    f._id ? f._id.toString() : f.toString()
+  const enrichedFiles = ((tender.files as any[]) ?? []).filter(
+    (f: any) => f.summaryStatus === "ready"
   );
-
-  const enrichedFiles =
-    fileIds.length > 0
-      ? await EnrichedFile.find({
-          _id: { $in: fileIds },
-          summaryStatus: "ready",
-        }).lean()
-      : [];
 
   const notes = ((tender as any).notes ?? []) as Array<{
     _id: any;
@@ -99,41 +91,46 @@ ${notesContext}
 
 ${SUMMARY_PROMPT}`;
 
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 2048,
-    messages: [{ role: "user", content: userContent }],
-  });
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 2048,
+      messages: [{ role: "user", content: userContent }],
+    });
 
-  const content =
-    response.content[0]?.type === "text"
-      ? response.content[0].text.trim()
-      : "";
+    const content =
+      response.content[0]?.type === "text"
+        ? response.content[0].text.trim()
+        : "";
 
-  if (!content) {
-    console.warn(
-      `[generateTenderSummary] Empty response for tender ${tenderId}`
-    );
-    return;
-  }
+    if (!content) {
+      console.warn(
+        `[generateTenderSummary] Empty response for tender ${tenderId}`
+      );
+      return;
+    }
 
-  const generatedFrom = [
-    ...enrichedFiles.map((f: any) => f._id.toString()),
-    ...notes.map((n: any) => n._id.toString()),
-  ];
+    const generatedFrom = [
+      ...enrichedFiles.map((f: any) => f._id.toString()),
+      ...notes.map((n: any) => n._id.toString()),
+    ];
 
-  await (Tender as any).findByIdAndUpdate(tenderId, {
-    $set: {
-      jobSummary: {
-        content,
-        generatedAt: new Date(),
-        generatedBy: "auto",
-        generatedFrom,
+    await (Tender as any).findByIdAndUpdate(tenderId, {
+      $set: {
+        jobSummary: {
+          content,
+          generatedAt: new Date(),
+          generatedBy: "auto",
+          generatedFrom,
+        },
       },
-    },
-  });
+    });
 
-  console.log(
-    `[generateTenderSummary] Summary generated for tender ${tenderId} (${enrichedFiles.length} files, ${notes.length} notes)`
-  );
+    console.log(
+      `[generateTenderSummary] Summary generated for tender ${tenderId} (${enrichedFiles.length} files, ${notes.length} notes)`
+    );
+  } catch (error) {
+    console.error(`[generateTenderSummary] Failed for tender ${tenderId}:`, error);
+    throw error;
+  }
 }
