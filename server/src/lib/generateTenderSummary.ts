@@ -24,26 +24,26 @@ Synthesize all available document summaries, page indexes, and human notes into 
 Write in clear, direct language. Be specific — use actual numbers, locations, and standards where mentioned.
 If a section has nothing to report, write "Nothing noted."
 
-COMPLETENESS IS CRITICAL. Do not omit or summarize away individual items to save space. Every scope item, every addendum, every risk must appear — even if the list is long. It is better to be thorough than brief.
+COMPLETENESS: Every distinct scope item, addendum, and risk must appear — do not omit or merge items. But keep each entry to one concise line. This is a scannable briefing, not a detailed report. Bullet points only — no paragraphs within sections.
 
 ADDENDUM SYNTHESIS IS REQUIRED. Every section must reflect the net state after all addendums are applied. If an addendum adds a scope item, that item must appear in Scope. If an addendum changes a spec requirement, that change must appear in Key Requirements. If an addendum introduces a risk, it must appear in Risks & Gotchas. The Addendum Changes section is a chronological log of what changed — all other sections show the current state after those changes have been applied.
 
 Return the briefing as markdown. Start with a short paragraph (2-4 sentences) summarizing the job at a glance — what it is, where, and roughly what scale. Then include exactly these five headings:
 
 ## Scope
-List every distinct work item, location, and quantity — incorporating all addendum changes. This is the net scope after all addendums. Do not collapse multiple items into one.
+Every distinct work item and quantity on one line each — net scope after all addendums.
 
 ## Key Requirements
-Critical spec constraints, materials, standards, or compliance items that shape how the job is done. Include any requirements added or modified by addendums.
+Critical spec constraints, materials, or standards. One line per item.
 
 ## Risks & Gotchas
-Site conditions, owner quirks, tight constraints, or anything flagged by the team that could cause problems. Include risks introduced by addendums.
+Site conditions, owner quirks, or tight constraints that could cause problems. One line per item.
 
 ## Addendum Changes
-List every addendum found, chronologically, with its key changes. Do not omit any addendum even if it seems minor. Note which section each change affects (Scope, Key Requirements, etc.).
+Every addendum, chronologically. One line per addendum summarizing its key changes.
 
 ## Outstanding Items
-Unresolved conflicts between documents, missing information, or items that need follow-up.`;
+Unresolved conflicts, missing information, or items needing follow-up. One line each.`;
 
 export async function generateTenderSummary(
   tenderId: string,
