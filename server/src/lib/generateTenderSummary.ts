@@ -7,7 +7,7 @@ Synthesize all available document summaries, page indexes, and human notes into 
 Write in clear, direct language. Be specific — use actual numbers, locations, and standards where mentioned.
 If a section has nothing to report, write "Nothing noted."
 
-Return the briefing as markdown with exactly these five headings:
+Return the briefing as markdown. Start with a short paragraph (2-4 sentences) summarizing the job at a glance — what it is, where, and roughly what scale. Then include exactly these five headings:
 
 ## Scope
 What work is being done, where, and at what scale. Key quantities and locations.
