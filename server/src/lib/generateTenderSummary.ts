@@ -28,16 +28,16 @@ Synthesize all available document summaries, page indexes, and human notes into 
 Write in clear, direct language. Be specific — use actual numbers, locations, and standards where mentioned.
 If a section has nothing to report, write "Nothing noted."
 
-COVERAGE IS THE PRIORITY. Think of this as a scope inventory for pricing — every distinct category of work must appear so no line items are missed in the bid. Missing an entire section of work (e.g. a watermain crossing, a retaining wall, a traffic control phase) means an estimator could miss pricing it entirely. Missing a routine spec detail within a known section is fine.
+COVERAGE IS THE PRIORITY. Think of this as a scope inventory for pricing — every major section of work must appear so nothing is missed in the bid. A "section of work" is a trade or activity category (e.g. asphalt paving, watermain, traffic control, concrete curb, site grading) — NOT individual line items from the schedule of quantities. Missing an entire section of work is a failure. Listing every line item is also a failure — that level of detail belongs in the documents, not the summary.
 
-FORMAT: One bullet per concept. Keep it concise — but if something about a concept is noteworthy (an unusual method, a constraint that affects execution, scheduling, or cost, an owner requirement that changes how you'd approach or price it), include that detail. Don't describe standard details; do flag anything that would affect how an estimator plans or prices this job.
+FORMAT: One bullet per section of work. Keep it concise — but if something about a section is noteworthy (an unusual method, a constraint that affects execution, scheduling, or cost, an owner requirement that changes how you'd approach or price it), add that detail in the same bullet. Don't list spec codes, item numbers, or quantities — those are line item details for the documents.
 
-ADDENDUM SYNTHESIS: Every section reflects the net state after all addendums. If an addendum introduces a new work concept, it must appear in Scope. If it only modifies a spec detail within an existing concept, it does not need its own line — just note it in Addendum Changes.
+ADDENDUM SYNTHESIS: Every section reflects the net state after all addendums. If an addendum introduces a new section of work, it must appear in Scope. If it only modifies a spec detail within an existing section, it does not need its own Scope bullet — just note it in Addendum Changes.
 
 Return the briefing as markdown. Start with a short paragraph (2-4 sentences) summarizing the job at a glance — what it is, where, and roughly what scale. Then include exactly these five headings:
 
 ## Scope
-Every distinct category of work, net of all addendums. One bullet per concept.
+One bullet per major section of work, net of all addendums. Group related line items under their trade/activity — do not list individual schedule items.
 
 ## Key Requirements
 Spec constraints, materials, or standards that shape how the job gets done — especially anything non-standard or restrictive.
