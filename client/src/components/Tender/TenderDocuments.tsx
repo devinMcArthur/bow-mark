@@ -479,89 +479,95 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
   // ── Rendering ──────────────────────────────────────────────────────────────
 
   return (
-    <Box>
-      {hasPending && (
-        <Alert status="warning" mb={3} borderRadius="md" size="sm">
-          <AlertIcon />
-          <AlertDescription fontSize="sm">
-            {pendingCount} {pendingCount === 1 ? "document is" : "documents are"} still being processed — answers may be incomplete.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {tender.files.length > 0 ? (
-        <VStack spacing={2} align="stretch" mb={4}>
-          {tender.files.map((file) => (
-            <FileCard
-              key={file._id}
-              file={file}
-              tenderId={tender._id}
-              onRemove={handleRemove}
-              onRetry={handleRetry}
-              removingId={removingId}
-              retryingId={retryingId}
-            />
-          ))}
-        </VStack>
-      ) : (
-        <Text fontSize="sm" color="gray.500" mb={3}>
-          No documents yet.
-        </Text>
-      )}
-
-      {/* Upload area */}
+    <Box display="flex" flexDirection="column" h="100%" overflow="hidden">
+      {/* Upload area — pinned at top */}
       <Box
-        border="2px dashed"
-        borderColor={isDragOver ? "blue.400" : "gray.200"}
-        borderRadius="md"
-        p={3}
-        bg={isDragOver ? "blue.50" : "gray.50"}
-        transition="border-color 0.15s, background 0.15s"
+        px={5}
+        py={3}
+        borderBottom="1px solid"
+        borderColor="gray.200"
+        flexShrink={0}
         onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
         onDragLeave={() => setIsDragOver(false)}
         onDrop={handleDrop}
+        bg={isDragOver ? "blue.50" : "white"}
+        transition="background 0.15s"
       >
-        <Text fontSize="sm" color="gray.500" mb={2} textAlign="center">
-          Drop files or a folder here, or click to upload.
-        </Text>
-        <HStack justify="center">
-          <Button
-            size="sm"
-            colorScheme="blue"
-            isLoading={uploadProgress !== null}
-            loadingText={
-              uploadProgress && uploadProgress.total > 1
-                ? `${uploadProgress.done} / ${uploadProgress.total}`
-                : undefined
-            }
-            onClick={() => fileInputRef.current?.click()}
-          >
-            Choose Files
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            isDisabled={uploadProgress !== null}
-            onClick={() => folderInputRef.current?.click()}
-          >
-            Choose Folder
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            style={{ display: "none" }}
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-            onChange={handleFileChange}
-          />
-          <input
-            ref={folderInputRef}
-            type="file"
-            multiple
-            style={{ display: "none" }}
-            onChange={handleFileChange}
-          />
+        <HStack justify="space-between" align="center">
+          <Text fontSize="sm" color="gray.500">
+            {isDragOver ? "Drop to upload" : "Add documents"}
+          </Text>
+          <HStack>
+            <Button
+              size="sm"
+              colorScheme="blue"
+              isLoading={uploadProgress !== null}
+              loadingText={
+                uploadProgress && uploadProgress.total > 1
+                  ? `${uploadProgress.done} / ${uploadProgress.total}`
+                  : undefined
+              }
+              onClick={() => fileInputRef.current?.click()}
+            >
+              Choose Files
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              isDisabled={uploadProgress !== null}
+              onClick={() => folderInputRef.current?.click()}
+            >
+              Choose Folder
+            </Button>
+          </HStack>
         </HStack>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          style={{ display: "none" }}
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+          onChange={handleFileChange}
+        />
+        <input
+          ref={folderInputRef}
+          type="file"
+          multiple
+          style={{ display: "none" }}
+          onChange={handleFileChange}
+        />
+      </Box>
+
+      {/* File list — scrollable */}
+      <Box flex={1} overflowY="auto" px={5} py={3}>
+        {hasPending && (
+          <Alert status="warning" mb={3} borderRadius="md" size="sm">
+            <AlertIcon />
+            <AlertDescription fontSize="sm">
+              {pendingCount} {pendingCount === 1 ? "document is" : "documents are"} still being processed — answers may be incomplete.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {tender.files.length > 0 ? (
+          <VStack spacing={2} align="stretch">
+            {tender.files.map((file) => (
+              <FileCard
+                key={file._id}
+                file={file}
+                tenderId={tender._id}
+                onRemove={handleRemove}
+                onRetry={handleRetry}
+                removingId={removingId}
+                retryingId={retryingId}
+              />
+            ))}
+          </VStack>
+        ) : (
+          <Text fontSize="sm" color="gray.500">
+            No documents yet.
+          </Text>
+        )}
       </Box>
     </Box>
   );

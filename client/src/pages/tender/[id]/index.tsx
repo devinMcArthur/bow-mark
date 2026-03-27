@@ -182,7 +182,7 @@ const TenderDetailPage = () => {
               size="sm"
               variant="line"
             >
-              <TabList px={5} flexShrink={0}>
+              <TabList px={5} pt={1} flexShrink={0}>
                 <Tab>Job</Tab>
                 <Tab>Documents</Tab>
                 <Tab>Notes {tender.notes.length > 0 ? `(${tender.notes.length})` : ""}</Tab>
@@ -204,7 +204,7 @@ const TenderDetailPage = () => {
                 </TabPanel>
 
                 {/* ── Documents tab ────────────────────────────────────────── */}
-                <TabPanel h="100%" overflowY="auto" px={5} py={3}>
+                <TabPanel h="100%" p={0} display="flex" flexDirection="column" overflow="hidden">
                   <TenderDocuments
                     tender={tender}
                     onUpdated={() => refetch()}
