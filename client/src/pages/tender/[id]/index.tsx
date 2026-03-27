@@ -166,9 +166,7 @@ const TenderDetailPage = () => {
               crumbs={[
                 { title: "Tenders", link: "/tenders" },
                 {
-                  title: tender
-                    ? `${tender.jobcode} — ${tender.name}`
-                    : "...",
+                  title: tender ? tender.jobcode : "...",
                   isCurrentPage: true,
                 },
               ]}
