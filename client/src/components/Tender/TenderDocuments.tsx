@@ -19,7 +19,7 @@ import {
 import { gql } from "@apollo/client";
 import * as Apollo from "@apollo/client";
 import React from "react";
-import { FiChevronDown, FiChevronRight, FiExternalLink, FiRefreshCw, FiTrash2 } from "react-icons/fi";
+import { FiChevronDown, FiChevronRight, FiRefreshCw, FiTrash2 } from "react-icons/fi";
 import { TenderDetail, TenderFileItem } from "./types";
 import dataUrlToBlob from "../../utils/dataUrlToBlob";
 import { collectDroppedFiles } from "../../utils/collectDroppedFiles";
@@ -192,15 +192,21 @@ const FileCard = ({
       borderColor="gray.200"
       borderRadius="md"
       overflow="hidden"
+      cursor="pointer"
+      _hover={{ borderColor: "gray.300", bg: "gray.50" }}
+      transition="border-color 0.15s, background 0.15s"
+      onClick={openFile}
     >
-      <HStack spacing={2} px={3} pt={3} pb={2} align="flex-start">
-        {/* File info */}
-        <Box flex={1} minW={0}>
-          {file.file.description && (
-            <Text fontSize="sm" fontWeight="medium" wordBreak="break-word" lineHeight="short" mb={1}>
-              {file.file.description}
-            </Text>
-          )}
+      <Box px={3} pt={3} pb={2}>
+        {/* Filename — full width */}
+        {file.file.description && (
+          <Text fontSize="sm" fontWeight="medium" wordBreak="break-word" lineHeight="short" mb={1}>
+            {file.file.description}
+          </Text>
+        )}
+
+        {/* Bottom row: metadata left, actions right */}
+        <HStack justify="space-between" align="center" mt={1}>
           <HStack spacing={2} flexWrap="wrap">
             <Text fontSize="xs" color="gray.500">
               {file.summary?.documentType || file.documentType || (
@@ -226,52 +232,51 @@ const FileCard = ({
               </Badge>
             </Tooltip>
           </HStack>
-        </Box>
 
-        {/* Actions */}
-        <HStack spacing={0} flexShrink={0}>
-          <IconButton
-            aria-label="Open file"
-            icon={<FiExternalLink />}
-            size="xs"
-            variant="ghost"
-            onClick={openFile}
-          />
-          {(file.summaryStatus === "failed" || file.summaryStatus === "ready") && (
+          <HStack spacing={0} flexShrink={0} onClick={(e) => e.stopPropagation()}>
+            {(file.summaryStatus === "failed" || file.summaryStatus === "ready") && (
+              <IconButton
+                aria-label="Retry summary"
+                icon={retryingId === file._id ? <Spinner size="xs" /> : <FiRefreshCw />}
+                size="xs"
+                colorScheme="orange"
+                variant="ghost"
+                isDisabled={retryingId === file._id}
+                onClick={() => onRetry(file._id)}
+              />
+            )}
+            {hasSummary && (
+              <IconButton
+                aria-label="Toggle summary"
+                icon={expanded ? <FiChevronDown /> : <FiChevronRight />}
+                size="xs"
+                variant="ghost"
+                onClick={() => setExpanded((v) => !v)}
+              />
+            )}
             <IconButton
-              aria-label="Retry summary"
-              icon={retryingId === file._id ? <Spinner size="xs" /> : <FiRefreshCw />}
+              aria-label="Remove file"
+              icon={removingId === file._id ? <Spinner size="xs" /> : <FiTrash2 />}
               size="xs"
-              colorScheme="orange"
+              colorScheme="red"
               variant="ghost"
-              isDisabled={retryingId === file._id}
-              onClick={() => onRetry(file._id)}
+              isDisabled={removingId === file._id}
+              onClick={() => onRemove(file._id)}
             />
-          )}
-          <IconButton
-            aria-label="Remove file"
-            icon={removingId === file._id ? <Spinner size="xs" /> : <FiTrash2 />}
-            size="xs"
-            colorScheme="red"
-            variant="ghost"
-            isDisabled={removingId === file._id}
-            onClick={() => onRemove(file._id)}
-          />
-          {hasSummary && (
-            <IconButton
-              aria-label="Toggle summary"
-              icon={expanded ? <FiChevronDown /> : <FiChevronRight />}
-              size="xs"
-              variant="ghost"
-              onClick={() => setExpanded((v) => !v)}
-            />
-          )}
+          </HStack>
         </HStack>
-      </HStack>
+      </Box>
 
       {hasSummary && (
         <Collapse in={expanded} animateOpacity>
-          <Box bg="gray.50" px={3} py={2} borderTop="1px solid" borderColor="gray.100">
+          <Box
+            bg="gray.50"
+            px={3}
+            py={2}
+            borderTop="1px solid"
+            borderColor="gray.100"
+            onClick={(e) => e.stopPropagation()}
+          >
             <Text fontSize="xs" color="gray.700" mb={2}>{file.summary!.overview}</Text>
             {file.summary!.keyTopics.length > 0 && (
               <Wrap spacing={1}>
