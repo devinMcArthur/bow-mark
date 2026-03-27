@@ -5,6 +5,7 @@ import { Tender, User, System } from "@models";
 import { isDocument } from "@typegoose/typegoose";
 import { streamConversation } from "../lib/streamConversation";
 import { READ_DOCUMENT_TOOL, LIST_DOCUMENT_PAGES_TOOL, makeReadDocumentExecutor } from "../lib/readDocumentExecutor";
+import { SAVE_TENDER_NOTE_TOOL, DELETE_TENDER_NOTE_TOOL, makeTenderNoteExecutor } from "../lib/tenderNoteTools";
 import { buildFileIndex } from "../lib/buildFileIndex";
 import { requireAuth } from "../lib/authMiddleware";
 
@@ -34,6 +35,7 @@ router.post("/message", requireAuth, async (req, res) => {
   const [tender, systemDoc, user] = await Promise.all([
     Tender.findById(tenderId)
       .populate({ path: "files", populate: { path: "file" } })
+      .populate({ path: "notes.savedBy", select: "name" })
       .lean(),
     System.getSystem(),
     User.findById(req.userId).populate("employee"),
@@ -62,6 +64,33 @@ router.post("/message", requireAuth, async (req, res) => {
     serverBase,
     req.token
   );
+
+  // ── Notes context ──────────────────────────────────────────────────────────
+  const tenderNotes = ((tender as any).notes ?? []) as Array<{
+    _id: any;
+    content: string;
+    savedBy?: any;
+    savedAt: Date;
+  }>;
+
+  const notesBlock =
+    tenderNotes.length > 0
+      ? `\n\n## Job Notes\n${tenderNotes
+          .map((n) => {
+            const who = n.savedBy?.name ?? "team";
+            const when = new Date(n.savedAt).toLocaleDateString();
+            return `- ${n.content} (saved by ${who}, ${when})`;
+          })
+          .join("\n")}`
+      : "";
+
+  const jobSummary = (tender as any).jobSummary as
+    | { content: string; generatedAt: Date }
+    | undefined;
+
+  const summaryBlock = jobSummary?.content
+    ? `\n\n## Job Summary\n${jobSummary.content}`
+    : "";
 
   // ── Query decomposition ────────────────────────────────────────────────────
   // Split multi-part questions into focused sub-questions before the main call.
@@ -110,7 +139,7 @@ You are working on tender: **${tender.name}** (Job Code: ${tender.jobcode})${ten
 
 ## Tender Documents
 
-${fileIndex || "No tender documents have been processed yet."}${pendingNotice}${specFileIndex ? `\n\n## Reference Specifications (shared across all tenders)\n\n${specFileIndex}` : ""}
+${fileIndex || "No tender documents have been processed yet."}${pendingNotice}${specFileIndex ? `\n\n## Reference Specifications (shared across all tenders)\n\n${specFileIndex}` : ""}${notesBlock}${summaryBlock}
 ${decompositionBlock}
 ## Instructions
 
@@ -128,9 +157,14 @@ ${decompositionBlock}
 
 **Completeness.** Before giving your final answer, confirm you have addressed all parts of the question. If you found cross-references you have not checked, note what is outstanding so the user can decide.
 
-**Scope.** Answer only from the tender documents and reference specs provided. If the answer is not in the documents, say so clearly rather than drawing on general knowledge.`;
+**Saving job notes.** If the user mentions something important that is not in the documents — owner preferences, site context, verbal agreements, known risks — draft a 1-2 sentence note and ask "Should I save that to the job notes?" before calling save_tender_note. Never save without explicit confirmation.
+
+**Scope.** Answer only from the tender documents, reference specs, and job notes provided. If the answer is not in the documents, say so clearly rather than drawing on general knowledge.`;
 
   // ── Stream ─────────────────────────────────────────────────────────────────
+  const noteExecutor = makeTenderNoteExecutor(tenderId, req.userId, conversationId);
+  const docExecutor = makeReadDocumentExecutor([...tenderFiles, ...specFiles]);
+
   await streamConversation({
     res,
     userId: req.userId,
@@ -138,10 +172,15 @@ ${decompositionBlock}
     tenderId,
     messages,
     systemPrompt,
-    tools: [LIST_DOCUMENT_PAGES_TOOL, READ_DOCUMENT_TOOL],
+    tools: [LIST_DOCUMENT_PAGES_TOOL, READ_DOCUMENT_TOOL, SAVE_TENDER_NOTE_TOOL, DELETE_TENDER_NOTE_TOOL],
     toolChoice: { type: "auto", disable_parallel_tool_use: true },
     maxTokens: 8192,
-    executeTool: makeReadDocumentExecutor([...tenderFiles, ...specFiles]),
+    executeTool: async (name, input) => {
+      if (name === SAVE_TENDER_NOTE_TOOL.name || name === DELETE_TENDER_NOTE_TOOL.name) {
+        return noteExecutor(name, input);
+      }
+      return docExecutor(name, input);
+    },
     logPrefix: "[tender-chat]",
   });
 });
