@@ -115,12 +115,12 @@ export const enrichedFileSummaryHandler = {
       await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
         $set: {
           summary,
-          summaryStatus: "ready",
           ...(pageCount !== undefined ? { pageCount } : {}),
         },
       });
 
       // Generate page-level index for PDFs (not spreadsheets or images)
+      // summaryStatus is set to "ready" only after both summary and page index are complete
       if (!isSpreadsheet && !contentType.startsWith("image/")) {
         try {
           console.log(`[EnrichedFileSummary] Generating page index for file ${fileId}...`);
@@ -136,6 +136,10 @@ export const enrichedFileSummaryHandler = {
           console.warn(`[EnrichedFileSummary] Page index generation failed for file ${fileId}:`, indexErr);
         }
       }
+
+      await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
+        $set: { summaryStatus: "ready" },
+      });
 
       console.log(`[EnrichedFileSummary] Done for file ${fileId}`);
     } catch (error) {
