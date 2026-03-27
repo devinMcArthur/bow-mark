@@ -10,9 +10,12 @@ vi.mock("@anthropic-ai/sdk", () => ({
 
 import mongoose from "mongoose";
 import { Tender } from "@models";
+import { prepareDatabase } from "@testing/vitestDB";
 import { makeTenderNoteExecutor } from "../lib/tenderNoteTools";
 
-// Uses real MongoDB via vitestGlobalSetup (testcontainers)
+beforeAll(async () => {
+  await prepareDatabase();
+});
 
 describe("makeTenderNoteExecutor", () => {
   let tenderId: string;
