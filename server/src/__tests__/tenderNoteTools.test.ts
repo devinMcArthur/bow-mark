@@ -1,5 +1,3 @@
-import { vi } from "vitest";
-
 vi.mock("@anthropic-ai/sdk", () => ({
   default: vi.fn().mockImplementation(() => ({
     messages: {
@@ -10,7 +8,6 @@ vi.mock("@anthropic-ai/sdk", () => ({
   })),
 }));
 
-import { describe, it, expect, beforeEach } from "vitest";
 import mongoose from "mongoose";
 import { Tender } from "@models";
 import { makeTenderNoteExecutor } from "../lib/tenderNoteTools";

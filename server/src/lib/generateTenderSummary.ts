@@ -1,8 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Tender } from "@models";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
 const SUMMARY_PROMPT = `You are writing a living job briefing for a construction tender at Bow-Mark, a paving and concrete company.
 
 Synthesize all available document summaries, page indexes, and human notes into a structured briefing.
@@ -28,8 +26,10 @@ Unresolved conflicts between documents, missing information, or items that need 
 
 export async function generateTenderSummary(
   tenderId: string,
-  triggeredBy: "auto" | "manual" = "auto"
+  triggeredBy: "auto" | "manual" = "auto",
+  anthropicClient?: Pick<Anthropic, "messages">
 ): Promise<void> {
+  const anthropic = anthropicClient ?? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const tender = await Tender.findById(tenderId)
     .populate({ path: "files" })
     .lean();
