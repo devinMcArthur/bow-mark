@@ -135,7 +135,7 @@ const TenderSummaryTab: React.FC<Props> = ({ tender, onUpdated }) => {
           </Text>
         </Box>
       ) : (() => {
-        const { intro, sections } = parseSections(jobSummary.content);
+        const { intro, sections } = parseSections(jobSummary?.content ?? "");
         return (
           <VStack align="stretch" spacing={2}>
             {intro && (
