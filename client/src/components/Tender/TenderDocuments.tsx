@@ -194,24 +194,24 @@ const FileRow = ({
   return (
     <>
       <Tr>
-        <Td overflow="hidden">
-          <HStack spacing={1}>
+        <Td>
+          <HStack spacing={1} align="flex-start">
             {hasSummary && (
               <IconButton
                 aria-label="Toggle summary"
                 icon={expanded ? <FiChevronDown /> : <FiChevronRight />}
                 size="xs"
                 variant="ghost"
+                mt="1px"
+                flexShrink={0}
                 onClick={() => setExpanded((v) => !v)}
               />
             )}
             <Box minW={0}>
               {file.file.description && (
-                <Tooltip label={file.file.description} placement="top" fontSize="xs" openDelay={500}>
-                  <Text fontSize="sm" fontWeight="medium" isTruncated>{file.file.description}</Text>
-                </Tooltip>
+                <Text fontSize="sm" fontWeight="medium" wordBreak="break-word">{file.file.description}</Text>
               )}
-              <Text fontSize="xs" color="gray.500" isTruncated>
+              <Text fontSize="xs" color="gray.500" wordBreak="break-word">
                 {file.summary?.documentType || file.documentType || (
                   <Text as="span" fontStyle="italic">Detecting…</Text>
                 )}
