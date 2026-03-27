@@ -146,10 +146,7 @@ export default class TenderResolver {
   @Mutation(() => TenderClass)
   async tenderRegenerateSummary(@Arg("id", () => ID) id: Id) {
     await Tender.getById(id, { throwError: true });
-    await generateTenderSummary(id.toString());
-    await (Tender as any).findByIdAndUpdate(id, {
-      $set: { "jobSummary.generatedBy": "manual" },
-    });
+    await generateTenderSummary(id.toString(), "manual");
     return Tender.getById(id);
   }
 

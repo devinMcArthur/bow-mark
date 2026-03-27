@@ -1,3 +1,15 @@
+import { vi } from "vitest";
+
+vi.mock("@anthropic-ai/sdk", () => ({
+  default: vi.fn().mockImplementation(() => ({
+    messages: {
+      create: vi.fn().mockResolvedValue({
+        content: [{ type: "text", text: "## Scope\nMocked." }],
+      }),
+    },
+  })),
+}));
+
 import { describe, it, expect, beforeEach } from "vitest";
 import mongoose from "mongoose";
 import { Tender } from "@models";

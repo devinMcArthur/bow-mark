@@ -26,7 +26,10 @@ What has changed from the original contract, listed chronologically. If no adden
 ## Outstanding Items
 Unresolved conflicts between documents, missing information, or items that need follow-up.`;
 
-export async function generateTenderSummary(tenderId: string): Promise<void> {
+export async function generateTenderSummary(
+  tenderId: string,
+  triggeredBy: "auto" | "manual" = "auto"
+): Promise<void> {
   const tender = await Tender.findById(tenderId)
     .populate({ path: "files" })
     .lean();
@@ -120,7 +123,7 @@ ${SUMMARY_PROMPT}`;
         jobSummary: {
           content,
           generatedAt: new Date(),
-          generatedBy: "auto",
+          generatedBy: triggeredBy,
           generatedFrom,
         },
       },
