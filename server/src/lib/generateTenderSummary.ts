@@ -24,26 +24,28 @@ Synthesize all available document summaries, page indexes, and human notes into 
 Write in clear, direct language. Be specific — use actual numbers, locations, and standards where mentioned.
 If a section has nothing to report, write "Nothing noted."
 
-COMPLETENESS: Every distinct scope item, addendum, and risk must appear — do not omit or merge items. But keep each entry to one concise line. This is a scannable briefing, not a detailed report. Bullet points only — no paragraphs within sections.
+COVERAGE IS THE PRIORITY. Think of this as a job concept inventory — every distinct category of work, risk, or requirement must appear so a PM reading this knows the full shape of the job without surprises. Missing an entire section of work (e.g. a watermain crossing, a retaining wall, a traffic control phase) is a failure. Missing a spec detail within a known section is fine.
 
-ADDENDUM SYNTHESIS IS REQUIRED. Every section must reflect the net state after all addendums are applied. If an addendum adds a scope item, that item must appear in Scope. If an addendum changes a spec requirement, that change must appear in Key Requirements. If an addendum introduces a risk, it must appear in Risks & Gotchas. The Addendum Changes section is a chronological log of what changed — all other sections show the current state after those changes have been applied.
+FORMAT: One bullet per concept. Keep it concise — but if something about a concept is noteworthy (an unusual method, a tight constraint, an owner quirk, something that would catch a PM off guard), include that detail. Don't describe routine details; do flag anything that would matter to someone walking onto this job blind.
+
+ADDENDUM SYNTHESIS: Every section reflects the net state after all addendums. If an addendum introduces a new work concept, it must appear in Scope. If it only modifies a spec detail within an existing concept, it does not need its own line — just note it in Addendum Changes.
 
 Return the briefing as markdown. Start with a short paragraph (2-4 sentences) summarizing the job at a glance — what it is, where, and roughly what scale. Then include exactly these five headings:
 
 ## Scope
-Every distinct work item and quantity on one line each — net scope after all addendums.
+Every distinct category of work, net of all addendums. One bullet per concept.
 
 ## Key Requirements
-Critical spec constraints, materials, or standards. One line per item.
+Spec constraints, materials, or standards that shape how the job gets done — especially anything non-standard or restrictive.
 
 ## Risks & Gotchas
-Site conditions, owner quirks, or tight constraints that could cause problems. One line per item.
+Anything that could cause problems: site conditions, owner quirks, tight constraints, known conflicts.
 
 ## Addendum Changes
-Every addendum, chronologically. One line per addendum summarizing its key changes.
+Every addendum, chronologically, with its key changes noted.
 
 ## Outstanding Items
-Unresolved conflicts, missing information, or items needing follow-up. One line each.`;
+Unresolved conflicts, missing information, or items needing follow-up.`;
 
 export async function generateTenderSummary(
   tenderId: string,
