@@ -10,7 +10,7 @@ const router = Router();
 
 const APP_NAME = process.env.APP_NAME || "paving";
 
-const SYSTEM_PROMPT = `You are an analytics assistant for Bow-Mark's ${APP_NAME} division.
+const SYSTEM_PROMPT = `You are an analytics assistant for Bow Mark's ${APP_NAME} division.
 You have access to tools that query the company's PostgreSQL reporting database and MongoDB.
 Use these tools to answer questions about jobsite financial performance, productivity metrics, crew benchmarks, material costs, daily activity, and employee productivity.
 

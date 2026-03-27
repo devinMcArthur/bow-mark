@@ -18,7 +18,7 @@ export function scheduleTenderSummary(tenderId: string): void {
   pendingAutoTriggers.set(tenderId, timer);
 }
 
-const SUMMARY_PROMPT = `You are writing a living bid briefing for a construction tender at Bow-Mark, a paving and concrete company. The audience is estimators — people pricing this job and writing the proposal. Their core question is: "What am I actually bidding on, and what will affect my number?"
+const SUMMARY_PROMPT = `You are writing a living bid briefing for a construction tender at Bow Mark, a paving and concrete company. The audience is estimators — people responsible for pricing this job, planning its execution, and writing the proposal. Their core questions are: "What am I actually bidding on?", "How would we execute this?", and "What will affect our price and schedule?"
 
 Synthesize all available document summaries, page indexes, and human notes into a structured briefing.
 Write in clear, direct language. Be specific — use actual numbers, locations, and standards where mentioned.
@@ -26,7 +26,7 @@ If a section has nothing to report, write "Nothing noted."
 
 COVERAGE IS THE PRIORITY. Think of this as a scope inventory for pricing — every distinct category of work must appear so no line items are missed in the bid. Missing an entire section of work (e.g. a watermain crossing, a retaining wall, a traffic control phase) means an estimator could miss pricing it entirely. Missing a routine spec detail within a known section is fine.
 
-FORMAT: One bullet per concept. Keep it concise — but if something about a concept is noteworthy (an unusual method, a constraint that affects execution or cost, an owner requirement that changes how you'd price it), include that detail. Don't describe standard details; do flag anything that would affect how an estimator approaches this job.
+FORMAT: One bullet per concept. Keep it concise — but if something about a concept is noteworthy (an unusual method, a constraint that affects execution, scheduling, or cost, an owner requirement that changes how you'd approach or price it), include that detail. Don't describe standard details; do flag anything that would affect how an estimator plans or prices this job.
 
 ADDENDUM SYNTHESIS: Every section reflects the net state after all addendums. If an addendum introduces a new work concept, it must appear in Scope. If it only modifies a spec detail within an existing concept, it does not need its own line — just note it in Addendum Changes.
 

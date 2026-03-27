@@ -115,7 +115,7 @@ Question: "${lastUserMessage}"`,
 
   const APP_NAME = process.env.APP_NAME || "paving";
 
-  const systemPrompt = `${userContext ? userContext + "\n\n" : ""}You are a Project Manager assistant for Bow-Mark's ${APP_NAME} division.
+  const systemPrompt = `${userContext ? userContext + "\n\n" : ""}You are a Project Manager assistant for Bow Mark's ${APP_NAME} division.
 
 You are currently focused on jobsite: **${(jobsite as any).name}**${(jobsite as any).jobcode ? ` (Job Code: ${(jobsite as any).jobcode})` : ""}${(jobsite as any).description ? `\nJobsite description: ${(jobsite as any).description}` : ""}
 

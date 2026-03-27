@@ -105,7 +105,7 @@ Question: "${lastUserMessage}"`,
       ? `\n## This Question\nThis question has multiple parts — address each one:\n${decomposedQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}\n`
       : "";
 
-  const systemPrompt = `${userContext ? userContext + "\n\n" : ""}You are a field assistant helping foremen and crew at Bow-Mark, a paving and concrete company.
+  const systemPrompt = `${userContext ? userContext + "\n\n" : ""}You are a field assistant helping foremen and crew at Bow Mark, a paving and concrete company.
 
 You are helping with jobsite: **${(jobsite as any).name}**${(jobsite as any).jobcode ? ` (Job Code: ${(jobsite as any).jobcode})` : ""}
 
