@@ -5,7 +5,7 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
-import { DeleteIcon } from "@chakra-ui/icons";
+import { MdDelete } from "react-icons/md";
 import { gql } from "@apollo/client";
 import * as Apollo from "@apollo/client";
 import React from "react";
@@ -72,7 +72,7 @@ const TenderNotesTab: React.FC<Props> = ({ tender, onUpdated }) => {
             </Text>
             <IconButton
               aria-label="Delete note"
-              icon={<DeleteIcon />}
+              icon={<MdDelete />}
               size="xs"
               variant="ghost"
               colorScheme="red"

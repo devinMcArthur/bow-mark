@@ -39,8 +39,8 @@ function isStale(jobSummary: TenderJobSummary, tender: TenderDetail): boolean {
   const currentIds = new Set([...readyFileIds, ...noteIds]);
   const generatedFromSet = new Set(jobSummary.generatedFrom);
   return (
-    [...currentIds].some((id) => !generatedFromSet.has(id)) ||
-    [...generatedFromSet].some((id) => !currentIds.has(id))
+    Array.from(currentIds).some((id) => !generatedFromSet.has(id)) ||
+    Array.from(generatedFromSet).some((id) => !currentIds.has(id))
   );
 }
 
