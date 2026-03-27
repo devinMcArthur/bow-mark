@@ -24,6 +24,8 @@ import {
 import { TenderCreateData, TenderUpdateData, TenderAddFileData } from "./mutations";
 import { publishEnrichedFileCreated } from "../../../rabbitmq/publisher";
 import { isDocument } from "@typegoose/typegoose";
+import mongoose from "mongoose";
+import { generateTenderSummary } from "../../../lib/generateTenderSummary";
 
 @Resolver(() => TenderClass)
 export default class TenderResolver {
@@ -121,6 +123,33 @@ export default class TenderResolver {
 
     await publishEnrichedFileCreated(fileObjectId.toString(), fileId);
 
+    return Tender.getById(id);
+  }
+
+  @Authorized(["ADMIN", "PM"])
+  @Mutation(() => TenderClass)
+  async tenderDeleteNote(
+    @Arg("id", () => ID) id: Id,
+    @Arg("noteId", () => ID) noteId: Id
+  ) {
+    await (Tender as any).findByIdAndUpdate(id, {
+      $pull: { notes: { _id: new mongoose.Types.ObjectId(noteId.toString()) } },
+    });
+    // Fire-and-forget summary regeneration
+    generateTenderSummary(id.toString()).catch((err) =>
+      console.warn("[TenderResolver] Summary regeneration failed after note delete:", err)
+    );
+    return Tender.getById(id);
+  }
+
+  @Authorized(["ADMIN", "PM"])
+  @Mutation(() => TenderClass)
+  async tenderRegenerateSummary(@Arg("id", () => ID) id: Id) {
+    await Tender.getById(id, { throwError: true });
+    await generateTenderSummary(id.toString());
+    await (Tender as any).findByIdAndUpdate(id, {
+      $set: { "jobSummary.generatedBy": "manual" },
+    });
     return Tender.getById(id);
   }
 
