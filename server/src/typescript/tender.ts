@@ -15,3 +15,16 @@ export interface ITenderUpdate {
   status?: TenderStatus;
   jobsiteId?: string | null;
 }
+
+export interface ITenderNote {
+  content: string;
+  savedBy: string; // User _id
+  conversationId: string;
+}
+
+export interface ITenderJobSummary {
+  content: string;
+  generatedAt: Date;
+  generatedBy: "auto" | "manual";
+  generatedFrom: string[]; // enrichedFile _ids + note _ids
+}
