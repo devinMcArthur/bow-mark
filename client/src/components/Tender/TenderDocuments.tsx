@@ -9,15 +9,10 @@ import {
   HStack,
   IconButton,
   Spinner,
-  Table,
-  Tbody,
-  Td,
   Text,
-  Th,
-  Thead,
   Tooltip,
-  Tr,
   useToast,
+  VStack,
   Wrap,
   WrapItem,
 } from "@chakra-ui/react";
@@ -173,7 +168,7 @@ interface FileRowProps {
   retryingId: string | null;
 }
 
-const FileRow = ({
+const FileCard = ({
   file,
   tenderId,
   onRemove,
@@ -192,118 +187,105 @@ const FileRow = ({
   };
 
   return (
-    <>
-      <Tr>
-        <Td>
-          <HStack spacing={1} align="flex-start">
-            {hasSummary && (
-              <IconButton
-                aria-label="Toggle summary"
-                icon={expanded ? <FiChevronDown /> : <FiChevronRight />}
-                size="xs"
-                variant="ghost"
-                mt="1px"
-                flexShrink={0}
-                onClick={() => setExpanded((v) => !v)}
-              />
-            )}
-            <Box minW={0}>
-              {file.file.description && (
-                <Text fontSize="sm" fontWeight="medium" wordBreak="break-word">{file.file.description}</Text>
+    <Box
+      border="1px solid"
+      borderColor="gray.200"
+      borderRadius="md"
+      overflow="hidden"
+    >
+      <HStack spacing={2} px={3} pt={3} pb={2} align="flex-start">
+        {/* File info */}
+        <Box flex={1} minW={0}>
+          {file.file.description && (
+            <Text fontSize="sm" fontWeight="medium" wordBreak="break-word" lineHeight="short" mb={1}>
+              {file.file.description}
+            </Text>
+          )}
+          <HStack spacing={2} flexWrap="wrap">
+            <Text fontSize="xs" color="gray.500">
+              {file.summary?.documentType || file.documentType || (
+                <Text as="span" fontStyle="italic">Detecting…</Text>
               )}
-              <Text fontSize="xs" color="gray.500" wordBreak="break-word">
-                {file.summary?.documentType || file.documentType || (
-                  <Text as="span" fontStyle="italic">Detecting…</Text>
-                )}
-              </Text>
-            </Box>
-          </HStack>
-        </Td>
-        <Td>
-          <Tooltip
-            label={file.summaryError ?? undefined}
-            isDisabled={!file.summaryError}
-            placement="top"
-            maxW="320px"
-            fontSize="xs"
-          >
-            <Badge colorScheme={summaryStatusColor(file.summaryStatus)} cursor={file.summaryError ? "help" : undefined}>
-              {file.summaryStatus}
-            </Badge>
-          </Tooltip>
-        </Td>
-        <Td isNumeric>{file.pageCount ?? "—"}</Td>
-        <Td>
-          <HStack spacing={1} justify="flex-end">
-            <IconButton
-              aria-label="Open file"
-              icon={<FiExternalLink />}
-              size="xs"
-              variant="ghost"
-              onClick={openFile}
-            />
-            {(file.summaryStatus === "failed" || file.summaryStatus === "ready") && (
-              <IconButton
-                aria-label="Retry summary"
-                icon={
-                  retryingId === file._id ? (
-                    <Spinner size="xs" />
-                  ) : (
-                    <FiRefreshCw />
-                  )
-                }
-                size="xs"
-                colorScheme="orange"
-                variant="ghost"
-                isDisabled={retryingId === file._id}
-                onClick={() => onRetry(file._id)}
-              />
+            </Text>
+            {file.pageCount != null && (
+              <Text fontSize="xs" color="gray.400">{file.pageCount}p</Text>
             )}
-            <IconButton
-              aria-label="Remove file"
-              icon={
-                removingId === file._id ? <Spinner size="xs" /> : <FiTrash2 />
-              }
-              size="xs"
-              colorScheme="red"
-              variant="ghost"
-              isDisabled={removingId === file._id}
-              onClick={() => onRemove(file._id)}
-            />
-          </HStack>
-        </Td>
-      </Tr>
-      {hasSummary && (
-        <Tr>
-          <Td colSpan={4} p={0}>
-            <Collapse in={expanded} animateOpacity>
-              <Box
-                bg="gray.50"
-                px={6}
-                py={3}
-                borderBottom="1px solid"
-                borderColor="gray.100"
+            <Tooltip
+              label={file.summaryError ?? undefined}
+              isDisabled={!file.summaryError}
+              placement="top"
+              maxW="320px"
+              fontSize="xs"
+            >
+              <Badge
+                colorScheme={summaryStatusColor(file.summaryStatus)}
+                cursor={file.summaryError ? "help" : undefined}
+                fontSize="xs"
               >
-                <Text fontSize="sm" mb={2} color="gray.700">
-                  {file.summary!.overview}
-                </Text>
-                {file.summary!.keyTopics.length > 0 && (
-                  <Wrap spacing={1}>
-                    {file.summary!.keyTopics.map((topic) => (
-                      <WrapItem key={topic}>
-                        <Badge colorScheme="blue" fontSize="xs">
-                          {topic}
-                        </Badge>
-                      </WrapItem>
-                    ))}
-                  </Wrap>
-                )}
-              </Box>
-            </Collapse>
-          </Td>
-        </Tr>
+                {file.summaryStatus}
+              </Badge>
+            </Tooltip>
+          </HStack>
+        </Box>
+
+        {/* Actions */}
+        <HStack spacing={0} flexShrink={0}>
+          <IconButton
+            aria-label="Open file"
+            icon={<FiExternalLink />}
+            size="xs"
+            variant="ghost"
+            onClick={openFile}
+          />
+          {(file.summaryStatus === "failed" || file.summaryStatus === "ready") && (
+            <IconButton
+              aria-label="Retry summary"
+              icon={retryingId === file._id ? <Spinner size="xs" /> : <FiRefreshCw />}
+              size="xs"
+              colorScheme="orange"
+              variant="ghost"
+              isDisabled={retryingId === file._id}
+              onClick={() => onRetry(file._id)}
+            />
+          )}
+          <IconButton
+            aria-label="Remove file"
+            icon={removingId === file._id ? <Spinner size="xs" /> : <FiTrash2 />}
+            size="xs"
+            colorScheme="red"
+            variant="ghost"
+            isDisabled={removingId === file._id}
+            onClick={() => onRemove(file._id)}
+          />
+          {hasSummary && (
+            <IconButton
+              aria-label="Toggle summary"
+              icon={expanded ? <FiChevronDown /> : <FiChevronRight />}
+              size="xs"
+              variant="ghost"
+              onClick={() => setExpanded((v) => !v)}
+            />
+          )}
+        </HStack>
+      </HStack>
+
+      {hasSummary && (
+        <Collapse in={expanded} animateOpacity>
+          <Box bg="gray.50" px={3} py={2} borderTop="1px solid" borderColor="gray.100">
+            <Text fontSize="xs" color="gray.700" mb={2}>{file.summary!.overview}</Text>
+            {file.summary!.keyTopics.length > 0 && (
+              <Wrap spacing={1}>
+                {file.summary!.keyTopics.map((topic) => (
+                  <WrapItem key={topic}>
+                    <Badge colorScheme="blue" fontSize="xs">{topic}</Badge>
+                  </WrapItem>
+                ))}
+              </Wrap>
+            )}
+          </Box>
+        </Collapse>
       )}
-    </>
+    </Box>
   );
 };
 
@@ -501,35 +483,19 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
       )}
 
       {tender.files.length > 0 ? (
-        <Table variant="simple" size="sm" mb={4} style={{ tableLayout: "fixed" }} w="100%">
-          <colgroup>
-            <col style={{ width: "auto" }} />
-            <col style={{ width: "90px" }} />
-            <col style={{ width: "58px" }} />
-            <col style={{ width: "88px" }} />
-          </colgroup>
-          <Thead>
-            <Tr>
-              <Th whiteSpace="nowrap">File</Th>
-              <Th whiteSpace="nowrap">Status</Th>
-              <Th isNumeric whiteSpace="nowrap">Pages</Th>
-              <Th></Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {tender.files.map((file) => (
-              <FileRow
-                key={file._id}
-                file={file}
-                tenderId={tender._id}
-                onRemove={handleRemove}
-                onRetry={handleRetry}
-                removingId={removingId}
-                retryingId={retryingId}
-              />
-            ))}
-          </Tbody>
-        </Table>
+        <VStack spacing={2} align="stretch" mb={4}>
+          {tender.files.map((file) => (
+            <FileCard
+              key={file._id}
+              file={file}
+              tenderId={tender._id}
+              onRemove={handleRemove}
+              onRetry={handleRetry}
+              removingId={removingId}
+              retryingId={retryingId}
+            />
+          ))}
+        </VStack>
       ) : (
         <Text fontSize="sm" color="gray.500" mb={3}>
           No documents yet.
