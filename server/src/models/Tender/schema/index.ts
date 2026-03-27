@@ -81,11 +81,11 @@ export class TenderSchema {
   public files!: Ref<EnrichedFileClass>[];
 
   @Field(() => [TenderNoteClass])
-  @prop({ type: () => [Object], default: [] })
+  @prop({ type: () => [TenderNoteClass], default: [] })
   public notes!: TenderNoteClass[];
 
   @Field(() => TenderJobSummaryClass, { nullable: true })
-  @prop({ type: () => Object, required: false })
+  @prop({ type: () => TenderJobSummaryClass, required: false })
   public jobSummary?: TenderJobSummaryClass;
 
   @Field(() => UserClass)
