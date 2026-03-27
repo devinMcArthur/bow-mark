@@ -2,7 +2,6 @@ import {
   Box,
   Divider,
   Flex,
-  Heading,
   Spinner,
   Tab,
   TabList,
@@ -187,7 +186,7 @@ const TenderDetailPage = () => {
             >
               <TabList px={5} flexShrink={0}>
                 <Tab>Job</Tab>
-                <Tab>Summary</Tab>
+                <Tab>Documents</Tab>
                 <Tab>Notes {tender.notes.length > 0 ? `(${tender.notes.length})` : ""}</Tab>
               </TabList>
 
@@ -200,18 +199,15 @@ const TenderDetailPage = () => {
                     onUpdated={() => refetch()}
                   />
                   <Divider my={4} />
-                  <Heading size="sm" mb={3} color="gray.700">
-                    Documents
-                  </Heading>
-                  <TenderDocuments
+                  <TenderSummaryTab
                     tender={tender}
                     onUpdated={() => refetch()}
                   />
                 </TabPanel>
 
-                {/* ── Summary tab ──────────────────────────────────────────── */}
-                <TabPanel h="100%" overflowY="auto" p={0}>
-                  <TenderSummaryTab
+                {/* ── Documents tab ────────────────────────────────────────── */}
+                <TabPanel h="100%" overflowY="auto" px={5} py={3}>
+                  <TenderDocuments
                     tender={tender}
                     onUpdated={() => refetch()}
                   />
