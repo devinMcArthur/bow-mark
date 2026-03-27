@@ -24,10 +24,12 @@ Synthesize all available document summaries, page indexes, and human notes into 
 Write in clear, direct language. Be specific — use actual numbers, locations, and standards where mentioned.
 If a section has nothing to report, write "Nothing noted."
 
+COMPLETENESS IS CRITICAL. Do not omit or summarize away individual items to save space. Every scope item, every addendum, every risk must appear — even if the list is long. It is better to be thorough than brief.
+
 Return the briefing as markdown. Start with a short paragraph (2-4 sentences) summarizing the job at a glance — what it is, where, and roughly what scale. Then include exactly these five headings:
 
 ## Scope
-What work is being done, where, and at what scale. Key quantities and locations.
+List every distinct work item, location, and quantity. Do not collapse multiple items into one.
 
 ## Key Requirements
 Critical spec constraints, materials, standards, or compliance items that shape how the job is done.
@@ -36,7 +38,7 @@ Critical spec constraints, materials, standards, or compliance items that shape 
 Site conditions, owner quirks, tight constraints, or anything flagged by the team that could cause problems.
 
 ## Addendum Changes
-What has changed from the original contract, listed chronologically. If no addendums, note that.
+List every addendum found, chronologically, with its key changes. Do not omit any addendum even if it seems minor.
 
 ## Outstanding Items
 Unresolved conflicts between documents, missing information, or items that need follow-up.`;
@@ -114,7 +116,7 @@ ${SUMMARY_PROMPT}`;
   try {
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 4096,
+      max_tokens: 8192,
       messages: [{ role: "user", content: userContent }],
     });
 
