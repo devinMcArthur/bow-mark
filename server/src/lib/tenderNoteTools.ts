@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import mongoose from "mongoose";
 import { Tender } from "@models";
 import { ToolExecutionResult } from "./streamConversation";
-import { generateTenderSummary } from "./generateTenderSummary";
+import { scheduleTenderSummary } from "./generateTenderSummary";
 
 export const SAVE_TENDER_NOTE_TOOL: Anthropic.Tool = {
   name: "save_tender_note",
@@ -67,10 +67,7 @@ export function makeTenderNoteExecutor(
         },
       });
 
-      // Fire-and-forget summary regeneration
-      generateTenderSummary(tenderId).catch((err) =>
-        console.warn("[tenderNoteTools] Summary regeneration failed after note save:", err)
-      );
+      scheduleTenderSummary(tenderId);
 
       return {
         content: `Note saved: "${content}"`,
@@ -93,10 +90,7 @@ export function makeTenderNoteExecutor(
         };
       }
 
-      // Fire-and-forget summary regeneration
-      generateTenderSummary(tenderId).catch((err) =>
-        console.warn("[tenderNoteTools] Summary regeneration failed after note delete:", err)
-      );
+      scheduleTenderSummary(tenderId);
 
       return {
         content: `Note deleted.`,

@@ -25,7 +25,7 @@ import { TenderCreateData, TenderUpdateData, TenderAddFileData } from "./mutatio
 import { publishEnrichedFileCreated } from "../../../rabbitmq/publisher";
 import { isDocument } from "@typegoose/typegoose";
 import mongoose from "mongoose";
-import { generateTenderSummary } from "../../../lib/generateTenderSummary";
+import { generateTenderSummary, scheduleTenderSummary } from "../../../lib/generateTenderSummary";
 
 @Resolver(() => TenderClass)
 export default class TenderResolver {
@@ -135,10 +135,7 @@ export default class TenderResolver {
     await (Tender as any).findByIdAndUpdate(id, {
       $pull: { notes: { _id: new mongoose.Types.ObjectId(noteId.toString()) } },
     });
-    // Fire-and-forget summary regeneration
-    generateTenderSummary(id.toString()).catch((err) =>
-      console.warn("[TenderResolver] Summary regeneration failed after note delete:", err)
-    );
+    scheduleTenderSummary(id.toString());
     return Tender.getById(id);
   }
 

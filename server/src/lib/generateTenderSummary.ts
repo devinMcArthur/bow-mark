@@ -1,6 +1,23 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Tender } from "@models";
 
+// Debounce: cancel any pending auto-trigger for the same tender before firing a new one.
+// Prevents a burst of note saves from firing N concurrent Sonnet calls.
+const pendingAutoTriggers = new Map<string, ReturnType<typeof setTimeout>>();
+const AUTO_TRIGGER_DELAY_MS = 3000;
+
+export function scheduleTenderSummary(tenderId: string): void {
+  const existing = pendingAutoTriggers.get(tenderId);
+  if (existing) clearTimeout(existing);
+  const timer = setTimeout(() => {
+    pendingAutoTriggers.delete(tenderId);
+    generateTenderSummary(tenderId, "auto").catch((err) =>
+      console.warn(`[generateTenderSummary] Debounced trigger failed for ${tenderId}:`, err)
+    );
+  }, AUTO_TRIGGER_DELAY_MS);
+  pendingAutoTriggers.set(tenderId, timer);
+}
+
 const SUMMARY_PROMPT = `You are writing a living job briefing for a construction tender at Bow-Mark, a paving and concrete company.
 
 Synthesize all available document summaries, page indexes, and human notes into a structured briefing.

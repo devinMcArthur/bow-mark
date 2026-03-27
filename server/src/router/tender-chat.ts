@@ -8,6 +8,7 @@ import { READ_DOCUMENT_TOOL, LIST_DOCUMENT_PAGES_TOOL, makeReadDocumentExecutor 
 import { SAVE_TENDER_NOTE_TOOL, DELETE_TENDER_NOTE_TOOL, makeTenderNoteExecutor } from "../lib/tenderNoteTools";
 import { buildFileIndex } from "../lib/buildFileIndex";
 import { requireAuth } from "../lib/authMiddleware";
+import { UserRoles } from "../typescript/user";
 
 const router = Router();
 
@@ -43,6 +44,12 @@ router.post("/message", requireAuth, async (req, res) => {
 
   if (!tender) {
     res.status(404).json({ error: "Tender not found" });
+    return;
+  }
+
+  // Server-side role guard: only PMs and Admins can use this endpoint
+  if (!user || (user.role ?? UserRoles.User) < UserRoles.ProjectManager) {
+    res.status(403).json({ error: "Forbidden: PM or Admin role required" });
     return;
   }
 

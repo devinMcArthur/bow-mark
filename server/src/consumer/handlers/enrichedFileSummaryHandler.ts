@@ -4,7 +4,7 @@ import { getFile } from "@utils/fileStorage";
 import type { EnrichedFileSummaryMessage } from "../../rabbitmq/publisher";
 import { summarizePdf, DocumentSummary, withRateLimitRetry, RateLimitExhaustedError, generatePageIndex } from "./summarizePdf";
 import { publishEnrichedFileCreated } from "../../rabbitmq/publisher";
-import { generateTenderSummary } from "../../lib/generateTenderSummary";
+import { scheduleTenderSummary } from "../../lib/generateTenderSummary";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -155,10 +155,8 @@ export const enrichedFileSummaryHandler = {
             summaryStatus: { $in: ["pending", "processing"] },
           });
           if (pendingCount === 0) {
-            console.log(`[EnrichedFileSummary] All tender files ready — triggering summary for tender ${(tender as any)._id}`);
-            generateTenderSummary((tender as any)._id.toString()).catch((err) =>
-              console.warn("[EnrichedFileSummary] Tender summary generation failed:", err)
-            );
+            console.log(`[EnrichedFileSummary] All tender files ready — scheduling summary for tender ${(tender as any)._id}`);
+            scheduleTenderSummary((tender as any)._id.toString());
           }
         }
       } catch (triggerErr) {
