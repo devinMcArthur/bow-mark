@@ -196,7 +196,7 @@ const TenderDetailPage = () => {
                     tender={tender}
                     onUpdated={() => refetch()}
                   />
-                  <Divider my={4} />
+                  <Divider my={2} />
                   <TenderSummaryTab
                     tender={tender}
                     onUpdated={() => refetch()}

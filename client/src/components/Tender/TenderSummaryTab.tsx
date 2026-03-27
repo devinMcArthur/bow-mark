@@ -75,7 +75,7 @@ const TenderSummaryTab: React.FC<Props> = ({ tender, onUpdated }) => {
 
   if (!jobSummary && !summaryGenerating) {
     return (
-      <VStack align="stretch" spacing={4} p={4}>
+      <VStack align="stretch" spacing={4}>
         <Text color="gray.500" fontSize="sm">
           No summary generated yet. Add documents and click Generate.
         </Text>
@@ -92,7 +92,7 @@ const TenderSummaryTab: React.FC<Props> = ({ tender, onUpdated }) => {
   }
 
   return (
-    <VStack align="stretch" spacing={3} p={4}>
+    <VStack align="stretch" spacing={3}>
       <HStack justify="space-between" align="center">
         <Text fontSize="xs" color="gray.500">
           {summaryGenerating
