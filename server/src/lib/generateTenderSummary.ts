@@ -9,6 +9,10 @@ const AUTO_TRIGGER_DELAY_MS = 3000;
 export function scheduleTenderSummary(tenderId: string): void {
   const existing = pendingAutoTriggers.get(tenderId);
   if (existing) clearTimeout(existing);
+
+  // Mark as generating immediately so the client can reflect this state
+  (Tender as any).findByIdAndUpdate(tenderId, { $set: { summaryGenerating: true } }).catch(() => {});
+
   const timer = setTimeout(() => {
     pendingAutoTriggers.delete(tenderId);
     generateTenderSummary(tenderId, "auto").catch((err) =>
@@ -149,6 +153,7 @@ ${SUMMARY_PROMPT}`;
           generatedBy: triggeredBy,
           generatedFrom,
         },
+        summaryGenerating: false,
       },
     });
 
@@ -157,6 +162,7 @@ ${SUMMARY_PROMPT}`;
     );
   } catch (error) {
     console.error(`[generateTenderSummary] Failed for tender ${tenderId}:`, error);
+    await (Tender as any).findByIdAndUpdate(tenderId, { $set: { summaryGenerating: false } }).catch(() => {});
     throw error;
   }
 }

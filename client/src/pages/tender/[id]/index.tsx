@@ -65,6 +65,7 @@ const TENDER_QUERY = gql`
         savedAt
         conversationId
       }
+      summaryGenerating
       jobSummary {
         content
         generatedAt
@@ -121,12 +122,12 @@ const TenderDetailPage = () => {
     const hasProcessing = tender?.files.some(
       (f) => f.summaryStatus === "pending" || f.summaryStatus === "processing"
     );
-    if (hasProcessing) {
+    if (hasProcessing || tender?.summaryGenerating) {
       startPolling(3000);
     } else {
       stopPolling();
     }
-  }, [tender?.files, startPolling, stopPolling]);
+  }, [tender?.files, tender?.summaryGenerating, startPolling, stopPolling]);
 
   if (loading) {
     return (

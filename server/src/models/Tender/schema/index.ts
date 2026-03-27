@@ -88,6 +88,10 @@ export class TenderSchema {
   @prop({ type: () => TenderJobSummaryClass, required: false })
   public jobSummary?: TenderJobSummaryClass;
 
+  @Field({ nullable: false })
+  @prop({ required: true, default: false })
+  public summaryGenerating!: boolean;
+
   @Field(() => UserClass)
   @prop({ ref: () => UserClass, required: true })
   public createdBy!: Ref<UserClass>;

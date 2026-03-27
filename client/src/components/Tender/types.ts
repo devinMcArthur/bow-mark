@@ -65,6 +65,7 @@ export interface TenderDetail {
   description?: string | null;
   files: TenderFileItem[];
   notes: TenderNote[];
+  summaryGenerating: boolean;
   jobSummary?: TenderJobSummary | null;
   jobsite?: TenderJobsite | null;
   createdAt: string;
