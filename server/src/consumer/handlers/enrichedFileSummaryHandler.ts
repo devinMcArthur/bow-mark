@@ -1,9 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { EnrichedFile } from "@models";
+import { EnrichedFile, Tender } from "@models";
 import { getFile } from "@utils/fileStorage";
 import type { EnrichedFileSummaryMessage } from "../../rabbitmq/publisher";
 import { summarizePdf, DocumentSummary, withRateLimitRetry, RateLimitExhaustedError, generatePageIndex } from "./summarizePdf";
 import { publishEnrichedFileCreated } from "../../rabbitmq/publisher";
+import { generateTenderSummary } from "../../lib/generateTenderSummary";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -140,6 +141,30 @@ export const enrichedFileSummaryHandler = {
       await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
         $set: { summaryStatus: "ready" },
       });
+
+      // Trigger tender summary regeneration if this file belongs to a tender
+      // and all of that tender's files are now ready
+      try {
+        const tender = await Tender.findOne({ files: enrichedFileId }).lean();
+        if (tender) {
+          const fileIds = ((tender as any).files as any[]).map((f: any) =>
+            f._id ? f._id.toString() : f.toString()
+          );
+          const pendingCount = await EnrichedFile.countDocuments({
+            _id: { $in: fileIds },
+            summaryStatus: { $in: ["pending", "processing"] },
+          });
+          if (pendingCount === 0) {
+            console.log(`[EnrichedFileSummary] All tender files ready — triggering summary for tender ${(tender as any)._id}`);
+            generateTenderSummary((tender as any)._id.toString()).catch((err) =>
+              console.warn("[EnrichedFileSummary] Tender summary generation failed:", err)
+            );
+          }
+        }
+      } catch (triggerErr) {
+        // Non-fatal — document is still fully processed without the tender summary
+        console.warn("[EnrichedFileSummary] Tender summary trigger check failed:", triggerErr);
+      }
 
       console.log(`[EnrichedFileSummary] Done for file ${fileId}`);
     } catch (error) {
