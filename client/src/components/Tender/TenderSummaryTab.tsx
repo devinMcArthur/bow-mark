@@ -10,7 +10,7 @@ import { gql } from "@apollo/client";
 import * as Apollo from "@apollo/client";
 import React from "react";
 import ReactMarkdown from "react-markdown";
-import { TenderDetail, TenderJobSummary } from "./types";
+import { TenderDetail, TenderJobSummary, timeAgo } from "./types";
 
 const REGENERATE_SUMMARY = gql`
   mutation TenderRegenerateSummary($id: ID!) {
@@ -37,17 +37,11 @@ function isStale(jobSummary: TenderJobSummary, tender: TenderDetail): boolean {
     .map((f) => f._id);
   const noteIds = tender.notes.map((n) => n._id);
   const currentIds = new Set([...readyFileIds, ...noteIds]);
-  return [...currentIds].some((id) => !jobSummary.generatedFrom.includes(id));
-}
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+  const generatedFromSet = new Set(jobSummary.generatedFrom);
+  return (
+    [...currentIds].some((id) => !generatedFromSet.has(id)) ||
+    [...generatedFromSet].some((id) => !currentIds.has(id))
+  );
 }
 
 const TenderSummaryTab: React.FC<Props> = ({ tender, onUpdated }) => {

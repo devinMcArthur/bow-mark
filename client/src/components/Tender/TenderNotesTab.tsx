@@ -9,7 +9,7 @@ import { DeleteIcon } from "@chakra-ui/icons";
 import { gql } from "@apollo/client";
 import * as Apollo from "@apollo/client";
 import React from "react";
-import { TenderDetail } from "./types";
+import { TenderDetail, timeAgo } from "./types";
 
 const DELETE_NOTE = gql`
   mutation TenderDeleteNote($id: ID!, $noteId: ID!) {
@@ -39,20 +39,11 @@ interface Props {
   onUpdated: () => void;
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
-
 const TenderNotesTab: React.FC<Props> = ({ tender, onUpdated }) => {
-  const [deleteNote, { loading: deleting }] = Apollo.useMutation(DELETE_NOTE, {
+  const [deleteNote] = Apollo.useMutation(DELETE_NOTE, {
     onCompleted: onUpdated,
   });
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
 
   if (tender.notes.length === 0) {
     return (
@@ -85,10 +76,13 @@ const TenderNotesTab: React.FC<Props> = ({ tender, onUpdated }) => {
               size="xs"
               variant="ghost"
               colorScheme="red"
-              isLoading={deleting}
-              onClick={() =>
-                deleteNote({ variables: { id: tender._id, noteId: note._id } })
-              }
+              isLoading={deletingId === note._id}
+              onClick={() => {
+                setDeletingId(note._id);
+                deleteNote({ variables: { id: tender._id, noteId: note._id } }).finally(() =>
+                  setDeletingId(null)
+                );
+              }}
             />
           </HStack>
           <Text fontSize="xs" color="gray.400" mt={1}>
