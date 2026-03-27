@@ -1,5 +1,10 @@
 export type SummaryStatus = "pending" | "processing" | "ready" | "failed";
 
+export interface IEnrichedFilePageEntry {
+  page: number;
+  summary: string;
+}
+
 export interface IEnrichedFileChunk {
   startPage: number;
   endPage: number;
