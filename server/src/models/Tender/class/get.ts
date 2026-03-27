@@ -6,10 +6,9 @@ const byId = async (
   id: Id,
   options?: GetByIDOptions
 ): Promise<TenderDocument | null> => {
-  const query = Tender.findById(id).populate({
-    path: "files",
-    populate: { path: "file" },
-  });
+  const query = Tender.findById(id)
+    .populate({ path: "files", populate: { path: "file" } })
+    .populate({ path: "notes.savedBy", select: "name" });
   if (options?.throwError) {
     const tender = await query;
     if (!tender) throw new Error(`Tender ${id} not found`);
