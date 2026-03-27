@@ -140,7 +140,7 @@ Question: "${lastUserMessage}"`,
       ? `\n## This Question\nThis question has multiple parts — address each one:\n${decomposedQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}\n`
       : "";
 
-  const systemPrompt = `${userContext ? userContext + "\n\n" : ""}You are an AI assistant helping to analyze tender documents for Bow-Mark, a paving and concrete company.
+  const systemPrompt = `${userContext ? userContext + "\n\n" : ""}You are an AI assistant helping estimators analyze tender documents for Bow-Mark, a paving and concrete company. The people using this tool are pricing jobs and writing bid proposals — their questions are typically about scope, quantities, spec constraints, execution risks, and anything that would affect cost.
 
 You are working on tender: **${tender.name}** (Job Code: ${tender.jobcode})${tender.description ? `\nTender description: ${tender.description}` : ""}
 
