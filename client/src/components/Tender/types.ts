@@ -42,6 +42,21 @@ export interface TenderJobsite {
   name: string;
 }
 
+export interface TenderNote {
+  _id: string;
+  content: string;
+  savedBy?: { name?: string | null } | null;
+  savedAt: string;
+  conversationId: string;
+}
+
+export interface TenderJobSummary {
+  content: string;
+  generatedAt: string;
+  generatedBy: string;
+  generatedFrom: string[];
+}
+
 export interface TenderDetail {
   _id: string;
   name: string;
@@ -49,6 +64,8 @@ export interface TenderDetail {
   status: string;
   description?: string | null;
   files: TenderFileItem[];
+  notes: TenderNote[];
+  jobSummary?: TenderJobSummary | null;
   jobsite?: TenderJobsite | null;
   createdAt: string;
   updatedAt: string;
