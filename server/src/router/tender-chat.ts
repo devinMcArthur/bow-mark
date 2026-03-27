@@ -79,7 +79,7 @@ router.post("/message", requireAuth, async (req, res) => {
           .map((n) => {
             const who = n.savedBy?.name ?? "team";
             const when = new Date(n.savedAt).toLocaleDateString();
-            return `- ${n.content} (saved by ${who}, ${when})`;
+            return `- [id:${n._id}] ${n.content} (saved by ${who}, ${when})`;
           })
           .join("\n")}`
       : "";
