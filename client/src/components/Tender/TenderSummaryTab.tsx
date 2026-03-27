@@ -1,4 +1,9 @@
 import {
+  Accordion,
+  AccordionButton,
+  AccordionIcon,
+  AccordionItem,
+  AccordionPanel,
   Box,
   Button,
   HStack,
@@ -11,6 +16,19 @@ import * as Apollo from "@apollo/client";
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import { TenderDetail, TenderJobSummary, timeAgo } from "./types";
+
+// Split markdown into an opening paragraph and named sections (## headings).
+function parseSections(content: string): { intro: string; sections: { title: string; body: string }[] } {
+  const parts = content.split(/^## /m);
+  const intro = parts[0].trim();
+  const sections = parts.slice(1).map((part) => {
+    const newline = part.indexOf("\n");
+    const title = newline === -1 ? part.trim() : part.slice(0, newline).trim();
+    const body = newline === -1 ? "" : part.slice(newline + 1).trim();
+    return { title, body };
+  });
+  return { intro, sections };
+}
 
 const REGENERATE_SUMMARY = gql`
   mutation TenderRegenerateSummary($id: ID!) {
@@ -109,19 +127,43 @@ const TenderSummaryTab: React.FC<Props> = ({ tender, onUpdated }) => {
             Generating summary...
           </Text>
         </Box>
-      ) : (
-        <Box
-          fontSize="sm"
-          sx={{
-            "h2": { fontWeight: "semibold", fontSize: "sm", mt: 4, mb: 1 },
-            "ul, ol": { pl: 4 },
-            "li": { mb: 1 },
-            "p": { mb: 2 },
-          }}
-        >
-          <ReactMarkdown>{jobSummary.content}</ReactMarkdown>
-        </Box>
-      )}
+      ) : (() => {
+        const { intro, sections } = parseSections(jobSummary.content);
+        return (
+          <VStack align="stretch" spacing={2}>
+            {intro && (
+              <Box
+                fontSize="sm"
+                sx={{ "p": { mb: 2 }, "ul, ol": { pl: 4 }, "li": { mb: 1 } }}
+              >
+                <ReactMarkdown>{intro}</ReactMarkdown>
+              </Box>
+            )}
+            {sections.length > 0 && (
+              <Accordion allowMultiple defaultIndex={[]}>
+                {sections.map((section) => (
+                  <AccordionItem key={section.title} border="none">
+                    <AccordionButton px={0} py={1} _hover={{ bg: "transparent" }}>
+                      <Box flex={1} textAlign="left" fontWeight="semibold" fontSize="sm">
+                        {section.title}
+                      </Box>
+                      <AccordionIcon />
+                    </AccordionButton>
+                    <AccordionPanel px={0} pb={2}>
+                      <Box
+                        fontSize="sm"
+                        sx={{ "p": { mb: 2 }, "ul, ol": { pl: 4 }, "li": { mb: 1 } }}
+                      >
+                        <ReactMarkdown>{section.body}</ReactMarkdown>
+                      </Box>
+                    </AccordionPanel>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            )}
+          </VStack>
+        );
+      })()}
     </VStack>
   );
 };
