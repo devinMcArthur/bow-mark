@@ -205,17 +205,16 @@ const FileCard = ({
           </Text>
         )}
 
-        {/* Bottom row: metadata left, actions right */}
+        {/* Document type row */}
+        <Text fontSize="xs" color="gray.500" mt={1}>
+          {file.summary?.documentType || file.documentType || (
+            <Text as="span" fontStyle="italic">Detecting…</Text>
+          )}
+        </Text>
+
+        {/* Status/pages row + actions */}
         <HStack justify="space-between" align="center" mt={1}>
-          <HStack spacing={2} flexWrap="wrap">
-            <Text fontSize="xs" color="gray.500">
-              {file.summary?.documentType || file.documentType || (
-                <Text as="span" fontStyle="italic">Detecting…</Text>
-              )}
-            </Text>
-            {file.pageCount != null && (
-              <Text fontSize="xs" color="gray.400">{file.pageCount}p</Text>
-            )}
+          <HStack spacing={2}>
             <Tooltip
               label={file.summaryError ?? undefined}
               isDisabled={!file.summaryError}
@@ -231,6 +230,9 @@ const FileCard = ({
                 {file.summaryStatus}
               </Badge>
             </Tooltip>
+            {file.pageCount != null && (
+              <Text fontSize="xs" color="gray.400">{file.pageCount}p</Text>
+            )}
           </HStack>
 
           <HStack spacing={0} flexShrink={0} onClick={(e) => e.stopPropagation()}>
