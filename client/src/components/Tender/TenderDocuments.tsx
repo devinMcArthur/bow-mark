@@ -234,6 +234,15 @@ const FileCard = ({
           </HStack>
 
           <HStack spacing={0} flexShrink={0} onClick={(e) => e.stopPropagation()}>
+            {hasSummary && (
+              <IconButton
+                aria-label="Toggle summary"
+                icon={expanded ? <FiChevronDown /> : <FiChevronRight />}
+                size="xs"
+                variant="ghost"
+                onClick={() => setExpanded((v) => !v)}
+              />
+            )}
             {(file.summaryStatus === "failed" || file.summaryStatus === "ready") && (
               <IconButton
                 aria-label="Retry summary"
@@ -243,15 +252,6 @@ const FileCard = ({
                 variant="ghost"
                 isDisabled={retryingId === file._id}
                 onClick={() => onRetry(file._id)}
-              />
-            )}
-            {hasSummary && (
-              <IconButton
-                aria-label="Toggle summary"
-                icon={expanded ? <FiChevronDown /> : <FiChevronRight />}
-                size="xs"
-                variant="ghost"
-                onClick={() => setExpanded((v) => !v)}
               />
             )}
             <IconButton
