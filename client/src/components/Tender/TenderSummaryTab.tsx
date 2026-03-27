@@ -7,6 +7,7 @@ import {
   Box,
   Button,
   HStack,
+  IconButton,
   Spinner,
   Text,
   VStack,
@@ -14,6 +15,7 @@ import {
 import { gql } from "@apollo/client";
 import * as Apollo from "@apollo/client";
 import React from "react";
+import { FiRefreshCw } from "react-icons/fi";
 import ReactMarkdown from "react-markdown";
 import { TenderDetail, TenderJobSummary, timeAgo } from "./types";
 
@@ -99,15 +101,15 @@ const TenderSummaryTab: React.FC<Props> = ({ tender, onUpdated }) => {
             ? `Generated ${timeAgo(jobSummary.generatedAt)}${jobSummary.generatedBy === "manual" ? " (manual)" : ""}`
             : ""}
         </Text>
-        <Button
+        <IconButton
+          aria-label="Regenerate summary"
+          icon={<FiRefreshCw />}
           size="xs"
           variant="outline"
           isLoading={loading}
           isDisabled={loading}
           onClick={() => regenerate({ variables: { id: tender._id } })}
-        >
-          Regenerate
-        </Button>
+        />
       </HStack>
 
       {stale && !summaryGenerating && (
