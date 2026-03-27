@@ -498,6 +498,9 @@ const ChatPage = ({
         content: text.trim(),
       };
 
+      // Mark as at-bottom before adding the message so the layoutEffect pins scrollTop=0
+      isAtBottomRef.current = true;
+      setShowScrollButton(false);
       setMessages((prev) => [...prev, userMessage]);
       setInput("");
       setLoading(true);

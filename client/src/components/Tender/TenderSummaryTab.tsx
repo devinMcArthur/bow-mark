@@ -7,6 +7,7 @@ import {
   Box,
   Button,
   HStack,
+  IconButton,
   Spinner,
   Text,
   VStack,
@@ -14,6 +15,7 @@ import {
 import { gql } from "@apollo/client";
 import * as Apollo from "@apollo/client";
 import React from "react";
+import { FiRefreshCw } from "react-icons/fi";
 import ReactMarkdown from "react-markdown";
 import { TenderDetail, TenderJobSummary, timeAgo } from "./types";
 
@@ -63,18 +65,19 @@ function isStale(jobSummary: TenderJobSummary, tender: TenderDetail): boolean {
 }
 
 const TenderSummaryTab: React.FC<Props> = ({ tender, onUpdated }) => {
-  const [regenerate, { loading }] = Apollo.useMutation(REGENERATE_SUMMARY, {
+  const [regenerate, { loading: mutationLoading }] = Apollo.useMutation(REGENERATE_SUMMARY, {
     onCompleted: onUpdated,
   });
 
-  const { jobSummary } = tender;
+  const { jobSummary, summaryGenerating } = tender;
+  const loading = mutationLoading || summaryGenerating;
   const stale = jobSummary ? isStale(jobSummary, tender) : false;
 
-  if (!jobSummary) {
+  if (!jobSummary && !summaryGenerating) {
     return (
-      <VStack align="stretch" spacing={4} p={4}>
+      <VStack align="stretch" spacing={4}>
         <Text color="gray.500" fontSize="sm">
-          No summary generated yet. Add documents and click Regenerate.
+          No summary generated yet. Add documents and click Generate.
         </Text>
         <Button
           size="sm"
@@ -89,23 +92,27 @@ const TenderSummaryTab: React.FC<Props> = ({ tender, onUpdated }) => {
   }
 
   return (
-    <VStack align="stretch" spacing={3} p={4}>
+    <VStack align="stretch" spacing={3}>
       <HStack justify="space-between" align="center">
         <Text fontSize="xs" color="gray.500">
-          Generated {timeAgo(jobSummary.generatedAt)}
-          {jobSummary.generatedBy === "manual" ? " (manual)" : ""}
+          {summaryGenerating
+            ? "Generating summary…"
+            : jobSummary
+            ? `Generated ${timeAgo(jobSummary.generatedAt)}${jobSummary.generatedBy === "manual" ? " (manual)" : ""}`
+            : ""}
         </Text>
-        <Button
+        <IconButton
+          aria-label="Regenerate summary"
+          icon={<FiRefreshCw />}
           size="xs"
           variant="outline"
           isLoading={loading}
+          isDisabled={loading}
           onClick={() => regenerate({ variables: { id: tender._id } })}
-        >
-          Regenerate
-        </Button>
+        />
       </HStack>
 
-      {stale && (
+      {stale && !summaryGenerating && (
         <Box
           bg="yellow.50"
           border="1px solid"
@@ -120,15 +127,15 @@ const TenderSummaryTab: React.FC<Props> = ({ tender, onUpdated }) => {
         </Box>
       )}
 
-      {loading ? (
+      {loading && !jobSummary ? (
         <Box py={8} textAlign="center">
           <Spinner size="sm" />
           <Text fontSize="sm" color="gray.500" mt={2}>
-            Generating summary...
+            Generating summary…
           </Text>
         </Box>
       ) : (() => {
-        const { intro, sections } = parseSections(jobSummary.content);
+        const { intro, sections } = parseSections(jobSummary?.content ?? "");
         return (
           <VStack align="stretch" spacing={2}>
             {intro && (

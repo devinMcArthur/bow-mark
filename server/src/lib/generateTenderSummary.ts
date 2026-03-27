@@ -9,6 +9,10 @@ const AUTO_TRIGGER_DELAY_MS = 3000;
 export function scheduleTenderSummary(tenderId: string): void {
   const existing = pendingAutoTriggers.get(tenderId);
   if (existing) clearTimeout(existing);
+
+  // Mark as generating immediately so the client can reflect this state
+  (Tender as any).findByIdAndUpdate(tenderId, { $set: { summaryGenerating: true } }).catch(() => {});
+
   const timer = setTimeout(() => {
     pendingAutoTriggers.delete(tenderId);
     generateTenderSummary(tenderId, "auto").catch((err) =>
@@ -18,32 +22,34 @@ export function scheduleTenderSummary(tenderId: string): void {
   pendingAutoTriggers.set(tenderId, timer);
 }
 
-const SUMMARY_PROMPT = `You are writing a living job briefing for a construction tender at Bow-Mark, a paving and concrete company.
+const SUMMARY_PROMPT = `You are writing a living bid briefing for a construction tender at Bow Mark, a paving and concrete company. The audience is estimators — people responsible for pricing this job, planning its execution, and writing the proposal. Their core questions are: "What am I actually bidding on?", "How would we execute this?", and "What will affect our price and schedule?"
 
 Synthesize all available document summaries, page indexes, and human notes into a structured briefing.
 Write in clear, direct language. Be specific — use actual numbers, locations, and standards where mentioned.
 If a section has nothing to report, write "Nothing noted."
 
-COMPLETENESS IS CRITICAL. Do not omit or summarize away individual items to save space. Every scope item, every addendum, every risk must appear — even if the list is long. It is better to be thorough than brief.
+COVERAGE IS THE PRIORITY. Think of this as a scope inventory for pricing — every major section of work must appear so nothing is missed in the bid. A "section of work" is a trade or activity category (e.g. asphalt paving, watermain, traffic control, concrete curb, site grading) — NOT individual line items from the schedule of quantities. Missing an entire section of work is a failure. Listing every line item is also a failure — that level of detail belongs in the documents, not the summary.
 
-ADDENDUM SYNTHESIS IS REQUIRED. Every section must reflect the net state after all addendums are applied. If an addendum adds a scope item, that item must appear in Scope. If an addendum changes a spec requirement, that change must appear in Key Requirements. If an addendum introduces a risk, it must appear in Risks & Gotchas. The Addendum Changes section is a chronological log of what changed — all other sections show the current state after those changes have been applied.
+FORMAT: One bullet per section of work. For Bow Mark's core work (asphalt paving, concrete), include key quantities (e.g. square metres, tonnes) if available — this helps size the job at a glance. For supporting work (underground utilities, signage, landscaping, etc.), stay at the category level — do not list every pipe size, fitting, or item type. Include a detail or spec only when it is genuinely noteworthy (unusual method, tight constraint, something that changes how you'd approach or price the work). Do not list spec codes or item numbers.
+
+ADDENDUM SYNTHESIS: Every section reflects the net state after all addendums. If an addendum introduces a new section of work, it must appear in Scope. If it only modifies a spec detail within an existing section, it does not need its own Scope bullet — just note it in Addendum Changes.
 
 Return the briefing as markdown. Start with a short paragraph (2-4 sentences) summarizing the job at a glance — what it is, where, and roughly what scale. Then include exactly these five headings:
 
 ## Scope
-List every distinct work item, location, and quantity — incorporating all addendum changes. This is the net scope after all addendums. Do not collapse multiple items into one.
+One bullet per major section of work, net of all addendums. Group related line items under their trade/activity — do not list individual schedule items.
 
 ## Key Requirements
-Critical spec constraints, materials, standards, or compliance items that shape how the job is done. Include any requirements added or modified by addendums.
+Spec constraints, materials, or standards that shape how the job gets done — especially anything non-standard or restrictive.
 
 ## Risks & Gotchas
-Site conditions, owner quirks, tight constraints, or anything flagged by the team that could cause problems. Include risks introduced by addendums.
+Anything that could cause problems: site conditions, owner quirks, tight constraints, known conflicts.
 
 ## Addendum Changes
-List every addendum found, chronologically, with its key changes. Do not omit any addendum even if it seems minor. Note which section each change affects (Scope, Key Requirements, etc.).
+Every addendum, chronologically, with its key changes noted.
 
 ## Outstanding Items
-Unresolved conflicts between documents, missing information, or items that need follow-up.`;
+Unresolved conflicts, missing information, or items needing follow-up.`;
 
 export async function generateTenderSummary(
   tenderId: string,
@@ -147,6 +153,7 @@ ${SUMMARY_PROMPT}`;
           generatedBy: triggeredBy,
           generatedFrom,
         },
+        summaryGenerating: false,
       },
     });
 
@@ -155,6 +162,7 @@ ${SUMMARY_PROMPT}`;
     );
   } catch (error) {
     console.error(`[generateTenderSummary] Failed for tender ${tenderId}:`, error);
+    await (Tender as any).findByIdAndUpdate(tenderId, { $set: { summaryGenerating: false } }).catch(() => {});
     throw error;
   }
 }

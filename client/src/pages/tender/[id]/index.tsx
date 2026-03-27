@@ -2,7 +2,6 @@ import {
   Box,
   Divider,
   Flex,
-  Heading,
   Spinner,
   Tab,
   TabList,
@@ -65,6 +64,7 @@ const TENDER_QUERY = gql`
         savedAt
         conversationId
       }
+      summaryGenerating
       jobSummary {
         content
         generatedAt
@@ -121,12 +121,12 @@ const TenderDetailPage = () => {
     const hasProcessing = tender?.files.some(
       (f) => f.summaryStatus === "pending" || f.summaryStatus === "processing"
     );
-    if (hasProcessing) {
+    if (hasProcessing || tender?.summaryGenerating) {
       startPolling(3000);
     } else {
       stopPolling();
     }
-  }, [tender?.files, startPolling, stopPolling]);
+  }, [tender?.files, tender?.summaryGenerating, startPolling, stopPolling]);
 
   if (loading) {
     return (
@@ -166,9 +166,7 @@ const TenderDetailPage = () => {
               crumbs={[
                 { title: "Tenders", link: "/tenders" },
                 {
-                  title: tender
-                    ? `${tender.jobcode} — ${tender.name}`
-                    : "...",
+                  title: tender ? tender.jobcode : "...",
                   isCurrentPage: true,
                 },
               ]}
@@ -184,9 +182,9 @@ const TenderDetailPage = () => {
               size="sm"
               variant="line"
             >
-              <TabList px={5} flexShrink={0}>
+              <TabList px={5} pt={1} flexShrink={0}>
                 <Tab>Job</Tab>
-                <Tab>Summary</Tab>
+                <Tab>Documents</Tab>
                 <Tab>Notes {tender.notes.length > 0 ? `(${tender.notes.length})` : ""}</Tab>
               </TabList>
 
@@ -198,19 +196,16 @@ const TenderDetailPage = () => {
                     tender={tender}
                     onUpdated={() => refetch()}
                   />
-                  <Divider my={4} />
-                  <Heading size="sm" mb={3} color="gray.700">
-                    Documents
-                  </Heading>
-                  <TenderDocuments
+                  <Divider my={2} />
+                  <TenderSummaryTab
                     tender={tender}
                     onUpdated={() => refetch()}
                   />
                 </TabPanel>
 
-                {/* ── Summary tab ──────────────────────────────────────────── */}
-                <TabPanel h="100%" overflowY="auto" p={0}>
-                  <TenderSummaryTab
+                {/* ── Documents tab ────────────────────────────────────────── */}
+                <TabPanel h="100%" p={0} display="flex" flexDirection="column" overflow="hidden">
+                  <TenderDocuments
                     tender={tender}
                     onUpdated={() => refetch()}
                   />
