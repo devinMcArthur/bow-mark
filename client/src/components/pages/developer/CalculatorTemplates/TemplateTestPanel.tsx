@@ -43,7 +43,7 @@ const TemplateTestPanel: React.FC<TemplateTestPanelProps> = ({
   const updateTable = (tableId: string, updated: RateEntry[]) => {
     const newTables = { ...tables, [tableId]: updated };
     setTables(newTables);
-    onUpdateDefaults({ params: template.defaultInputs.params, tables: newTables });
+    onUpdateDefaults({ params: {}, tables: newTables });
   };
 
   const updateRow = (tableId: string, rowId: string, field: keyof RateEntry, value: string | number) => {

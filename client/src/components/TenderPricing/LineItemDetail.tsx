@@ -366,7 +366,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
             <CalculatorPanel
               template={activeTemplate}
               inputs={migrateInputs(row.calculatorInputsJson, activeTemplate)}
-              resetKey={row._id}
+              resetKey={`${row._id}:${row.calculatorType ?? ""}`}
               quantity={parseFloat(quantity) || 0}
               onSave={handleCalculatorSave}
             />
