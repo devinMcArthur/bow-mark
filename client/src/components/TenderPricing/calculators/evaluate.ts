@@ -6,6 +6,13 @@ import {
   CalculatorResult,
 } from "./types";
 
+export interface StepDebugInfo {
+  id: string;
+  formula: string;
+  value: number;
+  error?: string;
+}
+
 const parser = new Parser();
 
 export function safeEval(formula: string, ctx: Record<string, number>): number {
@@ -60,4 +67,39 @@ export function evaluateTemplate(
       unit: i.unit,
     })),
   };
+}
+
+export function debugEvaluateTemplate(
+  template: CalculatorTemplate,
+  inputs: CalculatorInputs,
+  quantity: number
+): StepDebugInfo[] {
+  const ctx: Record<string, number> = { quantity };
+
+  for (const p of template.parameterDefs) {
+    ctx[p.id] = inputs.params[p.id] ?? p.defaultValue;
+  }
+
+  for (const t of template.tableDefs) {
+    ctx[`${t.id}RatePerHr`] = (inputs.tables[t.id] ?? []).reduce(
+      (s, r) => s + r.qty * r.ratePerHour,
+      0
+    );
+  }
+
+  return template.formulaSteps.map((step) => {
+    try {
+      const result = parser.evaluate(step.formula, ctx);
+      if (typeof result === "number" && isFinite(result)) {
+        ctx[step.id] = result;
+        return { id: step.id, formula: step.formula, value: result };
+      } else {
+        ctx[step.id] = 0;
+        return { id: step.id, formula: step.formula, value: 0, error: "Result is not a finite number" };
+      }
+    } catch (e) {
+      ctx[step.id] = 0;
+      return { id: step.id, formula: step.formula, value: 0, error: e instanceof Error ? e.message : String(e) };
+    }
+  });
 }

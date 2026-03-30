@@ -6,7 +6,7 @@ import {
   CalculatorInputs,
   RateEntry,
 } from "../../../../components/TenderPricing/calculators/types";
-import { evaluateTemplate } from "../../../../components/TenderPricing/calculators/evaluate";
+import { evaluateTemplate, debugEvaluateTemplate } from "../../../../components/TenderPricing/calculators/evaluate";
 import { BreakdownCell, RateRow } from "../../../../components/TenderPricing/calculatorShared";
 import { FiPlus } from "react-icons/fi";
 
@@ -37,6 +37,11 @@ const TemplateTestPanel: React.FC<TemplateTestPanelProps> = ({
 
   const result = useMemo(
     () => evaluateTemplate(template, inputs, quantity),
+    [template, inputs, quantity]
+  );
+
+  const stepDebug = useMemo(
+    () => debugEvaluateTemplate(template, inputs, quantity),
     [template, inputs, quantity]
   );
 
@@ -180,6 +185,42 @@ const TemplateTestPanel: React.FC<TemplateTestPanelProps> = ({
         <Text fontSize="xs" color="gray.400">
           {result.intermediates.map((i) => `${i.label}: ${i.value.toFixed(4)} ${i.unit}`).join(" · ")}
         </Text>
+      )}
+
+      {/* Formula step debug */}
+      {stepDebug.length > 0 && (
+        <Box mt={5}>
+          <Text fontSize="xs" fontWeight="semibold" color="gray.500" textTransform="uppercase" letterSpacing="wide" mb={2}>
+            Formula Steps
+          </Text>
+          <Box borderWidth={1} borderColor="gray.200" rounded="md" overflow="hidden">
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
+              <thead>
+                <tr style={{ background: "#F7FAFC" }}>
+                  <th style={{ textAlign: "left", padding: "4px 8px", fontWeight: 600, color: "#718096", fontFamily: "monospace" }}>id</th>
+                  <th style={{ textAlign: "left", padding: "4px 8px", fontWeight: 600, color: "#718096", fontFamily: "monospace" }}>formula</th>
+                  <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 600, color: "#718096", width: "90px" }}>value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stepDebug.map((s) => (
+                  <tr key={s.id} style={{ background: s.error ? "#FFF5F5" : "white", borderTop: "1px solid #EDF2F7" }}>
+                    <td style={{ padding: "4px 8px", fontFamily: "monospace", color: s.error ? "#C53030" : "#4A5568" }}>{s.id}</td>
+                    <td style={{ padding: "4px 8px", fontFamily: "monospace", color: "#805AD5" }}>
+                      {s.formula}
+                      {s.error && (
+                        <span style={{ color: "#C53030", marginLeft: 8, fontFamily: "sans-serif" }}>⚠ {s.error}</span>
+                      )}
+                    </td>
+                    <td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 600, color: s.error ? "#C53030" : "#1A202C" }}>
+                      {s.error ? "—" : s.value.toFixed(4)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Box>
+        </Box>
       )}
     </Box>
   );
