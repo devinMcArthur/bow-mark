@@ -1,10 +1,21 @@
-import { Flex, Heading, Icon } from "@chakra-ui/react";
+// client/src/pages/developer/index.tsx
+import {
+  Flex,
+  Heading,
+  Icon,
+  Tab,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Tabs,
+} from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import React from "react";
 import { FiTool } from "react-icons/fi";
 import ClientOnly from "../../components/Common/ClientOnly";
 import Container from "../../components/Common/Container";
 import RatingsReview from "../../components/pages/developer/RatingsReview";
+import CalculatorTemplates from "../../components/pages/developer/CalculatorTemplates";
 import { useAuth } from "../../contexts/Auth";
 import { UserRoles } from "../../generated/graphql";
 
@@ -13,7 +24,6 @@ const DeveloperPage: React.FC = () => {
   const router = useRouter();
 
   React.useEffect(() => {
-    // user === undefined means still loading; null means not logged in
     if (user === null) {
       router.replace("/");
     } else if (user !== undefined && user.role !== UserRoles.Developer) {
@@ -21,7 +31,6 @@ const DeveloperPage: React.FC = () => {
     }
   }, [user, router]);
 
-  // Show nothing while auth resolves or redirecting
   if (!user || user.role !== UserRoles.Developer) return null;
 
   return (
@@ -33,7 +42,20 @@ const DeveloperPage: React.FC = () => {
         </Heading>
       </Flex>
       <ClientOnly>
-        <RatingsReview />
+        <Tabs variant="enclosed" colorScheme="blue">
+          <TabList>
+            <Tab>Ratings Review</Tab>
+            <Tab>Calculator Templates</Tab>
+          </TabList>
+          <TabPanels>
+            <TabPanel px={0}>
+              <RatingsReview />
+            </TabPanel>
+            <TabPanel px={0}>
+              <CalculatorTemplates />
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
       </ClientOnly>
     </Container>
   );
