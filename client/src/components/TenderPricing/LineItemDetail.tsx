@@ -1,3 +1,4 @@
+// client/src/components/TenderPricing/LineItemDetail.tsx
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -18,10 +19,37 @@ import { FiX } from "react-icons/fi";
 import { useSystem } from "../../contexts/System";
 import { TenderPricingRow } from "./types";
 import { computeRow, formatCurrency, formatMarkup } from "./compute";
-import AsphaltCalculator from "./AsphaltCalculator";
-import GravelCalculator from "./GravelCalculator";
-import { DEFAULT_ASPHALT_INPUTS } from "./asphalt";
-import { DEFAULT_GRAVEL_INPUTS } from "./gravel";
+import { useCalculatorTemplates } from "./calculators/storage";
+import { CalculatorInputs, CalculatorTemplate } from "./calculators/types";
+import CalculatorPanel from "./CalculatorPanel";
+
+// ── Migration: old flat JSON → new { params, tables } format ──────────────────
+
+function migrateInputs(
+  json: string | null | undefined,
+  template: CalculatorTemplate
+): CalculatorInputs {
+  if (!json) return template.defaultInputs;
+  try {
+    const parsed = JSON.parse(json);
+    // New format already has params key
+    if (parsed.params !== undefined) return parsed as CalculatorInputs;
+    // Old format: flat object — extract params and tables by matching defs
+    const params: Record<string, number> = {};
+    const tables: Record<string, import("./calculators/types").RateEntry[]> = {};
+    for (const p of template.parameterDefs) {
+      if (typeof parsed[p.id] === "number") params[p.id] = parsed[p.id];
+    }
+    for (const t of template.tableDefs) {
+      if (Array.isArray(parsed[t.id])) tables[t.id] = parsed[t.id];
+    }
+    return { params, tables };
+  } catch {
+    return template.defaultInputs;
+  }
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 interface LineItemDetailProps {
   row: TenderPricingRow;
@@ -38,6 +66,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
 }) => {
   const { state: { system } } = useSystem();
   const units = system?.unitDefaults ?? [];
+  const { templates } = useCalculatorTemplates();
 
   const [itemNumber, setItemNumber] = useState(row.itemNumber ?? "");
   const [description, setDescription] = useState(row.description ?? "");
@@ -76,12 +105,15 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
     }
   };
 
-  // Live preview from draft values
+  const activeTemplate = row.calculatorType
+    ? templates.find((t) => t.id === row.calculatorType) ?? null
+    : null;
+
   const previewRow: TenderPricingRow = {
     ...row,
-    unitPrice: (row.calculatorType === "Paving" || row.calculatorType === "Gravel")
-      ? row.unitPrice   // calculator writes directly to row; always read the saved value
-      : (parseFloat(unitPrice) || null),
+    unitPrice: activeTemplate
+      ? row.unitPrice
+      : parseFloat(unitPrice) || null,
     quantity: parseFloat(quantity) || null,
     markupOverride: (() => {
       const t = markup.trim();
@@ -94,12 +126,34 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
     previewRow,
     defaultMarkupPct
   );
-
   const hasMarkupOverride = previewRow.markupOverride != null;
+
+  const handleSelectType = (templateId: string | null) => {
+    if (!templateId) {
+      onUpdate(row._id, { calculatorType: null, calculatorInputsJson: null });
+      return;
+    }
+    const t = templates.find((t) => t.id === templateId);
+    if (!t) return;
+    // Only seed defaultInputs if switching to a different type or no existing inputs
+    const existingJson = row.calculatorType === templateId ? row.calculatorInputsJson : null;
+    onUpdate(row._id, {
+      calculatorType: templateId,
+      calculatorInputsJson: existingJson ?? JSON.stringify(t.defaultInputs),
+      unit: row.unit || t.defaultUnit || null,
+    });
+  };
+
+  const handleCalculatorSave = (inputs: CalculatorInputs, computedUnitPrice: number) => {
+    onUpdate(row._id, {
+      calculatorInputsJson: JSON.stringify(inputs),
+      unitPrice: parseFloat(computedUnitPrice.toFixed(4)) || null,
+    });
+  };
 
   return (
     <Flex direction="column" h="100%" bg="white">
-      {/* ── Header ─────────────────────────────────────────────────── */}
+      {/* ── Header ──────────────────────────────────────────────────── */}
       <Flex
         align="flex-start"
         justify="space-between"
@@ -138,39 +192,29 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
         />
       </Flex>
 
-      {/* ── Form ───────────────────────────────────────────────────── */}
+      {/* ── Form ────────────────────────────────────────────────────── */}
       <Box px={6} py={5} overflowY="auto" flex={1}>
-        {/* Type toggle */}
-        <Flex mb={4} align="center" gap={2}>
+        {/* Type toggle — dynamic from loaded templates */}
+        <Flex mb={4} align="center" gap={2} flexWrap="wrap">
           <Text fontSize="xs" color="gray.500" fontWeight="medium">Type:</Text>
           <ButtonGroup size="xs" isAttached variant="outline">
             <Button
               colorScheme={!row.calculatorType ? "blue" : "gray"}
               variant={!row.calculatorType ? "solid" : "outline"}
-              onClick={() => onUpdate(row._id, { calculatorType: null, calculatorInputsJson: null })}
+              onClick={() => handleSelectType(null)}
             >
               Manual
             </Button>
-            <Button
-              colorScheme={row.calculatorType === "Paving" ? "blue" : "gray"}
-              variant={row.calculatorType === "Paving" ? "solid" : "outline"}
-              onClick={() => onUpdate(row._id, {
-                calculatorType: "Paving",
-                calculatorInputsJson: row.calculatorInputsJson || JSON.stringify(DEFAULT_ASPHALT_INPUTS),
-              })}
-            >
-              Paving
-            </Button>
-            <Button
-              colorScheme={row.calculatorType === "Gravel" ? "blue" : "gray"}
-              variant={row.calculatorType === "Gravel" ? "solid" : "outline"}
-              onClick={() => onUpdate(row._id, {
-                calculatorType: "Gravel",
-                calculatorInputsJson: row.calculatorInputsJson || JSON.stringify(DEFAULT_GRAVEL_INPUTS),
-              })}
-            >
-              Gravel
-            </Button>
+            {templates.map((t) => (
+              <Button
+                key={t.id}
+                colorScheme={row.calculatorType === t.id ? "blue" : "gray"}
+                variant={row.calculatorType === t.id ? "solid" : "outline"}
+                onClick={() => handleSelectType(t.id)}
+              >
+                {t.label}
+              </Button>
+            ))}
           </ButtonGroup>
         </Flex>
 
@@ -199,7 +243,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
         </Grid>
 
         {/* Qty + Unit + Unit Price */}
-        <Grid templateColumns={row.calculatorType ? "80px 110px" : "80px 110px 1fr"} gap={3} mb={4}>
+        <Grid templateColumns={activeTemplate ? "80px 110px" : "80px 110px 1fr"} gap={3} mb={4}>
           <FormControl>
             <FormLabel fontSize="xs" color="gray.500" fontWeight="medium" mb={1}>Qty</FormLabel>
             <Input
@@ -236,7 +280,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
               ))}
             </select>
           </FormControl>
-          {!row.calculatorType && (
+          {!activeTemplate && (
             <FormControl>
               <FormLabel fontSize="xs" color="gray.500" fontWeight="medium" mb={1}>Unit Price</FormLabel>
               <InputGroup size="sm">
@@ -306,28 +350,38 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
           />
         </FormControl>
 
-        {/* Paving Calculator */}
-        {row.calculatorType === "Paving" && (
+        {/* Calculator panel — rendered for any active template */}
+        {activeTemplate && (
           <Box borderTop="1px solid" borderColor="gray.100" pt={4} mt={4} mb={5}>
-            <Text fontSize="xs" fontWeight="semibold" color="gray.500" textTransform="uppercase" letterSpacing="wide" mb={4}>
-              Paving Calculator
+            <Text
+              fontSize="xs"
+              fontWeight="semibold"
+              color="gray.500"
+              textTransform="uppercase"
+              letterSpacing="wide"
+              mb={4}
+            >
+              {activeTemplate.label} Calculator
             </Text>
-            <AsphaltCalculator row={row} onSave={(data) => onUpdate(row._id, data)} />
+            <CalculatorPanel
+              template={activeTemplate}
+              inputs={migrateInputs(row.calculatorInputsJson, activeTemplate)}
+              resetKey={row._id}
+              quantity={parseFloat(quantity) || 0}
+              onSave={handleCalculatorSave}
+            />
           </Box>
         )}
 
-        {/* Gravel Calculator */}
-        {row.calculatorType === "Gravel" && (
-          <Box borderTop="1px solid" borderColor="gray.100" pt={4} mt={4} mb={5}>
-            <Text fontSize="xs" fontWeight="semibold" color="gray.500" textTransform="uppercase" letterSpacing="wide" mb={4}>
-              Gravel Calculator
-            </Text>
-            <GravelCalculator row={row} onSave={(data) => onUpdate(row._id, data)} />
-          </Box>
-        )}
-
-        {/* ── Computed summary ──────────────────────────────────── */}
-        <Grid templateColumns="repeat(4, 1fr)" gap={0} borderWidth={1} borderColor="gray.200" rounded="lg" overflow="hidden">
+        {/* Computed summary */}
+        <Grid
+          templateColumns="repeat(4, 1fr)"
+          gap={0}
+          borderWidth={1}
+          borderColor="gray.200"
+          rounded="lg"
+          overflow="hidden"
+        >
           <StatCell
             label="Unit Price"
             value={totalUP > 0 ? `$${totalUP.toFixed(2)}` : "—"}
@@ -356,7 +410,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
   );
 };
 
-// ── Stat cell ─────────────────────────────────────────────────────────────────
+// ── StatCell (unchanged) ──────────────────────────────────────────────────────
 
 interface StatCellProps {
   label: string;
@@ -368,12 +422,7 @@ interface StatCellProps {
 }
 
 const StatCell: React.FC<StatCellProps> = ({
-  label,
-  value,
-  subValue,
-  subColor = "gray.400",
-  borderRight,
-  highlight,
+  label, value, subValue, subColor = "gray.400", borderRight, highlight,
 }) => (
   <Box
     px={4}
@@ -393,12 +442,7 @@ const StatCell: React.FC<StatCellProps> = ({
     >
       {label}
     </Text>
-    <Text
-      fontSize="md"
-      fontWeight="bold"
-      color={highlight ? "white" : "gray.800"}
-      lineHeight="short"
-    >
+    <Text fontSize="md" fontWeight="bold" color={highlight ? "white" : "gray.800"} lineHeight="short">
       {value}
     </Text>
     {subValue && (
