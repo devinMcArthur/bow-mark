@@ -157,10 +157,15 @@ const CanvasFlow: React.FC<Props> = ({ template, selectedNodeId, onSelectNode })
 
   const handleNodeDragStop: NodeDragStopHandler = useCallback(
     (_, node) => {
-      const existing = loadPositions(template.id) ?? {};
-      savePositions(template.id, { ...existing, [node.id]: node.position });
+      // Save ALL current node positions so a refresh restores the full layout,
+      // not just the subset of nodes that have been individually dragged.
+      const allPositions: Record<string, { x: number; y: number }> = {};
+      nodes.forEach((n) => {
+        allPositions[n.id] = n.id === node.id ? node.position : n.position;
+      });
+      savePositions(template.id, allPositions);
     },
-    [template.id]
+    [template.id, nodes]
   );
 
   const handlePaneClick = useCallback(() => onSelectNode(null), [onSelectNode]);
