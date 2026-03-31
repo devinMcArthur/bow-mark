@@ -1,4 +1,31 @@
+import dagre from "dagre";
+import { Node, Edge } from "reactflow";
 import { CalculatorTemplate } from "../../../../components/TenderPricing/calculators/types";
+
+const NODE_WIDTH = 200;
+const NODE_HEIGHT = 72;
+
+export function dagreLayout(nodes: Node[], edges: Edge[]): Node[] {
+  const g = new dagre.graphlib.Graph();
+  g.setDefaultEdgeLabel(() => ({}));
+  g.setGraph({ rankdir: "LR", ranksep: 80, nodesep: 30 });
+
+  nodes.forEach((n) => g.setNode(n.id, { width: NODE_WIDTH, height: NODE_HEIGHT }));
+  edges.forEach((e) => g.setEdge(e.source, e.target));
+
+  dagre.layout(g);
+
+  return nodes.map((n) => {
+    const pos = g.node(n.id);
+    return {
+      ...n,
+      position: {
+        x: pos.x - NODE_WIDTH / 2,
+        y: pos.y - NODE_HEIGHT / 2,
+      },
+    };
+  });
+}
 
 const COL_X = [0, 220, 440, 660, 880];
 const ROW_GAP = 80;

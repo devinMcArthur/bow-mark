@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useMemo } from "react";
 import ReactFlow, {
   useNodesState,
+  useReactFlow,
   Node,
   Edge,
   NodeMouseHandler,
@@ -9,6 +10,7 @@ import ReactFlow, {
   Background,
   Controls,
   MiniMap,
+  Panel,
 } from "reactflow";
 // Note: CSS is imported in _app.tsx, not here (Next.js 12 restriction)
 
@@ -20,7 +22,7 @@ import {
   StepDebugInfo,
 } from "../../../../components/TenderPricing/calculators/evaluate";
 import { parseEdges } from "./edgeParser";
-import { initialLayout } from "./layoutEngine";
+import { initialLayout, dagreLayout } from "./layoutEngine";
 import { loadPositions, savePositions } from "./canvasStorage";
 import { nodeTypes } from "./nodeTypes";
 
@@ -111,6 +113,33 @@ function buildNodes(
   return nodes;
 }
 
+// AutoLayoutButton must be rendered inside <ReactFlow> to access useReactFlow
+const AutoLayoutButton: React.FC<{ onClick: () => void }> = ({ onClick }) => {
+  const { fitView } = useReactFlow();
+  const handleClick = () => {
+    onClick();
+    requestAnimationFrame(() => fitView({ duration: 400 }));
+  };
+  return (
+    <Panel position="top-left">
+      <button
+        onClick={handleClick}
+        style={{
+          background: "#1e293b",
+          border: "1px solid #334155",
+          borderRadius: 6,
+          color: "#94a3b8",
+          cursor: "pointer",
+          fontSize: 11,
+          padding: "4px 10px",
+        }}
+      >
+        Auto-layout
+      </button>
+    </Panel>
+  );
+};
+
 interface Props {
   template: CalculatorTemplate;
   selectedNodeId: string | null;
@@ -170,6 +199,14 @@ const CanvasFlow: React.FC<Props> = ({ template, selectedNodeId, onSelectNode })
 
   const handlePaneClick = useCallback(() => onSelectNode(null), [onSelectNode]);
 
+  const handleAutoLayout = useCallback(() => {
+    const rawEdges = parseEdges(template);
+    const laidOut = dagreLayout(nodes, rawEdges);
+    setNodes(laidOut);
+    const positions = Object.fromEntries(laidOut.map((n) => [n.id, n.position]));
+    savePositions(template.id, positions);
+  }, [nodes, template, setNodes]);
+
   return (
     <ReactFlow
       nodes={nodes}
@@ -185,6 +222,7 @@ const CanvasFlow: React.FC<Props> = ({ template, selectedNodeId, onSelectNode })
       edgesUpdatable={false}
       edgesFocusable={false}
     >
+      <AutoLayoutButton onClick={handleAutoLayout} />
       <Background color="#1e293b" gap={20} />
       <Controls />
       <MiniMap
