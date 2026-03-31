@@ -7,6 +7,7 @@ import MainPageContainer from "../components/Common/MainPageContainer";
 import Head from "next/head";
 
 import "../../public/global.css";
+import "reactflow/dist/style.css";
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
