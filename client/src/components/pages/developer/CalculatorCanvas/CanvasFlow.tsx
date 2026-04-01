@@ -435,9 +435,9 @@ const CanvasFlow: React.FC<Props> = ({
       // node.position is in the correct coordinate space already:
       //   - absolute for ungrouped nodes and group containers
       //   - relative to parent for grouped nodes (React Flow gives relative for parentId children)
-      const existingEntry = doc.nodePositions[draggedNode.id] ?? {};
+      const existingEntry = docRef.current.nodePositions[draggedNode.id] ?? {};
       const newPositions = {
-        ...doc.nodePositions,
+        ...docRef.current.nodePositions,
         [draggedNode.id]: {
           ...existingEntry,
           x: draggedNode.position.x,
