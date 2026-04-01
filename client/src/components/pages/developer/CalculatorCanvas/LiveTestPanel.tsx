@@ -1,5 +1,5 @@
 // client/src/components/pages/developer/CalculatorCanvas/LiveTestPanel.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Box, Button, Flex, Grid, Input, Text } from "@chakra-ui/react";
 import { v4 as uuidv4 } from "uuid";
 import { FiChevronDown, FiChevronRight, FiPlus } from "react-icons/fi";
@@ -33,7 +33,7 @@ const ParamRow: React.FC<{
   const p = doc.parameterDefs.find((p) => p.id === paramId);
   if (!p) return null;
   return (
-    <React.Fragment key={p.id}>
+    <React.Fragment>
       <Text fontSize="sm" color="gray.700">
         {p.label}
         {p.suffix && (
@@ -127,7 +127,10 @@ const GroupSection: React.FC<GroupSectionProps> = ({
 
   // Collect visible members: params, tables, sub-groups (skip formula steps)
   const paramIds = group.memberIds.filter((id) => doc.parameterDefs.some((p) => p.id === id));
-  const tableIds = group.memberIds.filter((id) => doc.tableDefs.some((t) => t.id === id));
+  const tableIds = group.memberIds
+    .filter((id) => id.endsWith("RatePerHr") &&
+      doc.tableDefs.some((t) => `${t.id}RatePerHr` === id))
+    .map((id) => id.replace(/RatePerHr$/, ""));
   const subGroupIds = group.memberIds.filter((id) => doc.groupDefs.some((g) => g.id === id));
 
   const hasVisibleContent = paramIds.length > 0 || tableIds.length > 0 || subGroupIds.length > 0;
@@ -245,6 +248,11 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
   const result = useMemo(() => evaluateTemplate(doc, inputs, quantity), [doc, inputs, quantity]);
   const stepDebug = useMemo(() => debugEvaluateTemplate(doc, inputs, quantity), [doc, inputs, quantity]);
 
+  const updateParam = useCallback(
+    (id: string, v: number) => setParams((prev) => ({ ...prev, [id]: v })),
+    []
+  );
+
   const updateRow = (tableId: string, rowId: string, field: keyof RateEntry, value: string | number) => {
     setTables((prev) => ({
       ...prev,
@@ -265,10 +273,14 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
   };
 
   // Determine which params/tables are in any group (member of at least one groupDef)
-  const allMemberIds = new Set(doc.groupDefs.flatMap((g) => g.memberIds));
-  const ungroupedParams = doc.parameterDefs.filter((p) => !allMemberIds.has(p.id));
-  const ungroupedTables = doc.tableDefs.filter((t) => !allMemberIds.has(t.id));
-  const topLevelGroups = doc.groupDefs.filter((g) => !allMemberIds.has(g.id));
+  const { ungroupedParams, ungroupedTables, topLevelGroups } = useMemo(() => {
+    const allMemberIds = new Set(doc.groupDefs.flatMap((g) => g.memberIds));
+    return {
+      ungroupedParams: doc.parameterDefs.filter((p) => !allMemberIds.has(p.id)),
+      ungroupedTables: doc.tableDefs.filter((t) => !allMemberIds.has(t.id)),
+      topLevelGroups: doc.groupDefs.filter((g) => !allMemberIds.has(g.id)),
+    };
+  }, [doc]);
 
   return (
     <Box h="100%" overflowY="auto" bg="white">
@@ -326,7 +338,7 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
                 paramId={p.id}
                 doc={doc}
                 value={params[p.id]}
-                onChange={(id, v) => setParams((prev) => ({ ...prev, [id]: v }))}
+                onChange={updateParam}
               />
             ))}
           </Grid>
@@ -354,7 +366,7 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
             doc={doc}
             params={params}
             tables={tables}
-            onParamChange={(id, v) => setParams((prev) => ({ ...prev, [id]: v }))}
+            onParamChange={updateParam}
             onUpdateRow={updateRow}
             onAddRow={addRow}
             onRemoveRow={removeRow}
