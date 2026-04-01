@@ -7,42 +7,62 @@ import { formulaToLatex } from "./formulaToLatex";
 const baseStyle: React.CSSProperties = {
   borderRadius: 8,
   padding: "8px 12px",
-  fontSize: 11,
-  minWidth: 150,
+  fontSize: 12,
+  minWidth: 160,
+  position: "relative",
 };
 
-const idStyle: React.CSSProperties = {
-  fontFamily: "monospace",
+const labelStyle: React.CSSProperties = {
   fontWeight: 700,
-  fontSize: 11,
-  marginBottom: 2,
+  fontSize: 12,
+  marginBottom: 1,
+  color: "#ffffff",
 };
 
-const subStyle: React.CSSProperties = {
+const slugStyle: React.CSSProperties = {
+  fontFamily: "monospace",
   fontSize: 10,
-  opacity: 0.7,
-  lineHeight: 1.3,
+  color: "#94a3b8",
+  marginBottom: 3,
 };
 
 const valueStyle: React.CSSProperties = {
-  fontSize: 10,
-  fontWeight: 600,
+  fontSize: 12,
+  fontWeight: 700,
   marginTop: 4,
   fontFamily: "monospace",
+  color: "#ffffff",
 };
+
+const TypeBadge: React.FC<{ label: string; color: string }> = ({ label, color }) => (
+  <div style={{
+    position: "absolute",
+    top: 7,
+    right: 10,
+    fontSize: 8,
+    fontWeight: 700,
+    letterSpacing: "0.1em",
+    textTransform: "uppercase",
+    color,
+    opacity: 0.8,
+  }}>
+    {label}
+  </div>
+);
 
 export const ParamNode: React.FC<NodeProps> = ({ data, selected }) => (
   <div style={{
     ...baseStyle,
-    background: "#1e3a5f",
-    border: `1px solid ${selected ? "#60a5fa" : "#2563eb"}`,
-    color: "#93c5fd",
-    boxShadow: selected ? "0 0 0 2px #2563eb40" : undefined,
+    background: "#1e3f6e",
+    border: `1.5px solid ${selected ? "#93c5fd" : "#3b82f6"}`,
+    borderTop: `3px solid #3b82f6`,
+    boxShadow: selected ? "0 0 0 2px #3b82f640, 0 4px 12px #00000060" : "0 2px 8px #00000050",
   }}>
     <Handle type="source" position={Position.Right} isConnectable={false}
-      style={{ background: "#2563eb", border: "none" }} />
-    <div style={{ ...idStyle, color: "#60a5fa" }}>{data.label}{data.suffix ? ` (${data.suffix})` : ""}</div>
-    <div style={{ ...subStyle, fontFamily: "monospace" }}>{data.id}</div>
+      style={{ background: "#3b82f6", border: "2px solid #1e3f6e", width: 10, height: 10 }} />
+    <TypeBadge label="param" color="#93c5fd" />
+    <div style={labelStyle}>{data.label}{data.suffix ? ` (${data.suffix})` : ""}</div>
+    <div style={slugStyle}>{data.id}</div>
     <div style={{ ...valueStyle, color: "#bfdbfe" }}>{data.value}</div>
   </div>
 );
@@ -50,15 +70,16 @@ export const ParamNode: React.FC<NodeProps> = ({ data, selected }) => (
 export const TableNode: React.FC<NodeProps> = ({ data, selected }) => (
   <div style={{
     ...baseStyle,
-    background: "#1a3a2e",
-    border: `1px solid ${selected ? "#34d399" : "#059669"}`,
-    color: "#6ee7b7",
-    boxShadow: selected ? "0 0 0 2px #05996940" : undefined,
+    background: "#1a4535",
+    border: `1.5px solid ${selected ? "#6ee7b7" : "#10b981"}`,
+    borderTop: `3px solid #10b981`,
+    boxShadow: selected ? "0 0 0 2px #10b98140, 0 4px 12px #00000060" : "0 2px 8px #00000050",
   }}>
     <Handle type="source" position={Position.Right} isConnectable={false}
-      style={{ background: "#059669", border: "none" }} />
-    <div style={{ ...idStyle, color: "#34d399" }}>{data.label}</div>
-    <div style={{ ...subStyle, fontFamily: "monospace" }}>{data.id}</div>
+      style={{ background: "#10b981", border: "2px solid #1a4535", width: 10, height: 10 }} />
+    <TypeBadge label="table" color="#6ee7b7" />
+    <div style={labelStyle}>{data.label}</div>
+    <div style={slugStyle}>{data.id}</div>
     <div style={{ ...valueStyle, color: "#a7f3d0" }}>${data.value.toFixed(2)}/hr</div>
   </div>
 );
@@ -66,15 +87,16 @@ export const TableNode: React.FC<NodeProps> = ({ data, selected }) => (
 export const QuantityNode: React.FC<NodeProps> = ({ data, selected }) => (
   <div style={{
     ...baseStyle,
-    background: "#2d2a1e",
-    border: `1px solid ${selected ? "#fbbf24" : "#ca8a04"}`,
-    color: "#fde68a",
-    boxShadow: selected ? "0 0 0 2px #ca8a0440" : undefined,
+    background: "#3d2e0a",
+    border: `1.5px solid ${selected ? "#fcd34d" : "#f59e0b"}`,
+    borderTop: `3px solid #f59e0b`,
+    boxShadow: selected ? "0 0 0 2px #f59e0b40, 0 4px 12px #00000060" : "0 2px 8px #00000050",
   }}>
     <Handle type="source" position={Position.Right} isConnectable={false}
-      style={{ background: "#ca8a04", border: "none" }} />
-    <div style={{ ...idStyle, color: "#fbbf24" }}>Quantity</div>
-    <div style={{ ...subStyle, color: "#a16207", marginBottom: 2 }}>tender input</div>
+      style={{ background: "#f59e0b", border: "2px solid #3d2e0a", width: 10, height: 10 }} />
+    <TypeBadge label="qty" color="#fcd34d" />
+    <div style={labelStyle}>Quantity</div>
+    <div style={{ ...slugStyle, marginBottom: 4 }}>tender input</div>
     <input
       className="nodrag"
       type="number"
@@ -82,16 +104,15 @@ export const QuantityNode: React.FC<NodeProps> = ({ data, selected }) => (
       value={data.value}
       onChange={(e) => data.onChange(parseFloat(e.target.value) || 0)}
       style={{
-        background: "transparent",
-        border: "none",
-        borderBottom: "1px solid #92400e",
+        background: "rgba(0,0,0,0.3)",
+        border: "1px solid #92400e",
+        borderRadius: 4,
         color: "#fef3c7",
         fontFamily: "monospace",
-        fontSize: 12,
-        fontWeight: 600,
-        marginTop: 4,
+        fontSize: 13,
+        fontWeight: 700,
         outline: "none",
-        padding: "2px 0",
+        padding: "3px 6px",
         width: "100%",
       }}
     />
@@ -124,49 +145,42 @@ export const FormulaNode: React.FC<NodeProps> = ({ data, selected }) => {
   return (
     <div style={{
       ...baseStyle,
-      background: "#2e1a47",
-      border: `1px solid ${selected ? "#a78bfa" : "#7c3aed"}`,
-      color: "#c4b5fd",
-      boxShadow: selected ? "0 0 0 2px #7c3aed40" : undefined,
+      background: "#2d1b52",
+      border: `1.5px solid ${selected ? "#c4b5fd" : "#8b5cf6"}`,
+      borderTop: `3px solid #8b5cf6`,
+      boxShadow: selected ? "0 0 0 2px #8b5cf640, 0 4px 12px #00000060" : "0 2px 8px #00000050",
       maxWidth: 300,
-      minWidth: 180,
+      minWidth: 190,
     }}>
       <Handle type="target" position={Position.Left} isConnectable={false}
-        style={{ background: "#7c3aed", border: "none" }} />
+        style={{ background: "#8b5cf6", border: "2px solid #2d1b52", width: 10, height: 10 }} />
       <Handle type="source" position={Position.Right} isConnectable={false}
-        style={{ background: "#7c3aed", border: "none" }} />
-
-      {/* Label */}
-      <div style={{ ...idStyle, color: "#a78bfa" }}>{data.label ?? data.id}</div>
-
-      {/* Slug hint */}
-      <div style={{ ...subStyle, fontFamily: "monospace", marginBottom: 6 }}>{data.id}</div>
-
-      {/* Typeset formula */}
+        style={{ background: "#8b5cf6", border: "2px solid #2d1b52", width: 10, height: 10 }} />
+      <TypeBadge label="formula" color="#c4b5fd" />
+      <div style={labelStyle}>{data.label ?? data.id}</div>
+      <div style={slugStyle}>{data.id}</div>
       <div style={{
-        background: "#1e1030",
+        background: "#150c2e",
         borderRadius: 4,
         padding: "6px 8px",
         marginBottom: 5,
         minHeight: 32,
         overflowX: "auto",
         overflowY: "hidden",
+        border: "1px solid #3b1f6e",
       }}>
         {katexHtml ? (
           <div
-            // KaTeX injects its own colour; override to match our theme
-            style={{ color: data.hasError ? "#f87171" : "#e9d5ff", fontSize: 13 }}
+            style={{ color: data.hasError ? "#f87171" : "#ede9fe", fontSize: 13 }}
             dangerouslySetInnerHTML={{ __html: katexHtml }}
           />
         ) : (
-          <div style={{ ...subStyle, fontFamily: "monospace", color: "#6d28d9", fontStyle: "italic" }}>
+          <div style={{ ...slugStyle, color: "#6d28d9", fontStyle: "italic" }}>
             empty
           </div>
         )}
       </div>
-
-      {/* Result */}
-      <div style={{ ...valueStyle, color: data.hasError ? "#f87171" : "#ddd6fe" }}>
+      <div style={{ ...valueStyle, color: data.hasError ? "#f87171" : "#ffffff" }}>
         {data.hasError ? "⚠ error" : `= ${data.value.toFixed(4)}`}
       </div>
     </div>
@@ -176,16 +190,17 @@ export const FormulaNode: React.FC<NodeProps> = ({ data, selected }) => {
 export const BreakdownNode: React.FC<NodeProps> = ({ data, selected }) => (
   <div style={{
     ...baseStyle,
-    background: "#1a2e1a",
-    border: `1px solid ${selected ? "#4ade80" : "#16a34a"}`,
-    color: "#86efac",
-    boxShadow: selected ? "0 0 0 2px #16a34a40" : undefined,
+    background: "#163a22",
+    border: `1.5px solid ${selected ? "#86efac" : "#22c55e"}`,
+    borderTop: `3px solid #22c55e`,
+    boxShadow: selected ? "0 0 0 2px #22c55e40, 0 4px 12px #00000060" : "0 2px 8px #00000050",
   }}>
     <Handle type="target" position={Position.Left} isConnectable={false}
-      style={{ background: "#16a34a", border: "none" }} />
+      style={{ background: "#22c55e", border: "2px solid #163a22", width: 10, height: 10 }} />
     <Handle type="source" position={Position.Right} isConnectable={false}
-      style={{ background: "#16a34a", border: "none" }} />
-    <div style={{ ...idStyle, color: "#4ade80" }}>{data.label}</div>
+      style={{ background: "#22c55e", border: "2px solid #163a22", width: 10, height: 10 }} />
+    <TypeBadge label="summary" color="#86efac" />
+    <div style={labelStyle}>{data.label}</div>
     <div style={{ ...valueStyle, color: "#bbf7d0" }}>${data.value.toFixed(2)}/unit</div>
   </div>
 );
@@ -193,16 +208,19 @@ export const BreakdownNode: React.FC<NodeProps> = ({ data, selected }) => (
 export const OutputNode: React.FC<NodeProps> = ({ data, selected }) => (
   <div style={{
     ...baseStyle,
-    background: "#1e3a8a",
-    border: `2px solid ${selected ? "#93c5fd" : "#3b82f6"}`,
-    color: "#bfdbfe",
+    background: "#1e40af",
+    border: `2px solid ${selected ? "#93c5fd" : "#60a5fa"}`,
+    borderTop: `4px solid #60a5fa`,
     padding: "10px 14px",
-    boxShadow: selected ? "0 0 0 2px #3b82f640" : undefined,
+    boxShadow: selected ? "0 0 0 3px #3b82f650, 0 4px 16px #00000070" : "0 4px 16px #00000060",
+    minWidth: 180,
   }}>
     <Handle type="target" position={Position.Left} isConnectable={false}
-      style={{ background: "#3b82f6", border: "none" }} />
-    <div style={{ ...idStyle, color: "white", fontSize: 13 }}>Unit Price</div>
-    <div style={{ ...valueStyle, color: "white", fontSize: 14 }}>${data.value.toFixed(2)}</div>
+      style={{ background: "#60a5fa", border: "2px solid #1e40af", width: 12, height: 12 }} />
+    <div style={{ ...labelStyle, fontSize: 13, color: "#e0f2fe" }}>Unit Price</div>
+    <div style={{ ...valueStyle, color: "#ffffff", fontSize: 18, marginTop: 6 }}>
+      ${data.value.toFixed(2)}
+    </div>
   </div>
 );
 
@@ -212,8 +230,8 @@ export const GroupNode: React.FC<NodeProps> = ({ data, selected }) => (
       width: "100%",
       height: "100%",
       borderRadius: 8,
-      border: `1px dashed ${selected ? "#818cf8" : "#475569"}`,
-      background: "rgba(99, 102, 241, 0.04)",
+      border: `1.5px dashed ${selected ? "#a5b4fc" : "#64748b"}`,
+      background: selected ? "rgba(99, 102, 241, 0.10)" : "rgba(99, 102, 241, 0.05)",
       position: "relative",
     }}
   >
@@ -221,20 +239,20 @@ export const GroupNode: React.FC<NodeProps> = ({ data, selected }) => (
       isVisible={selected}
       minWidth={200}
       minHeight={120}
-      color="#6366f1"
-      lineStyle={{ borderColor: "#6366f1" }}
-      handleStyle={{ borderColor: "#6366f1", background: "#1e1b4b" }}
+      color="#818cf8"
+      lineStyle={{ borderColor: "#818cf8" }}
+      handleStyle={{ borderColor: "#818cf8", background: "#312e81", width: 14, height: 14 }}
       onResizeEnd={(_, params) => data.onResizeEnd?.(params.width, params.height)}
     />
     <div
       style={{
         position: "absolute",
-        top: 6,
-        left: 10,
-        fontSize: 9,
-        color: "#818cf8",
+        top: 8,
+        left: 12,
+        fontSize: 10,
+        color: "#a5b4fc",
         textTransform: "uppercase",
-        letterSpacing: "0.08em",
+        letterSpacing: "0.1em",
         fontWeight: 700,
         pointerEvents: "none",
         userSelect: "none",
