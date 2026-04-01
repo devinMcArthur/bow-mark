@@ -277,7 +277,7 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
     const allMemberIds = new Set(doc.groupDefs.flatMap((g) => g.memberIds));
     return {
       ungroupedParams: doc.parameterDefs.filter((p) => !allMemberIds.has(p.id)),
-      ungroupedTables: doc.tableDefs.filter((t) => !allMemberIds.has(t.id)),
+      ungroupedTables: doc.tableDefs.filter((t) => !allMemberIds.has(`${t.id}RatePerHr`)),
       topLevelGroups: doc.groupDefs.filter((g) => !allMemberIds.has(g.id)),
     };
   }, [doc]);
