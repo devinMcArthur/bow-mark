@@ -2,8 +2,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Box, Button, Flex, Grid, Input, Text } from "@chakra-ui/react";
 import { v4 as uuidv4 } from "uuid";
-import { FiPlus } from "react-icons/fi";
-import { CanvasDocument } from "./canvasStorage";
+import { FiChevronDown, FiChevronRight, FiPlus } from "react-icons/fi";
+import { CanvasDocument, GroupDef } from "./canvasStorage";
 import { RateEntry } from "../../../../components/TenderPricing/calculators/types";
 import {
   evaluateTemplate,
@@ -19,10 +19,208 @@ interface Props {
   onCollapse: () => void;
 }
 
-const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
-  const copyTables = (tables: Record<string, RateEntry[]>) =>
-    Object.fromEntries(Object.entries(tables).map(([k, v]) => [k, [...v]]));
+const copyTables = (tables: Record<string, RateEntry[]>) =>
+  Object.fromEntries(Object.entries(tables).map(([k, v]) => [k, [...v]]));
 
+// ─── Param row ────────────────────────────────────────────────────────────────
+
+const ParamRow: React.FC<{
+  paramId: string;
+  doc: CanvasDocument;
+  value: number;
+  onChange: (id: string, v: number) => void;
+}> = ({ paramId, doc, value, onChange }) => {
+  const p = doc.parameterDefs.find((p) => p.id === paramId);
+  if (!p) return null;
+  return (
+    <React.Fragment key={p.id}>
+      <Text fontSize="sm" color="gray.700">
+        {p.label}
+        {p.suffix && (
+          <Text as="span" fontSize="xs" color="gray.400">
+            {" "}({p.suffix})
+          </Text>
+        )}
+      </Text>
+      <Input
+        size="sm"
+        type="number"
+        textAlign="right"
+        value={value ?? p.defaultValue}
+        onChange={(e) => onChange(p.id, parseFloat(e.target.value) || 0)}
+      />
+    </React.Fragment>
+  );
+};
+
+// ─── Table section ────────────────────────────────────────────────────────────
+
+const TableSection: React.FC<{
+  tableId: string;
+  doc: CanvasDocument;
+  rows: RateEntry[];
+  onUpdateRow: (tableId: string, rowId: string, field: keyof RateEntry, value: string | number) => void;
+  onAddRow: (tableId: string) => void;
+  onRemoveRow: (tableId: string, rowId: string) => void;
+}> = ({ tableId, doc, rows, onUpdateRow, onAddRow, onRemoveRow }) => {
+  const t = doc.tableDefs.find((t) => t.id === tableId);
+  if (!t) return null;
+  const ratePerHr = rows.reduce((s, r) => s + r.qty * r.ratePerHour, 0);
+  return (
+    <Box mb={4}>
+      <Flex align="center" justify="space-between" mb={1}>
+        <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide">
+          {t.label}
+        </Text>
+        <Text fontSize="xs" color="gray.500">${ratePerHr.toFixed(2)}/hr</Text>
+      </Flex>
+      <Box borderWidth={1} borderColor="gray.200" rounded="md" overflow="hidden">
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+          <thead>
+            <tr style={{ background: "#F7FAFC" }}>
+              <th style={{ textAlign: "left", padding: "4px 8px", fontWeight: 500, color: "#718096" }}>{t.rowLabel}</th>
+              <th style={{ textAlign: "center", padding: "4px 4px", fontWeight: 500, color: "#718096", width: "40px" }}>Qty</th>
+              <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 500, color: "#718096", width: "64px" }}>$/hr</th>
+              <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 500, color: "#718096", width: "64px" }}>Total</th>
+              <th style={{ width: "28px" }} />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <RateRow
+                key={row.id}
+                entry={row}
+                onChangeName={(v) => onUpdateRow(tableId, row.id, "name", v)}
+                onChangeQty={(v) => onUpdateRow(tableId, row.id, "qty", v)}
+                onChangeRate={(v) => onUpdateRow(tableId, row.id, "ratePerHour", v)}
+                onDelete={() => onRemoveRow(tableId, row.id)}
+              />
+            ))}
+          </tbody>
+        </table>
+      </Box>
+      <Button size="xs" variant="ghost" leftIcon={<FiPlus />} mt={1} color="gray.500" onClick={() => onAddRow(tableId)}>
+        Add
+      </Button>
+    </Box>
+  );
+};
+
+// ─── Group section (recursive) ────────────────────────────────────────────────
+
+interface GroupSectionProps {
+  group: GroupDef;
+  depth: number;
+  doc: CanvasDocument;
+  params: Record<string, number>;
+  tables: Record<string, RateEntry[]>;
+  onParamChange: (id: string, v: number) => void;
+  onUpdateRow: (tableId: string, rowId: string, field: keyof RateEntry, value: string | number) => void;
+  onAddRow: (tableId: string) => void;
+  onRemoveRow: (tableId: string, rowId: string) => void;
+}
+
+const GroupSection: React.FC<GroupSectionProps> = ({
+  group, depth, doc, params, tables, onParamChange, onUpdateRow, onAddRow, onRemoveRow,
+}) => {
+  const [open, setOpen] = useState(true);
+
+  // Collect visible members: params, tables, sub-groups (skip formula steps)
+  const paramIds = group.memberIds.filter((id) => doc.parameterDefs.some((p) => p.id === id));
+  const tableIds = group.memberIds.filter((id) => doc.tableDefs.some((t) => t.id === id));
+  const subGroupIds = group.memberIds.filter((id) => doc.groupDefs.some((g) => g.id === id));
+
+  const hasVisibleContent = paramIds.length > 0 || tableIds.length > 0 || subGroupIds.length > 0;
+  if (!hasVisibleContent) return null;
+
+  const headingColorVal = depth === 0 ? "#4338ca" : "#8b5cf6";
+  const indent = depth * 12;
+
+  return (
+    <Box mb={3} ml={`${indent}px`}>
+      {/* Section heading */}
+      <Flex
+        align="center"
+        gap={1}
+        mb={open ? 2 : 0}
+        borderBottom={open ? "1px solid" : "none"}
+        borderColor={depth === 0 ? "indigo.100" : "purple.100"}
+        pb={open ? 1 : 0}
+        cursor="pointer"
+        onClick={() => setOpen((o) => !o)}
+        _hover={{ opacity: 0.8 }}
+      >
+        <Box color={headingColorVal} fontSize="10px">
+          {open ? <FiChevronDown /> : <FiChevronRight />}
+        </Box>
+        <Text
+          fontSize="xs"
+          fontWeight="bold"
+          color={headingColorVal}
+          textTransform="uppercase"
+          letterSpacing="wider"
+        >
+          {group.label}
+        </Text>
+      </Flex>
+
+      {open && (
+        <>
+          {/* Params in this group */}
+          {paramIds.length > 0 && (
+            <Grid templateColumns="1fr 80px" gap={2} alignItems="center" mb={2}>
+              {paramIds.map((id) => (
+                <ParamRow
+                  key={id}
+                  paramId={id}
+                  doc={doc}
+                  value={params[id]}
+                  onChange={onParamChange}
+                />
+              ))}
+            </Grid>
+          )}
+
+          {/* Tables in this group */}
+          {tableIds.map((id) => (
+            <TableSection
+              key={id}
+              tableId={id}
+              doc={doc}
+              rows={tables[id] ?? []}
+              onUpdateRow={onUpdateRow}
+              onAddRow={onAddRow}
+              onRemoveRow={onRemoveRow}
+            />
+          ))}
+
+          {/* Sub-groups */}
+          {subGroupIds.map((id) => {
+            const subGroup = doc.groupDefs.find((g) => g.id === id)!;
+            return (
+              <GroupSection
+                key={id}
+                group={subGroup}
+                depth={depth + 1}
+                doc={doc}
+                params={params}
+                tables={tables}
+                onParamChange={onParamChange}
+                onUpdateRow={onUpdateRow}
+                onAddRow={onAddRow}
+                onRemoveRow={onRemoveRow}
+              />
+            );
+          })}
+        </>
+      )}
+    </Box>
+  );
+};
+
+// ─── Main panel ───────────────────────────────────────────────────────────────
+
+const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
   const [quantity, setQuantity] = useState(100);
   const [params, setParams] = useState<Record<string, number>>(() =>
     Object.fromEntries(
@@ -33,7 +231,6 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
     () => copyTables(doc.defaultInputs.tables)
   );
 
-  // Reset scratch state when the active doc changes
   useEffect(() => {
     setQuantity(100);
     setParams(
@@ -45,41 +242,21 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
   }, [doc.id]);
 
   const inputs = useMemo(() => ({ params, tables }), [params, tables]);
+  const result = useMemo(() => evaluateTemplate(doc, inputs, quantity), [doc, inputs, quantity]);
+  const stepDebug = useMemo(() => debugEvaluateTemplate(doc, inputs, quantity), [doc, inputs, quantity]);
 
-  const result = useMemo(
-    () => evaluateTemplate(doc, inputs, quantity),
-    [doc, inputs, quantity]
-  );
-
-  const stepDebug = useMemo(
-    () => debugEvaluateTemplate(doc, inputs, quantity),
-    [doc, inputs, quantity]
-  );
-
-  const updateRow = (
-    tableId: string,
-    rowId: string,
-    field: keyof RateEntry,
-    value: string | number
-  ) => {
+  const updateRow = (tableId: string, rowId: string, field: keyof RateEntry, value: string | number) => {
     setTables((prev) => ({
       ...prev,
-      [tableId]: (prev[tableId] ?? []).map((r) =>
-        r.id === rowId ? { ...r, [field]: value } : r
-      ),
+      [tableId]: (prev[tableId] ?? []).map((r) => r.id === rowId ? { ...r, [field]: value } : r),
     }));
   };
-
   const addRow = (tableId: string) => {
     setTables((prev) => ({
       ...prev,
-      [tableId]: [
-        ...(prev[tableId] ?? []),
-        { id: uuidv4(), name: "", qty: 1, ratePerHour: 0 },
-      ],
+      [tableId]: [...(prev[tableId] ?? []), { id: uuidv4(), name: "", qty: 1, ratePerHour: 0 }],
     }));
   };
-
   const removeRow = (tableId: string, rowId: string) => {
     setTables((prev) => ({
       ...prev,
@@ -87,9 +264,15 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
     }));
   };
 
+  // Determine which params/tables are in any group (member of at least one groupDef)
+  const allMemberIds = new Set(doc.groupDefs.flatMap((g) => g.memberIds));
+  const ungroupedParams = doc.parameterDefs.filter((p) => !allMemberIds.has(p.id));
+  const ungroupedTables = doc.tableDefs.filter((t) => !allMemberIds.has(t.id));
+  const topLevelGroups = doc.groupDefs.filter((g) => !allMemberIds.has(g.id));
+
   return (
     <Box h="100%" overflowY="auto" bg="white">
-      {/* Header */}
+      {/* Sticky header */}
       <Flex
         align="center"
         justify="space-between"
@@ -102,13 +285,7 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
         bg="white"
         zIndex={1}
       >
-        <Text
-          fontSize="xs"
-          fontWeight="semibold"
-          color="gray.500"
-          textTransform="uppercase"
-          letterSpacing="wide"
-        >
+        <Text fontSize="xs" fontWeight="semibold" color="gray.500" textTransform="uppercase" letterSpacing="wide">
           Live Test
         </Text>
         <Button
@@ -128,9 +305,7 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
       <Box px={3} py={3}>
         {/* Quantity */}
         <Flex align="center" gap={2} mb={4}>
-          <Text fontSize="sm" color="gray.600" flex={1}>
-            Quantity
-          </Text>
+          <Text fontSize="sm" color="gray.600" flex={1}>Quantity</Text>
           <Input
             size="sm"
             type="number"
@@ -139,132 +314,57 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
             onChange={(e) => setQuantity(parseFloat(e.target.value) || 0)}
             textAlign="right"
           />
-          <Text fontSize="xs" color="gray.400" whiteSpace="nowrap">
-            {doc.defaultUnit}
-          </Text>
+          <Text fontSize="xs" color="gray.400" whiteSpace="nowrap">{doc.defaultUnit}</Text>
         </Flex>
 
-        {/* Parameters */}
-        {doc.parameterDefs.length > 0 && (
-          <>
-            <Text
-              fontSize="xs"
-              fontWeight="semibold"
-              color="gray.400"
-              textTransform="uppercase"
-              letterSpacing="wide"
-              mb={2}
-            >
-              Parameters
-            </Text>
-            <Grid templateColumns="1fr 80px" gap={2} alignItems="center" mb={4}>
-              {doc.parameterDefs.map((p) => (
-                <React.Fragment key={p.id}>
-                  <Text fontSize="sm" color="gray.700">
-                    {p.label}
-                    {p.suffix && (
-                      <Text as="span" fontSize="xs" color="gray.400">
-                        {" "}
-                        ({p.suffix})
-                      </Text>
-                    )}
-                  </Text>
-                  <Input
-                    size="sm"
-                    type="number"
-                    textAlign="right"
-                    value={params[p.id] ?? p.defaultValue}
-                    onChange={(e) =>
-                      setParams((prev) => ({
-                        ...prev,
-                        [p.id]: parseFloat(e.target.value) || 0,
-                      }))
-                    }
-                  />
-                </React.Fragment>
-              ))}
-            </Grid>
-          </>
+        {/* Ungrouped params */}
+        {ungroupedParams.length > 0 && (
+          <Grid templateColumns="1fr 80px" gap={2} alignItems="center" mb={4}>
+            {ungroupedParams.map((p) => (
+              <ParamRow
+                key={p.id}
+                paramId={p.id}
+                doc={doc}
+                value={params[p.id]}
+                onChange={(id, v) => setParams((prev) => ({ ...prev, [id]: v }))}
+              />
+            ))}
+          </Grid>
         )}
 
-        {/* Rate Tables */}
-        {doc.tableDefs.map((t) => {
-          const rows = tables[t.id] ?? [];
-          const ratePerHr = rows.reduce((s, r) => s + r.qty * r.ratePerHour, 0);
-          return (
-            <Box key={t.id} mb={4}>
-              <Flex align="center" justify="space-between" mb={1}>
-                <Text
-                  fontSize="xs"
-                  fontWeight="semibold"
-                  color="gray.400"
-                  textTransform="uppercase"
-                  letterSpacing="wide"
-                >
-                  {t.label}
-                </Text>
-                <Text fontSize="xs" color="gray.500">
-                  ${ratePerHr.toFixed(2)}/hr
-                </Text>
-              </Flex>
-              <Box borderWidth={1} borderColor="gray.200" rounded="md" overflow="hidden">
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
-                  <thead>
-                    <tr style={{ background: "#F7FAFC" }}>
-                      <th style={{ textAlign: "left", padding: "4px 8px", fontWeight: 500, color: "#718096" }}>
-                        {t.rowLabel}
-                      </th>
-                      <th style={{ textAlign: "center", padding: "4px 4px", fontWeight: 500, color: "#718096", width: "40px" }}>
-                        Qty
-                      </th>
-                      <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 500, color: "#718096", width: "64px" }}>
-                        $/hr
-                      </th>
-                      <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 500, color: "#718096", width: "64px" }}>
-                        Total
-                      </th>
-                      <th style={{ width: "28px" }} />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <RateRow
-                        key={row.id}
-                        entry={row}
-                        onChangeName={(v) => updateRow(t.id, row.id, "name", v)}
-                        onChangeQty={(v) => updateRow(t.id, row.id, "qty", v)}
-                        onChangeRate={(v) => updateRow(t.id, row.id, "ratePerHour", v)}
-                        onDelete={() => removeRow(t.id, row.id)}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </Box>
-              <Button
-                size="xs"
-                variant="ghost"
-                leftIcon={<FiPlus />}
-                mt={1}
-                color="gray.500"
-                onClick={() => addRow(t.id)}
-              >
-                Add
-              </Button>
-            </Box>
-          );
-        })}
+        {/* Ungrouped tables */}
+        {ungroupedTables.map((t) => (
+          <TableSection
+            key={t.id}
+            tableId={t.id}
+            doc={doc}
+            rows={tables[t.id] ?? []}
+            onUpdateRow={updateRow}
+            onAddRow={addRow}
+            onRemoveRow={removeRow}
+          />
+        ))}
+
+        {/* Top-level groups */}
+        {topLevelGroups.map((g) => (
+          <GroupSection
+            key={g.id}
+            group={g}
+            depth={0}
+            doc={doc}
+            params={params}
+            tables={tables}
+            onParamChange={(id, v) => setParams((prev) => ({ ...prev, [id]: v }))}
+            onUpdateRow={updateRow}
+            onAddRow={addRow}
+            onRemoveRow={removeRow}
+          />
+        ))}
 
         {/* Summary breakdown */}
         {result.breakdown.length > 0 && (
           <>
-            <Text
-              fontSize="xs"
-              fontWeight="semibold"
-              color="gray.400"
-              textTransform="uppercase"
-              letterSpacing="wide"
-              mb={2}
-            >
+            <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide" mb={2}>
               Summary
             </Text>
             <Grid
@@ -287,59 +387,27 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
         {/* Formula step debug */}
         {stepDebug.length > 0 && (
           <Box mt={2}>
-            <Text
-              fontSize="xs"
-              fontWeight="semibold"
-              color="gray.400"
-              textTransform="uppercase"
-              letterSpacing="wide"
-              mb={2}
-            >
+            <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide" mb={2}>
               Formula Steps
             </Text>
             <Box borderWidth={1} borderColor="gray.200" rounded="md" overflow="hidden">
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
                 <thead>
                   <tr style={{ background: "#F7FAFC" }}>
-                    <th style={{ textAlign: "left", padding: "4px 8px", fontWeight: 600, color: "#718096", fontFamily: "monospace" }}>
-                      id
-                    </th>
-                    <th style={{ textAlign: "left", padding: "4px 8px", fontWeight: 600, color: "#718096", fontFamily: "monospace" }}>
-                      formula
-                    </th>
-                    <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 600, color: "#718096", width: "80px" }}>
-                      value
-                    </th>
+                    <th style={{ textAlign: "left", padding: "4px 8px", fontWeight: 600, color: "#718096", fontFamily: "monospace" }}>id</th>
+                    <th style={{ textAlign: "left", padding: "4px 8px", fontWeight: 600, color: "#718096", fontFamily: "monospace" }}>formula</th>
+                    <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 600, color: "#718096", width: "80px" }}>value</th>
                   </tr>
                 </thead>
                 <tbody>
                   {stepDebug.map((s) => (
-                    <tr
-                      key={s.id}
-                      style={{
-                        background: s.error ? "#FFF5F5" : "white",
-                        borderTop: "1px solid #EDF2F7",
-                      }}
-                    >
-                      <td style={{ padding: "4px 8px", fontFamily: "monospace", color: s.error ? "#C53030" : "#4A5568" }}>
-                        {s.id}
-                      </td>
+                    <tr key={s.id} style={{ background: s.error ? "#FFF5F5" : "white", borderTop: "1px solid #EDF2F7" }}>
+                      <td style={{ padding: "4px 8px", fontFamily: "monospace", color: s.error ? "#C53030" : "#4A5568" }}>{s.id}</td>
                       <td style={{ padding: "4px 8px", fontFamily: "monospace", color: "#805AD5" }}>
                         {s.formula}
-                        {s.error && (
-                          <span style={{ color: "#C53030", marginLeft: 8, fontFamily: "sans-serif" }}>
-                            ⚠ {s.error}
-                          </span>
-                        )}
+                        {s.error && <span style={{ color: "#C53030", marginLeft: 8, fontFamily: "sans-serif" }}>⚠ {s.error}</span>}
                       </td>
-                      <td
-                        style={{
-                          padding: "4px 8px",
-                          textAlign: "right",
-                          fontWeight: 600,
-                          color: s.error ? "#C53030" : "#1A202C",
-                        }}
-                      >
+                      <td style={{ padding: "4px 8px", textAlign: "right", fontWeight: 600, color: s.error ? "#C53030" : "#1A202C" }}>
                         {s.error ? "—" : s.value.toFixed(4)}
                       </td>
                     </tr>
