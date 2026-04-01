@@ -10,7 +10,7 @@ import {
   Tabs,
 } from "@chakra-ui/react";
 import { useRouter } from "next/router";
-import React from "react";
+import React, { useState } from "react";
 import { FiTool } from "react-icons/fi";
 import ClientOnly from "../../components/Common/ClientOnly";
 import Container from "../../components/Common/Container";
@@ -32,6 +32,11 @@ const DeveloperPage: React.FC = () => {
     }
   }, [user, router]);
 
+  const [tabIndex, setTabIndex] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    return parseInt(localStorage.getItem("developer:tab") ?? "0", 10);
+  });
+
   if (!user || user.role !== UserRoles.Developer) return null;
 
   return (
@@ -43,7 +48,7 @@ const DeveloperPage: React.FC = () => {
         </Heading>
       </Flex>
       <ClientOnly>
-        <Tabs variant="enclosed" colorScheme="blue">
+        <Tabs variant="enclosed" colorScheme="blue" index={tabIndex} onChange={(i) => { setTabIndex(i); localStorage.setItem("developer:tab", String(i)); }}>
           <TabList>
             <Tab>Ratings Review</Tab>
             <Tab>Calculator Templates</Tab>

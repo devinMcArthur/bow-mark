@@ -23,3 +23,12 @@ body {
 .pac-container {
   z-index: 10000 !important;
 }
+
+
+/* Remove default React Flow node wrapper background/border so custom nodes render cleanly */
+.react-flow__node {
+  background: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+}
