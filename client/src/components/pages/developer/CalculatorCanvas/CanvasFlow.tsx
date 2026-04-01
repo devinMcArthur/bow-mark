@@ -561,8 +561,11 @@ const CanvasFlow: React.FC<Props> = ({
   );
 
   const handleAutoLayout = useCallback(() => {
-    const nonGroupNodes = nodes.filter((n) => n.type !== "group");
-    const laidOut = dagreLayout(nonGroupNodes, rawEdges);
+    // Only lay out top-level nodes: ungrouped nodes + group containers.
+    // Group members keep their current relative positions so they stay inside their groups.
+    const groupedIds = new Set(doc.groupDefs.flatMap((g) => g.memberIds));
+    const topLevelNodes = nodes.filter((n) => !groupedIds.has(n.id));
+    const laidOut = dagreLayout(topLevelNodes, rawEdges);
     const laidOutMap = Object.fromEntries(laidOut.map((n) => [n.id, n.position]));
     setNodes((prev) =>
       prev.map((n) => (laidOutMap[n.id] ? { ...n, position: laidOutMap[n.id] } : n))
