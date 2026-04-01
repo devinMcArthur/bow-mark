@@ -20,6 +20,9 @@ interface Props {
 }
 
 const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
+  const copyTables = (tables: Record<string, RateEntry[]>) =>
+    Object.fromEntries(Object.entries(tables).map(([k, v]) => [k, [...v]]));
+
   const [quantity, setQuantity] = useState(100);
   const [params, setParams] = useState<Record<string, number>>(() =>
     Object.fromEntries(
@@ -27,7 +30,7 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
     )
   );
   const [tables, setTables] = useState<Record<string, RateEntry[]>>(
-    () => doc.defaultInputs.tables
+    () => copyTables(doc.defaultInputs.tables)
   );
 
   // Reset scratch state when the active doc changes
@@ -38,7 +41,7 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
         doc.parameterDefs.map((p) => [p.id, doc.defaultInputs.params[p.id] ?? p.defaultValue])
       )
     );
-    setTables(doc.defaultInputs.tables);
+    setTables(copyTables(doc.defaultInputs.tables));
   }, [doc.id]);
 
   const inputs = useMemo(() => ({ params, tables }), [params, tables]);
