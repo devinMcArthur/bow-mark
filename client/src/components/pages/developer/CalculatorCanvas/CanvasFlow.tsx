@@ -561,19 +561,107 @@ const CanvasFlow: React.FC<Props> = ({
   );
 
   const handleAutoLayout = useCallback(() => {
-    // Only lay out top-level nodes: ungrouped nodes + group containers.
-    // Group members keep their current relative positions so they stay inside their groups.
+    const GROUP_PAD = 40; // padding inside group containers (also reserves space for the label)
+    // Fallback sizes before React Flow measures nodes (mirrors layoutEngine.ts)
+    const TYPE_SIZE: Record<string, { w: number; h: number }> = {
+      param: { w: 170, h: 80 }, table: { w: 170, h: 80 }, quantity: { w: 170, h: 90 },
+      formula: { w: 240, h: 130 }, breakdown: { w: 170, h: 70 }, priceOutput: { w: 170, h: 70 },
+    };
+    const sz = (n: Node) => {
+      const fb = TYPE_SIZE[n.type ?? ""] ?? { w: 200, h: 80 };
+      return { w: n.width ?? fb.w, h: n.height ?? fb.h };
+    };
+
     const groupedIds = new Set(doc.groupDefs.flatMap((g) => g.memberIds));
-    const topLevelNodes = nodes.filter((n) => !groupedIds.has(n.id));
-    const laidOut = dagreLayout(topLevelNodes, rawEdges);
-    const laidOutMap = Object.fromEntries(laidOut.map((n) => [n.id, n.position]));
-    setNodes((prev) =>
-      prev.map((n) => (laidOutMap[n.id] ? { ...n, position: laidOutMap[n.id] } : n))
-    );
+    const nodeMap = Object.fromEntries(nodes.map((n) => [n.id, n]));
+    const groupSizes: Record<string, { w: number; h: number }> = {};
     const newPositions = { ...doc.nodePositions };
-    for (const n of laidOut) {
-      newPositions[n.id] = { ...(newPositions[n.id] ?? {}), ...laidOutMap[n.id] };
+
+    // Sort groups deepest-first so child groups are sized before their parents use them
+    const getDepth = (id: string, depth = 0): number => {
+      const parent = doc.groupDefs.find((g) => g.memberIds.includes(id));
+      return parent ? getDepth(parent.id, depth + 1) : depth;
+    };
+    const sortedGroups = [...doc.groupDefs].sort((a, b) => getDepth(b.id) - getDepth(a.id));
+
+    for (const group of sortedGroups) {
+      const memberNodes = group.memberIds
+        .map((mid) => {
+          const n = nodeMap[mid];
+          if (!n) return null;
+          // Use computed layout size for sub-group members
+          return n.type === "group" && groupSizes[n.id]
+            ? { ...n, width: groupSizes[n.id].w, height: groupSizes[n.id].h }
+            : n;
+        })
+        .filter((n): n is Node => n !== null);
+
+      if (memberNodes.length === 0) continue;
+
+      const memberIdSet = new Set(group.memberIds);
+      const memberEdges = rawEdges.filter(
+        (e) => memberIdSet.has(e.source) && memberIdSet.has(e.target)
+      );
+
+      const laidOut = dagreLayout(memberNodes, memberEdges);
+      const minX = Math.min(...laidOut.map((n) => n.position.x));
+      const minY = Math.min(...laidOut.map((n) => n.position.y));
+
+      let maxRight = 0;
+      let maxBottom = 0;
+      for (const n of laidOut) {
+        const { w, h } = sz(n);
+        const right = n.position.x - minX + GROUP_PAD + w;
+        const bottom = n.position.y - minY + GROUP_PAD + h;
+        if (right > maxRight) maxRight = right;
+        if (bottom > maxBottom) maxBottom = bottom;
+        newPositions[n.id] = {
+          ...newPositions[n.id],
+          x: n.position.x - minX + GROUP_PAD,
+          y: n.position.y - minY + GROUP_PAD,
+        };
+      }
+
+      const groupW = maxRight + GROUP_PAD;
+      const groupH = maxBottom + GROUP_PAD;
+      groupSizes[group.id] = { w: groupW, h: groupH };
+      newPositions[group.id] = { ...(newPositions[group.id] ?? { x: 0, y: 0 }), w: groupW, h: groupH };
     }
+
+    // Top-level layout: ungrouped nodes + group containers (with their freshly computed sizes)
+    const topLevelNodes = nodes
+      .filter((n) => !groupedIds.has(n.id))
+      .map((n) =>
+        n.type === "group" && groupSizes[n.id]
+          ? { ...n, width: groupSizes[n.id].w, height: groupSizes[n.id].h }
+          : n
+      );
+
+    const topLaidOut = dagreLayout(topLevelNodes, rawEdges);
+    const topLaidOutMap = Object.fromEntries(topLaidOut.map((n) => [n.id, n.position]));
+    for (const n of topLaidOut) {
+      newPositions[n.id] = { ...(newPositions[n.id] ?? {}), x: n.position.x, y: n.position.y };
+    }
+
+    setNodes((prev) =>
+      prev.map((n) => {
+        if (topLaidOutMap[n.id]) {
+          return {
+            ...n,
+            position: topLaidOutMap[n.id],
+            ...(n.type === "group" && groupSizes[n.id]
+              ? { style: { ...n.style, width: groupSizes[n.id].w, height: groupSizes[n.id].h } }
+              : {}),
+          };
+        }
+        // Update relative positions for group members
+        if (groupedIds.has(n.id) && newPositions[n.id]) {
+          return { ...n, position: { x: newPositions[n.id].x, y: newPositions[n.id].y } };
+        }
+        return n;
+      })
+    );
+
     onUpdateDoc({ ...doc, nodePositions: newPositions });
     requestAnimationFrame(() => reactFlowInstance.current?.fitView({ duration: 400 }));
   }, [nodes, rawEdges, doc, setNodes, onUpdateDoc]);
