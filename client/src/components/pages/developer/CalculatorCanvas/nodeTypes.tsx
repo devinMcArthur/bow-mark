@@ -1,6 +1,6 @@
 // client/src/components/pages/developer/CalculatorCanvas/nodeTypes.tsx
 import React, { useMemo } from "react";
-import { Handle, Position, NodeProps } from "reactflow";
+import { Handle, Position, NodeProps, NodeResizer } from "reactflow";
 import katex from "katex";
 import { formulaToLatex } from "./formulaToLatex";
 
@@ -206,6 +206,45 @@ export const OutputNode: React.FC<NodeProps> = ({ data, selected }) => (
   </div>
 );
 
+export const GroupNode: React.FC<NodeProps> = ({ data, selected }) => (
+  <div
+    style={{
+      width: "100%",
+      height: "100%",
+      borderRadius: 8,
+      border: `1px dashed ${selected ? "#818cf8" : "#475569"}`,
+      background: "rgba(99, 102, 241, 0.04)",
+      position: "relative",
+    }}
+  >
+    <NodeResizer
+      isVisible={selected}
+      minWidth={200}
+      minHeight={120}
+      color="#6366f1"
+      lineStyle={{ borderColor: "#6366f1" }}
+      handleStyle={{ borderColor: "#6366f1", background: "#1e1b4b" }}
+      onResizeEnd={(_, params) => data.onResizeEnd?.(params.width, params.height)}
+    />
+    <div
+      style={{
+        position: "absolute",
+        top: 6,
+        left: 10,
+        fontSize: 9,
+        color: "#818cf8",
+        textTransform: "uppercase",
+        letterSpacing: "0.08em",
+        fontWeight: 700,
+        pointerEvents: "none",
+        userSelect: "none",
+      }}
+    >
+      {data.label}
+    </div>
+  </div>
+);
+
 // Defined at module level — React Flow warns if nodeTypes is redefined on every render
 export const nodeTypes = {
   param: ParamNode,
@@ -214,4 +253,5 @@ export const nodeTypes = {
   formula: FormulaNode,
   breakdown: BreakdownNode,
   priceOutput: OutputNode,
+  group: GroupNode,
 };

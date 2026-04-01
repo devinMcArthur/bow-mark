@@ -25,39 +25,72 @@ import { nodeTypes } from "./nodeTypes";
 function buildNodes(
   doc: CanvasDocument,
   stepDebug: StepDebugInfo[],
-  positions: Record<string, { x: number; y: number }>,
+  positions: Record<string, { x: number; y: number; w?: number; h?: number }>,
   quantity: number,
-  onQuantityChange: (v: number) => void
+  onQuantityChange: (v: number) => void,
+  onGroupResizeEnd: (groupId: string, w: number, h: number) => void
 ): Node[] {
   const debugMap = Object.fromEntries(stepDebug.map((s) => [s.id, s]));
   const nodes: Node[] = [];
 
-  for (const p of doc.parameterDefs) {
+  // Build direct-parent map: nodeId → groupId
+  const memberOf: Record<string, string> = {};
+  for (const g of doc.groupDefs) {
+    for (const mid of g.memberIds) {
+      memberOf[mid] = g.id;
+    }
+  }
+
+  // Helper: create a node with parentId if grouped
+  const makeNode = (id: string, type: string, data: Record<string, unknown>): Node => {
+    const pos = positions[id] ?? { x: 0, y: 0 };
+    const parentId = memberOf[id];
+    return {
+      id,
+      type,
+      position: { x: pos.x, y: pos.y },
+      ...(parentId !== undefined ? { parentId } : {}),
+      data,
+    };
+  };
+
+  // Group container nodes (rendered behind other nodes)
+  for (const g of doc.groupDefs) {
+    const pos = positions[g.id] ?? { x: 0, y: 0 };
+    const w = pos.w ?? 400;
+    const h = pos.h ?? 300;
+    const parentId = memberOf[g.id];
     nodes.push({
-      id: p.id,
-      type: "param",
-      position: positions[p.id] ?? { x: 0, y: 0 },
+      id: g.id,
+      type: "group",
+      position: { x: pos.x, y: pos.y },
+      ...(parentId !== undefined ? { parentId } : {}),
+      style: { width: w, height: h },
+      zIndex: -1,
       data: {
-        id: p.id,
-        label: p.label,
-        suffix: p.suffix,
-        value: doc.defaultInputs.params[p.id] ?? p.defaultValue,
+        label: g.label,
+        onResizeEnd: (newW: number, newH: number) => onGroupResizeEnd(g.id, newW, newH),
       },
     });
+  }
+
+  for (const p of doc.parameterDefs) {
+    nodes.push(makeNode(p.id, "param", {
+      id: p.id,
+      label: p.label,
+      suffix: p.suffix,
+      value: doc.defaultInputs.params[p.id] ?? p.defaultValue,
+    }));
   }
 
   for (const t of doc.tableDefs) {
     const nodeId = `${t.id}RatePerHr`;
     const rows = doc.defaultInputs.tables[t.id] ?? [];
     const ratePerHr = rows.reduce((s, r) => s + r.qty * r.ratePerHour, 0);
-    nodes.push({
-      id: nodeId,
-      type: "table",
-      position: positions[nodeId] ?? { x: 0, y: 0 },
-      data: { id: nodeId, label: t.label, value: ratePerHr },
-    });
+    nodes.push(makeNode(nodeId, "table", { id: nodeId, label: t.label, value: ratePerHr }));
   }
 
+  // Singletons — never grouped
   nodes.push({
     id: "quantity",
     type: "quantity",
@@ -65,7 +98,6 @@ function buildNodes(
     data: { value: quantity, onChange: onQuantityChange },
   });
 
-  // Build a label map so formula nodes can show human labels instead of slugs.
   const labelMap: Record<string, string> = { quantity: "Quantity" };
   for (const p of doc.parameterDefs) labelMap[p.id] = p.label;
   for (const t of doc.tableDefs) labelMap[`${t.id}RatePerHr`] = t.label;
@@ -73,29 +105,19 @@ function buildNodes(
 
   for (const step of doc.formulaSteps) {
     const debug = debugMap[step.id];
-    nodes.push({
+    nodes.push(makeNode(step.id, "formula", {
       id: step.id,
-      type: "formula",
-      position: positions[step.id] ?? { x: 0, y: 0 },
-      data: {
-        id: step.id,
-        label: step.label,
-        formula: step.formula,
-        labelMap,
-        value: debug?.value ?? 0,
-        hasError: !!debug?.error,
-      },
-    });
+      label: step.label,
+      formula: step.formula,
+      labelMap,
+      value: debug?.value ?? 0,
+      hasError: !!debug?.error,
+    }));
   }
 
   for (const bd of doc.breakdownDefs) {
     const value = (bd.items ?? []).reduce((s, item) => s + (debugMap[item.stepId]?.value ?? 0), 0);
-    nodes.push({
-      id: bd.id,
-      type: "breakdown",
-      position: positions[bd.id] ?? { x: 0, y: 0 },
-      data: { label: bd.label, value },
-    });
+    nodes.push(makeNode(bd.id, "breakdown", { label: bd.label, value }));
   }
 
   const unitPrice = doc.breakdownDefs.reduce(
@@ -285,8 +307,19 @@ const CanvasFlow: React.FC<Props> = ({
   const preClickSelectionRef = useRef<Set<string>>(new Set());
   const lastFlowPosRef = useRef<{ x: number; y: number }>({ x: 200, y: 200 });
 
+  const handleGroupResizeEnd = useCallback(
+    (groupId: string, w: number, h: number) => {
+      const existing = doc.nodePositions[groupId] ?? { x: 0, y: 0 };
+      onUpdateDoc({
+        ...doc,
+        nodePositions: { ...doc.nodePositions, [groupId]: { ...existing, w, h } },
+      });
+    },
+    [doc, onUpdateDoc]
+  );
+
   const [nodes, setNodes, onNodesChange] = useNodesState(
-    buildNodes(doc, stepDebug, doc.nodePositions, quantity, onQuantityChange)
+    buildNodes(doc, stepDebug, doc.nodePositions, quantity, onQuantityChange, handleGroupResizeEnd)
   );
   nodesRef.current = nodes; // always current, used by the native mousedown capture
 
@@ -320,14 +353,17 @@ const CanvasFlow: React.FC<Props> = ({
 
     if (docSwitched || positionReset) {
       // Doc switch or undo/redo: restore positions from the document
-      setNodes(buildNodes(doc, stepDebug, doc.nodePositions, quantity, onQuantityChange));
+      setNodes(buildNodes(doc, stepDebug, doc.nodePositions, quantity, onQuantityChange, handleGroupResizeEnd));
     } else {
       // Content change (formula edit, etc.): preserve current drag positions.
       // Merge doc.nodePositions as base so newly-created nodes (not yet in prev)
       // land at their intended position rather than falling back to {x:0, y:0}.
       setNodes((prev) => {
-        const positions = { ...doc.nodePositions, ...Object.fromEntries(prev.map((n) => [n.id, n.position])) };
-        return buildNodes(doc, stepDebug, positions, quantity, onQuantityChange);
+        const positions = {
+          ...doc.nodePositions,
+          ...Object.fromEntries(prev.map((n) => [n.id, n.position])),
+        };
+        return buildNodes(doc, stepDebug, positions, quantity, onQuantityChange, handleGroupResizeEnd);
       });
     }
   // Intentional omissions from deps: `doc` (we only want to re-run on doc.id
@@ -466,12 +502,19 @@ const CanvasFlow: React.FC<Props> = ({
   );
 
   const handleAutoLayout = useCallback(() => {
-    const laidOut = dagreLayout(nodes, rawEdges);
-    setNodes(laidOut);
-    const positions = Object.fromEntries(laidOut.map((n) => [n.id, n.position]));
-    onUpdateDoc({ ...doc, nodePositions: positions });
+    const nonGroupNodes = nodes.filter((n) => n.type !== "group");
+    const laidOut = dagreLayout(nonGroupNodes, rawEdges);
+    const laidOutMap = Object.fromEntries(laidOut.map((n) => [n.id, n.position]));
+    setNodes((prev) =>
+      prev.map((n) => (laidOutMap[n.id] ? { ...n, position: laidOutMap[n.id] } : n))
+    );
+    const newPositions = { ...doc.nodePositions };
+    for (const n of laidOut) {
+      newPositions[n.id] = { ...(newPositions[n.id] ?? {}), ...laidOutMap[n.id] };
+    }
+    onUpdateDoc({ ...doc, nodePositions: newPositions });
     requestAnimationFrame(() => reactFlowInstance.current?.fitView({ duration: 400 }));
-  }, [nodes, doc, setNodes, onUpdateDoc]);
+  }, [nodes, rawEdges, doc, setNodes, onUpdateDoc]);
 
   // Keyboard shortcuts (Delete, Ctrl+C, Ctrl+V) — skip when editing text
   useEffect(() => {
@@ -535,6 +578,7 @@ const CanvasFlow: React.FC<Props> = ({
         multiSelectionKeyCode="Control"
         nodeTypes={nodeTypes}
         fitView
+        minZoom={0.1}
         nodesDraggable
         nodesConnectable={false}
         edgesUpdatable={false}
