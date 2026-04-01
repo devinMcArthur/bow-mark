@@ -220,7 +220,10 @@ export function deleteNodes(nodeIds: string[], doc: CanvasDocument): CanvasDocum
   const toDelete = new Set(nodeIds.filter((id) => !SINGLETONS.has(id)));
   if (toDelete.size === 0) return doc;
 
-  // Handle group deletions first (un-parents their members)
+  // Handle group deletions first, chaining through workingDoc so each deleteGroup
+  // sees the result of prior deletions. Note: if toDelete contains nested groups
+  // (parent + child), the parent deletion will also un-parent the child; the
+  // subsequent child deleteGroup call becomes a no-op (group not found) and is safe.
   let workingDoc = doc;
   for (const id of toDelete) {
     if (workingDoc.groupDefs.some((g) => g.id === id)) {
@@ -490,11 +493,13 @@ export function deleteGroup(groupId: string, doc: CanvasDocument): CanvasDocumen
     }));
 
   // Convert sub-group positions from relative to absolute before removing membership
-  let finalGroupDefs = newGroupDefs;
+  // Resolve the deleted group's absolute position once, against the original doc
+  // (before any groupDef mutations). This avoids relying on updatedDoc's mutation state.
+  const groupAbsPos = getAbsolutePosition(groupId, doc);
   for (const memberId of group.memberIds) {
     const isSubGroup = doc.groupDefs.some((g) => g.id === memberId);
     if (isSubGroup) {
-      const groupAbs = getAbsolutePosition(groupId, updatedDoc);
+      const groupAbs = groupAbsPos;
       const subPos = updatedDoc.nodePositions[memberId] ?? { x: 0, y: 0 };
       const absPos = {
         x: subPos.x + groupAbs.x,
@@ -508,7 +513,7 @@ export function deleteGroup(groupId: string, doc: CanvasDocument): CanvasDocumen
   const newPositions = { ...updatedDoc.nodePositions };
   delete newPositions[groupId];
 
-  return { ...updatedDoc, groupDefs: finalGroupDefs, nodePositions: newPositions };
+  return { ...updatedDoc, groupDefs: newGroupDefs, nodePositions: newPositions };
 }
 
 // ─── Create ───────────────────────────────────────────────────────────────────

@@ -404,7 +404,7 @@ const BreakdownEdit: React.FC<{
 const GroupEdit: React.FC<{
   doc: CanvasDocument;
   nodeId: string;
-  onUpdateDoc: (doc: CanvasDocument) => void;
+  onUpdateDoc: (doc: CanvasDocument, newSelectedId?: string) => void;
 }> = ({ doc, nodeId, onUpdateDoc }) => {
   const group = doc.groupDefs.find((g) => g.id === nodeId)!;
 
