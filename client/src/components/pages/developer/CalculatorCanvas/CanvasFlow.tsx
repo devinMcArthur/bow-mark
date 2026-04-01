@@ -162,7 +162,7 @@ interface ContextMenuProps {
   onCopy: (ids: string[]) => void;
   onPaste: (position: { x: number; y: number }) => void;
   onDelete: (ids: string[]) => void;
-  onCreate: (type: "formula" | "param" | "table" | "breakdown", pos: { x: number; y: number }) => void;
+  onCreate: (type: "formula" | "param" | "table" | "breakdown" | "group", pos: { x: number; y: number }) => void;
   onDismiss: () => void;
 }
 
@@ -233,7 +233,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
           </>
         ) : (
           <>
-            {(["formula", "param", "table", "breakdown"] as const).map((type) => (
+            {(["formula", "param", "table", "breakdown", "group"] as const).map((type) => (
               <div
                 key={type}
                 style={MENU_ITEM}
@@ -245,7 +245,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
                 onMouseEnter={(e) => (e.currentTarget.style.background = "#334155")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
-                Add {type === "formula" ? "Formula Step" : type === "param" ? "Parameter" : type === "table" ? "Rate Table" : "Summary"}
+                Add {type === "formula" ? "Formula Step" : type === "param" ? "Parameter" : type === "table" ? "Rate Table" : type === "breakdown" ? "Summary" : "Group"}
               </div>
             ))}
             {clipboard && (
@@ -289,7 +289,7 @@ interface Props {
   onCopy: (nodeIds: string[]) => void;
   onPaste: (position: { x: number; y: number }) => void;
   onDeleteNodes: (nodeIds: string[]) => void;
-  onCreateNode: (type: "formula" | "param" | "table" | "breakdown", position: { x: number; y: number }) => void;
+  onCreateNode: (type: "formula" | "param" | "table" | "breakdown" | "group", position: { x: number; y: number }) => void;
   positionResetKey: number;
 }
 

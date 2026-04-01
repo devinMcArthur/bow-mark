@@ -7,7 +7,7 @@ import {
 } from "../../../../components/TenderPricing/calculators/evaluate";
 import { parseEdges } from "./edgeParser";
 import { CanvasDocument, useCanvasDocuments } from "./canvasStorage";
-import { ClipboardPayload, copyNodes, pasteNodes, deleteNodes, createNode } from "./canvasOps";
+import { ClipboardPayload, copyNodes, pasteNodes, deleteNodes, createNode, createGroup } from "./canvasOps";
 import CanvasFlow from "./CanvasFlow";
 import InspectPanel from "./InspectPanel";
 import LiveTestPanel from "./LiveTestPanel";
@@ -167,12 +167,19 @@ const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px" }) => {
   }, [activeDoc, saveDocument, selectedNodeId]);
 
   const handleCreateNode = useCallback(
-    (type: "formula" | "param" | "table" | "breakdown", position: { x: number; y: number }) => {
+    (type: "formula" | "param" | "table" | "breakdown" | "group", position: { x: number; y: number }) => {
       if (!activeDoc) return;
-      const { doc, newId } = createNode(type, activeDoc, position);
-      saveDocument(doc);
-      setSelectedNodeId(newId);
-      setPositionResetKey((k) => k + 1);
+      if (type === "group") {
+        const { doc, newId } = createGroup(activeDoc, position);
+        saveDocument(doc);
+        setSelectedNodeId(newId);
+        setPositionResetKey((k) => k + 1);
+      } else {
+        const { doc: updatedDoc, newId } = createNode(type, activeDoc, position);
+        saveDocument(updatedDoc);
+        setSelectedNodeId(newId);
+        setPositionResetKey((k) => k + 1);
+      }
     },
     [activeDoc, saveDocument]
   );

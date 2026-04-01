@@ -11,7 +11,7 @@ import {
   TableDef,
   RateEntry,
 } from "../../../../components/TenderPricing/calculators/types";
-import { CanvasDocument } from "./canvasStorage";
+import { CanvasDocument, GroupDef } from "./canvasStorage";
 import { slugify, renameNodeId } from "./canvasOps";
 import { formulaToLatex } from "./formulaToLatex";
 import katex from "katex";
@@ -25,25 +25,26 @@ interface Props {
   onUpdateDoc: (doc: CanvasDocument, newSelectedId?: string) => void;
 }
 
-type NodeKind = "param" | "table" | "quantity" | "formula" | "breakdown" | "output" | "unknown";
+type NodeKind = "param" | "table" | "quantity" | "formula" | "breakdown" | "output" | "group" | "unknown";
 
 const KIND_COLORS: Record<NodeKind, string> = {
   param: "blue", table: "green", quantity: "yellow",
-  formula: "purple", breakdown: "teal", output: "cyan", unknown: "gray",
+  formula: "purple", breakdown: "teal", output: "cyan", group: "purple", unknown: "gray",
 };
 const KIND_LABELS: Record<NodeKind, string> = {
   param: "Parameter", table: "Table Aggregate", quantity: "Quantity (test input)",
   formula: "Formula Step", breakdown: "Summary", output: "Unit Price Output",
-  unknown: "Unknown",
+  group: "Group", unknown: "Unknown",
 };
 
-function detectKind(nodeId: string, template: CalculatorTemplate): NodeKind {
+function detectKind(nodeId: string, template: CanvasDocument): NodeKind {
   if (nodeId === "quantity") return "quantity";
   if (nodeId === "unitPrice") return "output";
   if (template.parameterDefs.some((p) => p.id === nodeId)) return "param";
   if (template.tableDefs.some((t) => `${t.id}RatePerHr` === nodeId)) return "table";
   if (template.formulaSteps.some((s) => s.id === nodeId)) return "formula";
   if (template.breakdownDefs.some((b) => b.id === nodeId)) return "breakdown";
+  if (template.groupDefs.some((g) => g.id === nodeId)) return "group";
   return "unknown";
 }
 
@@ -400,6 +401,25 @@ const BreakdownEdit: React.FC<{
   );
 };
 
+const GroupEdit: React.FC<{
+  doc: CanvasDocument;
+  nodeId: string;
+  onUpdateDoc: (doc: CanvasDocument) => void;
+}> = ({ doc, nodeId, onUpdateDoc }) => {
+  const group = doc.groupDefs.find((g) => g.id === nodeId)!;
+
+  const saveLabel = (newLabel: string) => {
+    onUpdateDoc({
+      ...doc,
+      groupDefs: doc.groupDefs.map((g) => g.id === nodeId ? { ...g, label: newLabel } : g),
+    });
+  };
+
+  return (
+    <EditField label="Label" value={group.label} onBlur={saveLabel} />
+  );
+};
+
 const TableLabelEdit: React.FC<{
   doc: CanvasDocument;
   nodeId: string;
@@ -508,40 +528,47 @@ const InspectPanel: React.FC<Props> = ({
       {kind === "output" && (
         <Text fontSize="xs" color="gray.400" mb={4}>Derived from all summary nodes. Read-only.</Text>
       )}
+      {kind === "group" && (
+        <GroupEdit doc={template} nodeId={selectedNodeId} onUpdateDoc={onUpdateDoc} />
+      )}
       {kind === "unknown" && (
         <Text fontSize="xs" color="gray.400" mb={4}>
           Node not found in template. It may have been deleted — try undoing or deselecting.
         </Text>
       )}
 
-      <Divider mb={4} />
+      {kind !== "group" && (
+        <>
+          <Divider mb={4} />
 
-      {/* Receives from */}
-      <Text fontSize="xs" fontWeight="semibold" color="gray.500" textTransform="uppercase" letterSpacing="wide" mb={2}>
-        Receives from
-      </Text>
-      {incoming.length === 0 ? (
-        <Text fontSize="xs" color="gray.400" mb={4}>— (source node)</Text>
-      ) : (
-        <VStack align="stretch" spacing={1} mb={4}>
-          {incoming.map((e) => (
-            <Text key={e.id} fontSize="xs" fontFamily="mono" color="gray.600">{e.source}</Text>
-          ))}
-        </VStack>
-      )}
+          {/* Receives from */}
+          <Text fontSize="xs" fontWeight="semibold" color="gray.500" textTransform="uppercase" letterSpacing="wide" mb={2}>
+            Receives from
+          </Text>
+          {incoming.length === 0 ? (
+            <Text fontSize="xs" color="gray.400" mb={4}>— (source node)</Text>
+          ) : (
+            <VStack align="stretch" spacing={1} mb={4}>
+              {incoming.map((e) => (
+                <Text key={e.id} fontSize="xs" fontFamily="mono" color="gray.600">{e.source}</Text>
+              ))}
+            </VStack>
+          )}
 
-      {/* Feeds into */}
-      <Text fontSize="xs" fontWeight="semibold" color="gray.500" textTransform="uppercase" letterSpacing="wide" mb={2}>
-        Feeds into
-      </Text>
-      {outgoing.length === 0 ? (
-        <Text fontSize="xs" color="gray.400">— (sink node)</Text>
-      ) : (
-        <VStack align="stretch" spacing={1}>
-          {outgoing.map((e) => (
-            <Text key={e.id} fontSize="xs" fontFamily="mono" color="gray.600">{e.target}</Text>
-          ))}
-        </VStack>
+          {/* Feeds into */}
+          <Text fontSize="xs" fontWeight="semibold" color="gray.500" textTransform="uppercase" letterSpacing="wide" mb={2}>
+            Feeds into
+          </Text>
+          {outgoing.length === 0 ? (
+            <Text fontSize="xs" color="gray.400">— (sink node)</Text>
+          ) : (
+            <VStack align="stretch" spacing={1}>
+              {outgoing.map((e) => (
+                <Text key={e.id} fontSize="xs" fontFamily="mono" color="gray.600">{e.target}</Text>
+              ))}
+            </VStack>
+          )}
+        </>
       )}
     </Box>
   );

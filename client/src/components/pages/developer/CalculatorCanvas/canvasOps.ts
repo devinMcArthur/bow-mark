@@ -1,6 +1,6 @@
 // client/src/components/pages/developer/CalculatorCanvas/canvasOps.ts
 import { v4 as uuidv4 } from "uuid";
-import { CanvasDocument } from "./canvasStorage";
+import { CanvasDocument, GroupDef } from "./canvasStorage";
 import {
   FormulaStep,
   ParameterDef,
@@ -220,30 +220,44 @@ export function deleteNodes(nodeIds: string[], doc: CanvasDocument): CanvasDocum
   const toDelete = new Set(nodeIds.filter((id) => !SINGLETONS.has(id)));
   if (toDelete.size === 0) return doc;
 
-  const newFormulas = doc.formulaSteps.filter((s) => !toDelete.has(s.id));
-  const newParams = doc.parameterDefs.filter((p) => !toDelete.has(p.id));
-  // A table is identified on the canvas as `${t.id}RatePerHr`
-  const newTables = doc.tableDefs.filter(
+  // Handle group deletions first (un-parents their members)
+  let workingDoc = doc;
+  for (const id of toDelete) {
+    if (workingDoc.groupDefs.some((g) => g.id === id)) {
+      workingDoc = deleteGroup(id, workingDoc);
+    }
+  }
+
+  // Remove regular nodes from any group membership
+  for (const id of toDelete) {
+    if (workingDoc.groupDefs.some((g) => g.memberIds.includes(id))) {
+      workingDoc = removeNodeFromGroup(id, workingDoc);
+    }
+  }
+
+  const newFormulas = workingDoc.formulaSteps.filter((s) => !toDelete.has(s.id));
+  const newParams = workingDoc.parameterDefs.filter((p) => !toDelete.has(p.id));
+  const newTables = workingDoc.tableDefs.filter(
     (t) => !toDelete.has(t.id) && !toDelete.has(`${t.id}RatePerHr`)
   );
-  const newBreakdowns = doc.breakdownDefs.filter((b) => !toDelete.has(b.id));
+  const newBreakdowns = workingDoc.breakdownDefs.filter((b) => !toDelete.has(b.id));
 
-  const newParamInputs = { ...doc.defaultInputs.params };
-  for (const p of doc.parameterDefs) {
+  const newParamInputs = { ...workingDoc.defaultInputs.params };
+  for (const p of workingDoc.parameterDefs) {
     if (toDelete.has(p.id)) delete newParamInputs[p.id];
   }
-  const newTableInputs = { ...doc.defaultInputs.tables };
-  for (const t of doc.tableDefs) {
+  const newTableInputs = { ...workingDoc.defaultInputs.tables };
+  for (const t of workingDoc.tableDefs) {
     if (toDelete.has(t.id) || toDelete.has(`${t.id}RatePerHr`)) {
       delete newTableInputs[t.id];
     }
   }
 
-  const newPositions = { ...doc.nodePositions };
+  const newPositions = { ...workingDoc.nodePositions };
   for (const id of toDelete) delete newPositions[id];
 
   return {
-    ...doc,
+    ...workingDoc,
     parameterDefs: newParams,
     tableDefs: newTables,
     formulaSteps: newFormulas,
@@ -332,6 +346,169 @@ export function renameNodeId(
     defaultInputs: { params: newParamInputs, tables: newTableInputs },
     nodePositions: newPositions,
   };
+}
+
+// ─── Group helpers ────────────────────────────────────────────────────────────
+
+/**
+ * Compute the absolute canvas position of a node or group.
+ * Positions are stored relative to direct parent; this recursively sums them.
+ */
+export function getAbsolutePosition(
+  id: string,
+  doc: CanvasDocument
+): { x: number; y: number } {
+  const pos = doc.nodePositions[id] ?? { x: 0, y: 0 };
+  const parentGroup = doc.groupDefs.find((g) => g.memberIds.includes(id));
+  if (!parentGroup) return { x: pos.x, y: pos.y };
+  const parentAbs = getAbsolutePosition(parentGroup.id, doc);
+  return { x: pos.x + parentAbs.x, y: pos.y + parentAbs.y };
+}
+
+/**
+ * Remove a node from whichever group it currently belongs to.
+ * Converts its stored (relative) position to absolute.
+ * No-op if the node is not in any group.
+ */
+export function removeNodeFromGroup(nodeId: string, doc: CanvasDocument): CanvasDocument {
+  const currentGroup = doc.groupDefs.find((g) => g.memberIds.includes(nodeId));
+  if (!currentGroup) return doc;
+
+  // Convert relative → absolute
+  const groupAbs = getAbsolutePosition(currentGroup.id, doc);
+  const nodeRel = doc.nodePositions[nodeId] ?? { x: 0, y: 0 };
+  const absPos = {
+    x: nodeRel.x + groupAbs.x,
+    y: nodeRel.y + groupAbs.y,
+    ...(nodeRel.w !== undefined ? { w: nodeRel.w, h: nodeRel.h } : {}),
+  };
+
+  return {
+    ...doc,
+    groupDefs: doc.groupDefs.map((g) => ({
+      ...g,
+      memberIds: g.memberIds.filter((id) => id !== nodeId),
+    })),
+    nodePositions: { ...doc.nodePositions, [nodeId]: absPos },
+  };
+}
+
+/**
+ * Assign a node to a target group.
+ * Removes it from its current group first (if any), then converts its absolute
+ * position to relative and appends it to targetGroup.memberIds.
+ */
+export function assignNodeToGroup(
+  nodeId: string,
+  targetGroupId: string,
+  doc: CanvasDocument
+): CanvasDocument {
+  // Remove from current group → position becomes absolute
+  const docWithout = removeNodeFromGroup(nodeId, doc);
+
+  // Convert absolute → relative to target group
+  const targetGroupAbs = getAbsolutePosition(targetGroupId, docWithout);
+  const nodeAbs = docWithout.nodePositions[nodeId] ?? { x: 0, y: 0 };
+  const relPos = {
+    x: nodeAbs.x - targetGroupAbs.x,
+    y: nodeAbs.y - targetGroupAbs.y,
+    ...(nodeAbs.w !== undefined ? { w: nodeAbs.w, h: nodeAbs.h } : {}),
+  };
+
+  return {
+    ...docWithout,
+    groupDefs: docWithout.groupDefs.map((g) =>
+      g.id === targetGroupId
+        ? { ...g, memberIds: [...g.memberIds.filter((id) => id !== nodeId), nodeId] }
+        : g
+    ),
+    nodePositions: { ...docWithout.nodePositions, [nodeId]: relPos },
+  };
+}
+
+/**
+ * Create a new group node at the given canvas position.
+ * Returns the updated doc and the new group's ID.
+ */
+export function createGroup(
+  doc: CanvasDocument,
+  position: { x: number; y: number }
+): { doc: CanvasDocument; newId: string } {
+  const takenIds = new Set([
+    ...doc.groupDefs.map((g) => g.id),
+    ...doc.formulaSteps.map((s) => s.id),
+    ...doc.parameterDefs.map((p) => p.id),
+    ...doc.tableDefs.map((t) => t.id),
+    ...doc.tableDefs.map((t) => `${t.id}RatePerHr`),
+    ...doc.breakdownDefs.map((b) => b.id),
+    "quantity",
+    "unitPrice",
+  ]);
+  const takenLabels = new Set(doc.groupDefs.map((g) => g.label));
+  const label = nextLabel("Group", takenLabels);
+  const id = nextSlugId(`grp_${slugify(label)}`, takenIds);
+  const newGroup: GroupDef = { id, label, memberIds: [] };
+  return {
+    newId: id,
+    doc: {
+      ...doc,
+      groupDefs: [...doc.groupDefs, newGroup],
+      nodePositions: {
+        ...doc.nodePositions,
+        [id]: { x: position.x, y: position.y, w: 400, h: 300 },
+      },
+    },
+  };
+}
+
+/**
+ * Delete a group. Its direct members are un-parented (stay at their current absolute
+ * positions). Sub-groups become top-level. Removes the GroupDef and its nodePositions entry.
+ */
+export function deleteGroup(groupId: string, doc: CanvasDocument): CanvasDocument {
+  const group = doc.groupDefs.find((g) => g.id === groupId);
+  if (!group) return doc;
+
+  // Un-parent all direct members: convert their positions from relative → absolute
+  let updatedDoc = doc;
+  for (const memberId of group.memberIds) {
+    // Only convert non-group members here (sub-groups handle themselves below)
+    const isSubGroup = doc.groupDefs.some((g) => g.id === memberId);
+    if (!isSubGroup) {
+      updatedDoc = removeNodeFromGroup(memberId, updatedDoc);
+    }
+  }
+
+  // Remove the group from all groupDefs:
+  // - Remove the GroupDef itself
+  // - Remove it from parent group's memberIds (if any)
+  const newGroupDefs = updatedDoc.groupDefs
+    .filter((g) => g.id !== groupId)
+    .map((g) => ({
+      ...g,
+      memberIds: g.memberIds.filter((mid) => mid !== groupId),
+    }));
+
+  // Convert sub-group positions from relative to absolute before removing membership
+  let finalGroupDefs = newGroupDefs;
+  for (const memberId of group.memberIds) {
+    const isSubGroup = doc.groupDefs.some((g) => g.id === memberId);
+    if (isSubGroup) {
+      const groupAbs = getAbsolutePosition(groupId, updatedDoc);
+      const subPos = updatedDoc.nodePositions[memberId] ?? { x: 0, y: 0 };
+      const absPos = {
+        x: subPos.x + groupAbs.x,
+        y: subPos.y + groupAbs.y,
+        ...(subPos.w !== undefined ? { w: subPos.w, h: subPos.h } : {}),
+      };
+      updatedDoc = { ...updatedDoc, nodePositions: { ...updatedDoc.nodePositions, [memberId]: absPos } };
+    }
+  }
+
+  const newPositions = { ...updatedDoc.nodePositions };
+  delete newPositions[groupId];
+
+  return { ...updatedDoc, groupDefs: finalGroupDefs, nodePositions: newPositions };
 }
 
 // ─── Create ───────────────────────────────────────────────────────────────────
