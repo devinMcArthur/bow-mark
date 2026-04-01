@@ -15,7 +15,11 @@ import ReactFlow, {
 
 import { StepDebugInfo } from "../../../../components/TenderPricing/calculators/evaluate";
 import { CanvasDocument } from "./canvasStorage";
-import { ClipboardPayload, SINGLETONS } from "./canvasOps";
+import {
+  ClipboardPayload, SINGLETONS,
+  copyNodes, pasteNodes, deleteNodes, createNode, createGroup,
+  assignNodeToGroup, removeNodeFromGroup,
+} from "./canvasOps";
 import { parseEdges } from "./edgeParser";
 import { dagreLayout } from "./layoutEngine";
 import { nodeTypes } from "./nodeTypes";
@@ -427,16 +431,55 @@ const CanvasFlow: React.FC<Props> = ({
   );
 
   const handleNodeDragStop: NodeDragStopHandler = useCallback(
-    (_, node) => {
-      const allPositions: Record<string, { x: number; y: number; w?: number; h?: number }> = {};
-      nodes.forEach((n) => {
-        const existing = doc.nodePositions[n.id];
-        const xy = n.id === node.id ? node.position : n.position;
-        allPositions[n.id] = { ...existing, ...xy };
-      });
-      onUpdateDoc({ ...doc, nodePositions: allPositions });
+    (_, draggedNode) => {
+      // node.position is in the correct coordinate space already:
+      //   - absolute for ungrouped nodes and group containers
+      //   - relative to parent for grouped nodes (React Flow gives relative for parentId children)
+      const existingEntry = doc.nodePositions[draggedNode.id] ?? {};
+      const newPositions = {
+        ...doc.nodePositions,
+        [draggedNode.id]: {
+          ...existingEntry,
+          x: draggedNode.position.x,
+          y: draggedNode.position.y,
+        },
+      };
+
+      // For non-group nodes: detect whether group membership changed
+      if (draggedNode.type !== "group") {
+        const intersecting = reactFlowInstance.current?.getIntersectingNodes(draggedNode) ?? [];
+        const intersectingGroups = intersecting.filter((n) => n.type === "group");
+
+        // Pick the innermost (smallest-area) intersecting group
+        const targetGroup =
+          intersectingGroups.length > 0
+            ? intersectingGroups.reduce((best, g) =>
+                (g.width ?? 400) * (g.height ?? 300) < (best.width ?? 400) * (best.height ?? 300)
+                  ? g
+                  : best
+              )
+            : null;
+
+        const currentGroupId =
+          docRef.current.groupDefs.find((g) => g.memberIds.includes(draggedNode.id))?.id ?? null;
+        const targetGroupId = targetGroup?.id ?? null;
+
+        if (targetGroupId !== currentGroupId) {
+          // Membership changed: use helpers that handle absolute↔relative conversion
+          let updatedDoc = { ...docRef.current, nodePositions: newPositions };
+          if (targetGroupId) {
+            updatedDoc = assignNodeToGroup(draggedNode.id, targetGroupId, updatedDoc);
+          } else {
+            updatedDoc = removeNodeFromGroup(draggedNode.id, updatedDoc);
+          }
+          onUpdateDoc(updatedDoc);
+          return;
+        }
+      }
+
+      onUpdateDoc({ ...docRef.current, nodePositions: newPositions });
     },
-    [doc, nodes, onUpdateDoc]
+    [onUpdateDoc]
   );
 
   const handlePaneClick = useCallback(() => {
