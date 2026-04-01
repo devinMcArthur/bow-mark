@@ -1,6 +1,8 @@
 // client/src/components/pages/developer/CalculatorCanvas/nodeTypes.tsx
-import React from "react";
+import React, { useMemo } from "react";
 import { Handle, Position, NodeProps } from "reactflow";
+import katex from "katex";
+import { formulaToLatex } from "./formulaToLatex";
 
 const baseStyle: React.CSSProperties = {
   borderRadius: 8,
@@ -39,8 +41,8 @@ export const ParamNode: React.FC<NodeProps> = ({ data, selected }) => (
   }}>
     <Handle type="source" position={Position.Right} isConnectable={false}
       style={{ background: "#2563eb", border: "none" }} />
-    <div style={{ ...idStyle, color: "#60a5fa" }}>{data.id}</div>
-    {data.suffix && <div style={subStyle}>{data.label} ({data.suffix})</div>}
+    <div style={{ ...idStyle, color: "#60a5fa" }}>{data.label}{data.suffix ? ` (${data.suffix})` : ""}</div>
+    <div style={{ ...subStyle, fontFamily: "monospace" }}>{data.id}</div>
     <div style={{ ...valueStyle, color: "#bfdbfe" }}>{data.value}</div>
   </div>
 );
@@ -55,8 +57,8 @@ export const TableNode: React.FC<NodeProps> = ({ data, selected }) => (
   }}>
     <Handle type="source" position={Position.Right} isConnectable={false}
       style={{ background: "#059669", border: "none" }} />
-    <div style={{ ...idStyle, color: "#34d399" }}>{data.id}</div>
-    <div style={subStyle}>{data.label} Σ</div>
+    <div style={{ ...idStyle, color: "#34d399" }}>{data.label}</div>
+    <div style={{ ...subStyle, fontFamily: "monospace" }}>{data.id}</div>
     <div style={{ ...valueStyle, color: "#a7f3d0" }}>${data.value.toFixed(2)}/hr</div>
   </div>
 );
@@ -71,31 +73,105 @@ export const QuantityNode: React.FC<NodeProps> = ({ data, selected }) => (
   }}>
     <Handle type="source" position={Position.Right} isConnectable={false}
       style={{ background: "#ca8a04", border: "none" }} />
-    <div style={{ ...idStyle, color: "#fbbf24" }}>quantity</div>
-    <div style={{ ...valueStyle, color: "#fef3c7" }}>{data.value}</div>
+    <div style={{ ...idStyle, color: "#fbbf24" }}>Quantity</div>
+    <div style={{ ...subStyle, color: "#a16207", marginBottom: 2 }}>tender input</div>
+    <input
+      className="nodrag"
+      type="number"
+      min={0}
+      value={data.value}
+      onChange={(e) => data.onChange(parseFloat(e.target.value) || 0)}
+      style={{
+        background: "transparent",
+        border: "none",
+        borderBottom: "1px solid #92400e",
+        color: "#fef3c7",
+        fontFamily: "monospace",
+        fontSize: 12,
+        fontWeight: 600,
+        marginTop: 4,
+        outline: "none",
+        padding: "2px 0",
+        width: "100%",
+      }}
+    />
   </div>
 );
 
-export const FormulaNode: React.FC<NodeProps> = ({ data, selected }) => (
-  <div style={{
-    ...baseStyle,
-    background: "#2e1a47",
-    border: `1px solid ${selected ? "#a78bfa" : "#7c3aed"}`,
-    color: "#c4b5fd",
-    boxShadow: selected ? "0 0 0 2px #7c3aed40" : undefined,
-    maxWidth: 210,
-  }}>
-    <Handle type="target" position={Position.Left} isConnectable={false}
-      style={{ background: "#7c3aed", border: "none" }} />
-    <Handle type="source" position={Position.Right} isConnectable={false}
-      style={{ background: "#7c3aed", border: "none" }} />
-    <div style={{ ...idStyle, color: "#a78bfa" }}>{data.id}</div>
-    <div style={{ ...subStyle, fontFamily: "monospace", color: "#8b5cf6" }}>{data.formula}</div>
-    <div style={{ ...valueStyle, color: data.hasError ? "#f87171" : "#ddd6fe" }}>
-      {data.hasError ? "⚠ error" : `= ${data.value.toFixed(4)}`}
+// ─── KaTeX formula renderer ───────────────────────────────────────────────────
+
+const katexOpts: katex.KatexOptions = {
+  throwOnError: false,
+  errorColor: "#f87171",
+  displayMode: false,
+  output: "html",
+};
+
+export const FormulaNode: React.FC<NodeProps> = ({ data, selected }) => {
+  const latex = useMemo(
+    () => formulaToLatex(data.formula ?? "", data.labelMap ?? {}),
+    [data.formula, data.labelMap]
+  );
+  const katexHtml = useMemo(() => {
+    if (!latex) return "";
+    try {
+      return katex.renderToString(latex, katexOpts);
+    } catch {
+      return "";
+    }
+  }, [latex]);
+
+  return (
+    <div style={{
+      ...baseStyle,
+      background: "#2e1a47",
+      border: `1px solid ${selected ? "#a78bfa" : "#7c3aed"}`,
+      color: "#c4b5fd",
+      boxShadow: selected ? "0 0 0 2px #7c3aed40" : undefined,
+      maxWidth: 300,
+      minWidth: 180,
+    }}>
+      <Handle type="target" position={Position.Left} isConnectable={false}
+        style={{ background: "#7c3aed", border: "none" }} />
+      <Handle type="source" position={Position.Right} isConnectable={false}
+        style={{ background: "#7c3aed", border: "none" }} />
+
+      {/* Label */}
+      <div style={{ ...idStyle, color: "#a78bfa" }}>{data.label ?? data.id}</div>
+
+      {/* Slug hint */}
+      <div style={{ ...subStyle, fontFamily: "monospace", marginBottom: 6 }}>{data.id}</div>
+
+      {/* Typeset formula */}
+      <div style={{
+        background: "#1e1030",
+        borderRadius: 4,
+        padding: "6px 8px",
+        marginBottom: 5,
+        minHeight: 32,
+        overflowX: "auto",
+        overflowY: "hidden",
+      }}>
+        {katexHtml ? (
+          <div
+            // KaTeX injects its own colour; override to match our theme
+            style={{ color: data.hasError ? "#f87171" : "#e9d5ff", fontSize: 13 }}
+            dangerouslySetInnerHTML={{ __html: katexHtml }}
+          />
+        ) : (
+          <div style={{ ...subStyle, fontFamily: "monospace", color: "#6d28d9", fontStyle: "italic" }}>
+            empty
+          </div>
+        )}
+      </div>
+
+      {/* Result */}
+      <div style={{ ...valueStyle, color: data.hasError ? "#f87171" : "#ddd6fe" }}>
+        {data.hasError ? "⚠ error" : `= ${data.value.toFixed(4)}`}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const BreakdownNode: React.FC<NodeProps> = ({ data, selected }) => (
   <div style={{
@@ -137,5 +213,5 @@ export const nodeTypes = {
   quantity: QuantityNode,
   formula: FormulaNode,
   breakdown: BreakdownNode,
-  output: OutputNode,
+  priceOutput: OutputNode,
 };

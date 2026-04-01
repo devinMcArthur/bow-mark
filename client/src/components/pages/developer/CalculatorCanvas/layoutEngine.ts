@@ -2,26 +2,43 @@ import dagre from "dagre";
 import { Node, Edge } from "reactflow";
 import { CalculatorTemplate } from "../../../../components/TenderPricing/calculators/types";
 
-const NODE_WIDTH = 200;
-const NODE_HEIGHT = 72;
+// Fallback sizes used before React Flow has measured the rendered nodes.
+// Formula nodes are taller due to the KaTeX preview box.
+const TYPE_SIZE: Record<string, { w: number; h: number }> = {
+  param:       { w: 170, h: 80  },
+  table:       { w: 170, h: 80  },
+  quantity:    { w: 170, h: 90  },
+  formula:     { w: 240, h: 130 },
+  breakdown:   { w: 170, h: 70  },
+  priceOutput: { w: 170, h: 70  },
+};
+
+function nodeSize(n: Node): { w: number; h: number } {
+  const fallback = TYPE_SIZE[n.type ?? ""] ?? { w: 200, h: 80 };
+  return { w: n.width ?? fallback.w, h: n.height ?? fallback.h };
+}
 
 export function dagreLayout(nodes: Node[], edges: Edge[]): Node[] {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: "LR", ranksep: 80, nodesep: 30 });
+  g.setGraph({ rankdir: "LR", ranksep: 90, nodesep: 40 });
 
-  nodes.forEach((n) => g.setNode(n.id, { width: NODE_WIDTH, height: NODE_HEIGHT }));
+  nodes.forEach((n) => {
+    const { w, h } = nodeSize(n);
+    g.setNode(n.id, { width: w, height: h });
+  });
   edges.forEach((e) => g.setEdge(e.source, e.target));
 
   dagre.layout(g);
 
   return nodes.map((n) => {
     const pos = g.node(n.id);
+    const { w, h } = nodeSize(n);
     return {
       ...n,
       position: {
-        x: pos.x - NODE_WIDTH / 2,
-        y: pos.y - NODE_HEIGHT / 2,
+        x: pos.x - w / 2,
+        y: pos.y - h / 2,
       },
     };
   });
