@@ -364,11 +364,23 @@ const CanvasFlow: React.FC<Props> = ({
       // Content change (formula edit, etc.): preserve current drag positions.
       // Merge doc.nodePositions as base so newly-created nodes (not yet in prev)
       // land at their intended position rather than falling back to {x:0, y:0}.
+      // IMPORTANT: only apply the live React Flow position for nodes whose group
+      // membership is unchanged. If membership changed (drag into/out of group),
+      // doc.nodePositions already holds the correctly converted relative position —
+      // overriding it with the pre-update absolute position from `prev` would
+      // cause the node to jump.
       setNodes((prev) => {
-        const positions = {
-          ...doc.nodePositions,
-          ...Object.fromEntries(prev.map((n) => [n.id, n.position])),
-        };
+        const newMemberOf: Record<string, string | undefined> = {};
+        for (const g of doc.groupDefs) {
+          for (const mid of g.memberIds) newMemberOf[mid] = g.id;
+        }
+        const positions = { ...doc.nodePositions };
+        for (const n of prev) {
+          if (newMemberOf[n.id] === n.parentId) {
+            const existing = positions[n.id];
+            positions[n.id] = { ...existing, x: n.position.x, y: n.position.y };
+          }
+        }
         return buildNodes(doc, stepDebug, positions, quantity, onQuantityChange, handleGroupResizeEnd);
       });
     }
