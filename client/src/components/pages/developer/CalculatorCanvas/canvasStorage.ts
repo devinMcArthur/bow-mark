@@ -18,9 +18,16 @@ import {
 
 // ─── CanvasDocument ───────────────────────────────────────────────────────────
 
+export interface GroupDef {
+  id: string;
+  label: string;
+  parentGroupId?: string;
+  memberIds: string[]; // ordered list: param/table/formula step/sub-group IDs
+}
+
 // CanvasDocument is the in-memory representation used by the canvas.
-// `defaultInputs` and `nodePositions` are kept as parsed objects here; they
-// are JSON-serialised only when sent to / received from the server.
+// `defaultInputs`, `nodePositions`, and `groupDefs` are kept as parsed objects
+// here; they are JSON-serialised only when sent to / received from the server.
 export interface CanvasDocument {
   id: string; // MongoDB _id (or a temp "new_<timestamp>" before first save)
   label: string;
@@ -31,7 +38,8 @@ export interface CanvasDocument {
   breakdownDefs: BreakdownDef[];
   intermediateDefs: IntermediateDef[];
   defaultInputs: CalculatorInputs;
-  nodePositions: Record<string, { x: number; y: number }>;
+  nodePositions: Record<string, { x: number; y: number; w?: number; h?: number }>;
+  groupDefs: GroupDef[];
 }
 
 // ─── Serialise / deserialise ──────────────────────────────────────────────────
@@ -44,6 +52,8 @@ function fragmentToDoc(f: RateBuildupTemplateFullSnippetFragment): CanvasDocumen
   };
   try { defaultInputs = JSON.parse(f.defaultInputs); } catch { /* ignore */ }
   try { nodePositions = JSON.parse(f.nodePositions); } catch { /* ignore */ }
+  let groupDefs: GroupDef[] = [];
+  try { groupDefs = JSON.parse((f as any).groupDefs ?? '[]'); } catch { /* ignore */ }
   return {
     id: f._id,
     label: f.label,
@@ -55,6 +65,7 @@ function fragmentToDoc(f: RateBuildupTemplateFullSnippetFragment): CanvasDocumen
     intermediateDefs: (f.intermediateDefs ?? []) as IntermediateDef[],
     defaultInputs,
     nodePositions,
+    groupDefs,
   };
 }
 
@@ -89,6 +100,7 @@ function docToVariables(
       intermediateDefs: omitTypename(doc.intermediateDefs),
       defaultInputs: JSON.stringify(doc.defaultInputs),
       nodePositions: JSON.stringify(doc.nodePositions),
+      groupDefs: JSON.stringify(doc.groupDefs),
     },
   };
 }
@@ -110,6 +122,7 @@ function blankDocument(): CanvasDocument {
       quantity: { x: 100, y: 200 },
       unitPrice: { x: 700, y: 200 },
     },
+    groupDefs: [],
   };
 }
 

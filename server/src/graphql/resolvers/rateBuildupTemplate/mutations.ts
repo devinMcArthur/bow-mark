@@ -62,6 +62,8 @@ export class SaveRateBuildupTemplateData {
   @Field() public defaultInputs!: string;
   /** JSON-serialized Record<string, { x: number, y: number }> */
   @Field() public nodePositions!: string;
+  /** JSON-serialized GroupDef[] */
+  @Field() public groupDefs!: string;
 }
 
 // ─── Mutation logic ───────────────────────────────────────────────────────────
@@ -82,6 +84,7 @@ const save = async (
       intermediateDefs: data.intermediateDefs,
       defaultInputs: data.defaultInputs,
       nodePositions: data.nodePositions,
+      groupDefs: data.groupDefs,
       updatedAt: new Date(),
     });
     await existing.save();
@@ -97,6 +100,7 @@ const save = async (
       intermediateDefs: data.intermediateDefs,
       defaultInputs: data.defaultInputs,
       nodePositions: data.nodePositions,
+      groupDefs: data.groupDefs,
       schemaVersion: SchemaVersions.RateBuildupTemplate,
     });
     await doc.save();

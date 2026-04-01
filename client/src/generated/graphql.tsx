@@ -2500,6 +2500,7 @@ export type RateBuildupTemplateClass = {
   defaultInputs: Scalars['String'];
   defaultUnit?: Maybe<Scalars['String']>;
   formulaSteps: Array<RateBuildupFormulaStep>;
+  groupDefs: Scalars['String'];
   intermediateDefs: Array<RateBuildupIntermediateDef>;
   label: Scalars['String'];
   nodePositions: Scalars['String'];
@@ -2578,6 +2579,7 @@ export type SaveRateBuildupTemplateData = {
   defaultInputs: Scalars['String'];
   defaultUnit?: InputMaybe<Scalars['String']>;
   formulaSteps: Array<RateBuildupFormulaStepInput>;
+  groupDefs: Scalars['String'];
   id?: InputMaybe<Scalars['ID']>;
   intermediateDefs: Array<RateBuildupIntermediateDefInput>;
   label: Scalars['String'];
@@ -3162,7 +3164,7 @@ export type PublicDocumentSnippetFragment = { __typename?: 'PublicDocumentClass'
 
 export type RateSnippetFragment = { __typename?: 'RateClass', date: any, rate: number };
 
-export type RateBuildupTemplateFullSnippetFragment = { __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, defaultInputs: string, nodePositions: string, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }> }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }> };
+export type RateBuildupTemplateFullSnippetFragment = { __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, defaultInputs: string, nodePositions: string, groupDefs: string, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }> }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }> };
 
 export type ReportIssueSnippetFragment = { __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }> } | null };
 
@@ -3711,7 +3713,7 @@ export type SaveRateBuildupTemplateMutationVariables = Exact<{
 }>;
 
 
-export type SaveRateBuildupTemplateMutation = { __typename?: 'Mutation', saveRateBuildupTemplate: { __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, defaultInputs: string, nodePositions: string, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }> }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }> } };
+export type SaveRateBuildupTemplateMutation = { __typename?: 'Mutation', saveRateBuildupTemplate: { __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, defaultInputs: string, nodePositions: string, groupDefs: string, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }> }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }> } };
 
 export type SignupMutationVariables = Exact<{
   signupId: Scalars['String'];
@@ -4391,7 +4393,7 @@ export type PublicDocumentsQuery = { __typename?: 'Query', publicDocuments: Arra
 export type RateBuildupTemplatesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type RateBuildupTemplatesQuery = { __typename?: 'Query', rateBuildupTemplates: Array<{ __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, defaultInputs: string, nodePositions: string, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }> }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }> }> };
+export type RateBuildupTemplatesQuery = { __typename?: 'Query', rateBuildupTemplates: Array<{ __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, defaultInputs: string, nodePositions: string, groupDefs: string, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }> }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }> }> };
 
 export type SearchQueryVariables = Exact<{
   searchString: Scalars['String'];
@@ -5724,6 +5726,7 @@ export const RateBuildupTemplateFullSnippetFragmentDoc = gql`
   }
   defaultInputs
   nodePositions
+  groupDefs
   schemaVersion
   createdAt
   updatedAt

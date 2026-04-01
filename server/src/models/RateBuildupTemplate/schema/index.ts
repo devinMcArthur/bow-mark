@@ -95,6 +95,10 @@ export class RateBuildupTemplateSchema {
   public nodePositions!: string;
 
   @Field()
+  @prop({ required: true, default: '[]' })
+  public groupDefs!: string;
+
+  @Field()
   @prop({ required: true, default: 1 })
   public schemaVersion!: number;
 
