@@ -53,7 +53,7 @@ function fragmentToDoc(f: RateBuildupTemplateFullSnippetFragment): CanvasDocumen
   try { defaultInputs = JSON.parse(f.defaultInputs); } catch { /* ignore */ }
   try { nodePositions = JSON.parse(f.nodePositions); } catch { /* ignore */ }
   let groupDefs: GroupDef[] = [];
-  try { groupDefs = JSON.parse((f as any).groupDefs ?? '[]'); } catch { /* ignore */ }
+  try { groupDefs = JSON.parse(f.groupDefs ?? '[]'); } catch { /* ignore */ }
   return {
     id: f._id,
     label: f.label,
