@@ -204,6 +204,7 @@ Groups whose activation condition is not met are **collapsed and greyed out** in
 - Controller-to-controller dependencies (a controller whose value depends on another controller)
 - Drag-to-reorder selector options within a controller
 - Drag-to-reorder selector options within a controller
+- Per-tender persistence of controller values — when the canvas is integrated into tender pricing, controller state (estimator's selections and inputs) will be saved with the tender document; that integration is not in scope here
 - Conditional visibility of params within a group based on controller state (groups are the unit of activation, not individual params)
 
 ---
