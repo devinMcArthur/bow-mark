@@ -177,9 +177,9 @@ Within any section (top-level or within a group), controllers render **before** 
 
 As the estimator adjusts a controller, governed groups show and hide immediately — no confirmation step. The activation condition is evaluated live against the controller's current value.
 
-### Hidden vs. inactive groups
+### Inactive groups
 
-Groups whose activation condition is not met are **hidden entirely** from the Tender Form. They do not contribute to formula evaluation (their member nodes evaluate as if their inputs are zero or their formulas short-circuit). This is safe because the controller conditions are authored to be mutually exclusive or independent by design.
+Groups whose activation condition is not met are **collapsed and greyed out** in the Tender Form — the section header remains visible but dimmed, with a small "inactive" badge, and the section body is collapsed. They do not contribute to formula evaluation. The group remains visible (not hidden) so the estimator can see the full structure of the estimate and understand what is and isn't applying.
 
 ### Rendering order within a section
 
@@ -202,8 +202,8 @@ Groups whose activation condition is not met are **hidden entirely** from the Te
 
 - Complex multi-variable condition expressions on activations (only simple comparisons: `> n`, `< n`, `=== value`)
 - Controller-to-controller dependencies (a controller whose value depends on another controller)
-- Persisting controller values per tender document (controllers have template-level defaults only; per-tender values are a separate concern handled when tenders are saved)
-- Drag-to-reorder selector options
+- Drag-to-reorder selector options within a controller
+- Drag-to-reorder selector options within a controller
 - Conditional visibility of params within a group based on controller state (groups are the unit of activation, not individual params)
 
 ---
