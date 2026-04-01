@@ -45,14 +45,15 @@ export interface FormulaStep {
                         // prior step ids, "{tableId}RatePerHr", and "quantity"
 }
 
+export interface BreakdownItem {
+  stepId: string;       // formula step whose value is included in the sum
+  label: string;        // display label for this line
+}
+
 export interface BreakdownDef {
   id: string;
   label: string;
-  perUnit: string;      // formula step id whose value = $/unit
-  subValue?: {
-    stepId: string;     // formula step id for the sub-label number
-    format: string;     // suffix appended after value: "/t", "/m²"
-  };
+  items: BreakdownItem[]; // summed to produce this breakdown node's value
 }
 
 export interface IntermediateDef {
@@ -70,8 +71,7 @@ export interface CalculatorResult {
 export interface CostCategory {
   id: string;
   label: string;
-  perUnit: number;
-  subValue?: string;
+  value: number;
 }
 
 export interface Intermediate {

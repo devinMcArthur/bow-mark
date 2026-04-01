@@ -120,19 +120,14 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ template, onChange }) =
   // ── Breakdown ─────────────────────────────────────────────────────────────
 
   const updateBreakdown = (i: number, field: string, value: string) => {
-    const updated = template.breakdownDefs.map((b, idx) => {
-      if (idx !== i) return b;
-      if (field === "subValue.stepId" || field === "subValue.format") {
-        const key = field.split(".")[1] as "stepId" | "format";
-        return { ...b, subValue: { ...(b.subValue ?? { stepId: "", format: "" }), [key]: value } };
-      }
-      return { ...b, [field]: value };
-    });
+    const updated = template.breakdownDefs.map((b, idx) =>
+      idx !== i ? b : { ...b, [field]: value }
+    );
     patch({ breakdownDefs: updated });
   };
 
   const addBreakdown = () =>
-    patch({ breakdownDefs: [...template.breakdownDefs, { id: "", label: "", perUnit: "" }] });
+    patch({ breakdownDefs: [...template.breakdownDefs, { id: "", label: "", items: [] }] });
 
   const removeBreakdown = (i: number) =>
     patch({ breakdownDefs: template.breakdownDefs.filter((_, idx) => idx !== i) });
@@ -247,39 +242,19 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ template, onChange }) =
 
       {/* Breakdown */}
       <SectionLabel>Breakdown</SectionLabel>
-      <Text fontSize="10px" color="gray.400" mb={2}>perUnit = formula step id whose value is $/unit</Text>
       {template.breakdownDefs.map((b, i) => (
         <Box key={i} mb={2} pl={1} borderLeft="2px solid" borderColor="green.200">
           <FieldRow
             fields={[
               { label: "id", value: b.id, placeholder: "material", mono: true },
               { label: "label", value: b.label, placeholder: "Material" },
-              { label: "perUnit", value: b.perUnit, placeholder: "materialPerM2", mono: true },
             ]}
             onChange={(fi, v) => {
-              const fields = ["id", "label", "perUnit"];
+              const fields = ["id", "label"];
               updateBreakdown(i, fields[fi], v);
             }}
             onDelete={() => removeBreakdown(i)}
           />
-          <Flex gap={2} align="center" pl={1} mt={1}>
-            <Text fontSize="10px" color="gray.400">sub:</Text>
-            <Input
-              size="xs"
-              fontFamily="mono"
-              flex={1}
-              value={b.subValue?.stepId ?? ""}
-              placeholder="stepId (optional)"
-              onChange={(e) => updateBreakdown(i, "subValue.stepId", e.target.value)}
-            />
-            <Input
-              size="xs"
-              flex={0.5}
-              value={b.subValue?.format ?? ""}
-              placeholder="/t"
-              onChange={(e) => updateBreakdown(i, "subValue.format", e.target.value)}
-            />
-          </Flex>
         </Box>
       ))}
       <Button size="xs" variant="ghost" leftIcon={<FiPlus />} color="gray.500" onClick={addBreakdown}>

@@ -15,6 +15,46 @@ export interface StepDebugInfo {
 
 const parser = new Parser();
 
+// Sort formula steps so each step is evaluated after all steps it depends on.
+// This means declaration order no longer matters — the dependency graph drives evaluation.
+// Steps involved in a cycle (or with unresolvable deps) are appended at the end and
+// will simply evaluate to 0 for missing references.
+function topoSortSteps(steps: FormulaStep[]): {
+  sorted: FormulaStep[];
+  cycleIds: Set<string>;
+} {
+  const stepIds = new Set(steps.map((s) => s.id));
+  const deps = new Map<string, Set<string>>();
+  for (const step of steps) {
+    const refs = new Set(
+      step.formula.split(/[^a-zA-Z0-9_]+/).filter((t) => t && stepIds.has(t))
+    );
+    deps.set(step.id, refs);
+  }
+
+  const resolved = new Set<string>();
+  const result: FormulaStep[] = [];
+  const pending = [...steps];
+
+  while (pending.length > 0) {
+    const idx = pending.findIndex((s) =>
+      [...(deps.get(s.id) ?? [])].every((d) => resolved.has(d))
+    );
+    if (idx === -1) {
+      // Remaining steps form one or more cycles — record them and append
+      return {
+        sorted: [...result, ...pending],
+        cycleIds: new Set(pending.map((s) => s.id)),
+      };
+    }
+    const [step] = pending.splice(idx, 1);
+    result.push(step);
+    resolved.add(step.id);
+  }
+
+  return { sorted: result, cycleIds: new Set() };
+}
+
 export function safeEval(formula: string, ctx: Record<string, number>): number {
   try {
     const result = parser.evaluate(formula, ctx);
@@ -43,8 +83,8 @@ export function evaluateTemplate(
     );
   }
 
-  // 2. Evaluate formula steps in order — each result joins the context
-  for (const step of template.formulaSteps) {
+  // 2. Evaluate formula steps in dependency order
+  for (const step of topoSortSteps(template.formulaSteps).sorted) {
     ctx[step.id] = safeEval(step.formula, ctx);
   }
 
@@ -52,14 +92,11 @@ export function evaluateTemplate(
   const breakdown = template.breakdownDefs.map((b) => ({
     id: b.id,
     label: b.label,
-    perUnit: ctx[b.perUnit] ?? 0,
-    subValue: b.subValue
-      ? `$${(ctx[b.subValue.stepId] ?? 0).toFixed(2)}${b.subValue.format}`
-      : undefined,
+    value: (b.items ?? []).reduce((s, item) => s + (ctx[item.stepId] ?? 0), 0),
   }));
 
   return {
-    unitPrice: breakdown.reduce((s, b) => s + b.perUnit, 0),
+    unitPrice: breakdown.reduce((s, b) => s + b.value, 0),
     breakdown,
     intermediates: template.intermediateDefs.map((i) => ({
       label: i.label,
@@ -87,7 +124,26 @@ export function debugEvaluateTemplate(
     );
   }
 
-  return template.formulaSteps.map((step) => {
+  const { sorted, cycleIds } = topoSortSteps(template.formulaSteps);
+
+  return sorted.map((step) => {
+    // Detect cycle participants before they reach the expression parser
+    if (cycleIds.has(step.id)) {
+      const otherCycleMembers = step.formula
+        .split(/[^a-zA-Z0-9_]+/)
+        .filter((t) => t && cycleIds.has(t) && t !== step.id);
+      ctx[step.id] = 0;
+      const with_ = otherCycleMembers.length > 0
+        ? ` with: ${otherCycleMembers.join(", ")}`
+        : "";
+      return {
+        id: step.id,
+        formula: step.formula,
+        value: 0,
+        error: `Circular dependency${with_}`,
+      };
+    }
+
     try {
       const result = parser.evaluate(step.formula, ctx);
       if (typeof result === "number" && isFinite(result)) {

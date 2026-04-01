@@ -205,8 +205,7 @@ const CalculatorPanel: React.FC<CalculatorPanelProps> = ({
             <BreakdownCell
               key={cat.id}
               label={cat.label}
-              value={cat.perUnit}
-              subValue={cat.subValue}
+              value={cat.value}
               borderRight
             />
           ))}

@@ -174,8 +174,7 @@ const TemplateTestPanel: React.FC<TemplateTestPanelProps> = ({
           <BreakdownCell
             key={cat.id}
             label={cat.label}
-            value={cat.perUnit}
-            subValue={cat.subValue}
+            value={cat.value}
             borderRight
           />
         ))}
