@@ -299,6 +299,8 @@ const CanvasFlow: React.FC<Props> = ({
 }) => {
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const docRef = useRef(doc);
+  useEffect(() => { docRef.current = doc; }, [doc]);
   const prevDocId = useRef(doc.id);
   const prevResetKey = useRef(positionResetKey);
   // Capture selection state before React Flow's internal mousedown handler runs,
@@ -309,13 +311,13 @@ const CanvasFlow: React.FC<Props> = ({
 
   const handleGroupResizeEnd = useCallback(
     (groupId: string, w: number, h: number) => {
-      const existing = doc.nodePositions[groupId] ?? { x: 0, y: 0 };
+      const existing = docRef.current.nodePositions[groupId] ?? { x: 0, y: 0 };
       onUpdateDoc({
-        ...doc,
-        nodePositions: { ...doc.nodePositions, [groupId]: { ...existing, w, h } },
+        ...docRef.current,
+        nodePositions: { ...docRef.current.nodePositions, [groupId]: { ...existing, w, h } },
       });
     },
-    [doc, onUpdateDoc]
+    [onUpdateDoc]
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState(
@@ -426,9 +428,11 @@ const CanvasFlow: React.FC<Props> = ({
 
   const handleNodeDragStop: NodeDragStopHandler = useCallback(
     (_, node) => {
-      const allPositions: Record<string, { x: number; y: number }> = {};
+      const allPositions: Record<string, { x: number; y: number; w?: number; h?: number }> = {};
       nodes.forEach((n) => {
-        allPositions[n.id] = n.id === node.id ? node.position : n.position;
+        const existing = doc.nodePositions[n.id];
+        const xy = n.id === node.id ? node.position : n.position;
+        allPositions[n.id] = { ...existing, ...xy };
       });
       onUpdateDoc({ ...doc, nodePositions: allPositions });
     },
