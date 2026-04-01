@@ -431,7 +431,8 @@ CREATE TABLE public.fact_material_shipment (
     delivered_rate_id character varying(24),
     archived_at timestamp with time zone,
     synced_at timestamp with time zone DEFAULT now() NOT NULL,
-    vehicle_type character varying(100)
+    vehicle_type character varying(100),
+    rate_scenario_id character varying(24)
 );
 
 
@@ -440,6 +441,13 @@ CREATE TABLE public.fact_material_shipment (
 --
 
 COMMENT ON COLUMN public.fact_material_shipment.vehicle_type IS 'Vehicle type from vehicleObject (e.g., "Tandem", "Tri-axle"). Used for load-to-tonne conversions.';
+
+
+--
+-- Name: COLUMN fact_material_shipment.rate_scenario_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.fact_material_shipment.rate_scenario_id IS 'Scenario _id (24-char hex) from JobsiteMaterial.scenarios when the shipment is costed via the rate-model scenario system. NULL for legacy cost types.';
 
 
 --
@@ -1839,4 +1847,5 @@ ALTER TABLE ONLY public.fact_vehicle_work
 INSERT INTO public.schema_migrations (version) VALUES
     ('20260128205200'),
     ('20260202120000'),
-    ('20260203100000');
+    ('20260203100000'),
+    ('20260325120000');

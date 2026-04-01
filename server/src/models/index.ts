@@ -19,6 +19,7 @@ export * from "./Production";
 export * from "./ReportNote";
 export * from "./Signup";
 export * from "./System";
+export * from "./RateBuildupTemplate";
 export * from "./Tender";
 export * from "./TenderPricingSheet";
 export * from "./User";
@@ -341,6 +342,20 @@ export type SystemModel = ReturnModelType<typeof SystemClass>;
 
 export const System = getModelForClass(SystemClass, {
   schemaOptions: { collection: "systems" },
+});
+
+/**
+ * ----- RateBuildupTemplate -----
+ */
+
+import { RateBuildupTemplateClass } from "./RateBuildupTemplate/class";
+
+export type RateBuildupTemplateDocument = DocumentType<RateBuildupTemplateClass>;
+
+export type RateBuildupTemplateModel = ReturnModelType<typeof RateBuildupTemplateClass>;
+
+export const RateBuildupTemplate = getModelForClass(RateBuildupTemplateClass, {
+  schemaOptions: { collection: "ratebuilduptemplates" },
 });
 
 /**

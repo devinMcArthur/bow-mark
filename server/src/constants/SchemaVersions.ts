@@ -17,6 +17,7 @@ export default {
   MaterialShipment: 3,
   OperatorDailyReport: 2,
   Production: 1,
+  RateBuildupTemplate: 1,
   ReportNote: 1,
   Signup: 1,
   System: 2,
