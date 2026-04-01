@@ -1,0 +1,40 @@
+fragment RateBuildupTemplateFullSnippet on RateBuildupTemplateClass {
+  _id
+  label
+  defaultUnit
+  parameterDefs {
+    id
+    label
+    prefix
+    suffix
+    defaultValue
+  }
+  tableDefs {
+    id
+    label
+    rowLabel
+  }
+  formulaSteps {
+    id
+    label
+    formula
+  }
+  breakdownDefs {
+    id
+    label
+    items {
+      stepId
+      label
+    }
+  }
+  intermediateDefs {
+    label
+    stepId
+    unit
+  }
+  defaultInputs
+  nodePositions
+  schemaVersion
+  createdAt
+  updatedAt
+}

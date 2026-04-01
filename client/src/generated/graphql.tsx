@@ -1159,6 +1159,7 @@ export type Mutation = {
   dailyReportNoteUpdate: DailyReportClass;
   dailyReportPayrollCompleteUpdate: DailyReportClass;
   dailyReportUpdate: DailyReportClass;
+  deleteRateBuildupTemplate: Scalars['Boolean'];
   employeeArchive: EmployeeClass;
   employeeCreate: EmployeeClass;
   employeeUnarchive: EmployeeClass;
@@ -1211,6 +1212,7 @@ export type Mutation = {
   publicDocumentDelete: Scalars['Boolean'];
   publicDocumentUpdate: PublicDocumentClass;
   reportNoteRemoveFile: ReportNoteClass;
+  saveRateBuildupTemplate: RateBuildupTemplateClass;
   signup: Scalars['String'];
   signupCreate: SignupClass;
   systemAddSpecFile: SystemClass;
@@ -1224,6 +1226,12 @@ export type Mutation = {
   systemUpdateUnitDefaults: SystemClass;
   tenderAddFile: TenderClass;
   tenderCreate: TenderClass;
+  tenderPricingRowCreate: TenderPricingSheetClass;
+  tenderPricingRowDelete: TenderPricingSheetClass;
+  tenderPricingRowReorder: TenderPricingSheetClass;
+  tenderPricingRowUpdate: TenderPricingSheetClass;
+  tenderPricingSheetCreate: TenderPricingSheetClass;
+  tenderPricingSheetUpdateMarkup: TenderPricingSheetClass;
   tenderRemove: Scalars['Boolean'];
   tenderRemoveFile: TenderClass;
   tenderRetrySummary: TenderClass;
@@ -1348,6 +1356,11 @@ export type MutationDailyReportPayrollCompleteUpdateArgs = {
 export type MutationDailyReportUpdateArgs = {
   data: DailyReportUpdateData;
   id: Scalars['String'];
+};
+
+
+export type MutationDeleteRateBuildupTemplateArgs = {
+  id: Scalars['ID'];
 };
 
 
@@ -1642,6 +1655,11 @@ export type MutationReportNoteRemoveFileArgs = {
 };
 
 
+export type MutationSaveRateBuildupTemplateArgs = {
+  data: SaveRateBuildupTemplateData;
+};
+
+
 export type MutationSignupArgs = {
   data: SignupData;
   signupId: Scalars['String'];
@@ -1706,6 +1724,42 @@ export type MutationTenderAddFileArgs = {
 
 export type MutationTenderCreateArgs = {
   data: TenderCreateData;
+};
+
+
+export type MutationTenderPricingRowCreateArgs = {
+  data: TenderPricingRowCreateData;
+  sheetId: Scalars['ID'];
+};
+
+
+export type MutationTenderPricingRowDeleteArgs = {
+  rowId: Scalars['ID'];
+  sheetId: Scalars['ID'];
+};
+
+
+export type MutationTenderPricingRowReorderArgs = {
+  rowIds: Array<Scalars['ID']>;
+  sheetId: Scalars['ID'];
+};
+
+
+export type MutationTenderPricingRowUpdateArgs = {
+  data: TenderPricingRowUpdateData;
+  rowId: Scalars['ID'];
+  sheetId: Scalars['ID'];
+};
+
+
+export type MutationTenderPricingSheetCreateArgs = {
+  tenderId: Scalars['ID'];
+};
+
+
+export type MutationTenderPricingSheetUpdateMarkupArgs = {
+  defaultMarkupPct: Scalars['Float'];
+  id: Scalars['ID'];
 };
 
 
@@ -2046,10 +2100,12 @@ export type Query = {
   operatorDailyReports: Array<OperatorDailyReportClass>;
   productivityBenchmarks: ProductivityBenchmarkReport;
   publicDocuments: Array<PublicDocumentClass>;
+  rateBuildupTemplates: Array<RateBuildupTemplateClass>;
   search: Array<SearchClass>;
   signup: SignupClass;
   system: SystemClass;
   tender?: Maybe<TenderClass>;
+  tenderPricingSheet?: Maybe<TenderPricingSheetClass>;
   tenders: Array<TenderClass>;
   user?: Maybe<UserClass>;
   users: Array<UserClass>;
@@ -2300,6 +2356,11 @@ export type QueryTenderArgs = {
 };
 
 
+export type QueryTenderPricingSheetArgs = {
+  tenderId: Scalars['ID'];
+};
+
+
 export type QueryUserArgs = {
   query: UserQuery;
 };
@@ -2349,6 +2410,103 @@ export type RangeSummaryReportClass = {
   externalRevenueInvoiceValue: Scalars['Float'];
   internalExpenseInvoiceValue: Scalars['Float'];
   internalRevenueInvoiceValue: Scalars['Float'];
+};
+
+export type RateBuildupBreakdownDef = {
+  __typename?: 'RateBuildupBreakdownDef';
+  id: Scalars['String'];
+  items: Array<RateBuildupBreakdownItem>;
+  label: Scalars['String'];
+};
+
+export type RateBuildupBreakdownDefInput = {
+  id: Scalars['String'];
+  items: Array<RateBuildupBreakdownItemInput>;
+  label: Scalars['String'];
+};
+
+export type RateBuildupBreakdownItem = {
+  __typename?: 'RateBuildupBreakdownItem';
+  label: Scalars['String'];
+  stepId: Scalars['String'];
+};
+
+export type RateBuildupBreakdownItemInput = {
+  label: Scalars['String'];
+  stepId: Scalars['String'];
+};
+
+export type RateBuildupFormulaStep = {
+  __typename?: 'RateBuildupFormulaStep';
+  formula: Scalars['String'];
+  id: Scalars['String'];
+  label?: Maybe<Scalars['String']>;
+};
+
+export type RateBuildupFormulaStepInput = {
+  formula: Scalars['String'];
+  id: Scalars['String'];
+  label?: InputMaybe<Scalars['String']>;
+};
+
+export type RateBuildupIntermediateDef = {
+  __typename?: 'RateBuildupIntermediateDef';
+  label: Scalars['String'];
+  stepId: Scalars['String'];
+  unit: Scalars['String'];
+};
+
+export type RateBuildupIntermediateDefInput = {
+  label: Scalars['String'];
+  stepId: Scalars['String'];
+  unit: Scalars['String'];
+};
+
+export type RateBuildupParameterDef = {
+  __typename?: 'RateBuildupParameterDef';
+  defaultValue: Scalars['Float'];
+  id: Scalars['String'];
+  label: Scalars['String'];
+  prefix?: Maybe<Scalars['String']>;
+  suffix?: Maybe<Scalars['String']>;
+};
+
+export type RateBuildupParameterDefInput = {
+  defaultValue: Scalars['Float'];
+  id: Scalars['String'];
+  label: Scalars['String'];
+  prefix?: InputMaybe<Scalars['String']>;
+  suffix?: InputMaybe<Scalars['String']>;
+};
+
+export type RateBuildupTableDef = {
+  __typename?: 'RateBuildupTableDef';
+  id: Scalars['String'];
+  label: Scalars['String'];
+  rowLabel: Scalars['String'];
+};
+
+export type RateBuildupTableDefInput = {
+  id: Scalars['String'];
+  label: Scalars['String'];
+  rowLabel: Scalars['String'];
+};
+
+export type RateBuildupTemplateClass = {
+  __typename?: 'RateBuildupTemplateClass';
+  _id: Scalars['ID'];
+  breakdownDefs: Array<RateBuildupBreakdownDef>;
+  createdAt: Scalars['DateTime'];
+  defaultInputs: Scalars['String'];
+  defaultUnit?: Maybe<Scalars['String']>;
+  formulaSteps: Array<RateBuildupFormulaStep>;
+  intermediateDefs: Array<RateBuildupIntermediateDef>;
+  label: Scalars['String'];
+  nodePositions: Scalars['String'];
+  parameterDefs: Array<RateBuildupParameterDef>;
+  schemaVersion: Scalars['Float'];
+  tableDefs: Array<RateBuildupTableDef>;
+  updatedAt: Scalars['DateTime'];
 };
 
 export type RateClass = {
@@ -2413,6 +2571,19 @@ export type ReportNoteClass = {
   files: Array<FileClass>;
   note: Scalars['String'];
   schemaVersion: Scalars['Float'];
+};
+
+export type SaveRateBuildupTemplateData = {
+  breakdownDefs: Array<RateBuildupBreakdownDefInput>;
+  defaultInputs: Scalars['String'];
+  defaultUnit?: InputMaybe<Scalars['String']>;
+  formulaSteps: Array<RateBuildupFormulaStepInput>;
+  id?: InputMaybe<Scalars['ID']>;
+  intermediateDefs: Array<RateBuildupIntermediateDefInput>;
+  label: Scalars['String'];
+  nodePositions: Scalars['String'];
+  parameterDefs: Array<RateBuildupParameterDefInput>;
+  tableDefs: Array<RateBuildupTableDefInput>;
 };
 
 export type SearchClass = {
@@ -2508,12 +2679,84 @@ export type TenderCreateData = {
   name: Scalars['String'];
 };
 
+export type TenderPricingRowClass = {
+  __typename?: 'TenderPricingRowClass';
+  _id: Scalars['ID'];
+  calculatorInputsJson?: Maybe<Scalars['String']>;
+  calculatorType?: Maybe<TenderWorkType>;
+  crewUP?: Maybe<Scalars['Float']>;
+  description: Scalars['String'];
+  indentLevel: Scalars['Int'];
+  itemNumber: Scalars['String'];
+  markupOverride?: Maybe<Scalars['Float']>;
+  materialUP?: Maybe<Scalars['Float']>;
+  notes?: Maybe<Scalars['String']>;
+  quantity?: Maybe<Scalars['Float']>;
+  rentalUP?: Maybe<Scalars['Float']>;
+  sortOrder: Scalars['Float'];
+  subcontractorUP?: Maybe<Scalars['Float']>;
+  truckingUP?: Maybe<Scalars['Float']>;
+  type: TenderPricingRowType;
+  unit?: Maybe<Scalars['String']>;
+  unitPrice?: Maybe<Scalars['Float']>;
+};
+
+export type TenderPricingRowCreateData = {
+  description: Scalars['String'];
+  indentLevel: Scalars['Int'];
+  itemNumber: Scalars['String'];
+  sortOrder: Scalars['Int'];
+  type: TenderPricingRowType;
+};
+
+export enum TenderPricingRowType {
+  Group = 'Group',
+  Item = 'Item',
+  Schedule = 'Schedule'
+}
+
+export type TenderPricingRowUpdateData = {
+  calculatorInputsJson?: InputMaybe<Scalars['String']>;
+  calculatorType?: InputMaybe<TenderWorkType>;
+  crewUP?: InputMaybe<Scalars['Float']>;
+  description?: InputMaybe<Scalars['String']>;
+  indentLevel?: InputMaybe<Scalars['Int']>;
+  itemNumber?: InputMaybe<Scalars['String']>;
+  markupOverride?: InputMaybe<Scalars['Float']>;
+  materialUP?: InputMaybe<Scalars['Float']>;
+  notes?: InputMaybe<Scalars['String']>;
+  quantity?: InputMaybe<Scalars['Float']>;
+  rentalUP?: InputMaybe<Scalars['Float']>;
+  subcontractorUP?: InputMaybe<Scalars['Float']>;
+  truckingUP?: InputMaybe<Scalars['Float']>;
+  unit?: InputMaybe<Scalars['String']>;
+  unitPrice?: InputMaybe<Scalars['Float']>;
+};
+
+export type TenderPricingSheetClass = {
+  __typename?: 'TenderPricingSheetClass';
+  _id: Scalars['ID'];
+  createdAt: Scalars['DateTime'];
+  defaultMarkupPct: Scalars['Float'];
+  rows: Array<TenderPricingRowClass>;
+  updatedAt: Scalars['DateTime'];
+};
+
 export type TenderUpdateData = {
   description?: InputMaybe<Scalars['String']>;
   jobsiteId?: InputMaybe<Scalars['String']>;
   name?: InputMaybe<Scalars['String']>;
   status?: InputMaybe<Scalars['String']>;
 };
+
+export enum TenderWorkType {
+  CommonExcavation = 'CommonExcavation',
+  Concrete = 'Concrete',
+  Gravel = 'Gravel',
+  Paving = 'Paving',
+  SubgradePrep = 'SubgradePrep',
+  Toplift = 'Toplift'
+}
 
 export type TruckingRateClass = {
   __typename?: 'TruckingRateClass';
@@ -2919,6 +3162,8 @@ export type PublicDocumentSnippetFragment = { __typename?: 'PublicDocumentClass'
 
 export type RateSnippetFragment = { __typename?: 'RateClass', date: any, rate: number };
 
+export type RateBuildupTemplateFullSnippetFragment = { __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, defaultInputs: string, nodePositions: string, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }> }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }> };
+
 export type ReportIssueSnippetFragment = { __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }> } | null };
 
 export type ReportNoteCardSnippetFragment = { __typename?: 'ReportNoteClass', _id: string, note: string, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null, downloadUrl: string }> };
@@ -3094,6 +3339,13 @@ export type DailyReportUpdateMutationVariables = Exact<{
 
 
 export type DailyReportUpdateMutation = { __typename?: 'Mutation', dailyReportUpdate: { __typename?: 'DailyReportClass', _id: string, date: any, jobCostApproved: boolean, payrollComplete: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }> }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null, downloadUrl: string } }>, enrichedFiles: Array<{ __typename?: 'JobsiteEnrichedFileClass', _id?: string | null, minRole: UserRoles, enrichedFile: { __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string> } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } } }> }, crew: { __typename?: 'CrewClass', _id: string, name: string, type: CrewTypes, employees: Array<{ __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }>, vehicles: Array<{ __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }> }, employeeWork: Array<{ __typename?: 'EmployeeWorkClass', _id: string, jobTitle: string, startTime: any, endTime: any, employee: { __typename?: 'EmployeeClass', _id: string, name: string } }>, vehicleWork: Array<{ __typename?: 'VehicleWorkClass', _id: string, hours: number, jobTitle?: string | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string } | null }>, productions: Array<{ __typename?: 'ProductionClass', _id: string, jobTitle: string, quantity: number, unit: string, startTime: any, endTime: any, description?: string | null }>, materialShipments: Array<{ __typename?: 'MaterialShipmentClass', _id: string, shipmentType?: string | null, supplier?: string | null, quantity: number, unit?: string | null, startTime?: any | null, endTime?: any | null, noJobsiteMaterial?: boolean | null, schemaVersion: number, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }> } | null, vehicleObject?: { __typename?: 'VehicleObjectClass', source?: string | null, vehicleType?: string | null, vehicleCode?: string | null, truckingRateId?: string | null, deliveredRateId?: string | null } | null }>, reportNote?: { __typename?: 'ReportNoteClass', _id: string, note: string, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null, downloadUrl: string }> } | null, temporaryEmployees: Array<{ __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }>, temporaryVehicles: Array<{ __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }> } };
+
+export type DeleteRateBuildupTemplateMutationVariables = Exact<{
+  id: Scalars['ID'];
+}>;
+
+
+export type DeleteRateBuildupTemplateMutation = { __typename?: 'Mutation', deleteRateBuildupTemplate: boolean };
 
 export type EmployeeArchiveMutationVariables = Exact<{
   id: Scalars['ID'];
@@ -3453,6 +3705,13 @@ export type ReportNoteRemoveFileMutationVariables = Exact<{
 
 
 export type ReportNoteRemoveFileMutation = { __typename?: 'Mutation', reportNoteRemoveFile: { __typename?: 'ReportNoteClass', _id: string, note: string, dailyReport?: { __typename?: 'DailyReportClass', _id: string, date: any, jobCostApproved: boolean, payrollComplete: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null }, crew: { __typename?: 'CrewClass', _id: string, name: string } } | null, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null, downloadUrl: string }> } };
+
+export type SaveRateBuildupTemplateMutationVariables = Exact<{
+  data: SaveRateBuildupTemplateData;
+}>;
+
+
+export type SaveRateBuildupTemplateMutation = { __typename?: 'Mutation', saveRateBuildupTemplate: { __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, defaultInputs: string, nodePositions: string, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }> }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }> } };
 
 export type SignupMutationVariables = Exact<{
   signupId: Scalars['String'];
@@ -4128,6 +4387,11 @@ export type PublicDocumentsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type PublicDocumentsQuery = { __typename?: 'Query', publicDocuments: Array<{ __typename?: 'PublicDocumentClass', _id: string, slug: string, title: string, description?: string | null, viewCount: number, fileUrl?: string | null, createdAt: any }> };
+
+export type RateBuildupTemplatesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type RateBuildupTemplatesQuery = { __typename?: 'Query', rateBuildupTemplates: Array<{ __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, defaultInputs: string, nodePositions: string, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }> }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }> }> };
 
 export type SearchQueryVariables = Exact<{
   searchString: Scalars['String'];
@@ -5423,6 +5687,48 @@ export const PublicDocumentSnippetFragmentDoc = gql`
   createdAt
 }
     `;
+export const RateBuildupTemplateFullSnippetFragmentDoc = gql`
+    fragment RateBuildupTemplateFullSnippet on RateBuildupTemplateClass {
+  _id
+  label
+  defaultUnit
+  parameterDefs {
+    id
+    label
+    prefix
+    suffix
+    defaultValue
+  }
+  tableDefs {
+    id
+    label
+    rowLabel
+  }
+  formulaSteps {
+    id
+    label
+    formula
+  }
+  breakdownDefs {
+    id
+    label
+    items {
+      stepId
+      label
+    }
+  }
+  intermediateDefs {
+    label
+    stepId
+    unit
+  }
+  defaultInputs
+  nodePositions
+  schemaVersion
+  createdAt
+  updatedAt
+}
+    `;
 export const SearchSnippetFragmentDoc = gql`
     fragment SearchSnippet on SearchClass {
   score
@@ -6190,6 +6496,37 @@ export function useDailyReportUpdateMutation(baseOptions?: Apollo.MutationHookOp
 export type DailyReportUpdateMutationHookResult = ReturnType<typeof useDailyReportUpdateMutation>;
 export type DailyReportUpdateMutationResult = Apollo.MutationResult<DailyReportUpdateMutation>;
 export type DailyReportUpdateMutationOptions = Apollo.BaseMutationOptions<DailyReportUpdateMutation, DailyReportUpdateMutationVariables>;
+export const DeleteRateBuildupTemplateDocument = gql`
+    mutation DeleteRateBuildupTemplate($id: ID!) {
+  deleteRateBuildupTemplate(id: $id)
+}
+    `;
+export type DeleteRateBuildupTemplateMutationFn = Apollo.MutationFunction<DeleteRateBuildupTemplateMutation, DeleteRateBuildupTemplateMutationVariables>;
+
+/**
+ * __useDeleteRateBuildupTemplateMutation__
+ *
+ * To run a mutation, you first call `useDeleteRateBuildupTemplateMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteRateBuildupTemplateMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteRateBuildupTemplateMutation, { data, loading, error }] = useDeleteRateBuildupTemplateMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDeleteRateBuildupTemplateMutation(baseOptions?: Apollo.MutationHookOptions<DeleteRateBuildupTemplateMutation, DeleteRateBuildupTemplateMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeleteRateBuildupTemplateMutation, DeleteRateBuildupTemplateMutationVariables>(DeleteRateBuildupTemplateDocument, options);
+      }
+export type DeleteRateBuildupTemplateMutationHookResult = ReturnType<typeof useDeleteRateBuildupTemplateMutation>;
+export type DeleteRateBuildupTemplateMutationResult = Apollo.MutationResult<DeleteRateBuildupTemplateMutation>;
+export type DeleteRateBuildupTemplateMutationOptions = Apollo.BaseMutationOptions<DeleteRateBuildupTemplateMutation, DeleteRateBuildupTemplateMutationVariables>;
 export const EmployeeArchiveDocument = gql`
     mutation EmployeeArchive($id: ID!) {
   employeeArchive(id: $id) {
@@ -7793,6 +8130,39 @@ export function useReportNoteRemoveFileMutation(baseOptions?: Apollo.MutationHoo
 export type ReportNoteRemoveFileMutationHookResult = ReturnType<typeof useReportNoteRemoveFileMutation>;
 export type ReportNoteRemoveFileMutationResult = Apollo.MutationResult<ReportNoteRemoveFileMutation>;
 export type ReportNoteRemoveFileMutationOptions = Apollo.BaseMutationOptions<ReportNoteRemoveFileMutation, ReportNoteRemoveFileMutationVariables>;
+export const SaveRateBuildupTemplateDocument = gql`
+    mutation SaveRateBuildupTemplate($data: SaveRateBuildupTemplateData!) {
+  saveRateBuildupTemplate(data: $data) {
+    ...RateBuildupTemplateFullSnippet
+  }
+}
+    ${RateBuildupTemplateFullSnippetFragmentDoc}`;
+export type SaveRateBuildupTemplateMutationFn = Apollo.MutationFunction<SaveRateBuildupTemplateMutation, SaveRateBuildupTemplateMutationVariables>;
+
+/**
+ * __useSaveRateBuildupTemplateMutation__
+ *
+ * To run a mutation, you first call `useSaveRateBuildupTemplateMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSaveRateBuildupTemplateMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [saveRateBuildupTemplateMutation, { data, loading, error }] = useSaveRateBuildupTemplateMutation({
+ *   variables: {
+ *      data: // value for 'data'
+ *   },
+ * });
+ */
+export function useSaveRateBuildupTemplateMutation(baseOptions?: Apollo.MutationHookOptions<SaveRateBuildupTemplateMutation, SaveRateBuildupTemplateMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SaveRateBuildupTemplateMutation, SaveRateBuildupTemplateMutationVariables>(SaveRateBuildupTemplateDocument, options);
+      }
+export type SaveRateBuildupTemplateMutationHookResult = ReturnType<typeof useSaveRateBuildupTemplateMutation>;
+export type SaveRateBuildupTemplateMutationResult = Apollo.MutationResult<SaveRateBuildupTemplateMutation>;
+export type SaveRateBuildupTemplateMutationOptions = Apollo.BaseMutationOptions<SaveRateBuildupTemplateMutation, SaveRateBuildupTemplateMutationVariables>;
 export const SignupDocument = gql`
     mutation Signup($signupId: String!, $data: SignupData!) {
   signup(signupId: $signupId, data: $data)
@@ -11367,6 +11737,40 @@ export function usePublicDocumentsLazyQuery(baseOptions?: Apollo.LazyQueryHookOp
 export type PublicDocumentsQueryHookResult = ReturnType<typeof usePublicDocumentsQuery>;
 export type PublicDocumentsLazyQueryHookResult = ReturnType<typeof usePublicDocumentsLazyQuery>;
 export type PublicDocumentsQueryResult = Apollo.QueryResult<PublicDocumentsQuery, PublicDocumentsQueryVariables>;
+export const RateBuildupTemplatesDocument = gql`
+    query RateBuildupTemplates {
+  rateBuildupTemplates {
+    ...RateBuildupTemplateFullSnippet
+  }
+}
+    ${RateBuildupTemplateFullSnippetFragmentDoc}`;
+
+/**
+ * __useRateBuildupTemplatesQuery__
+ *
+ * To run a query within a React component, call `useRateBuildupTemplatesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useRateBuildupTemplatesQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useRateBuildupTemplatesQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useRateBuildupTemplatesQuery(baseOptions?: Apollo.QueryHookOptions<RateBuildupTemplatesQuery, RateBuildupTemplatesQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<RateBuildupTemplatesQuery, RateBuildupTemplatesQueryVariables>(RateBuildupTemplatesDocument, options);
+      }
+export function useRateBuildupTemplatesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<RateBuildupTemplatesQuery, RateBuildupTemplatesQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<RateBuildupTemplatesQuery, RateBuildupTemplatesQueryVariables>(RateBuildupTemplatesDocument, options);
+        }
+export type RateBuildupTemplatesQueryHookResult = ReturnType<typeof useRateBuildupTemplatesQuery>;
+export type RateBuildupTemplatesLazyQueryHookResult = ReturnType<typeof useRateBuildupTemplatesLazyQuery>;
+export type RateBuildupTemplatesQueryResult = Apollo.QueryResult<RateBuildupTemplatesQuery, RateBuildupTemplatesQueryVariables>;
 export const SearchDocument = gql`
     query Search($searchString: String!) {
   search(searchString: $searchString) {
