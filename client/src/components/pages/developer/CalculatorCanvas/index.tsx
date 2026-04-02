@@ -1,32 +1,41 @@
 // client/src/components/pages/developer/CalculatorCanvas/index.tsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/router";
-import { Box, Button, Flex, Select, Text, Tooltip } from "@chakra-ui/react";
+import { Box, Button, Flex, Tooltip } from "@chakra-ui/react";
 import { Edge } from "reactflow";
 import {
   debugEvaluateTemplate,
 } from "../../../../components/TenderPricing/calculators/evaluate";
 import { parseEdges } from "./edgeParser";
-import { CanvasDocument, useCanvasDocuments, computeInactiveNodeIds } from "./canvasStorage";
+import { CanvasDocument, computeInactiveNodeIds } from "./canvasStorage";
 import { ClipboardPayload, copyNodes, pasteNodes, deleteNodes, createNode, createGroup, createController } from "./canvasOps";
 import CanvasFlow from "./CanvasFlow";
 import InspectPanel from "./InspectPanel";
 import LiveTestPanel from "./LiveTestPanel";
 
 interface Props {
-  /** Height of the canvas + inspect-panel area. Defaults to 700px. */
+  doc: CanvasDocument;
+  onSave: (doc: CanvasDocument) => void;
+  /** Height of the canvas area (excluding the 28px internal undo toolbar). Defaults to 700px. */
   canvasHeight?: string | number;
-  /**
-   * When set, locks the editor to this document ID and renders a slim
-   * standalone header bar instead of the multi-doc toolbar.
-   */
-  docId?: string;
 }
 
-const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px", docId }) => {
-  const router = useRouter();
-  const { docs, loading, saveDocument, createDocument, forkDocument, deleteDocument, undo, redo, canUndo, canRedo } = useCanvasDocuments();
-  const [selectedDocId, setSelectedDocId] = useState<string>("");
+const CalculatorCanvas: React.FC<Props> = ({ doc, onSave, canvasHeight = "700px" }) => {
+  // Internal undo/redo — stacks reset when doc.id changes
+  const [undoStack, setUndoStack] = useState<CanvasDocument[]>([]);
+  const [redoStack, setRedoStack] = useState<CanvasDocument[]>([]);
+  const prevDocId = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (prevDocId.current !== doc.id) {
+      setUndoStack([]);
+      setRedoStack([]);
+      setSelectedNodeId(null);
+      prevDocId.current = doc.id;
+    }
+  }, [doc.id]);
+
+  const canUndo = undoStack.length > 0;
+  const canRedo = redoStack.length > 0;
+
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(100);
   const [clipboard, setClipboard] = useState<ClipboardPayload | null>(null);
@@ -60,7 +69,7 @@ const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px", docId }) =>
     liveTestDragStartWidth.current = liveTestWidth;
     const onMove = (ev: MouseEvent) => {
       if (dragStartX.current === null) return;
-      const delta = ev.clientX - dragStartX.current; // right = wider for left panel
+      const delta = ev.clientX - dragStartX.current;
       setLiveTestWidth(Math.max(200, Math.min(600, liveTestDragStartWidth.current + delta)));
     };
     const onUp = () => {
@@ -72,115 +81,34 @@ const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px", docId }) =>
     window.addEventListener("mouseup", onUp);
   }, [liveTestWidth]);
 
-  const activeDoc = docs.find((d) => d.id === selectedDocId) ?? docs[0];
+  // ─── Save / undo / redo ─────────────────────────────────────────────────────
 
-  // Set initial selectedDocId once docs load, and fall back if the selected doc is deleted
-  useEffect(() => {
-    if (docs.length > 0 && !docs.find((d) => d.id === selectedDocId)) {
-      setSelectedDocId(docs[0].id);
-      setSelectedNodeId(null);
-    }
-  }, [docs, selectedDocId]);
-
-  // When a docId is provided (standalone page mode), pin selection to it.
-  // Only clear selectedNodeId when docId itself changes (navigating to a different template),
-  // not when docs updates due to a save — otherwise every formula keystroke closes the panel.
-  const prevDocId = useRef<string | undefined>(undefined);
-  useEffect(() => {
-    if (docId && docs.find((d) => d.id === docId)) {
-      setSelectedDocId(docId);
-      if (prevDocId.current !== docId) {
-        setSelectedNodeId(null);
-        prevDocId.current = docId;
-      }
-    }
-  }, [docId, docs]);
-
-  // ─── Standalone header: inline name editing ──────────────────────────────────
-  const [nameEditValue, setNameEditValue] = useState<string | null>(null);
-
-  const handleNameBlur = useCallback(() => {
-    if (nameEditValue === null || !activeDoc) return;
-    const trimmed = nameEditValue.trim();
-    if (trimmed && trimmed !== activeDoc.label) {
-      saveDocument({ ...activeDoc, label: trimmed });
-    }
-    setNameEditValue(null);
-  }, [nameEditValue, activeDoc, saveDocument]);
-
-  const handleStandaloneFork = useCallback(async () => {
-    if (!activeDoc) return;
-    const newId = await forkDocument(activeDoc.id);
-    if (newId) router.push(`/pricing/rate-builder/${newId}`);
-  }, [activeDoc, forkDocument, router]);
-
-  const handleStandaloneDelete = useCallback(async () => {
-    if (!activeDoc) return;
-    if (docs.length <= 1) {
-      window.alert("Cannot delete the only template.");
-      return;
-    }
-    if (!window.confirm(`Delete "${activeDoc.label}"? This cannot be undone.`)) return;
-    await deleteDocument(activeDoc.id);
-    router.push("/pricing");
-  }, [activeDoc, docs.length, deleteDocument, router]);
-
-  const controllerDefaults = useMemo(() => {
-    if (!activeDoc) return {};
-    const result: Record<string, number> = {};
-    for (const c of (activeDoc.controllerDefs ?? [])) {
-      if (c.type === "percentage") result[c.id] = typeof c.defaultValue === "number" ? c.defaultValue : 0;
-      if (c.type === "toggle") result[c.id] = c.defaultValue ? 1 : 0;
-    }
-    return result;
-  }, [activeDoc]);
-
-  const canvasControllers = useMemo(() => {
-    if (!activeDoc) return {};
-    const result: Record<string, number | boolean | string[]> = {};
-    for (const c of (activeDoc.controllerDefs ?? [])) {
-      if (c.type === "percentage") result[c.id] = typeof c.defaultValue === "number" ? c.defaultValue : 0;
-      else if (c.type === "toggle") result[c.id] = c.defaultValue ?? false;
-      else if (c.type === "selector") result[c.id] = c.defaultSelected ?? [];
-    }
-    return result;
-  }, [activeDoc]);
-
-  const canvasInactiveNodeIds = useMemo(
-    () => activeDoc ? computeInactiveNodeIds(activeDoc, canvasControllers) : new Set<string>(),
-    [activeDoc, canvasControllers]
-  );
-
-  const stepDebug = useMemo(
-    () =>
-      activeDoc
-        ? debugEvaluateTemplate(activeDoc, undefined, quantity, controllerDefaults, canvasInactiveNodeIds)
-        : [],
-    [activeDoc, quantity, controllerDefaults, canvasInactiveNodeIds]
-  );
-
-  // Computed once and shared between CanvasFlow (for highlight logic + auto-layout)
-  // and InspectPanel (for dependency display) — avoids triple-calling parseEdges.
-  const edges: Edge[] = useMemo(
-    () => (activeDoc ? parseEdges(activeDoc) : []),
-    [activeDoc]
-  );
-
-  // ─── Doc-level saves ────────────────────────────────────────────────────────
-
-  const handleUpdateDoc = useCallback(
-    (updated: CanvasDocument) => saveDocument(updated),
-    [saveDocument]
-  );
-
-  // Full-document edits from InspectPanel (includes slug renames that update def IDs).
-  const handleUpdateDocFromPanel = useCallback(
-    (updated: CanvasDocument, newSelectedId?: string) => {
-      saveDocument(updated);
-      if (newSelectedId !== undefined) setSelectedNodeId(newSelectedId);
+  const handleSave = useCallback(
+    (updated: CanvasDocument) => {
+      setUndoStack((prev) => [...prev.slice(-49), doc]);
+      setRedoStack([]);
+      onSave(updated);
     },
-    [saveDocument]
+    [doc, onSave]
   );
+
+  const handleUndo = useCallback(() => {
+    if (undoStack.length === 0) return;
+    const previous = undoStack[undoStack.length - 1];
+    setUndoStack((prev) => prev.slice(0, -1));
+    setRedoStack((prev) => [...prev, doc]);
+    onSave(previous);
+    setPositionResetKey((k) => k + 1);
+  }, [undoStack, doc, onSave]);
+
+  const handleRedo = useCallback(() => {
+    if (redoStack.length === 0) return;
+    const next = redoStack[redoStack.length - 1];
+    setRedoStack((prev) => prev.slice(0, -1));
+    setUndoStack((prev) => [...prev, doc]);
+    onSave(next);
+    setPositionResetKey((k) => k + 1);
+  }, [redoStack, doc, onSave]);
 
   // ─── Keyboard shortcuts ─────────────────────────────────────────────────────
 
@@ -191,374 +119,134 @@ const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px", docId }) =>
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (e.key === "z" && !e.shiftKey) {
         e.preventDefault();
-        undo(selectedDocId);
-        setPositionResetKey((k) => k + 1);
+        handleUndo();
       } else if (e.key === "y" || (e.key === "z" && e.shiftKey)) {
         e.preventDefault();
-        redo(selectedDocId);
-        setPositionResetKey((k) => k + 1);
+        handleRedo();
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selectedDocId, undo, redo]);
+  }, [handleUndo, handleRedo]);
 
-  // ─── Template toolbar ───────────────────────────────────────────────────────
+  // ─── Canvas eval ────────────────────────────────────────────────────────────
 
-  const handleNew = useCallback(async () => {
-    const newId = await createDocument();
-    setSelectedDocId(newId);
-    setSelectedNodeId(null);
-  }, [createDocument]);
+  const controllerDefaults = useMemo(() => {
+    const result: Record<string, number> = {};
+    for (const c of (doc.controllerDefs ?? [])) {
+      if (c.type === "percentage") result[c.id] = typeof c.defaultValue === "number" ? c.defaultValue : 0;
+      if (c.type === "toggle") result[c.id] = c.defaultValue ? 1 : 0;
+    }
+    return result;
+  }, [doc]);
 
-  const handleFork = useCallback(async () => {
-    if (!activeDoc) return;
-    const newId = await forkDocument(activeDoc.id);
-    if (newId) { setSelectedDocId(newId); setSelectedNodeId(null); }
-  }, [activeDoc, forkDocument]);
+  const canvasControllers = useMemo(() => {
+    const result: Record<string, number | boolean | string[]> = {};
+    for (const c of (doc.controllerDefs ?? [])) {
+      if (c.type === "percentage") result[c.id] = typeof c.defaultValue === "number" ? c.defaultValue : 0;
+      else if (c.type === "toggle") result[c.id] = c.defaultValue ?? false;
+      else if (c.type === "selector") result[c.id] = c.defaultSelected ?? [];
+    }
+    return result;
+  }, [doc]);
 
-  const handleDelete = useCallback(() => {
-    if (!activeDoc || docs.length <= 1) return;
-    deleteDocument(activeDoc.id);
-    // useEffect above will switch selectedDocId once docs updates
-  }, [activeDoc, docs.length, deleteDocument]);
+  const canvasInactiveNodeIds = useMemo(
+    () => computeInactiveNodeIds(doc, canvasControllers),
+    [doc, canvasControllers]
+  );
+
+  const stepDebug = useMemo(
+    () => debugEvaluateTemplate(doc, undefined, quantity, controllerDefaults, canvasInactiveNodeIds),
+    [doc, quantity, controllerDefaults, canvasInactiveNodeIds]
+  );
+
+  const edges: Edge[] = useMemo(() => parseEdges(doc), [doc]);
+
+  // ─── Doc-level saves ────────────────────────────────────────────────────────
+
+  const handleUpdateDoc = useCallback(
+    (updated: CanvasDocument) => handleSave(updated),
+    [handleSave]
+  );
+
+  const handleUpdateDocFromPanel = useCallback(
+    (updated: CanvasDocument, newSelectedId?: string) => {
+      handleSave(updated);
+      if (newSelectedId !== undefined) setSelectedNodeId(newSelectedId);
+    },
+    [handleSave]
+  );
 
   // ─── Node operations ────────────────────────────────────────────────────────
 
   const handleCopy = useCallback((nodeIds: string[]) => {
-    if (!activeDoc) return;
-    setClipboard(copyNodes(nodeIds, activeDoc));
-  }, [activeDoc]);
+    setClipboard(copyNodes(nodeIds, doc));
+  }, [doc]);
 
   const handlePaste = useCallback((position: { x: number; y: number }) => {
-    if (!activeDoc || !clipboard) return;
-    saveDocument(pasteNodes(clipboard, activeDoc, position));
+    if (!clipboard) return;
+    handleSave(pasteNodes(clipboard, doc, position));
     setPositionResetKey((k) => k + 1);
-  }, [activeDoc, clipboard, saveDocument]);
+  }, [doc, clipboard, handleSave]);
 
   const handleDeleteNodes = useCallback((nodeIds: string[]) => {
-    if (!activeDoc) return;
-    saveDocument(deleteNodes(nodeIds, activeDoc));
+    handleSave(deleteNodes(nodeIds, doc));
     if (selectedNodeId && nodeIds.includes(selectedNodeId)) setSelectedNodeId(null);
-  }, [activeDoc, saveDocument, selectedNodeId]);
+  }, [doc, handleSave, selectedNodeId]);
 
   const handleCreateNode = useCallback(
     (type: "formula" | "param" | "table" | "breakdown" | "group" | "controller:percentage" | "controller:toggle" | "controller:selector", position: { x: number; y: number }) => {
-      if (!activeDoc) return;
       if (type === "group") {
-        const { doc, newId } = createGroup(activeDoc, position);
-        saveDocument(doc);
+        const { doc: newDoc, newId } = createGroup(doc, position);
+        handleSave(newDoc);
         setSelectedNodeId(newId);
         setPositionResetKey((k) => k + 1);
       } else if (type.startsWith("controller:")) {
         const ctrlType = type.split(":")[1] as "percentage" | "toggle" | "selector";
-        const { doc: newDoc, newId } = createController(activeDoc, position, ctrlType);
-        saveDocument(newDoc);
+        const { doc: newDoc, newId } = createController(doc, position, ctrlType);
+        handleSave(newDoc);
         setSelectedNodeId(newId);
         setPositionResetKey((k) => k + 1);
       } else {
-        const { doc: updatedDoc, newId } = createNode(type, activeDoc, position);
-        saveDocument(updatedDoc);
+        const { doc: updatedDoc, newId } = createNode(type, doc, position);
+        handleSave(updatedDoc);
         setSelectedNodeId(newId);
         setPositionResetKey((k) => k + 1);
       }
     },
-    [activeDoc, saveDocument]
+    [doc, handleSave]
   );
 
-  if (loading) {
-    return (
-      <Flex align="center" justify="center" h="400px">
-        <Text color="gray.400" fontSize="sm">Loading templates…</Text>
-      </Flex>
-    );
-  }
+  // ─── Canvas height accounting for the 28px undo strip ───────────────────────
 
-  // ─── Standalone mode (full-page editor at /pricing/rate-builder/[id]) ─────────
-  if (docId) {
-    return (
-      <Box w="100%" overflow="hidden">
-        {/* Slim header bar */}
-        <Flex
-          align="center"
-          gap={2}
-          px={3}
-          h="36px"
-          bg="#1e293b"
-          borderBottom="1px solid"
-          borderColor="whiteAlpha.100"
-          flexShrink={0}
-        >
+  const innerHeight = typeof canvasHeight === "number"
+    ? canvasHeight - 28
+    : `calc(${canvasHeight} - 28px)`;
+
+  // ─── Render ─────────────────────────────────────────────────────────────────
+
+  return (
+    <Box w="100%" overflow="hidden">
+      {/* Slim internal undo/redo strip */}
+      <Flex
+        align="center"
+        gap={1}
+        px={2}
+        h="28px"
+        bg="#1e293b"
+        borderBottom="1px solid"
+        borderColor="whiteAlpha.100"
+        flexShrink={0}
+        justify="flex-end"
+      >
+        <Tooltip label="Undo (Ctrl+Z)" placement="bottom">
           <Button
             size="xs"
             variant="ghost"
             color="gray.400"
             _hover={{ color: "white" }}
-            onClick={() => router.push("/pricing")}
-            px={1}
-            fontWeight="normal"
-            fontSize="xs"
-          >
-            ← Pricing
-          </Button>
-          <Box w="1px" h="16px" bg="whiteAlpha.300" />
-          {nameEditValue !== null ? (
-            <input
-              autoFocus
-              value={nameEditValue}
-              onChange={(e) => setNameEditValue(e.target.value)}
-              onBlur={handleNameBlur}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                if (e.key === "Escape") { setNameEditValue(null); }
-              }}
-              style={{
-                background: "transparent",
-                border: "none",
-                borderBottom: "1px solid #4a5568",
-                color: "#f1f5f9",
-                fontSize: "13px",
-                fontWeight: 600,
-                fontFamily: "inherit",
-                outline: "none",
-                padding: "1px 4px",
-                minWidth: 180,
-              }}
-            />
-          ) : (
-            <Text
-              fontSize="sm"
-              fontWeight="semibold"
-              color="white"
-              cursor="text"
-              _hover={{ color: "gray.200" }}
-              onClick={() => setNameEditValue(activeDoc?.label ?? "")}
-              userSelect="none"
-            >
-              {activeDoc?.label ?? "…"}
-            </Text>
-          )}
-          <Box flex={1} />
-          {/* Undo / Redo */}
-          <Tooltip label="Undo (Ctrl+Z)" placement="bottom">
-            <Button
-              size="xs"
-              variant="ghost"
-              color="gray.400"
-              _hover={{ color: "white" }}
-              onClick={() => { undo(selectedDocId); setPositionResetKey((k) => k + 1); }}
-              isDisabled={!canUndo(selectedDocId)}
-              fontFamily="mono"
-              fontSize="md"
-              px={2}
-            >
-              ↩
-            </Button>
-          </Tooltip>
-          <Tooltip label="Redo (Ctrl+Y)" placement="bottom">
-            <Button
-              size="xs"
-              variant="ghost"
-              color="gray.400"
-              _hover={{ color: "white" }}
-              onClick={() => { redo(selectedDocId); setPositionResetKey((k) => k + 1); }}
-              isDisabled={!canRedo(selectedDocId)}
-              fontFamily="mono"
-              fontSize="md"
-              px={2}
-            >
-              ↪
-            </Button>
-          </Tooltip>
-          <Box w="1px" h="16px" bg="whiteAlpha.200" />
-          <Tooltip label="Duplicate this template" placement="bottom">
-            <Button
-              size="xs"
-              variant="ghost"
-              color="gray.400"
-              _hover={{ color: "white" }}
-              onClick={handleStandaloneFork}
-            >
-              Fork
-            </Button>
-          </Tooltip>
-          <Tooltip label="Delete this template" placement="bottom">
-            <Button
-              size="xs"
-              variant="ghost"
-              color="red.400"
-              _hover={{ color: "red.300" }}
-              onClick={handleStandaloneDelete}
-            >
-              Delete
-            </Button>
-          </Tooltip>
-        </Flex>
-
-        {/* Canvas area */}
-        {activeDoc && (
-          <Flex
-            borderWidth={0}
-            rounded="none"
-            overflow="hidden"
-            h={canvasHeight}
-          >
-            {/* Live Test panel or collapsed strip */}
-            {liveTestOpen ? (
-              <>
-                <Box
-                  w={`${liveTestWidth}px`}
-                  flexShrink={0}
-                  overflowY="auto"
-                  bg="white"
-                  borderRight="1px solid"
-                  borderColor="gray.200"
-                >
-                  <LiveTestPanel
-                    doc={activeDoc}
-                    onCollapse={() => setLiveTestOpen(false)}
-                  />
-                </Box>
-                <Box
-                  w="4px"
-                  cursor="col-resize"
-                  bg="gray.100"
-                  _hover={{ bg: "blue.100" }}
-                  onMouseDown={onLiveTestResizeStart}
-                  flexShrink={0}
-                />
-              </>
-            ) : (
-              <Box
-                w="28px"
-                flexShrink={0}
-                bg="gray.50"
-                borderRight="1px solid"
-                borderColor="gray.200"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                cursor="pointer"
-                onClick={() => setLiveTestOpen(true)}
-                title="Open Live Test panel"
-              >
-                <Text
-                  fontSize="9px"
-                  color="gray.400"
-                  style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
-                >
-                  LIVE TEST
-                </Text>
-              </Box>
-            )}
-
-            <Box flex={1} minW={0} bg="#0f172a" position="relative">
-              <CanvasFlow
-                doc={activeDoc}
-                edges={edges}
-                stepDebug={stepDebug}
-                selectedNodeId={selectedNodeId}
-                positionResetKey={positionResetKey}
-                onSelectNode={setSelectedNodeId}
-                quantity={quantity}
-                onQuantityChange={setQuantity}
-                onUpdateDoc={handleUpdateDoc}
-                clipboard={clipboard}
-                onCopy={handleCopy}
-                onPaste={handlePaste}
-                onDeleteNodes={handleDeleteNodes}
-                onCreateNode={handleCreateNode}
-              />
-            </Box>
-
-            {selectedNodeId && (
-              <>
-                <Box
-                  w="4px"
-                  cursor="col-resize"
-                  bg="gray.100"
-                  _hover={{ bg: "blue.100" }}
-                  onMouseDown={onResizeStart}
-                  flexShrink={0}
-                />
-                <Box
-                  w={`${inspectWidth}px`}
-                  flexShrink={0}
-                  overflowY="auto"
-                  bg="white"
-                  borderLeft="1px solid"
-                  borderColor="gray.200"
-                >
-                  <InspectPanel
-                    template={activeDoc}
-                    selectedNodeId={selectedNodeId}
-                    stepDebug={stepDebug}
-                    edges={edges}
-                    onUpdateDoc={handleUpdateDocFromPanel}
-                  />
-                </Box>
-              </>
-            )}
-          </Flex>
-        )}
-      </Box>
-    );
-  }
-
-  return (
-    <Box>
-      {/* Template toolbar */}
-      <Flex align="center" gap={3} mb={4}>
-        <Text fontSize="sm" color="gray.600" whiteSpace="nowrap" fontWeight="medium">
-          Template
-        </Text>
-        <Select
-          size="sm"
-          maxW="260px"
-          value={selectedDocId}
-          onChange={(e) => {
-            setSelectedDocId(e.target.value);
-            setSelectedNodeId(null);
-          }}
-        >
-          {docs.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.label || d.id}
-            </option>
-          ))}
-        </Select>
-
-        <Button size="xs" colorScheme="purple" variant="outline" onClick={handleNew}>
-          New
-        </Button>
-        <Tooltip label="Clone this template" placement="top">
-          <Button size="xs" variant="outline" onClick={handleFork}>
-            Fork
-          </Button>
-        </Tooltip>
-        <Tooltip
-          label={docs.length <= 1 ? "Cannot delete the last template" : "Delete this template"}
-          placement="top"
-        >
-          <Button
-            size="xs"
-            colorScheme="red"
-            variant="ghost"
-            onClick={handleDelete}
-            isDisabled={docs.length <= 1}
-          >
-            Delete
-          </Button>
-        </Tooltip>
-
-        {/* Undo / Redo */}
-        <Box w="1px" h="18px" bg="gray.200" mx={1} />
-        <Tooltip label="Undo (Ctrl+Z)" placement="top">
-          <Button
-            size="xs"
-            variant="ghost"
-            onClick={() => { undo(selectedDocId); setPositionResetKey((k) => k + 1); }}
-            isDisabled={!canUndo(selectedDocId)}
+            onClick={handleUndo}
+            isDisabled={!canUndo}
             fontFamily="mono"
             fontSize="md"
             px={2}
@@ -566,12 +254,14 @@ const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px", docId }) =>
             ↩
           </Button>
         </Tooltip>
-        <Tooltip label="Redo (Ctrl+Y)" placement="top">
+        <Tooltip label="Redo (Ctrl+Y)" placement="bottom">
           <Button
             size="xs"
             variant="ghost"
-            onClick={() => { redo(selectedDocId); setPositionResetKey((k) => k + 1); }}
-            isDisabled={!canRedo(selectedDocId)}
+            color="gray.400"
+            _hover={{ color: "white" }}
+            onClick={handleRedo}
+            isDisabled={!canRedo}
             fontFamily="mono"
             fontSize="md"
             px={2}
@@ -581,122 +271,105 @@ const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px", docId }) =>
         </Tooltip>
       </Flex>
 
-      {activeDoc && (
-        <Flex
-          borderWidth={1}
-          borderColor="gray.200"
-          rounded="lg"
-          overflow="hidden"
-          h={canvasHeight}
-        >
-          {/* Live Test panel or collapsed strip */}
-          {liveTestOpen ? (
-            <>
-              <Box
-                w={`${liveTestWidth}px`}
-                flexShrink={0}
-                h="100%"
-                overflowY="auto"
-                borderRight="1px solid"
-                borderColor="gray.200"
-              >
-                <LiveTestPanel
-                  doc={activeDoc}
-                  onCollapse={() => setLiveTestOpen(false)}
-                />
-              </Box>
-              <Box
-                w="4px"
-                flexShrink={0}
-                h="100%"
-                bg="gray.200"
-                cursor="col-resize"
-                onMouseDown={onLiveTestResizeStart}
-                _hover={{ bg: "purple.300" }}
-                transition="background 0.15s"
-              />
-            </>
-          ) : (
+      {/* Canvas area */}
+      <Flex overflow="hidden" h={innerHeight}>
+        {/* Live Test panel */}
+        {liveTestOpen ? (
+          <>
             <Box
-              w="32px"
+              w={`${liveTestWidth}px`}
               flexShrink={0}
-              h="100%"
-              bg="gray.50"
+              overflowY="auto"
+              bg="white"
               borderRight="1px solid"
               borderColor="gray.200"
-              display="flex"
-              alignItems="flex-start"
-              justifyContent="center"
-              pt={2}
             >
-              <Button
-                size="xs"
-                variant="ghost"
-                onClick={() => setLiveTestOpen(true)}
-                aria-label="Expand live test panel"
-                px={1}
-                minW="auto"
-                color="gray.400"
-                _hover={{ color: "gray.600" }}
-              >
-                »
-              </Button>
+              <LiveTestPanel
+                doc={doc}
+                onCollapse={() => setLiveTestOpen(false)}
+              />
             </Box>
-          )}
-
-          {/* Canvas */}
-          <Box flex={1} h="100%" bg="#0f172a">
-            <CanvasFlow
-              doc={activeDoc}
-              edges={edges}
-              stepDebug={stepDebug}
-              selectedNodeId={selectedNodeId}
-              onSelectNode={setSelectedNodeId}
-              quantity={quantity}
-              onQuantityChange={setQuantity}
-              onUpdateDoc={handleUpdateDoc}
-              clipboard={clipboard}
-              onCopy={handleCopy}
-              onPaste={handlePaste}
-              onDeleteNodes={handleDeleteNodes}
-              onCreateNode={handleCreateNode}
-              positionResetKey={positionResetKey}
-            />
-          </Box>
-
-          {/* Right drag handle — only shown when a node is selected */}
-          {selectedNodeId && (
             <Box
               w="4px"
-              flexShrink={0}
-              h="100%"
-              bg="gray.200"
               cursor="col-resize"
-              onMouseDown={onResizeStart}
-              _hover={{ bg: "purple.300" }}
-              transition="background 0.15s"
+              bg="gray.100"
+              _hover={{ bg: "blue.100" }}
+              onMouseDown={onLiveTestResizeStart}
+              flexShrink={0}
             />
-          )}
-
+          </>
+        ) : (
           <Box
-            w={selectedNodeId ? `${inspectWidth}px` : "0px"}
+            w="28px"
             flexShrink={0}
-            h="100%"
-            overflowY="auto"
-            overflowX="hidden"
-            bg="white"
-            transition="width 0.15s"
+            bg="gray.50"
+            borderRight="1px solid"
+            borderColor="gray.200"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            cursor="pointer"
+            onClick={() => setLiveTestOpen(true)}
+            title="Open Live Test panel"
           >
-            <InspectPanel
-              template={activeDoc}
-              selectedNodeId={selectedNodeId}
-              stepDebug={stepDebug}
-              edges={edges}
-              onUpdateDoc={handleUpdateDocFromPanel}
-            />
+            <Box
+              fontSize="9px"
+              color="gray.400"
+              style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+            >
+              LIVE TEST
+            </Box>
           </Box>
-        </Flex>
-      )}
+        )}
+
+        <Box flex={1} minW={0} bg="#0f172a" position="relative">
+          <CanvasFlow
+            doc={doc}
+            edges={edges}
+            stepDebug={stepDebug}
+            selectedNodeId={selectedNodeId}
+            positionResetKey={positionResetKey}
+            onSelectNode={setSelectedNodeId}
+            quantity={quantity}
+            onQuantityChange={setQuantity}
+            onUpdateDoc={handleUpdateDoc}
+            clipboard={clipboard}
+            onCopy={handleCopy}
+            onPaste={handlePaste}
+            onDeleteNodes={handleDeleteNodes}
+            onCreateNode={handleCreateNode}
+          />
+        </Box>
+
+        {selectedNodeId && (
+          <>
+            <Box
+              w="4px"
+              cursor="col-resize"
+              bg="gray.100"
+              _hover={{ bg: "blue.100" }}
+              onMouseDown={onResizeStart}
+              flexShrink={0}
+            />
+            <Box
+              w={`${inspectWidth}px`}
+              flexShrink={0}
+              overflowY="auto"
+              bg="white"
+              borderLeft="1px solid"
+              borderColor="gray.200"
+            >
+              <InspectPanel
+                template={doc}
+                selectedNodeId={selectedNodeId}
+                stepDebug={stepDebug}
+                edges={edges}
+                onUpdateDoc={handleUpdateDocFromPanel}
+              />
+            </Box>
+          </>
+        )}
+      </Flex>
     </Box>
   );
 };
