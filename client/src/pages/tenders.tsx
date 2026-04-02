@@ -27,6 +27,7 @@ import {
 } from "@chakra-ui/react";
 import { gql } from "@apollo/client";
 import { useRouter } from "next/router";
+import NextLink from "next/link";
 import React from "react";
 import Breadcrumbs from "../components/Common/Breadcrumbs";
 import Container from "../components/Common/Container";
@@ -172,9 +173,16 @@ const Tenders = () => {
           <Breadcrumbs
             crumbs={[{ title: "Tenders", isCurrentPage: true }]}
           />
-          <Button colorScheme="blue" size="sm" onClick={onOpen}>
-            New Tender
-          </Button>
+          <Flex gap={2} align="center">
+            <NextLink href="/pricing" passHref>
+              <Button as="a" size="sm" variant="outline" colorScheme="teal">
+                Rate Builder
+              </Button>
+            </NextLink>
+            <Button colorScheme="blue" size="sm" onClick={onOpen}>
+              New Tender
+            </Button>
+          </Flex>
         </Flex>
 
         {tenders.length === 0 && !loading ? (
