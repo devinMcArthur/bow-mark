@@ -7,7 +7,7 @@ import {
   debugEvaluateTemplate,
 } from "../../../../components/TenderPricing/calculators/evaluate";
 import { parseEdges } from "./edgeParser";
-import { CanvasDocument, useCanvasDocuments } from "./canvasStorage";
+import { CanvasDocument, useCanvasDocuments, computeInactiveNodeIds } from "./canvasStorage";
 import { ClipboardPayload, copyNodes, pasteNodes, deleteNodes, createNode, createGroup, createController } from "./canvasOps";
 import CanvasFlow from "./CanvasFlow";
 import InspectPanel from "./InspectPanel";
@@ -129,12 +129,28 @@ const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px", docId }) =>
     return result;
   }, [activeDoc]);
 
+  const canvasControllers = useMemo(() => {
+    if (!activeDoc) return {};
+    const result: Record<string, number | boolean | string[]> = {};
+    for (const c of (activeDoc.controllerDefs ?? [])) {
+      if (c.type === "percentage") result[c.id] = typeof c.defaultValue === "number" ? c.defaultValue : 0;
+      else if (c.type === "toggle") result[c.id] = c.defaultValue ?? false;
+      else if (c.type === "selector") result[c.id] = c.defaultSelected ?? [];
+    }
+    return result;
+  }, [activeDoc]);
+
+  const canvasInactiveNodeIds = useMemo(
+    () => activeDoc ? computeInactiveNodeIds(activeDoc, canvasControllers) : new Set<string>(),
+    [activeDoc, canvasControllers]
+  );
+
   const stepDebug = useMemo(
     () =>
       activeDoc
-        ? debugEvaluateTemplate(activeDoc, activeDoc.defaultInputs, quantity, controllerDefaults)
+        ? debugEvaluateTemplate(activeDoc, activeDoc.defaultInputs, quantity, controllerDefaults, canvasInactiveNodeIds)
         : [],
-    [activeDoc, quantity, controllerDefaults]
+    [activeDoc, quantity, controllerDefaults, canvasInactiveNodeIds]
   );
 
   // Computed once and shared between CanvasFlow (for highlight logic + auto-layout)

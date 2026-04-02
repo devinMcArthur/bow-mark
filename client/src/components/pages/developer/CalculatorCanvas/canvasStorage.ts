@@ -119,6 +119,43 @@ export function isGroupActive(
   }
 }
 
+/**
+ * Return the set of node IDs (formula steps, params, tables, etc.) that belong
+ * to any currently-inactive group, including members of inactive parent groups.
+ * Used to zero out those steps in the evaluator.
+ */
+export function computeInactiveNodeIds(
+  doc: CanvasDocument,
+  controllers: Record<string, number | boolean | string[]>
+): Set<string> {
+  const inactiveGroupIds = new Set<string>();
+
+  // Propagate inactivity: a group is inactive if it's directly disabled OR
+  // if any ancestor group is inactive. Iterate until stable.
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const g of doc.groupDefs) {
+      if (inactiveGroupIds.has(g.id)) continue;
+      const directlyInactive = !isGroupActive(g, doc, controllers);
+      const parentGroup = doc.groupDefs.find((pg) => pg.memberIds.includes(g.id));
+      const parentInactive = parentGroup ? inactiveGroupIds.has(parentGroup.id) : false;
+      if (directlyInactive || parentInactive) {
+        inactiveGroupIds.add(g.id);
+        changed = true;
+      }
+    }
+  }
+
+  const inactiveNodeIds = new Set<string>();
+  for (const g of doc.groupDefs) {
+    if (inactiveGroupIds.has(g.id)) {
+      for (const mid of g.memberIds) inactiveNodeIds.add(mid);
+    }
+  }
+  return inactiveNodeIds;
+}
+
 // ─── Serialise / deserialise ──────────────────────────────────────────────────
 
 function fragmentToDoc(f: RateBuildupTemplateFullSnippetFragment): CanvasDocument {

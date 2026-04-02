@@ -68,7 +68,8 @@ export function evaluateTemplate(
   template: CalculatorTemplate,
   inputs: CalculatorInputs,
   quantity: number,
-  controllerValues?: Record<string, number>   // optional: percentage/toggle controller values
+  controllerValues?: Record<string, number>,   // optional: percentage/toggle controller values
+  inactiveNodeIds?: Set<string>                // optional: nodes in disabled groups → zeroed out
 ): CalculatorResult {
   // 1. Seed context: quantity + parameters + table aggregates
   const ctx: Record<string, number> = { quantity };
@@ -89,9 +90,9 @@ export function evaluateTemplate(
     ctx[id] = val;
   }
 
-  // 2. Evaluate formula steps in dependency order
+  // 2. Evaluate formula steps in dependency order; skip steps in inactive groups
   for (const step of topoSortSteps(template.formulaSteps).sorted) {
-    ctx[step.id] = safeEval(step.formula, ctx);
+    ctx[step.id] = inactiveNodeIds?.has(step.id) ? 0 : safeEval(step.formula, ctx);
   }
 
   // 3. Assemble result
@@ -116,7 +117,8 @@ export function debugEvaluateTemplate(
   template: CalculatorTemplate,
   inputs: CalculatorInputs,
   quantity: number,
-  controllerValues?: Record<string, number>   // optional: percentage/toggle controller values
+  controllerValues?: Record<string, number>,   // optional: percentage/toggle controller values
+  inactiveNodeIds?: Set<string>                // optional: nodes in disabled groups → zeroed out
 ): StepDebugInfo[] {
   const ctx: Record<string, number> = { quantity };
 
@@ -139,6 +141,12 @@ export function debugEvaluateTemplate(
   const { sorted, cycleIds } = topoSortSteps(template.formulaSteps);
 
   return sorted.map((step) => {
+    // Steps in inactive groups are zeroed out without evaluation
+    if (inactiveNodeIds?.has(step.id)) {
+      ctx[step.id] = 0;
+      return { id: step.id, formula: step.formula, value: 0 };
+    }
+
     // Detect cycle participants before they reach the expression parser
     if (cycleIds.has(step.id)) {
       const otherCycleMembers = step.formula

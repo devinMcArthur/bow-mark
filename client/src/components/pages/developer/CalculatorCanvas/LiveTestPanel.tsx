@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Box, Button, Flex, Grid, Input, Text } from "@chakra-ui/react";
 import { v4 as uuidv4 } from "uuid";
 import { FiChevronDown, FiChevronRight, FiPlus } from "react-icons/fi";
-import { CanvasDocument, GroupDef, ControllerDef, isGroupActive } from "./canvasStorage";
+import { CanvasDocument, GroupDef, ControllerDef, isGroupActive, computeInactiveNodeIds } from "./canvasStorage";
 import { RateEntry } from "../../../../components/TenderPricing/calculators/types";
 import {
   evaluateTemplate,
@@ -234,6 +234,25 @@ const GroupSection: React.FC<GroupSectionProps> = ({
     .map((id) => id.replace(/RatePerHr$/, ""));
   const subGroupIds = group.memberIds.filter((id) => doc.groupDefs.some((g) => g.id === id));
 
+  // Group controllers with the sub-groups they activate so they render together
+  const controllerIdSet = new Set(controllerIds);
+  const ctrlSubGroupMap = new Map<string, string[]>();
+  const subGroupsWithCtrl = new Set<string>();
+  for (const sgId of subGroupIds) {
+    const sg = doc.groupDefs.find((g) => g.id === sgId);
+    const cid = sg?.activation?.controllerId;
+    if (cid && controllerIdSet.has(cid)) {
+      if (!ctrlSubGroupMap.has(cid)) ctrlSubGroupMap.set(cid, []);
+      ctrlSubGroupMap.get(cid)!.push(sgId);
+      subGroupsWithCtrl.add(sgId);
+    }
+  }
+  const controllerBlocks = controllerIds
+    .filter((cid) => ctrlSubGroupMap.has(cid))
+    .map((cid) => ({ ctrl: (doc.controllerDefs ?? []).find((c) => c.id === cid)!, groupIds: ctrlSubGroupMap.get(cid)! }));
+  const loneControllerIds = controllerIds.filter((cid) => !ctrlSubGroupMap.has(cid));
+  const uncontrolledSubGroupIds = subGroupIds.filter((id) => !subGroupsWithCtrl.has(id));
+
   const hasVisibleContent = controllerIds.length > 0 || paramIds.length > 0 || tableIds.length > 0 || subGroupIds.length > 0;
   if (!hasVisibleContent) return null;
 
@@ -278,8 +297,8 @@ const GroupSection: React.FC<GroupSectionProps> = ({
 
       {open && active && (
         <>
-          {/* Controllers in this group */}
-          {controllerIds.map((id) => {
+          {/* Standalone controllers (don't activate any sub-group) */}
+          {loneControllerIds.map((id) => {
             const ctrl = (doc.controllerDefs ?? []).find((c) => c.id === id)!;
             return (
               <ControllerWidget
@@ -306,24 +325,34 @@ const GroupSection: React.FC<GroupSectionProps> = ({
               onUpdateRow={onUpdateRow} onAddRow={onAddRow} onRemoveRow={onRemoveRow} />
           ))}
 
-          {/* Sub-groups */}
-          {subGroupIds.map((id) => {
+          {/* Controller blocks: controller immediately above the sub-groups it activates */}
+          {controllerBlocks.map(({ ctrl, groupIds }) => (
+            <Box key={ctrl.id} mb={3} borderLeft="2px solid" borderColor="teal.300" pl={2}>
+              <ControllerWidget
+                ctrl={ctrl}
+                value={controllers[ctrl.id] ?? (ctrl.type === "selector" ? [] : ctrl.type === "toggle" ? false : 0)}
+                onChange={onControllerChange}
+              />
+              {groupIds.map((id) => {
+                const subGroup = doc.groupDefs.find((g) => g.id === id)!;
+                return (
+                  <GroupSection key={id} group={subGroup} depth={depth + 1} doc={doc}
+                    params={params} tables={tables} controllers={controllers}
+                    onParamChange={onParamChange} onUpdateRow={onUpdateRow}
+                    onAddRow={onAddRow} onRemoveRow={onRemoveRow} onControllerChange={onControllerChange} />
+                );
+              })}
+            </Box>
+          ))}
+
+          {/* Sub-groups with no controller */}
+          {uncontrolledSubGroupIds.map((id) => {
             const subGroup = doc.groupDefs.find((g) => g.id === id)!;
             return (
-              <GroupSection
-                key={id}
-                group={subGroup}
-                depth={depth + 1}
-                doc={doc}
-                params={params}
-                tables={tables}
-                controllers={controllers}
-                onParamChange={onParamChange}
-                onUpdateRow={onUpdateRow}
-                onAddRow={onAddRow}
-                onRemoveRow={onRemoveRow}
-                onControllerChange={onControllerChange}
-              />
+              <GroupSection key={id} group={subGroup} depth={depth + 1} doc={doc}
+                params={params} tables={tables} controllers={controllers}
+                onParamChange={onParamChange} onUpdateRow={onUpdateRow}
+                onAddRow={onAddRow} onRemoveRow={onRemoveRow} onControllerChange={onControllerChange} />
             );
           })}
         </>
@@ -370,13 +399,18 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
     return result;
   }, [doc.controllerDefs, controllers]);
 
+  const inactiveNodeIds = useMemo(
+    () => computeInactiveNodeIds(doc, controllers),
+    [doc, controllers]
+  );
+
   const result = useMemo(
-    () => evaluateTemplate(doc, inputs, quantity, controllerValues),
-    [doc, inputs, quantity, controllerValues]
+    () => evaluateTemplate(doc, inputs, quantity, controllerValues, inactiveNodeIds),
+    [doc, inputs, quantity, controllerValues, inactiveNodeIds]
   );
   const stepDebug = useMemo(
-    () => debugEvaluateTemplate(doc, inputs, quantity, controllerValues),
-    [doc, inputs, quantity, controllerValues]
+    () => debugEvaluateTemplate(doc, inputs, quantity, controllerValues, inactiveNodeIds),
+    [doc, inputs, quantity, controllerValues, inactiveNodeIds]
   );
 
   const updateParam = useCallback(
@@ -404,13 +438,36 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
   };
 
   // Determine which params/tables/controllers are in any group (member of at least one groupDef)
-  const { ungroupedParams, ungroupedTables, topLevelGroups, ungroupedControllers } = useMemo(() => {
+  const { ungroupedParams, ungroupedTables, topLevelGroups, controllerBlocks, loneControllers, uncontrolledTopGroups } = useMemo(() => {
     const allMemberIds = new Set(doc.groupDefs.flatMap((g) => g.memberIds));
+    const topLevelGroups = doc.groupDefs.filter((g) => !allMemberIds.has(g.id));
+    const ungroupedControllers = (doc.controllerDefs ?? []).filter((c) => !allMemberIds.has(c.id));
+    const ungroupedControllerIds = new Set(ungroupedControllers.map((c) => c.id));
+
+    // Map each ungrouped controller to the top-level groups it activates
+    const controllerGroupMap = new Map<string, typeof topLevelGroups>();
+    const groupsWithController = new Set<string>();
+    for (const g of topLevelGroups) {
+      const cid = g.activation?.controllerId;
+      if (cid && ungroupedControllerIds.has(cid)) {
+        if (!controllerGroupMap.has(cid)) controllerGroupMap.set(cid, []);
+        controllerGroupMap.get(cid)!.push(g);
+        groupsWithController.add(g.id);
+      }
+    }
+
     return {
       ungroupedParams: doc.parameterDefs.filter((p) => !allMemberIds.has(p.id)),
       ungroupedTables: doc.tableDefs.filter((t) => !allMemberIds.has(`${t.id}RatePerHr`)),
-      topLevelGroups: doc.groupDefs.filter((g) => !allMemberIds.has(g.id)),
-      ungroupedControllers: (doc.controllerDefs ?? []).filter((c) => !allMemberIds.has(c.id)),
+      topLevelGroups,
+      // Controllers that have at least one top-level group — rendered as a block with those groups
+      controllerBlocks: ungroupedControllers
+        .filter((c) => controllerGroupMap.has(c.id))
+        .map((c) => ({ ctrl: c, groups: controllerGroupMap.get(c.id)! })),
+      // Controllers with no groups — rendered standalone at top
+      loneControllers: ungroupedControllers.filter((c) => !controllerGroupMap.has(c.id)),
+      // Top-level groups with no ungrouped controller activation
+      uncontrolledTopGroups: topLevelGroups.filter((g) => !groupsWithController.has(g.id)),
     };
   }, [doc]);
 
@@ -461,10 +518,10 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
           <Text fontSize="xs" color="gray.400" whiteSpace="nowrap">{doc.defaultUnit}</Text>
         </Flex>
 
-        {/* Ungrouped controllers */}
-        {ungroupedControllers.length > 0 && (
+        {/* Standalone controllers (no groups) */}
+        {loneControllers.length > 0 && (
           <Box mb={4}>
-            {ungroupedControllers.map((c) => (
+            {loneControllers.map((c) => (
               <ControllerWidget
                 key={c.id}
                 ctrl={c}
@@ -503,8 +560,35 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
           />
         ))}
 
-        {/* Top-level groups */}
-        {topLevelGroups.map((g) => (
+        {/* Controller blocks: controller widget immediately above the groups it activates */}
+        {controllerBlocks.map(({ ctrl, groups }) => (
+          <Box key={ctrl.id} mb={3} borderLeft="2px solid" borderColor="teal.300" pl={2}>
+            <ControllerWidget
+              ctrl={ctrl}
+              value={controllers[ctrl.id] ?? (ctrl.type === "selector" ? [] : ctrl.type === "toggle" ? false : 0)}
+              onChange={(id, v) => setControllers((prev) => ({ ...prev, [id]: v }))}
+            />
+            {groups.map((g) => (
+              <GroupSection
+                key={g.id}
+                group={g}
+                depth={0}
+                doc={doc}
+                params={params}
+                tables={tables}
+                controllers={controllers}
+                onParamChange={updateParam}
+                onUpdateRow={updateRow}
+                onAddRow={addRow}
+                onRemoveRow={removeRow}
+                onControllerChange={(id, v) => setControllers((prev) => ({ ...prev, [id]: v }))}
+              />
+            ))}
+          </Box>
+        ))}
+
+        {/* Top-level groups with no controller */}
+        {uncontrolledTopGroups.map((g) => (
           <GroupSection
             key={g.id}
             group={g}
