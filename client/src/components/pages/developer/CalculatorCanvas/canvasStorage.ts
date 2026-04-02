@@ -18,11 +18,37 @@ import {
 
 // ─── CanvasDocument ───────────────────────────────────────────────────────────
 
+export interface GroupActivation {
+  controllerId: string;
+  /** Percentage / Toggle: simple comparison, e.g. "> 0", "< 1", "=== 1" */
+  condition?: string;
+  /** Selector only: which option ID activates this group */
+  optionId?: string;
+}
+
+export interface ControllerOption {
+  id: string;
+  label: string;
+}
+
+export interface ControllerDef {
+  id: string;
+  label: string;
+  type: "percentage" | "toggle" | "selector";
+  /** Percentage: 0–1 number. Toggle: boolean. Absent for selector. */
+  defaultValue?: number | boolean;
+  /** Selector only */
+  options?: ControllerOption[];
+  /** Selector only: option IDs selected by default */
+  defaultSelected?: string[];
+}
+
 export interface GroupDef {
   id: string;
   label: string;
   parentGroupId?: string;
   memberIds: string[]; // ordered list: param/table/formula step/sub-group IDs
+  activation?: GroupActivation;   // omitted = always active
 }
 
 // CanvasDocument is the in-memory representation used by the canvas.
@@ -40,6 +66,55 @@ export interface CanvasDocument {
   defaultInputs: CalculatorInputs;
   nodePositions: Record<string, { x: number; y: number; w?: number; h?: number }>;
   groupDefs: GroupDef[];
+  controllerDefs: ControllerDef[];
+}
+
+/**
+ * Evaluate whether a group is active given the current controller values.
+ * Returns true if the group has no activation condition (always active).
+ * controllers: keyed by controllerId; values are number (percentage), boolean (toggle),
+ *              or string[] (selector selected option IDs).
+ */
+export function isGroupActive(
+  group: GroupDef,
+  doc: CanvasDocument,
+  controllers: Record<string, number | boolean | string[]>
+): boolean {
+  const { activation } = group;
+  if (!activation) return true;
+  const ctrl = doc.controllerDefs.find((c) => c.id === activation.controllerId);
+  if (!ctrl) return true; // controller deleted — treat as always active
+
+  if (ctrl.type === "selector") {
+    const selected = (controllers[activation.controllerId] as string[] | undefined)
+      ?? ctrl.defaultSelected ?? [];
+    return activation.optionId ? selected.includes(activation.optionId) : true;
+  }
+
+  // percentage or toggle → numeric comparison
+  const raw = controllers[activation.controllerId];
+  const numVal =
+    raw === undefined
+      ? ctrl.type === "toggle"
+        ? (ctrl.defaultValue ? 1 : 0)
+        : (typeof ctrl.defaultValue === "number" ? ctrl.defaultValue : 0)
+      : typeof raw === "boolean"
+      ? raw ? 1 : 0
+      : (raw as number);
+
+  if (!activation.condition) return true;
+  const m = activation.condition.trim().match(/^([><=!]{1,3})\s*(-?[\d.]+)$/);
+  if (!m) return true;
+  const rhs = parseFloat(m[2]);
+  switch (m[1]) {
+    case ">":   return numVal > rhs;
+    case ">=":  return numVal >= rhs;
+    case "<":   return numVal < rhs;
+    case "<=":  return numVal <= rhs;
+    case "===": case "==": return numVal === rhs;
+    case "!==": case "!=": return numVal !== rhs;
+    default:    return true;
+  }
 }
 
 // ─── Serialise / deserialise ──────────────────────────────────────────────────
@@ -54,6 +129,8 @@ function fragmentToDoc(f: RateBuildupTemplateFullSnippetFragment): CanvasDocumen
   try { nodePositions = JSON.parse(f.nodePositions); } catch { /* ignore */ }
   let groupDefs: GroupDef[] = [];
   try { groupDefs = JSON.parse(f.groupDefs ?? '[]'); } catch { /* ignore */ }
+  let controllerDefs: ControllerDef[] = [];
+  try { controllerDefs = JSON.parse(f.controllerDefs ?? '[]'); } catch { /* ignore */ }
   return {
     id: f._id,
     label: f.label,
@@ -66,6 +143,7 @@ function fragmentToDoc(f: RateBuildupTemplateFullSnippetFragment): CanvasDocumen
     defaultInputs,
     nodePositions,
     groupDefs,
+    controllerDefs,
   };
 }
 
@@ -101,6 +179,7 @@ function docToVariables(
       defaultInputs: JSON.stringify(doc.defaultInputs),
       nodePositions: JSON.stringify(doc.nodePositions),
       groupDefs: JSON.stringify(doc.groupDefs),
+      controllerDefs: JSON.stringify(doc.controllerDefs),
     },
   };
 }
@@ -123,6 +202,7 @@ function blankDocument(): CanvasDocument {
       unitPrice: { x: 700, y: 200 },
     },
     groupDefs: [],
+    controllerDefs: [],
   };
 }
 
