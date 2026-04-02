@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import {
   Box,
   Button,
-  ButtonGroup,
   Flex,
   FormControl,
   FormLabel,
@@ -16,44 +15,83 @@ import {
   Textarea,
 } from "@chakra-ui/react";
 import { FiX } from "react-icons/fi";
+import { useRouter } from "next/router";
+import { useApolloClient } from "@apollo/client";
 import { useSystem } from "../../contexts/System";
 import { TenderPricingRow } from "./types";
 import { computeRow, formatCurrency, formatMarkup } from "./compute";
-import { useCalculatorTemplates } from "./calculators/storage";
-import { CalculatorInputs, CalculatorTemplate } from "./calculators/types";
-import CalculatorPanel from "./CalculatorPanel";
+import { RateBuildupTemplatesDocument } from "../../generated/graphql";
+import {
+  CanvasDocument,
+  fragmentToDoc,
+  snapshotFromTemplate,
+} from "../pages/developer/CalculatorCanvas/canvasStorage";
 
-// ── Migration: old flat JSON → new { params, tables } format ──────────────────
+// ── AttachTemplateButton ───────────────────────────────────────────────────────
 
-function migrateInputs(
-  json: string | null | undefined,
-  template: CalculatorTemplate
-): CalculatorInputs {
-  if (!json) return template.defaultInputs;
-  try {
-    const parsed = JSON.parse(json);
-    // New format already has params key
-    if (parsed.params !== undefined) return parsed as CalculatorInputs;
-    // Old format: flat object — extract params and tables by matching defs
-    const params: Record<string, number> = {};
-    const tables: Record<string, import("./calculators/types").RateEntry[]> = {};
-    for (const p of template.parameterDefs) {
-      if (typeof parsed[p.id] === "number") params[p.id] = parsed[p.id];
-    }
-    for (const t of template.tableDefs) {
-      if (Array.isArray(parsed[t.id])) tables[t.id] = parsed[t.id];
-    }
-    return { params, tables };
-  } catch {
-    return template.defaultInputs;
-  }
-}
+const AttachTemplateButton: React.FC<{
+  onAttach: (doc: CanvasDocument) => void;
+}> = ({ onAttach }) => {
+  const client = useApolloClient();
+  const [templates, setTemplates] = useState<CanvasDocument[]>([]);
+  const [open, setOpen] = useState(false);
+
+  const handleOpen = async () => {
+    const { data } = await client.query({
+      query: RateBuildupTemplatesDocument,
+      fetchPolicy: "network-only",
+    });
+    setTemplates((data?.rateBuildupTemplates ?? []).map(fragmentToDoc));
+    setOpen(true);
+  };
+
+  return (
+    <>
+      <Button size="xs" colorScheme="blue" variant="outline" onClick={handleOpen}>
+        + Attach Template
+      </Button>
+      {open && (
+        <Box
+          position="fixed" inset={0} zIndex={100}
+          bg="blackAlpha.600"
+          display="flex" alignItems="center" justifyContent="center"
+          onClick={() => setOpen(false)}
+        >
+          <Box
+            bg="white" rounded="md" p={4} minW="300px" maxW="400px"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Text fontWeight="semibold" mb={3} fontSize="sm">Select a Rate Buildup Template</Text>
+            {templates.length === 0 ? (
+              <Text fontSize="sm" color="gray.400">No templates found.</Text>
+            ) : (
+              templates.map((t) => (
+                <Button
+                  key={t.id}
+                  variant="ghost"
+                  size="sm"
+                  w="100%"
+                  justifyContent="flex-start"
+                  onClick={() => { onAttach(t); setOpen(false); }}
+                >
+                  {t.label}
+                </Button>
+              ))
+            )}
+          </Box>
+        </Box>
+      )}
+    </>
+  );
+};
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 interface LineItemDetailProps {
   row: TenderPricingRow;
   defaultMarkupPct: number;
+  sheetId: string;
+  tenderId: string;
   onUpdate: (rowId: string, data: Record<string, unknown>) => void;
   onClose: () => void;
 }
@@ -61,12 +99,14 @@ interface LineItemDetailProps {
 const LineItemDetail: React.FC<LineItemDetailProps> = ({
   row,
   defaultMarkupPct,
+  sheetId: _sheetId,
+  tenderId,
   onUpdate,
   onClose,
 }) => {
   const { state: { system } } = useSystem();
+  const router = useRouter();
   const units = system?.unitDefaults ?? [];
-  const { templates } = useCalculatorTemplates();
 
   const [itemNumber, setItemNumber] = useState(row.itemNumber ?? "");
   const [description, setDescription] = useState(row.description ?? "");
@@ -105,15 +145,21 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
     }
   };
 
-  const activeTemplate = row.calculatorType
-    ? templates.find((t) => t.id === row.calculatorType) ?? null
-    : null;
+  const hasRateBuildup = !!row.rateBuildupSnapshot;
+
+  // Parse label from snapshot for display
+  const snapshotLabel = (() => {
+    if (!row.rateBuildupSnapshot) return null;
+    try {
+      return JSON.parse(row.rateBuildupSnapshot).label ?? "Buildup";
+    } catch {
+      return "Buildup";
+    }
+  })();
 
   const previewRow: TenderPricingRow = {
     ...row,
-    unitPrice: activeTemplate
-      ? row.unitPrice
-      : parseFloat(unitPrice) || null,
+    unitPrice: hasRateBuildup ? row.unitPrice : (parseFloat(unitPrice) || null),
     quantity: parseFloat(quantity) || null,
     markupOverride: (() => {
       const t = markup.trim();
@@ -127,29 +173,6 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
     defaultMarkupPct
   );
   const hasMarkupOverride = previewRow.markupOverride != null;
-
-  const handleSelectType = (templateId: string | null) => {
-    if (!templateId) {
-      onUpdate(row._id, { calculatorType: null, calculatorInputsJson: null });
-      return;
-    }
-    const t = templates.find((t) => t.id === templateId);
-    if (!t) return;
-    // Only seed defaultInputs if switching to a different type or no existing inputs
-    const existingJson = row.calculatorType === templateId ? row.calculatorInputsJson : null;
-    onUpdate(row._id, {
-      calculatorType: templateId,
-      calculatorInputsJson: existingJson ?? JSON.stringify(t.defaultInputs),
-      unit: row.unit || t.defaultUnit || null,
-    });
-  };
-
-  const handleCalculatorSave = (inputs: CalculatorInputs, computedUnitPrice: number) => {
-    onUpdate(row._id, {
-      calculatorInputsJson: JSON.stringify(inputs),
-      unitPrice: parseFloat(computedUnitPrice.toFixed(4)) || null,
-    });
-  };
 
   return (
     <Flex direction="column" h="100%" bg="white">
@@ -194,29 +217,44 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
 
       {/* ── Form ────────────────────────────────────────────────────── */}
       <Box px={6} py={5} overflowY="auto" flex={1}>
-        {/* Type toggle — dynamic from loaded templates */}
-        <Flex mb={4} align="center" gap={2} flexWrap="wrap">
-          <Text fontSize="xs" color="gray.500" fontWeight="medium">Type:</Text>
-          <ButtonGroup size="xs" isAttached variant="outline">
-            <Button
-              colorScheme={!row.calculatorType ? "blue" : "gray"}
-              variant={!row.calculatorType ? "solid" : "outline"}
-              onClick={() => handleSelectType(null)}
-            >
-              Manual
-            </Button>
-            {templates.map((t) => (
+        {/* Rate Buildup */}
+        <Box mb={4}>
+          <Text fontSize="xs" color="gray.500" fontWeight="medium" mb={2}>Rate Buildup</Text>
+          {hasRateBuildup ? (
+            <Flex align="center" gap={2}>
+              <Text fontSize="sm" color="gray.700" fontWeight="medium">
+                {snapshotLabel}
+              </Text>
               <Button
-                key={t.id}
-                colorScheme={row.calculatorType === t.id ? "blue" : "gray"}
-                variant={row.calculatorType === t.id ? "solid" : "outline"}
-                onClick={() => handleSelectType(t.id)}
+                size="xs"
+                colorScheme="blue"
+                variant="outline"
+                onClick={() => router.push(`/tender/${tenderId}/pricing/row/${row._id}`)}
               >
-                {t.label}
+                Edit Buildup →
               </Button>
-            ))}
-          </ButtonGroup>
-        </Flex>
+              <Button
+                size="xs"
+                variant="ghost"
+                color="red.400"
+                _hover={{ color: "red.600" }}
+                onClick={() => onUpdate(row._id, { rateBuildupSnapshot: null, unitPrice: null })}
+              >
+                Detach
+              </Button>
+            </Flex>
+          ) : (
+            <AttachTemplateButton
+              onAttach={(templateDoc) => {
+                const snapshot = snapshotFromTemplate(templateDoc);
+                onUpdate(row._id, {
+                  rateBuildupSnapshot: JSON.stringify(snapshot),
+                  unit: row.unit || templateDoc.defaultUnit || null,
+                });
+              }}
+            />
+          )}
+        </Box>
 
         {/* Item # + Description */}
         <Grid templateColumns="90px 1fr" gap={3} mb={4}>
@@ -243,7 +281,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
         </Grid>
 
         {/* Qty + Unit + Unit Price */}
-        <Grid templateColumns={activeTemplate ? "80px 110px" : "80px 110px 1fr"} gap={3} mb={4}>
+        <Grid templateColumns={hasRateBuildup ? "80px 110px" : "80px 110px 1fr"} gap={3} mb={4}>
           <FormControl>
             <FormLabel fontSize="xs" color="gray.500" fontWeight="medium" mb={1}>Qty</FormLabel>
             <Input
@@ -280,7 +318,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
               ))}
             </select>
           </FormControl>
-          {!activeTemplate && (
+          {!hasRateBuildup && (
             <FormControl>
               <FormLabel fontSize="xs" color="gray.500" fontWeight="medium" mb={1}>Unit Price</FormLabel>
               <InputGroup size="sm">
@@ -350,29 +388,6 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
           />
         </FormControl>
 
-        {/* Calculator panel — rendered for any active template */}
-        {activeTemplate && (
-          <Box borderTop="1px solid" borderColor="gray.100" pt={4} mt={4} mb={5}>
-            <Text
-              fontSize="xs"
-              fontWeight="semibold"
-              color="gray.500"
-              textTransform="uppercase"
-              letterSpacing="wide"
-              mb={4}
-            >
-              {activeTemplate.label} Calculator
-            </Text>
-            <CalculatorPanel
-              template={activeTemplate}
-              inputs={migrateInputs(row.calculatorInputsJson, activeTemplate)}
-              resetKey={`${row._id}:${row.calculatorType ?? ""}`}
-              quantity={parseFloat(quantity) || 0}
-              onSave={handleCalculatorSave}
-            />
-          </Box>
-        )}
-
         {/* Computed summary */}
         <Grid
           templateColumns="repeat(4, 1fr)"
@@ -410,7 +425,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
   );
 };
 
-// ── StatCell (unchanged) ──────────────────────────────────────────────────────
+// ── StatCell ──────────────────────────────────────────────────────────────────
 
 interface StatCellProps {
   label: string;

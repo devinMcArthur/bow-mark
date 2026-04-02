@@ -30,6 +30,7 @@ const SHEET_QUERY = gql`
         calculatorType
         calculatorInputsJson
         markupOverride
+        rateBuildupSnapshot
       }
     }
   }
@@ -64,6 +65,7 @@ const CREATE_SHEET = gql`
         calculatorType
         calculatorInputsJson
         markupOverride
+        rateBuildupSnapshot
       }
     }
   }
@@ -123,7 +125,7 @@ const TenderPricingPage = () => {
         {!initialized ? (
           <Spinner />
         ) : sheet ? (
-          <PricingSheet sheet={sheet} onUpdate={setSheet} />
+          <PricingSheet sheet={sheet} tenderId={tenderId} onUpdate={setSheet} />
         ) : (
           <Text color="gray.500">Unable to load pricing sheet.</Text>
         )}

@@ -113,10 +113,11 @@ const REORDER_ROWS = gql`
 
 interface PricingSheetProps {
   sheet: TPricingSheet;
+  tenderId: string;
   onUpdate: (updated: TPricingSheet) => void;
 }
 
-const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, onUpdate }) => {
+const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate }) => {
   const [markupDraft, setMarkupDraft] = useState(String(sheet.defaultMarkupPct));
   const [editingMarkup, setEditingMarkup] = useState(false);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
@@ -342,6 +343,8 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, onUpdate }) => {
             <LineItemDetail
               row={selectedRow!}
               defaultMarkupPct={sheet.defaultMarkupPct}
+              sheetId={sheet._id}
+              tenderId={tenderId}
               onUpdate={handleUpdateRow}
               onClose={() => setSelectedRowId(null)}
             />
