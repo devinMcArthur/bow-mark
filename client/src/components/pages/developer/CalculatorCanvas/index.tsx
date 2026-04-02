@@ -1,5 +1,6 @@
 // client/src/components/pages/developer/CalculatorCanvas/index.tsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/router";
 import { Box, Button, Flex, Select, Text, Tooltip } from "@chakra-ui/react";
 import { Edge } from "reactflow";
 import {
@@ -15,9 +16,15 @@ import LiveTestPanel from "./LiveTestPanel";
 interface Props {
   /** Height of the canvas + inspect-panel area. Defaults to 700px. */
   canvasHeight?: string | number;
+  /**
+   * When set, locks the editor to this document ID and renders a slim
+   * standalone header bar instead of the multi-doc toolbar.
+   */
+  docId?: string;
 }
 
-const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px" }) => {
+const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px", docId }) => {
+  const router = useRouter();
   const { docs, loading, saveDocument, createDocument, forkDocument, deleteDocument, undo, redo, canUndo, canRedo } = useCanvasDocuments();
   const [selectedDocId, setSelectedDocId] = useState<string>("");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -74,6 +81,39 @@ const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px" }) => {
       setSelectedNodeId(null);
     }
   }, [docs, selectedDocId]);
+
+  // When a docId is provided (standalone page mode), pin selection to it
+  useEffect(() => {
+    if (docId && docs.find((d) => d.id === docId)) {
+      setSelectedDocId(docId);
+      setSelectedNodeId(null);
+    }
+  }, [docId, docs]);
+
+  // ─── Standalone header: inline name editing ──────────────────────────────────
+  const [nameEditValue, setNameEditValue] = useState<string | null>(null);
+
+  const handleNameBlur = useCallback(() => {
+    if (nameEditValue === null || !activeDoc) return;
+    const trimmed = nameEditValue.trim();
+    if (trimmed && trimmed !== activeDoc.label) {
+      saveDocument({ ...activeDoc, label: trimmed });
+    }
+    setNameEditValue(null);
+  }, [nameEditValue, activeDoc, saveDocument]);
+
+  const handleStandaloneFork = useCallback(async () => {
+    if (!activeDoc) return;
+    const newId = await forkDocument(activeDoc.id);
+    if (newId) router.push(`/pricing/rate-builder/${newId}`);
+  }, [activeDoc, forkDocument, router]);
+
+  const handleStandaloneDelete = useCallback(async () => {
+    if (!activeDoc) return;
+    if (!window.confirm(`Delete "${activeDoc.label}"? This cannot be undone.`)) return;
+    await deleteDocument(activeDoc.id);
+    router.push("/pricing");
+  }, [activeDoc, deleteDocument, router]);
 
   const controllerDefaults = useMemo(() => {
     if (!activeDoc) return {};
@@ -205,6 +245,237 @@ const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px" }) => {
       <Flex align="center" justify="center" h="400px">
         <Text color="gray.400" fontSize="sm">Loading templates…</Text>
       </Flex>
+    );
+  }
+
+  // ─── Standalone mode (full-page editor at /pricing/rate-builder/[id]) ─────────
+  if (docId) {
+    return (
+      <Box>
+        {/* Slim header bar */}
+        <Flex
+          align="center"
+          gap={2}
+          px={3}
+          h="36px"
+          bg="#1e293b"
+          borderBottom="1px solid"
+          borderColor="whiteAlpha.100"
+          flexShrink={0}
+        >
+          <Button
+            size="xs"
+            variant="ghost"
+            color="gray.400"
+            _hover={{ color: "white" }}
+            onClick={() => router.push("/pricing")}
+            px={1}
+            fontWeight="normal"
+            fontSize="xs"
+          >
+            ← Pricing
+          </Button>
+          <Box w="1px" h="16px" bg="whiteAlpha.300" />
+          {nameEditValue !== null ? (
+            <input
+              autoFocus
+              value={nameEditValue}
+              onChange={(e) => setNameEditValue(e.target.value)}
+              onBlur={handleNameBlur}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                if (e.key === "Escape") { setNameEditValue(null); }
+              }}
+              style={{
+                background: "transparent",
+                border: "none",
+                borderBottom: "1px solid #4a5568",
+                color: "#f1f5f9",
+                fontSize: "13px",
+                fontWeight: 600,
+                fontFamily: "inherit",
+                outline: "none",
+                padding: "1px 4px",
+                minWidth: 180,
+              }}
+            />
+          ) : (
+            <Text
+              fontSize="sm"
+              fontWeight="semibold"
+              color="white"
+              cursor="text"
+              _hover={{ color: "gray.200" }}
+              onClick={() => setNameEditValue(activeDoc?.label ?? "")}
+              userSelect="none"
+            >
+              {activeDoc?.label ?? "…"}
+            </Text>
+          )}
+          <Box flex={1} />
+          {/* Undo / Redo */}
+          <Tooltip label="Undo (Ctrl+Z)" placement="bottom">
+            <Button
+              size="xs"
+              variant="ghost"
+              color="gray.400"
+              _hover={{ color: "white" }}
+              onClick={() => { undo(selectedDocId); setPositionResetKey((k) => k + 1); }}
+              isDisabled={!canUndo(selectedDocId)}
+              fontFamily="mono"
+              fontSize="md"
+              px={2}
+            >
+              ↩
+            </Button>
+          </Tooltip>
+          <Tooltip label="Redo (Ctrl+Y)" placement="bottom">
+            <Button
+              size="xs"
+              variant="ghost"
+              color="gray.400"
+              _hover={{ color: "white" }}
+              onClick={() => { redo(selectedDocId); setPositionResetKey((k) => k + 1); }}
+              isDisabled={!canRedo(selectedDocId)}
+              fontFamily="mono"
+              fontSize="md"
+              px={2}
+            >
+              ↪
+            </Button>
+          </Tooltip>
+          <Box w="1px" h="16px" bg="whiteAlpha.200" />
+          <Tooltip label="Duplicate this template" placement="bottom">
+            <Button
+              size="xs"
+              variant="ghost"
+              color="gray.400"
+              _hover={{ color: "white" }}
+              onClick={handleStandaloneFork}
+            >
+              Fork
+            </Button>
+          </Tooltip>
+          <Tooltip label="Delete this template" placement="bottom">
+            <Button
+              size="xs"
+              variant="ghost"
+              color="red.400"
+              _hover={{ color: "red.300" }}
+              onClick={handleStandaloneDelete}
+            >
+              Delete
+            </Button>
+          </Tooltip>
+        </Flex>
+
+        {/* Canvas area */}
+        {activeDoc && (
+          <Flex
+            borderWidth={0}
+            rounded="none"
+            overflow="hidden"
+            h={canvasHeight}
+          >
+            {/* Live Test panel or collapsed strip */}
+            {liveTestOpen ? (
+              <>
+                <Box
+                  w={`${liveTestWidth}px`}
+                  flexShrink={0}
+                  overflowY="auto"
+                  bg="white"
+                  borderRight="1px solid"
+                  borderColor="gray.200"
+                >
+                  <LiveTestPanel
+                    doc={activeDoc}
+                    onCollapse={() => setLiveTestOpen(false)}
+                  />
+                </Box>
+                <Box
+                  w="4px"
+                  cursor="col-resize"
+                  bg="gray.100"
+                  _hover={{ bg: "blue.100" }}
+                  onMouseDown={onLiveTestResizeStart}
+                  flexShrink={0}
+                />
+              </>
+            ) : (
+              <Box
+                w="28px"
+                flexShrink={0}
+                bg="gray.50"
+                borderRight="1px solid"
+                borderColor="gray.200"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                cursor="pointer"
+                onClick={() => setLiveTestOpen(true)}
+                title="Open Live Test panel"
+              >
+                <Text
+                  fontSize="9px"
+                  color="gray.400"
+                  style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+                >
+                  LIVE TEST
+                </Text>
+              </Box>
+            )}
+
+            <Box flex={1} minW={0} bg="#0f172a" position="relative">
+              <CanvasFlow
+                doc={activeDoc}
+                edges={edges}
+                stepDebug={stepDebug}
+                selectedNodeId={selectedNodeId}
+                positionResetKey={positionResetKey}
+                onSelectNode={setSelectedNodeId}
+                quantity={quantity}
+                onQuantityChange={setQuantity}
+                onUpdateDoc={handleUpdateDoc}
+                clipboard={clipboard}
+                onCopy={handleCopy}
+                onPaste={handlePaste}
+                onDeleteNodes={handleDeleteNodes}
+                onCreateNode={handleCreateNode}
+              />
+            </Box>
+
+            {selectedNodeId && (
+              <>
+                <Box
+                  w="4px"
+                  cursor="col-resize"
+                  bg="gray.100"
+                  _hover={{ bg: "blue.100" }}
+                  onMouseDown={onResizeStart}
+                  flexShrink={0}
+                />
+                <Box
+                  w={`${inspectWidth}px`}
+                  flexShrink={0}
+                  overflowY="auto"
+                  bg="white"
+                  borderLeft="1px solid"
+                  borderColor="gray.200"
+                >
+                  <InspectPanel
+                    template={activeDoc}
+                    selectedNodeId={selectedNodeId}
+                    stepDebug={stepDebug}
+                    edges={edges}
+                    onUpdateDoc={handleUpdateDocFromPanel}
+                  />
+                </Box>
+              </>
+            )}
+          </Flex>
+        )}
+      </Box>
     );
   }
 
