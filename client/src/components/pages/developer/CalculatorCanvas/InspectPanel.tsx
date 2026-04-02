@@ -11,7 +11,7 @@ import {
   TableDef,
   RateEntry,
 } from "../../../../components/TenderPricing/calculators/types";
-import { CanvasDocument, GroupDef } from "./canvasStorage";
+import { CanvasDocument, GroupDef, ControllerDef, ControllerOption } from "./canvasStorage";
 import { slugify, renameNodeId } from "./canvasOps";
 import { formulaToLatex } from "./formulaToLatex";
 import katex from "katex";
@@ -25,16 +25,17 @@ interface Props {
   onUpdateDoc: (doc: CanvasDocument, newSelectedId?: string) => void;
 }
 
-type NodeKind = "param" | "table" | "quantity" | "formula" | "breakdown" | "output" | "group" | "unknown";
+type NodeKind = "param" | "table" | "quantity" | "formula" | "breakdown" | "output" | "group" | "controller" | "unknown";
 
 const KIND_COLORS: Record<NodeKind, string> = {
   param: "blue", table: "green", quantity: "yellow",
-  formula: "purple", breakdown: "teal", output: "cyan", group: "purple", unknown: "gray",
+  formula: "purple", breakdown: "teal", output: "cyan",
+  group: "purple", controller: "teal", unknown: "gray",
 };
 const KIND_LABELS: Record<NodeKind, string> = {
   param: "Parameter", table: "Table Aggregate", quantity: "Quantity (test input)",
   formula: "Formula Step", breakdown: "Summary", output: "Unit Price Output",
-  group: "Group", unknown: "Unknown",
+  group: "Group", controller: "Controller", unknown: "Unknown",
 };
 
 function detectKind(nodeId: string, template: CanvasDocument): NodeKind {
@@ -45,6 +46,7 @@ function detectKind(nodeId: string, template: CanvasDocument): NodeKind {
   if (template.formulaSteps.some((s) => s.id === nodeId)) return "formula";
   if (template.breakdownDefs.some((b) => b.id === nodeId)) return "breakdown";
   if (template.groupDefs.some((g) => g.id === nodeId)) return "group";
+  if ((template.controllerDefs ?? []).some((c) => c.id === nodeId)) return "controller";
   return "unknown";
 }
 
@@ -259,6 +261,10 @@ const FormulaEdit: React.FC<{
     ...doc.tableDefs.map((t) => `${t.id}RatePerHr`),
     "quantity",
     ...doc.formulaSteps.filter((s) => s.id !== nodeId).map((s) => s.id),
+    // Percentage and Toggle controllers output a numeric value usable in formulas
+    ...(doc.controllerDefs ?? [])
+      .filter((c) => c.type === "percentage" || c.type === "toggle")
+      .map((c) => c.id),
   ];
 
   const labelMap: Record<string, string> = useMemo(() => {
@@ -266,6 +272,7 @@ const FormulaEdit: React.FC<{
     for (const p of doc.parameterDefs) m[p.id] = p.label;
     for (const t of doc.tableDefs) m[`${t.id}RatePerHr`] = t.label;
     for (const s of doc.formulaSteps) m[s.id] = s.label ?? s.id;
+    for (const c of (doc.controllerDefs ?? [])) m[c.id] = c.label;
     return m;
   }, [doc]);
 
@@ -401,12 +408,175 @@ const BreakdownEdit: React.FC<{
   );
 };
 
+const ControllerEdit: React.FC<{
+  doc: CanvasDocument;
+  nodeId: string;
+  onUpdateDoc: (doc: CanvasDocument, newSelectedId?: string) => void;
+}> = ({ doc, nodeId, onUpdateDoc }) => {
+  const ctrl = (doc.controllerDefs ?? []).find((c) => c.id === nodeId)!;
+  const [newOptionLabel, setNewOptionLabel] = useState("");
+
+  const updateCtrl = (updates: Partial<ControllerDef>) => {
+    onUpdateDoc({
+      ...doc,
+      controllerDefs: doc.controllerDefs.map((c) =>
+        c.id === nodeId ? { ...c, ...updates } : c
+      ),
+    });
+  };
+
+  return (
+    <>
+      <EditField
+        label="Label"
+        value={ctrl.label}
+        onBlur={(v) => updateCtrl({ label: v })}
+      />
+
+      <Box mb={3}>
+        <Text fontSize="10px" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide" mb={1}>
+          Type
+        </Text>
+        <Text fontSize="sm" fontFamily="mono" color="teal.600">{ctrl.type}</Text>
+      </Box>
+
+      {/* Percentage default value */}
+      {ctrl.type === "percentage" && (
+        <EditField
+          label="Default Value (0–1)"
+          value={String(ctrl.defaultValue ?? 0.5)}
+          type="number"
+          mono
+          onBlur={(v) => updateCtrl({ defaultValue: Math.min(1, Math.max(0, parseFloat(v) || 0)) })}
+        />
+      )}
+
+      {/* Toggle default */}
+      {ctrl.type === "toggle" && (
+        <Box mb={3}>
+          <Text fontSize="10px" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide" mb={1}>
+            Default
+          </Text>
+          <Select
+            size="sm"
+            value={ctrl.defaultValue ? "true" : "false"}
+            onChange={(e) => updateCtrl({ defaultValue: e.target.value === "true" })}
+          >
+            <option value="false">OFF (false)</option>
+            <option value="true">ON (true)</option>
+          </Select>
+        </Box>
+      )}
+
+      {/* Selector options */}
+      {ctrl.type === "selector" && (
+        <Box mb={3}>
+          <Text fontSize="10px" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide" mb={2}>
+            Options
+          </Text>
+          {(ctrl.options ?? []).map((opt) => (
+            <Flex key={opt.id} align="center" gap={1} mb={1}>
+              <Input
+                size="xs"
+                flex={1}
+                value={opt.label}
+                onChange={(e) => {
+                  const newOptions = (ctrl.options ?? []).map((o) =>
+                    o.id === opt.id ? { ...o, label: e.target.value } : o
+                  );
+                  updateCtrl({ options: newOptions });
+                }}
+              />
+              <IconButton
+                aria-label="Remove option"
+                icon={<span style={{ fontSize: 10 }}>✕</span>}
+                size="xs"
+                variant="ghost"
+                colorScheme="red"
+                minW="18px"
+                h="18px"
+                onClick={() => {
+                  const newOptions = (ctrl.options ?? []).filter((o) => o.id !== opt.id);
+                  const newSelected = (ctrl.defaultSelected ?? []).filter((id) => id !== opt.id);
+                  updateCtrl({ options: newOptions, defaultSelected: newSelected });
+                }}
+              />
+            </Flex>
+          ))}
+          <Flex gap={1} mt={1}>
+            <Input
+              size="xs"
+              flex={1}
+              placeholder="New option label"
+              value={newOptionLabel}
+              onChange={(e) => setNewOptionLabel(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && newOptionLabel.trim()) {
+                  const newOpt: ControllerOption = {
+                    id: slugify(newOptionLabel) + "_" + Date.now(),
+                    label: newOptionLabel.trim(),
+                  };
+                  updateCtrl({ options: [...(ctrl.options ?? []), newOpt] });
+                  setNewOptionLabel("");
+                }
+              }}
+            />
+            <Button
+              size="xs"
+              colorScheme="teal"
+              variant="ghost"
+              onClick={() => {
+                if (!newOptionLabel.trim()) return;
+                const newOpt: ControllerOption = {
+                  id: slugify(newOptionLabel) + "_" + Date.now(),
+                  label: newOptionLabel.trim(),
+                };
+                updateCtrl({ options: [...(ctrl.options ?? []), newOpt] });
+                setNewOptionLabel("");
+              }}
+            >
+              Add
+            </Button>
+          </Flex>
+
+          {/* Default selected */}
+          {(ctrl.options ?? []).length > 0 && (
+            <Box mt={3}>
+              <Text fontSize="10px" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide" mb={1}>
+                Default Selected
+              </Text>
+              {(ctrl.options ?? []).map((opt) => {
+                const isSelected = (ctrl.defaultSelected ?? []).includes(opt.id);
+                return (
+                  <Flex key={opt.id} align="center" gap={2} mb={1} cursor="pointer"
+                    onClick={() => {
+                      const newSelected = isSelected
+                        ? (ctrl.defaultSelected ?? []).filter((id) => id !== opt.id)
+                        : [...(ctrl.defaultSelected ?? []), opt.id];
+                      updateCtrl({ defaultSelected: newSelected });
+                    }}
+                  >
+                    <Box w={3} h={3} border="1px solid" borderColor={isSelected ? "teal.400" : "gray.300"}
+                      bg={isSelected ? "teal.400" : "transparent"} rounded="sm" />
+                    <Text fontSize="xs" color="gray.600">{opt.label}</Text>
+                  </Flex>
+                );
+              })}
+            </Box>
+          )}
+        </Box>
+      )}
+    </>
+  );
+};
+
 const GroupEdit: React.FC<{
   doc: CanvasDocument;
   nodeId: string;
   onUpdateDoc: (doc: CanvasDocument, newSelectedId?: string) => void;
 }> = ({ doc, nodeId, onUpdateDoc }) => {
   const group = doc.groupDefs.find((g) => g.id === nodeId)!;
+  const controllers = doc.controllerDefs ?? [];
 
   const saveLabel = (newLabel: string) => {
     onUpdateDoc({
@@ -415,8 +585,84 @@ const GroupEdit: React.FC<{
     });
   };
 
+  const setActivation = (activation: typeof group.activation) => {
+    onUpdateDoc({
+      ...doc,
+      groupDefs: doc.groupDefs.map((g) => g.id === nodeId ? { ...g, activation } : g),
+    });
+  };
+
+  const ctrl = group.activation
+    ? controllers.find((c) => c.id === group.activation!.controllerId)
+    : undefined;
+
   return (
-    <EditField label="Label" value={group.label} onBlur={saveLabel} />
+    <>
+      <EditField label="Label" value={group.label} onBlur={saveLabel} />
+
+      <Divider mb={3} />
+
+      <Text fontSize="10px" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide" mb={2}>
+        Controlled By
+      </Text>
+
+      <Box mb={3}>
+        <Text fontSize="10px" color="gray.400" mb={1}>Controller</Text>
+        <Select
+          size="sm"
+          value={group.activation?.controllerId ?? ""}
+          onChange={(e) => {
+            if (!e.target.value) {
+              setActivation(undefined);
+            } else {
+              setActivation({ controllerId: e.target.value });
+            }
+          }}
+        >
+          <option value="">— None (always active) —</option>
+          {controllers.map((c) => (
+            <option key={c.id} value={c.id}>{c.label} ({c.type})</option>
+          ))}
+        </Select>
+      </Box>
+
+      {/* Condition field for percentage/toggle */}
+      {ctrl && (ctrl.type === "percentage" || ctrl.type === "toggle") && (
+        <Box mb={3}>
+          <Text fontSize="10px" color="gray.400" mb={1}>
+            Active when (e.g. {ctrl.type === "percentage" ? "> 0" : "=== 1"})
+          </Text>
+          <Input
+            size="sm"
+            fontFamily="mono"
+            placeholder={ctrl.type === "percentage" ? "> 0" : "=== 1"}
+            value={group.activation?.condition ?? ""}
+            onChange={(e) =>
+              setActivation({ ...group.activation!, condition: e.target.value })
+            }
+          />
+        </Box>
+      )}
+
+      {/* Option selector for selector type */}
+      {ctrl && ctrl.type === "selector" && (
+        <Box mb={3}>
+          <Text fontSize="10px" color="gray.400" mb={1}>Active when option</Text>
+          <Select
+            size="sm"
+            value={group.activation?.optionId ?? ""}
+            onChange={(e) =>
+              setActivation({ ...group.activation!, optionId: e.target.value || undefined })
+            }
+          >
+            <option value="">— Pick option —</option>
+            {(ctrl.options ?? []).map((opt) => (
+              <option key={opt.id} value={opt.id}>{opt.label}</option>
+            ))}
+          </Select>
+        </Box>
+      )}
+    </>
   );
 };
 
@@ -531,13 +777,16 @@ const InspectPanel: React.FC<Props> = ({
       {kind === "group" && (
         <GroupEdit doc={template} nodeId={selectedNodeId} onUpdateDoc={onUpdateDoc} />
       )}
+      {kind === "controller" && (
+        <ControllerEdit doc={template} nodeId={selectedNodeId} onUpdateDoc={onUpdateDoc} />
+      )}
       {kind === "unknown" && (
         <Text fontSize="xs" color="gray.400" mb={4}>
           Node not found in template. It may have been deleted — try undoing or deselecting.
         </Text>
       )}
 
-      {kind !== "group" && (
+      {kind !== "group" && kind !== "controller" && (
         <>
           <Divider mb={4} />
 
