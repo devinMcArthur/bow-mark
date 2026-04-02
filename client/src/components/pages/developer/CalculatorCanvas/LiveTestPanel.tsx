@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Box, Button, Flex, Grid, Input, Text } from "@chakra-ui/react";
 import { v4 as uuidv4 } from "uuid";
 import { FiChevronDown, FiChevronRight, FiPlus } from "react-icons/fi";
-import { CanvasDocument, GroupDef } from "./canvasStorage";
+import { CanvasDocument, GroupDef, ControllerDef, isGroupActive } from "./canvasStorage";
 import { RateEntry } from "../../../../components/TenderPricing/calculators/types";
 import {
   evaluateTemplate,
@@ -106,6 +106,99 @@ const TableSection: React.FC<{
   );
 };
 
+function buildControllerDefaults(doc: CanvasDocument): Record<string, number | boolean | string[]> {
+  return Object.fromEntries(
+    (doc.controllerDefs ?? []).map((c) => [
+      c.id,
+      c.type === "selector"
+        ? (c.defaultSelected ?? [])
+        : c.type === "toggle"
+        ? (c.defaultValue as boolean ?? false)
+        : (c.defaultValue as number ?? 0),
+    ])
+  );
+}
+
+// ─── Controller widget ────────────────────────────────────────────────────────
+
+const ControllerWidget: React.FC<{
+  ctrl: ControllerDef;
+  value: number | boolean | string[];
+  onChange: (id: string, v: number | boolean | string[]) => void;
+}> = ({ ctrl, value, onChange }) => {
+  if (ctrl.type === "percentage") {
+    const pct = (value as number) * 100;
+    return (
+      <Flex align="center" gap={2} mb={3}>
+        <Text fontSize="sm" color="gray.700" flex={1}>
+          {ctrl.label}
+          <Text as="span" fontSize="xs" color="gray.400"> (%)</Text>
+        </Text>
+        <Input
+          size="sm"
+          type="number"
+          w="80px"
+          min={0}
+          max={100}
+          textAlign="right"
+          value={pct}
+          onChange={(e) => onChange(ctrl.id, Math.min(1, Math.max(0, (parseFloat(e.target.value) || 0) / 100)))}
+        />
+      </Flex>
+    );
+  }
+
+  if (ctrl.type === "toggle") {
+    return (
+      <Flex align="center" gap={2} mb={3} cursor="pointer"
+        onClick={() => onChange(ctrl.id, !(value as boolean))}
+      >
+        <Box
+          w={4} h={4}
+          border="1.5px solid"
+          borderColor={(value as boolean) ? "teal.400" : "gray.300"}
+          bg={(value as boolean) ? "teal.400" : "transparent"}
+          rounded="sm"
+        />
+        <Text fontSize="sm" color="gray.700">{ctrl.label}</Text>
+      </Flex>
+    );
+  }
+
+  // selector
+  const selected = value as string[];
+  return (
+    <Box mb={3}>
+      <Text fontSize="xs" fontWeight="semibold" color="teal.600" textTransform="uppercase" letterSpacing="wide" mb={1}>
+        {ctrl.label}
+      </Text>
+      {(ctrl.options ?? []).map((opt) => {
+        const isSelected = selected.includes(opt.id);
+        return (
+          <Flex key={opt.id} align="center" gap={2} mb={1} cursor="pointer"
+            onClick={() => {
+              const next = isSelected
+                ? selected.filter((id) => id !== opt.id)
+                : [...selected, opt.id];
+              onChange(ctrl.id, next);
+            }}
+          >
+            <Box
+              w={3.5} h={3.5}
+              border="1px solid"
+              borderColor={isSelected ? "teal.400" : "gray.300"}
+              bg={isSelected ? "teal.400" : "transparent"}
+              rounded="sm"
+              flexShrink={0}
+            />
+            <Text fontSize="sm" color="gray.700">{opt.label}</Text>
+          </Flex>
+        );
+      })}
+    </Box>
+  );
+};
+
 // ─── Group section (recursive) ────────────────────────────────────────────────
 
 interface GroupSectionProps {
@@ -114,47 +207,57 @@ interface GroupSectionProps {
   doc: CanvasDocument;
   params: Record<string, number>;
   tables: Record<string, RateEntry[]>;
+  controllers: Record<string, number | boolean | string[]>;
   onParamChange: (id: string, v: number) => void;
   onUpdateRow: (tableId: string, rowId: string, field: keyof RateEntry, value: string | number) => void;
   onAddRow: (tableId: string) => void;
   onRemoveRow: (tableId: string, rowId: string) => void;
+  onControllerChange: (id: string, v: number | boolean | string[]) => void;
 }
 
 const GroupSection: React.FC<GroupSectionProps> = ({
-  group, depth, doc, params, tables, onParamChange, onUpdateRow, onAddRow, onRemoveRow,
+  group, depth, doc, params, tables, controllers, onParamChange, onUpdateRow, onAddRow, onRemoveRow, onControllerChange,
 }) => {
+  const active = isGroupActive(group, doc, controllers);
   const [open, setOpen] = useState(true);
 
-  // Collect visible members: params, tables, sub-groups (skip formula steps)
+  // Auto-collapse when group becomes inactive
+  useEffect(() => {
+    if (!active) setOpen(false);
+  }, [active]);
+
+  // Collect visible members
+  const controllerIds = group.memberIds.filter((id) => (doc.controllerDefs ?? []).some((c) => c.id === id));
   const paramIds = group.memberIds.filter((id) => doc.parameterDefs.some((p) => p.id === id));
   const tableIds = group.memberIds
-    .filter((id) => id.endsWith("RatePerHr") &&
-      doc.tableDefs.some((t) => `${t.id}RatePerHr` === id))
+    .filter((id) => id.endsWith("RatePerHr") && doc.tableDefs.some((t) => `${t.id}RatePerHr` === id))
     .map((id) => id.replace(/RatePerHr$/, ""));
   const subGroupIds = group.memberIds.filter((id) => doc.groupDefs.some((g) => g.id === id));
 
-  const hasVisibleContent = paramIds.length > 0 || tableIds.length > 0 || subGroupIds.length > 0;
+  const hasVisibleContent = controllerIds.length > 0 || paramIds.length > 0 || tableIds.length > 0 || subGroupIds.length > 0;
   if (!hasVisibleContent) return null;
 
-  const headingColorVal = depth === 0 ? "#4338ca" : "#8b5cf6";
+  const headingColorVal = active
+    ? (depth === 0 ? "#4338ca" : "#8b5cf6")
+    : "#94a3b8";
   const indent = depth * 12;
 
   return (
-    <Box mb={3} ml={`${indent}px`}>
+    <Box mb={3} ml={`${indent}px`} opacity={active ? 1 : 0.5}>
       {/* Section heading */}
       <Flex
         align="center"
         gap={1}
-        mb={open ? 2 : 0}
-        borderBottom={open ? "1px solid" : "none"}
+        mb={open && active ? 2 : 0}
+        borderBottom={open && active ? "1px solid" : "none"}
         borderColor={depth === 0 ? "indigo.100" : "purple.100"}
-        pb={open ? 1 : 0}
-        cursor="pointer"
-        onClick={() => setOpen((o) => !o)}
-        _hover={{ opacity: 0.8 }}
+        pb={open && active ? 1 : 0}
+        cursor={active ? "pointer" : "default"}
+        onClick={() => { if (active) setOpen((o) => !o); }}
+        _hover={active ? { opacity: 0.8 } : {}}
       >
         <Box color={headingColorVal} fontSize="10px">
-          {open ? <FiChevronDown /> : <FiChevronRight />}
+          {open && active ? <FiChevronDown /> : <FiChevronRight />}
         </Box>
         <Text
           fontSize="xs"
@@ -165,36 +268,42 @@ const GroupSection: React.FC<GroupSectionProps> = ({
         >
           {group.label}
         </Text>
+        {!active && (
+          <Text fontSize="9px" fontWeight="semibold" color="gray.400"
+            bg="gray.100" px={1} py={0.5} rounded="sm" ml={1} textTransform="uppercase">
+            inactive
+          </Text>
+        )}
       </Flex>
 
-      {open && (
+      {open && active && (
         <>
+          {/* Controllers in this group */}
+          {controllerIds.map((id) => {
+            const ctrl = (doc.controllerDefs ?? []).find((c) => c.id === id)!;
+            return (
+              <ControllerWidget
+                key={id}
+                ctrl={ctrl}
+                value={controllers[id] ?? (ctrl.type === "selector" ? [] : ctrl.type === "toggle" ? false : 0)}
+                onChange={onControllerChange}
+              />
+            );
+          })}
+
           {/* Params in this group */}
           {paramIds.length > 0 && (
             <Grid templateColumns="1fr 80px" gap={2} alignItems="center" mb={2}>
               {paramIds.map((id) => (
-                <ParamRow
-                  key={id}
-                  paramId={id}
-                  doc={doc}
-                  value={params[id]}
-                  onChange={onParamChange}
-                />
+                <ParamRow key={id} paramId={id} doc={doc} value={params[id]} onChange={onParamChange} />
               ))}
             </Grid>
           )}
 
           {/* Tables in this group */}
           {tableIds.map((id) => (
-            <TableSection
-              key={id}
-              tableId={id}
-              doc={doc}
-              rows={tables[id] ?? []}
-              onUpdateRow={onUpdateRow}
-              onAddRow={onAddRow}
-              onRemoveRow={onRemoveRow}
-            />
+            <TableSection key={id} tableId={id} doc={doc} rows={tables[id] ?? []}
+              onUpdateRow={onUpdateRow} onAddRow={onAddRow} onRemoveRow={onRemoveRow} />
           ))}
 
           {/* Sub-groups */}
@@ -208,10 +317,12 @@ const GroupSection: React.FC<GroupSectionProps> = ({
                 doc={doc}
                 params={params}
                 tables={tables}
+                controllers={controllers}
                 onParamChange={onParamChange}
                 onUpdateRow={onUpdateRow}
                 onAddRow={onAddRow}
                 onRemoveRow={onRemoveRow}
+                onControllerChange={onControllerChange}
               />
             );
           })}
@@ -233,6 +344,9 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
   const [tables, setTables] = useState<Record<string, RateEntry[]>>(
     () => copyTables(doc.defaultInputs.tables)
   );
+  const [controllers, setControllers] = useState<Record<string, number | boolean | string[]>>(
+    () => buildControllerDefaults(doc)
+  );
 
   useEffect(() => {
     setQuantity(100);
@@ -242,11 +356,28 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
       )
     );
     setTables(copyTables(doc.defaultInputs.tables));
+    setControllers(buildControllerDefaults(doc));
   }, [doc.id]);
 
   const inputs = useMemo(() => ({ params, tables }), [params, tables]);
-  const result = useMemo(() => evaluateTemplate(doc, inputs, quantity), [doc, inputs, quantity]);
-  const stepDebug = useMemo(() => debugEvaluateTemplate(doc, inputs, quantity), [doc, inputs, quantity]);
+
+  const controllerValues = useMemo<Record<string, number>>(() => {
+    const result: Record<string, number> = {};
+    for (const c of (doc.controllerDefs ?? [])) {
+      if (c.type === "percentage") result[c.id] = controllers[c.id] as number ?? 0;
+      if (c.type === "toggle") result[c.id] = (controllers[c.id] as boolean) ? 1 : 0;
+    }
+    return result;
+  }, [doc.controllerDefs, controllers]);
+
+  const result = useMemo(
+    () => evaluateTemplate(doc, inputs, quantity, controllerValues),
+    [doc, inputs, quantity, controllerValues]
+  );
+  const stepDebug = useMemo(
+    () => debugEvaluateTemplate(doc, inputs, quantity, controllerValues),
+    [doc, inputs, quantity, controllerValues]
+  );
 
   const updateParam = useCallback(
     (id: string, v: number) => setParams((prev) => ({ ...prev, [id]: v })),
@@ -272,13 +403,14 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
     }));
   };
 
-  // Determine which params/tables are in any group (member of at least one groupDef)
-  const { ungroupedParams, ungroupedTables, topLevelGroups } = useMemo(() => {
+  // Determine which params/tables/controllers are in any group (member of at least one groupDef)
+  const { ungroupedParams, ungroupedTables, topLevelGroups, ungroupedControllers } = useMemo(() => {
     const allMemberIds = new Set(doc.groupDefs.flatMap((g) => g.memberIds));
     return {
       ungroupedParams: doc.parameterDefs.filter((p) => !allMemberIds.has(p.id)),
       ungroupedTables: doc.tableDefs.filter((t) => !allMemberIds.has(`${t.id}RatePerHr`)),
       topLevelGroups: doc.groupDefs.filter((g) => !allMemberIds.has(g.id)),
+      ungroupedControllers: (doc.controllerDefs ?? []).filter((c) => !allMemberIds.has(c.id)),
     };
   }, [doc]);
 
@@ -329,6 +461,20 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
           <Text fontSize="xs" color="gray.400" whiteSpace="nowrap">{doc.defaultUnit}</Text>
         </Flex>
 
+        {/* Ungrouped controllers */}
+        {ungroupedControllers.length > 0 && (
+          <Box mb={4}>
+            {ungroupedControllers.map((c) => (
+              <ControllerWidget
+                key={c.id}
+                ctrl={c}
+                value={controllers[c.id] ?? (c.type === "selector" ? [] : c.type === "toggle" ? false : 0)}
+                onChange={(id, v) => setControllers((prev) => ({ ...prev, [id]: v }))}
+              />
+            ))}
+          </Box>
+        )}
+
         {/* Ungrouped params */}
         {ungroupedParams.length > 0 && (
           <Grid templateColumns="1fr 80px" gap={2} alignItems="center" mb={4}>
@@ -366,10 +512,12 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
             doc={doc}
             params={params}
             tables={tables}
+            controllers={controllers}
             onParamChange={updateParam}
             onUpdateRow={updateRow}
             onAddRow={addRow}
             onRemoveRow={removeRow}
+            onControllerChange={(id, v) => setControllers((prev) => ({ ...prev, [id]: v }))}
           />
         ))}
 
