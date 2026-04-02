@@ -8,16 +8,22 @@ fragment RateBuildupTemplateFullSnippet on RateBuildupTemplateClass {
     prefix
     suffix
     defaultValue
+    hint
+    position { x y w h }
   }
   tableDefs {
     id
     label
     rowLabel
+    hint
+    position { x y w h }
+    defaultRows { id name qty ratePerHour }
   }
   formulaSteps {
     id
     label
     formula
+    position { x y w h }
   }
   breakdownDefs {
     id
@@ -26,16 +32,32 @@ fragment RateBuildupTemplateFullSnippet on RateBuildupTemplateClass {
       stepId
       label
     }
+    position { x y w h }
   }
   intermediateDefs {
     label
     stepId
     unit
   }
-  defaultInputs
-  nodePositions
-  groupDefs
-  controllerDefs
+  controllerDefs {
+    id
+    label
+    type
+    defaultValue
+    options { id label }
+    defaultSelected
+    hint
+    position { x y w h }
+  }
+  groupDefs {
+    id
+    label
+    parentGroupId
+    memberIds
+    activation { controllerId condition optionId }
+    position { x y w h }
+  }
+  specialPositions
   schemaVersion
   createdAt
   updatedAt

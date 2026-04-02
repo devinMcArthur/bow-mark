@@ -2417,12 +2417,14 @@ export type RateBuildupBreakdownDef = {
   id: Scalars['String'];
   items: Array<RateBuildupBreakdownItem>;
   label: Scalars['String'];
+  position: RateBuildupPosition;
 };
 
 export type RateBuildupBreakdownDefInput = {
   id: Scalars['String'];
   items: Array<RateBuildupBreakdownItemInput>;
   label: Scalars['String'];
+  position: RateBuildupPositionInput;
 };
 
 export type RateBuildupBreakdownItem = {
@@ -2436,17 +2438,85 @@ export type RateBuildupBreakdownItemInput = {
   stepId: Scalars['String'];
 };
 
+export type RateBuildupControllerDef = {
+  __typename?: 'RateBuildupControllerDef';
+  defaultSelected?: Maybe<Array<Scalars['String']>>;
+  defaultValue?: Maybe<Scalars['Float']>;
+  hint?: Maybe<Scalars['String']>;
+  id: Scalars['String'];
+  label: Scalars['String'];
+  options?: Maybe<Array<RateBuildupControllerOption>>;
+  position: RateBuildupPosition;
+  type: Scalars['String'];
+};
+
+export type RateBuildupControllerDefInput = {
+  defaultSelected?: InputMaybe<Array<Scalars['String']>>;
+  defaultValue?: InputMaybe<Scalars['Float']>;
+  hint?: InputMaybe<Scalars['String']>;
+  id: Scalars['String'];
+  label: Scalars['String'];
+  options?: InputMaybe<Array<RateBuildupControllerOptionInput>>;
+  position: RateBuildupPositionInput;
+  type: Scalars['String'];
+};
+
+export type RateBuildupControllerOption = {
+  __typename?: 'RateBuildupControllerOption';
+  id: Scalars['String'];
+  label: Scalars['String'];
+};
+
+export type RateBuildupControllerOptionInput = {
+  id: Scalars['String'];
+  label: Scalars['String'];
+};
+
 export type RateBuildupFormulaStep = {
   __typename?: 'RateBuildupFormulaStep';
   formula: Scalars['String'];
   id: Scalars['String'];
   label?: Maybe<Scalars['String']>;
+  position: RateBuildupPosition;
 };
 
 export type RateBuildupFormulaStepInput = {
   formula: Scalars['String'];
   id: Scalars['String'];
   label?: InputMaybe<Scalars['String']>;
+  position: RateBuildupPositionInput;
+};
+
+export type RateBuildupGroupActivation = {
+  __typename?: 'RateBuildupGroupActivation';
+  condition?: Maybe<Scalars['String']>;
+  controllerId: Scalars['String'];
+  optionId?: Maybe<Scalars['String']>;
+};
+
+export type RateBuildupGroupActivationInput = {
+  condition?: InputMaybe<Scalars['String']>;
+  controllerId: Scalars['String'];
+  optionId?: InputMaybe<Scalars['String']>;
+};
+
+export type RateBuildupGroupDef = {
+  __typename?: 'RateBuildupGroupDef';
+  activation?: Maybe<RateBuildupGroupActivation>;
+  id: Scalars['String'];
+  label: Scalars['String'];
+  memberIds: Array<Scalars['String']>;
+  parentGroupId?: Maybe<Scalars['String']>;
+  position: RateBuildupPosition;
+};
+
+export type RateBuildupGroupDefInput = {
+  activation?: InputMaybe<RateBuildupGroupActivationInput>;
+  id: Scalars['String'];
+  label: Scalars['String'];
+  memberIds: Array<Scalars['String']>;
+  parentGroupId?: InputMaybe<Scalars['String']>;
+  position: RateBuildupPositionInput;
 };
 
 export type RateBuildupIntermediateDef = {
@@ -2465,30 +2535,70 @@ export type RateBuildupIntermediateDefInput = {
 export type RateBuildupParameterDef = {
   __typename?: 'RateBuildupParameterDef';
   defaultValue: Scalars['Float'];
+  hint?: Maybe<Scalars['String']>;
   id: Scalars['String'];
   label: Scalars['String'];
+  position: RateBuildupPosition;
   prefix?: Maybe<Scalars['String']>;
   suffix?: Maybe<Scalars['String']>;
 };
 
 export type RateBuildupParameterDefInput = {
   defaultValue: Scalars['Float'];
+  hint?: InputMaybe<Scalars['String']>;
   id: Scalars['String'];
   label: Scalars['String'];
+  position: RateBuildupPositionInput;
   prefix?: InputMaybe<Scalars['String']>;
   suffix?: InputMaybe<Scalars['String']>;
 };
 
+export type RateBuildupPosition = {
+  __typename?: 'RateBuildupPosition';
+  h?: Maybe<Scalars['Float']>;
+  w?: Maybe<Scalars['Float']>;
+  x: Scalars['Float'];
+  y: Scalars['Float'];
+};
+
+export type RateBuildupPositionInput = {
+  h?: InputMaybe<Scalars['Float']>;
+  w?: InputMaybe<Scalars['Float']>;
+  x: Scalars['Float'];
+  y: Scalars['Float'];
+};
+
+export type RateBuildupRateEntry = {
+  __typename?: 'RateBuildupRateEntry';
+  id: Scalars['String'];
+  name: Scalars['String'];
+  qty: Scalars['Float'];
+  ratePerHour: Scalars['Float'];
+};
+
+export type RateBuildupRateEntryInput = {
+  id: Scalars['String'];
+  name: Scalars['String'];
+  qty: Scalars['Float'];
+  ratePerHour: Scalars['Float'];
+};
+
 export type RateBuildupTableDef = {
   __typename?: 'RateBuildupTableDef';
+  defaultRows: Array<RateBuildupRateEntry>;
+  hint?: Maybe<Scalars['String']>;
   id: Scalars['String'];
   label: Scalars['String'];
+  position: RateBuildupPosition;
   rowLabel: Scalars['String'];
 };
 
 export type RateBuildupTableDefInput = {
+  defaultRows: Array<RateBuildupRateEntryInput>;
+  hint?: InputMaybe<Scalars['String']>;
   id: Scalars['String'];
   label: Scalars['String'];
+  position: RateBuildupPositionInput;
   rowLabel: Scalars['String'];
 };
 
@@ -2496,17 +2606,16 @@ export type RateBuildupTemplateClass = {
   __typename?: 'RateBuildupTemplateClass';
   _id: Scalars['ID'];
   breakdownDefs: Array<RateBuildupBreakdownDef>;
-  controllerDefs: Scalars['String'];
+  controllerDefs: Array<RateBuildupControllerDef>;
   createdAt: Scalars['DateTime'];
-  defaultInputs: Scalars['String'];
   defaultUnit?: Maybe<Scalars['String']>;
   formulaSteps: Array<RateBuildupFormulaStep>;
-  groupDefs: Scalars['String'];
+  groupDefs: Array<RateBuildupGroupDef>;
   intermediateDefs: Array<RateBuildupIntermediateDef>;
   label: Scalars['String'];
-  nodePositions: Scalars['String'];
   parameterDefs: Array<RateBuildupParameterDef>;
   schemaVersion: Scalars['Float'];
+  specialPositions?: Maybe<Scalars['String']>;
   tableDefs: Array<RateBuildupTableDef>;
   updatedAt: Scalars['DateTime'];
 };
@@ -2577,16 +2686,15 @@ export type ReportNoteClass = {
 
 export type SaveRateBuildupTemplateData = {
   breakdownDefs: Array<RateBuildupBreakdownDefInput>;
-  controllerDefs: Scalars['String'];
-  defaultInputs: Scalars['String'];
+  controllerDefs: Array<RateBuildupControllerDefInput>;
   defaultUnit?: InputMaybe<Scalars['String']>;
   formulaSteps: Array<RateBuildupFormulaStepInput>;
-  groupDefs: Scalars['String'];
+  groupDefs: Array<RateBuildupGroupDefInput>;
   id?: InputMaybe<Scalars['ID']>;
   intermediateDefs: Array<RateBuildupIntermediateDefInput>;
   label: Scalars['String'];
-  nodePositions: Scalars['String'];
   parameterDefs: Array<RateBuildupParameterDefInput>;
+  specialPositions?: InputMaybe<Scalars['String']>;
   tableDefs: Array<RateBuildupTableDefInput>;
 };
 
@@ -3166,7 +3274,7 @@ export type PublicDocumentSnippetFragment = { __typename?: 'PublicDocumentClass'
 
 export type RateSnippetFragment = { __typename?: 'RateClass', date: any, rate: number };
 
-export type RateBuildupTemplateFullSnippetFragment = { __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, defaultInputs: string, nodePositions: string, groupDefs: string, controllerDefs: string, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }> }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }> };
+export type RateBuildupTemplateFullSnippetFragment = { __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, specialPositions?: string | null, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null }, defaultRows: Array<{ __typename?: 'RateBuildupRateEntry', id: string, name: string, qty: number, ratePerHour: number }> }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }>, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }>, controllerDefs: Array<{ __typename?: 'RateBuildupControllerDef', id: string, label: string, type: string, defaultValue?: number | null, defaultSelected?: Array<string> | null, hint?: string | null, options?: Array<{ __typename?: 'RateBuildupControllerOption', id: string, label: string }> | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, groupDefs: Array<{ __typename?: 'RateBuildupGroupDef', id: string, label: string, parentGroupId?: string | null, memberIds: Array<string>, activation?: { __typename?: 'RateBuildupGroupActivation', controllerId: string, condition?: string | null, optionId?: string | null } | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }> };
 
 export type ReportIssueSnippetFragment = { __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }> } | null };
 
@@ -3715,7 +3823,7 @@ export type SaveRateBuildupTemplateMutationVariables = Exact<{
 }>;
 
 
-export type SaveRateBuildupTemplateMutation = { __typename?: 'Mutation', saveRateBuildupTemplate: { __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, defaultInputs: string, nodePositions: string, groupDefs: string, controllerDefs: string, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }> }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }> } };
+export type SaveRateBuildupTemplateMutation = { __typename?: 'Mutation', saveRateBuildupTemplate: { __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, specialPositions?: string | null, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null }, defaultRows: Array<{ __typename?: 'RateBuildupRateEntry', id: string, name: string, qty: number, ratePerHour: number }> }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }>, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }>, controllerDefs: Array<{ __typename?: 'RateBuildupControllerDef', id: string, label: string, type: string, defaultValue?: number | null, defaultSelected?: Array<string> | null, hint?: string | null, options?: Array<{ __typename?: 'RateBuildupControllerOption', id: string, label: string }> | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, groupDefs: Array<{ __typename?: 'RateBuildupGroupDef', id: string, label: string, parentGroupId?: string | null, memberIds: Array<string>, activation?: { __typename?: 'RateBuildupGroupActivation', controllerId: string, condition?: string | null, optionId?: string | null } | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }> } };
 
 export type SignupMutationVariables = Exact<{
   signupId: Scalars['String'];
@@ -4395,7 +4503,7 @@ export type PublicDocumentsQuery = { __typename?: 'Query', publicDocuments: Arra
 export type RateBuildupTemplatesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type RateBuildupTemplatesQuery = { __typename?: 'Query', rateBuildupTemplates: Array<{ __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, defaultInputs: string, nodePositions: string, groupDefs: string, controllerDefs: string, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }> }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }> }> };
+export type RateBuildupTemplatesQuery = { __typename?: 'Query', rateBuildupTemplates: Array<{ __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, specialPositions?: string | null, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null }, defaultRows: Array<{ __typename?: 'RateBuildupRateEntry', id: string, name: string, qty: number, ratePerHour: number }> }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }>, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }>, controllerDefs: Array<{ __typename?: 'RateBuildupControllerDef', id: string, label: string, type: string, defaultValue?: number | null, defaultSelected?: Array<string> | null, hint?: string | null, options?: Array<{ __typename?: 'RateBuildupControllerOption', id: string, label: string }> | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, groupDefs: Array<{ __typename?: 'RateBuildupGroupDef', id: string, label: string, parentGroupId?: string | null, memberIds: Array<string>, activation?: { __typename?: 'RateBuildupGroupActivation', controllerId: string, condition?: string | null, optionId?: string | null } | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }> }> };
 
 export type SearchQueryVariables = Exact<{
   searchString: Scalars['String'];
@@ -5702,16 +5810,42 @@ export const RateBuildupTemplateFullSnippetFragmentDoc = gql`
     prefix
     suffix
     defaultValue
+    hint
+    position {
+      x
+      y
+      w
+      h
+    }
   }
   tableDefs {
     id
     label
     rowLabel
+    hint
+    position {
+      x
+      y
+      w
+      h
+    }
+    defaultRows {
+      id
+      name
+      qty
+      ratePerHour
+    }
   }
   formulaSteps {
     id
     label
     formula
+    position {
+      x
+      y
+      w
+      h
+    }
   }
   breakdownDefs {
     id
@@ -5720,16 +5854,54 @@ export const RateBuildupTemplateFullSnippetFragmentDoc = gql`
       stepId
       label
     }
+    position {
+      x
+      y
+      w
+      h
+    }
   }
   intermediateDefs {
     label
     stepId
     unit
   }
-  defaultInputs
-  nodePositions
-  groupDefs
-  controllerDefs
+  controllerDefs {
+    id
+    label
+    type
+    defaultValue
+    options {
+      id
+      label
+    }
+    defaultSelected
+    hint
+    position {
+      x
+      y
+      w
+      h
+    }
+  }
+  groupDefs {
+    id
+    label
+    parentGroupId
+    memberIds
+    activation {
+      controllerId
+      condition
+      optionId
+    }
+    position {
+      x
+      y
+      w
+      h
+    }
+  }
+  specialPositions
   schemaVersion
   createdAt
   updatedAt

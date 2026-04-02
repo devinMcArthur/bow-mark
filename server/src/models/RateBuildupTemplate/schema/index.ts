@@ -2,7 +2,82 @@ import { prop } from "@typegoose/typegoose";
 import { Types } from "mongoose";
 import { Field, Float, ID, ObjectType } from "type-graphql";
 
-// ─── Subdocuments ─────────────────────────────────────────────────────────────
+// ─── Position ─────────────────────────────────────────────────────────────────
+
+@ObjectType()
+export class RateBuildupPosition {
+  @Field(() => Float) @prop({ required: true }) public x!: number;
+  @Field(() => Float) @prop({ required: true }) public y!: number;
+  @Field(() => Float, { nullable: true }) @prop() public w?: number;
+  @Field(() => Float, { nullable: true }) @prop() public h?: number;
+}
+
+// ─── Rate entry (table row) ───────────────────────────────────────────────────
+
+@ObjectType()
+export class RateBuildupRateEntry {
+  @Field() @prop({ required: true }) public id!: string;
+  @Field() @prop({ required: true }) public name!: string;
+  @Field(() => Float) @prop({ required: true }) public qty!: number;
+  @Field(() => Float) @prop({ required: true }) public ratePerHour!: number;
+}
+
+// ─── Controller ───────────────────────────────────────────────────────────────
+
+@ObjectType()
+export class RateBuildupControllerOption {
+  @Field() @prop({ required: true }) public id!: string;
+  @Field() @prop({ required: true }) public label!: string;
+}
+
+@ObjectType()
+export class RateBuildupControllerDef {
+  @Field() @prop({ required: true }) public id!: string;
+  @Field() @prop({ required: true }) public label!: string;
+  /** "percentage" | "toggle" | "selector" */
+  @Field() @prop({ required: true }) public type!: string;
+  /** Percentage: 0–1. Toggle: 0 or 1. Absent for selector. */
+  @Field(() => Float, { nullable: true }) @prop() public defaultValue?: number;
+  @Field(() => [RateBuildupControllerOption], { nullable: true })
+  @prop({ type: () => [RateBuildupControllerOption], _id: false })
+  public options?: RateBuildupControllerOption[];
+  @Field(() => [String], { nullable: true })
+  @prop({ type: () => [String] })
+  public defaultSelected?: string[];
+  @Field({ nullable: true }) @prop() public hint?: string;
+  @Field(() => RateBuildupPosition)
+  @prop({ type: () => RateBuildupPosition, _id: false, required: true })
+  public position!: RateBuildupPosition;
+}
+
+// ─── Group ────────────────────────────────────────────────────────────────────
+
+@ObjectType()
+export class RateBuildupGroupActivation {
+  @Field() @prop({ required: true }) public controllerId!: string;
+  /** Percentage/toggle: comparison string e.g. "> 0" */
+  @Field({ nullable: true }) @prop() public condition?: string;
+  /** Selector: which option ID activates this group */
+  @Field({ nullable: true }) @prop() public optionId?: string;
+}
+
+@ObjectType()
+export class RateBuildupGroupDef {
+  @Field() @prop({ required: true }) public id!: string;
+  @Field() @prop({ required: true }) public label!: string;
+  @Field({ nullable: true }) @prop() public parentGroupId?: string;
+  @Field(() => [String])
+  @prop({ type: () => [String], default: [] })
+  public memberIds!: string[];
+  @Field(() => RateBuildupGroupActivation, { nullable: true })
+  @prop({ type: () => RateBuildupGroupActivation, _id: false })
+  public activation?: RateBuildupGroupActivation;
+  @Field(() => RateBuildupPosition)
+  @prop({ type: () => RateBuildupPosition, _id: false, required: true })
+  public position!: RateBuildupPosition;
+}
+
+// ─── Node defs ────────────────────────────────────────────────────────────────
 
 @ObjectType()
 export class RateBuildupParameterDef {
@@ -11,6 +86,10 @@ export class RateBuildupParameterDef {
   @Field({ nullable: true }) @prop() public prefix?: string;
   @Field({ nullable: true }) @prop() public suffix?: string;
   @Field(() => Float) @prop({ required: true }) public defaultValue!: number;
+  @Field({ nullable: true }) @prop() public hint?: string;
+  @Field(() => RateBuildupPosition)
+  @prop({ type: () => RateBuildupPosition, _id: false, required: true })
+  public position!: RateBuildupPosition;
 }
 
 @ObjectType()
@@ -18,6 +97,13 @@ export class RateBuildupTableDef {
   @Field() @prop({ required: true }) public id!: string;
   @Field() @prop({ required: true }) public label!: string;
   @Field() @prop({ required: true }) public rowLabel!: string;
+  @Field({ nullable: true }) @prop() public hint?: string;
+  @Field(() => RateBuildupPosition)
+  @prop({ type: () => RateBuildupPosition, _id: false, required: true })
+  public position!: RateBuildupPosition;
+  @Field(() => [RateBuildupRateEntry])
+  @prop({ type: () => [RateBuildupRateEntry], _id: false, default: [] })
+  public defaultRows!: RateBuildupRateEntry[];
 }
 
 @ObjectType()
@@ -25,6 +111,9 @@ export class RateBuildupFormulaStep {
   @Field() @prop({ required: true }) public id!: string;
   @Field({ nullable: true }) @prop() public label?: string;
   @Field() @prop({ required: true }) public formula!: string;
+  @Field(() => RateBuildupPosition)
+  @prop({ type: () => RateBuildupPosition, _id: false, required: true })
+  public position!: RateBuildupPosition;
 }
 
 @ObjectType()
@@ -40,6 +129,9 @@ export class RateBuildupBreakdownDef {
   @Field(() => [RateBuildupBreakdownItem])
   @prop({ type: () => [RateBuildupBreakdownItem], _id: false, default: [] })
   public items!: RateBuildupBreakdownItem[];
+  @Field(() => RateBuildupPosition)
+  @prop({ type: () => RateBuildupPosition, _id: false, required: true })
+  public position!: RateBuildupPosition;
 }
 
 @ObjectType()
@@ -84,26 +176,21 @@ export class RateBuildupTemplateSchema {
   @prop({ type: () => [RateBuildupIntermediateDef], _id: false, default: [] })
   public intermediateDefs!: RateBuildupIntermediateDef[];
 
-  // Dynamic-key maps — stored and transmitted as JSON strings to avoid
-  // GraphQL's lack of native Map/Record types without a custom scalar.
-  @Field()
-  @prop({ required: true, default: '{"params":{},"tables":{}}' })
-  public defaultInputs!: string;
+  @Field(() => [RateBuildupControllerDef])
+  @prop({ type: () => [RateBuildupControllerDef], _id: false, default: [] })
+  public controllerDefs!: RateBuildupControllerDef[];
+
+  @Field(() => [RateBuildupGroupDef])
+  @prop({ type: () => [RateBuildupGroupDef], _id: false, default: [] })
+  public groupDefs!: RateBuildupGroupDef[];
+
+  /** JSON string for the two synthetic nodes: { quantity: Position, unitPrice: Position } */
+  @Field({ nullable: true })
+  @prop()
+  public specialPositions?: string;
 
   @Field()
-  @prop({ required: true, default: '{"quantity":{"x":100,"y":200},"unitPrice":{"x":700,"y":200}}' })
-  public nodePositions!: string;
-
-  @Field()
-  @prop({ required: true, default: '[]' })
-  public groupDefs!: string;
-
-  @Field()
-  @prop({ required: true, default: '[]' })
-  public controllerDefs!: string;
-
-  @Field()
-  @prop({ required: true, default: 1 })
+  @prop({ required: true, default: 2 })
   public schemaVersion!: number;
 
   @Field(() => Date)
