@@ -66,6 +66,6 @@ export class TenderPricingRowUpdateData {
   @Field(() => TenderWorkType, { nullable: true })
   public calculatorType?: TenderWorkType;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   public rateBuildupSnapshot?: string | null;
 }
