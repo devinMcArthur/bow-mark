@@ -16,7 +16,6 @@ import ClientOnly from "../../components/Common/ClientOnly";
 import Container from "../../components/Common/Container";
 import RatingsReview from "../../components/pages/developer/RatingsReview";
 import CalculatorTemplates from "../../components/pages/developer/CalculatorTemplates";
-import CalculatorCanvas from "../../components/pages/developer/CalculatorCanvas";
 import { useAuth } from "../../contexts/Auth";
 import { UserRoles } from "../../generated/graphql";
 
@@ -52,7 +51,6 @@ const DeveloperPage: React.FC = () => {
           <TabList>
             <Tab>Ratings Review</Tab>
             <Tab>Calculator Templates</Tab>
-            <Tab>Canvas</Tab>
           </TabList>
           <TabPanels>
             <TabPanel px={0}>
@@ -60,9 +58,6 @@ const DeveloperPage: React.FC = () => {
             </TabPanel>
             <TabPanel px={0}>
               <CalculatorTemplates />
-            </TabPanel>
-            <TabPanel px={0}>
-              <CalculatorCanvas />
             </TabPanel>
           </TabPanels>
         </Tabs>
