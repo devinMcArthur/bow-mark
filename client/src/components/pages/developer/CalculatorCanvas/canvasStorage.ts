@@ -26,6 +26,7 @@ export interface GroupActivation {
   optionId?: string;
 }
 
+/** Named choice in a Selector controller */
 export interface ControllerOption {
   id: string;
   label: string;
@@ -88,7 +89,8 @@ export function isGroupActive(
   if (ctrl.type === "selector") {
     const selected = (controllers[activation.controllerId] as string[] | undefined)
       ?? ctrl.defaultSelected ?? [];
-    return activation.optionId ? selected.includes(activation.optionId) : true;
+    // If optionId is not yet set (in-progress authoring), treat as inactive
+    return activation.optionId ? selected.includes(activation.optionId) : false;
   }
 
   // percentage or toggle → numeric comparison
