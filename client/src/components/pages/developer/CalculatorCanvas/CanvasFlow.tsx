@@ -17,7 +17,7 @@ import { StepDebugInfo } from "../../../../components/TenderPricing/calculators/
 import { CanvasDocument } from "./canvasStorage";
 import {
   ClipboardPayload, SINGLETONS,
-  copyNodes, pasteNodes, deleteNodes, createNode, createGroup,
+  copyNodes, pasteNodes, deleteNodes, createNode, createGroup, createController,
   assignNodeToGroup, removeNodeFromGroup,
 } from "./canvasOps";
 import { parseEdges } from "./edgeParser";
@@ -57,6 +57,18 @@ function buildNodes(
       data,
     };
   };
+
+  // Controller nodes
+  for (const c of (doc.controllerDefs ?? [])) {
+    nodes.push(makeNode(c.id, "controller", {
+      id: c.id,
+      label: c.label,
+      controllerType: c.type,
+      defaultValue: c.defaultValue,
+      defaultSelected: c.defaultSelected,
+      options: c.options,
+    }));
+  }
 
   // Group container nodes (rendered behind other nodes)
   for (const g of doc.groupDefs) {
@@ -106,6 +118,7 @@ function buildNodes(
   for (const p of doc.parameterDefs) labelMap[p.id] = p.label;
   for (const t of doc.tableDefs) labelMap[`${t.id}RatePerHr`] = t.label;
   for (const s of doc.formulaSteps) labelMap[s.id] = s.label ?? s.id;
+  for (const c of (doc.controllerDefs ?? [])) labelMap[c.id] = c.label;
 
   for (const step of doc.formulaSteps) {
     const debug = debugMap[step.id];
@@ -138,6 +151,29 @@ function buildNodes(
   return nodes;
 }
 
+// Returns true if `potentialDescendant` is anywhere in the subtree rooted at `ancestorId`.
+// Used to prevent circular nesting when dragging a group into another group.
+function isDescendantOf(
+  ancestorId: string,
+  potentialDescendant: string,
+  groupDefs: CanvasDocument["groupDefs"]
+): boolean {
+  const visited = new Set<string>();
+  const queue = [ancestorId];
+  while (queue.length) {
+    const cur = queue.shift()!;
+    if (visited.has(cur)) continue;
+    visited.add(cur);
+    const group = groupDefs.find((g) => g.id === cur);
+    if (!group) continue;
+    for (const mid of group.memberIds) {
+      if (mid === potentialDescendant) return true;
+      if (groupDefs.some((g) => g.id === mid)) queue.push(mid);
+    }
+  }
+  return false;
+}
+
 // ─── Context menu ─────────────────────────────────────────────────────────────
 
 interface ContextMenuState {
@@ -166,7 +202,7 @@ interface ContextMenuProps {
   onCopy: (ids: string[]) => void;
   onPaste: (position: { x: number; y: number }) => void;
   onDelete: (ids: string[]) => void;
-  onCreate: (type: "formula" | "param" | "table" | "breakdown" | "group", pos: { x: number; y: number }) => void;
+  onCreate: (type: "formula" | "param" | "table" | "breakdown" | "group" | "controller", pos: { x: number; y: number }) => void;
   onDismiss: () => void;
 }
 
@@ -237,7 +273,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
           </>
         ) : (
           <>
-            {(["formula", "param", "table", "breakdown", "group"] as const).map((type) => (
+            {(["formula", "param", "table", "breakdown", "group", "controller"] as const).map((type) => (
               <div
                 key={type}
                 style={MENU_ITEM}
@@ -249,7 +285,14 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
                 onMouseEnter={(e) => (e.currentTarget.style.background = "#334155")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
-                Add {type === "formula" ? "Formula Step" : type === "param" ? "Parameter" : type === "table" ? "Rate Table" : type === "breakdown" ? "Summary" : "Group"}
+                Add {
+                  type === "formula" ? "Formula Step" :
+                  type === "param" ? "Parameter" :
+                  type === "table" ? "Rate Table" :
+                  type === "breakdown" ? "Summary" :
+                  type === "group" ? "Group" :
+                  "Controller"
+                }
               </div>
             ))}
             {clipboard && (
@@ -293,7 +336,7 @@ interface Props {
   onCopy: (nodeIds: string[]) => void;
   onPaste: (position: { x: number; y: number }) => void;
   onDeleteNodes: (nodeIds: string[]) => void;
-  onCreateNode: (type: "formula" | "param" | "table" | "breakdown" | "group", position: { x: number; y: number }) => void;
+  onCreateNode: (type: "formula" | "param" | "table" | "breakdown" | "group" | "controller", position: { x: number; y: number }) => void;
   positionResetKey: number;
 }
 
@@ -457,8 +500,60 @@ const CanvasFlow: React.FC<Props> = ({
         },
       };
 
-      // For non-group nodes: detect whether group membership changed
-      if (draggedNode.type !== "group") {
+      // Detect whether group membership changed
+      if (draggedNode.type === "group") {
+        // Group nodes: only nest if the dragged group is FULLY contained within another group.
+        // Partial intersection is not enough — avoids accidental nesting on near-misses.
+        const allNodes = reactFlowInstance.current?.getNodes() ?? [];
+        const otherGroups = allNodes.filter((n) => n.type === "group" && n.id !== draggedNode.id);
+
+        const dragAbs = draggedNode.positionAbsolute ?? draggedNode.position;
+        const dragRight = dragAbs.x + (draggedNode.width ?? 400);
+        const dragBottom = dragAbs.y + (draggedNode.height ?? 300);
+
+        const containingGroups = otherGroups.filter((g) => {
+          const gAbs = g.positionAbsolute ?? g.position;
+          const gRight = gAbs.x + (g.width ?? 400);
+          const gBottom = gAbs.y + (g.height ?? 300);
+          return (
+            gAbs.x <= dragAbs.x &&
+            gAbs.y <= dragAbs.y &&
+            gRight >= dragRight &&
+            gBottom >= dragBottom
+          );
+        });
+
+        // Pick the innermost (smallest-area) fully-containing group
+        const targetGroup =
+          containingGroups.length > 0
+            ? containingGroups.reduce((best, g) =>
+                (g.width ?? 400) * (g.height ?? 300) < (best.width ?? 400) * (best.height ?? 300)
+                  ? g
+                  : best
+              )
+            : null;
+
+        const currentGroupId =
+          docRef.current.groupDefs.find((g) => g.memberIds.includes(draggedNode.id))?.id ?? null;
+        const targetGroupId = targetGroup?.id ?? null;
+
+        if (targetGroupId !== currentGroupId) {
+          // Guard: don't create a cycle (targetGroup is already inside draggedNode)
+          if (targetGroupId && isDescendantOf(draggedNode.id, targetGroupId, docRef.current.groupDefs)) {
+            onUpdateDoc({ ...docRef.current, nodePositions: newPositions });
+            return;
+          }
+          let updatedDoc = { ...docRef.current, nodePositions: newPositions };
+          if (targetGroupId) {
+            updatedDoc = assignNodeToGroup(draggedNode.id, targetGroupId, updatedDoc);
+          } else {
+            updatedDoc = removeNodeFromGroup(draggedNode.id, updatedDoc);
+          }
+          onUpdateDoc(updatedDoc);
+          return;
+        }
+      } else {
+        // Non-group nodes: partial intersection with a group is enough to assign
         const intersecting = reactFlowInstance.current?.getIntersectingNodes(draggedNode) ?? [];
         const intersectingGroups = intersecting.filter((n) => n.type === "group");
 
@@ -584,6 +679,18 @@ const CanvasFlow: React.FC<Props> = ({
     };
     const sortedGroups = [...doc.groupDefs].sort((a, b) => getDepth(b.id) - getDepth(a.id));
 
+    // Returns the direct member ID of `group` that contains `nodeId`, or null.
+    // If nodeId is itself a direct member, returns nodeId.
+    // If nodeId is inside a sub-group that is a direct member, returns that sub-group's ID.
+    const getDirectMember = (nodeId: string, groupMemberIds: string[]): string | null => {
+      if (groupMemberIds.includes(nodeId)) return nodeId;
+      for (const mid of groupMemberIds) {
+        const subGroup = doc.groupDefs.find((g) => g.id === mid);
+        if (subGroup && getDirectMember(nodeId, subGroup.memberIds) !== null) return mid;
+      }
+      return null;
+    };
+
     for (const group of sortedGroups) {
       const memberNodes = group.memberIds
         .map((mid) => {
@@ -598,10 +705,21 @@ const CanvasFlow: React.FC<Props> = ({
 
       if (memberNodes.length === 0) continue;
 
-      const memberIdSet = new Set(group.memberIds);
-      const memberEdges = rawEdges.filter(
-        (e) => memberIdSet.has(e.source) && memberIdSet.has(e.target)
-      );
+      // Derive virtual intra-group edges: map each real edge's endpoints to their
+      // direct member within this group (could be the node itself or a sub-group).
+      // This ensures sub-group members are ordered correctly relative to sibling nodes.
+      const intraEdgeSet = new Set<string>();
+      const memberEdges: Edge[] = [];
+      for (const edge of rawEdges) {
+        const src = getDirectMember(edge.source, group.memberIds);
+        const tgt = getDirectMember(edge.target, group.memberIds);
+        if (!src || !tgt || src === tgt) continue;
+        const key = `${src}→${tgt}`;
+        if (!intraEdgeSet.has(key)) {
+          intraEdgeSet.add(key);
+          memberEdges.push({ ...edge, id: key, source: src, target: tgt });
+        }
+      }
 
       const laidOut = dagreLayout(memberNodes, memberEdges);
       const minX = Math.min(...laidOut.map((n) => n.position.x));
@@ -628,7 +746,34 @@ const CanvasFlow: React.FC<Props> = ({
       newPositions[group.id] = { ...(newPositions[group.id] ?? { x: 0, y: 0 }), w: groupW, h: groupH };
     }
 
-    // Top-level layout: ungrouped nodes + group containers (with their freshly computed sizes)
+    // Build a map from any node ID → its top-level entity (top-level group ID or the node
+    // itself if ungrouped). Used to derive virtual edges between top-level entities.
+    const getTopLevelEntity = (nodeId: string): string => {
+      let current = nodeId;
+      for (;;) {
+        const parentGroup = doc.groupDefs.find((g) => g.memberIds.includes(current));
+        if (!parentGroup) return current;
+        current = parentGroup.id;
+      }
+    };
+
+    // Derive virtual edges: replace each real edge with a top-level-entity → top-level-entity
+    // edge. This tells dagre how groups (and ungrouped nodes) depend on each other.
+    const virtualEdgeSet = new Set<string>();
+    const virtualEdges: Edge[] = [];
+    for (const edge of rawEdges) {
+      const src = getTopLevelEntity(edge.source);
+      const tgt = getTopLevelEntity(edge.target);
+      if (src === tgt) continue; // same entity (intra-group edge) — skip
+      const key = `${src}→${tgt}`;
+      if (!virtualEdgeSet.has(key)) {
+        virtualEdgeSet.add(key);
+        virtualEdges.push({ ...edge, id: key, source: src, target: tgt });
+      }
+    }
+
+    // Top-level layout: ungrouped nodes + group containers (with freshly computed sizes),
+    // positioned using virtual edges so inter-group dependencies drive the left-to-right flow.
     const topLevelNodes = nodes
       .filter((n) => !groupedIds.has(n.id))
       .map((n) =>
@@ -637,7 +782,7 @@ const CanvasFlow: React.FC<Props> = ({
           : n
       );
 
-    const topLaidOut = dagreLayout(topLevelNodes, rawEdges);
+    const topLaidOut = dagreLayout(topLevelNodes, virtualEdges);
     const topLaidOutMap = Object.fromEntries(topLaidOut.map((n) => [n.id, n.position]));
     for (const n of topLaidOut) {
       newPositions[n.id] = { ...(newPositions[n.id] ?? {}), x: n.position.x, y: n.position.y };

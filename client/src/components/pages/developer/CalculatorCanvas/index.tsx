@@ -7,7 +7,7 @@ import {
 } from "../../../../components/TenderPricing/calculators/evaluate";
 import { parseEdges } from "./edgeParser";
 import { CanvasDocument, useCanvasDocuments } from "./canvasStorage";
-import { ClipboardPayload, copyNodes, pasteNodes, deleteNodes, createNode, createGroup } from "./canvasOps";
+import { ClipboardPayload, copyNodes, pasteNodes, deleteNodes, createNode, createGroup, createController } from "./canvasOps";
 import CanvasFlow from "./CanvasFlow";
 import InspectPanel from "./InspectPanel";
 import LiveTestPanel from "./LiveTestPanel";
@@ -75,12 +75,22 @@ const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px" }) => {
     }
   }, [docs, selectedDocId]);
 
+  const controllerDefaults = useMemo(() => {
+    if (!activeDoc) return {};
+    const result: Record<string, number> = {};
+    for (const c of (activeDoc.controllerDefs ?? [])) {
+      if (c.type === "percentage") result[c.id] = typeof c.defaultValue === "number" ? c.defaultValue : 0;
+      if (c.type === "toggle") result[c.id] = c.defaultValue ? 1 : 0;
+    }
+    return result;
+  }, [activeDoc]);
+
   const stepDebug = useMemo(
     () =>
       activeDoc
-        ? debugEvaluateTemplate(activeDoc, activeDoc.defaultInputs, quantity)
+        ? debugEvaluateTemplate(activeDoc, activeDoc.defaultInputs, quantity, controllerDefaults)
         : [],
-    [activeDoc, quantity]
+    [activeDoc, quantity, controllerDefaults]
   );
 
   // Computed once and shared between CanvasFlow (for highlight logic + auto-layout)
@@ -167,11 +177,16 @@ const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px" }) => {
   }, [activeDoc, saveDocument, selectedNodeId]);
 
   const handleCreateNode = useCallback(
-    (type: "formula" | "param" | "table" | "breakdown" | "group", position: { x: number; y: number }) => {
+    (type: "formula" | "param" | "table" | "breakdown" | "group" | "controller", position: { x: number; y: number }) => {
       if (!activeDoc) return;
       if (type === "group") {
         const { doc, newId } = createGroup(activeDoc, position);
         saveDocument(doc);
+        setSelectedNodeId(newId);
+        setPositionResetKey((k) => k + 1);
+      } else if (type === "controller") {
+        const { doc: newDoc, newId } = createController(activeDoc, position);
+        saveDocument(newDoc);
         setSelectedNodeId(newId);
         setPositionResetKey((k) => k + 1);
       } else {
