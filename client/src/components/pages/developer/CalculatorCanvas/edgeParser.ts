@@ -1,8 +1,11 @@
 import { Edge } from "reactflow";
 import { CalculatorTemplate } from "../../../../components/TenderPricing/calculators/types";
+import { CanvasDocument } from "./canvasStorage";
 
 export function parseEdges(template: CalculatorTemplate): Edge[] {
   const edges: Edge[] = [];
+
+  const controllerDefs = (template as CanvasDocument).controllerDefs ?? [];
 
   // All valid source node ids — include all formula step ids upfront so edges are
   // generated regardless of declaration order (order is irrelevant since the
@@ -12,6 +15,8 @@ export function parseEdges(template: CalculatorTemplate): Edge[] {
     ...template.parameterDefs.map((p) => p.id),
     ...template.tableDefs.map((t) => `${t.id}RatePerHr`),
     ...template.formulaSteps.map((s) => s.id),
+    // Percentage and Toggle controllers can be referenced in formula expressions
+    ...controllerDefs.filter((c) => c.type !== "selector").map((c) => c.id),
   ]);
 
   // Formula steps: parse each formula string for variable name tokens.
@@ -45,6 +50,18 @@ export function parseEdges(template: CalculatorTemplate): Edge[] {
       id: `${bd.id}->unitPrice`,
       source: bd.id,
       target: "unitPrice",
+    });
+  }
+
+  // Activation edges: controller → group (dashed style to distinguish from formula edges)
+  const groupDefs = (template as CanvasDocument).groupDefs ?? [];
+  for (const group of groupDefs) {
+    if (!group.activation) continue;
+    edges.push({
+      id: `${group.activation.controllerId}->activation->${group.id}`,
+      source: group.activation.controllerId,
+      target: group.id,
+      style: { strokeDasharray: "5 4", stroke: "#0d9488", opacity: 0.7 },
     });
   }
 

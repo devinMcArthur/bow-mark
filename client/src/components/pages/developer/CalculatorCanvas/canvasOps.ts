@@ -493,7 +493,7 @@ export function createController(
   const takenLabels = new Set(doc.controllerDefs.map((c) => c.label));
   const baseLabel = type === "percentage" ? "Percentage" : type === "toggle" ? "Toggle" : "Selector";
   const label = nextLabel(baseLabel, takenLabels);
-  const id = nextSlugId(slugify(label), takenIds);
+  const id = nextSlugId(`ctrl_${slugify(label)}`, takenIds);
 
   const newController: ControllerDef = {
     id,
