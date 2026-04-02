@@ -137,6 +137,11 @@ export const ControllerNode: React.FC<NodeProps> = ({ data, selected }) => {
         <Handle type="source" position={Position.Right} isConnectable={false}
           style={{ background: "#0d9488", border: "2px solid #134e4a", width: 10, height: 10 }} />
       )}
+      {/* Selector activates groups via a bottom handle */}
+      {isSelector && (
+        <Handle type="source" position={Position.Bottom} isConnectable={false}
+          style={{ background: "#0d9488", border: "2px solid #134e4a", width: 10, height: 10 }} />
+      )}
       <TypeBadge label={data.controllerType} color="#5eead4" />
       <div style={labelStyle}>{data.label}</div>
 
@@ -292,6 +297,8 @@ export const GroupNode: React.FC<NodeProps> = ({ data, selected }) => (
       position: "relative",
     }}
   >
+    <Handle type="target" position={Position.Left} isConnectable={false}
+      style={{ background: "#0d9488", border: "2px solid #0f172a", width: 10, height: 10, top: 20 }} />
     <NodeResizer
       isVisible={selected}
       minWidth={200}
