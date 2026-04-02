@@ -67,7 +67,8 @@ export function safeEval(formula: string, ctx: Record<string, number>): number {
 export function evaluateTemplate(
   template: CalculatorTemplate,
   inputs: CalculatorInputs,
-  quantity: number
+  quantity: number,
+  controllerValues?: Record<string, number>   // optional: percentage/toggle controller values
 ): CalculatorResult {
   // 1. Seed context: quantity + parameters + table aggregates
   const ctx: Record<string, number> = { quantity };
@@ -81,6 +82,11 @@ export function evaluateTemplate(
       (s, r) => s + r.qty * r.ratePerHour,
       0
     );
+  }
+
+  // Inject controller values (percentage/toggle) — formula steps may reference them by ID
+  for (const [id, val] of Object.entries(controllerValues ?? {})) {
+    ctx[id] = val;
   }
 
   // 2. Evaluate formula steps in dependency order
@@ -109,7 +115,8 @@ export function evaluateTemplate(
 export function debugEvaluateTemplate(
   template: CalculatorTemplate,
   inputs: CalculatorInputs,
-  quantity: number
+  quantity: number,
+  controllerValues?: Record<string, number>   // optional: percentage/toggle controller values
 ): StepDebugInfo[] {
   const ctx: Record<string, number> = { quantity };
 
@@ -122,6 +129,11 @@ export function debugEvaluateTemplate(
       (s, r) => s + r.qty * r.ratePerHour,
       0
     );
+  }
+
+  // Inject controller values (percentage/toggle) — formula steps may reference them by ID
+  for (const [id, val] of Object.entries(controllerValues ?? {})) {
+    ctx[id] = val;
   }
 
   const { sorted, cycleIds } = topoSortSteps(template.formulaSteps);
