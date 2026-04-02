@@ -255,7 +255,7 @@ const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px", docId }) =>
   // ─── Standalone mode (full-page editor at /pricing/rate-builder/[id]) ─────────
   if (docId) {
     return (
-      <Box>
+      <Box w="100%" overflow="hidden">
         {/* Slim header bar */}
         <Flex
           align="center"
