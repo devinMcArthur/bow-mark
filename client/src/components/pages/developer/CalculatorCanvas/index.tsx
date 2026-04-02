@@ -11,15 +11,40 @@ import { ClipboardPayload, copyNodes, pasteNodes, deleteNodes, createNode, creat
 import CanvasFlow from "./CanvasFlow";
 import InspectPanel from "./InspectPanel";
 import LiveTestPanel from "./LiveTestPanel";
+import { RateEntry } from "../../../../components/TenderPricing/calculators/types";
 
 interface Props {
   doc: CanvasDocument;
   onSave: (doc: CanvasDocument) => void;
   /** Height of the canvas area (excluding the 28px internal undo toolbar). Defaults to 700px. */
   canvasHeight?: string | number;
+  /** Seed values from a rate buildup snapshot (tender row context). */
+  initialInputs?: {
+    params?: Record<string, number>;
+    tables?: Record<string, RateEntry[]>;
+    controllers?: Record<string, number | boolean | string[]>;
+  };
+  /** Fires when any param, table, or controller changes in LiveTestPanel. */
+  onInputsChange?: (
+    params: Record<string, number>,
+    tables: Record<string, RateEntry[]>,
+    controllers: Record<string, number | boolean | string[]>
+  ) => void;
+  /** Per-param estimator notes from snapshot. */
+  paramNotes?: Record<string, string>;
+  /** Fires when a param note changes. */
+  onParamNoteChange?: (paramId: string, note: string) => void;
 }
 
-const CalculatorCanvas: React.FC<Props> = ({ doc, onSave, canvasHeight = "700px" }) => {
+const CalculatorCanvas: React.FC<Props> = ({
+  doc,
+  onSave,
+  canvasHeight = "700px",
+  initialInputs,
+  onInputsChange,
+  paramNotes,
+  onParamNoteChange,
+}) => {
   // Internal undo/redo — stacks reset when doc.id changes
   const [undoStack, setUndoStack] = useState<CanvasDocument[]>([]);
   const [redoStack, setRedoStack] = useState<CanvasDocument[]>([]);
@@ -287,6 +312,10 @@ const CalculatorCanvas: React.FC<Props> = ({ doc, onSave, canvasHeight = "700px"
               <LiveTestPanel
                 doc={doc}
                 onCollapse={() => setLiveTestOpen(false)}
+                initialInputs={initialInputs}
+                onInputsChange={onInputsChange}
+                paramNotes={paramNotes}
+                onParamNoteChange={onParamNoteChange}
               />
             </Box>
             <Box
