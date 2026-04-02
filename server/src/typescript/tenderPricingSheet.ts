@@ -73,4 +73,5 @@ export interface ITenderPricingRowUpdate {
   notes?: string;
   calculatorType?: TenderWorkType;
   calculatorInputs?: ITenderCalculatorInputs;
+  rateBuildupSnapshot?: string | null;
 }

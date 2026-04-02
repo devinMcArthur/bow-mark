@@ -55,6 +55,7 @@ const updateRow = (
   if (data.notes !== undefined) row.notes = data.notes;
   if (data.calculatorType !== undefined) row.calculatorType = data.calculatorType;
   if (data.calculatorInputs !== undefined) row.calculatorInputs = data.calculatorInputs as any;
+  if (data.rateBuildupSnapshot !== undefined) row.rateBuildupSnapshot = data.rateBuildupSnapshot ?? undefined;
 
   sheet.updatedAt = new Date();
   return sheet;

@@ -25,6 +25,17 @@ export default class TenderPricingSheetResolver {
   }
 
   @Authorized(["ADMIN", "PM"])
+  @Query(() => String, { nullable: true })
+  async tenderPricingRowSnapshot(
+    @Arg("sheetId", () => ID) sheetId: Id,
+    @Arg("rowId", () => ID) rowId: Id
+  ): Promise<string | null> {
+    const sheet = await TenderPricingSheet.findById(sheetId, { rows: { $elemMatch: { _id: rowId } } });
+    const row = sheet?.rows?.[0];
+    return row?.rateBuildupSnapshot ?? null;
+  }
+
+  @Authorized(["ADMIN", "PM"])
   @Mutation(() => TenderPricingSheetClass)
   async tenderPricingSheetCreate(@Arg("tenderId", () => ID) tenderId: Id) {
     const existing = await TenderPricingSheet.getByTenderId(tenderId);

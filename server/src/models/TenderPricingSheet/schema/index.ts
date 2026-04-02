@@ -80,6 +80,10 @@ export class TenderPricingRowClass {
 
   @prop({ type: () => Object })
   public calculatorInputs?: Record<string, unknown>;
+
+  @Field({ nullable: true })
+  @prop({ trim: true })
+  public rateBuildupSnapshot?: string;
 }
 
 @ObjectType()
