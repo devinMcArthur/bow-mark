@@ -57,10 +57,16 @@ export function parseEdges(template: CalculatorTemplate): Edge[] {
   const groupDefs = (template as CanvasDocument).groupDefs ?? [];
   for (const group of groupDefs) {
     if (!group.activation) continue;
+    const ctrl = controllerDefs.find((c) => c.id === group.activation!.controllerId);
+    const sourceHandle =
+      ctrl?.type === "selector" && group.activation.optionId
+        ? group.activation.optionId
+        : undefined;
     edges.push({
       id: `${group.activation.controllerId}->activation->${group.id}`,
       source: group.activation.controllerId,
       target: group.id,
+      ...(sourceHandle ? { sourceHandle } : {}),
       style: { strokeDasharray: "5 4", stroke: "#0d9488", opacity: 0.7 },
     });
   }

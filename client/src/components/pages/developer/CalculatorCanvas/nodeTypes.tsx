@@ -137,11 +137,6 @@ export const ControllerNode: React.FC<NodeProps> = ({ data, selected }) => {
         <Handle type="source" position={Position.Right} isConnectable={false}
           style={{ background: "#0d9488", border: "2px solid #134e4a", width: 10, height: 10 }} />
       )}
-      {/* Selector activates groups via a bottom handle */}
-      {isSelector && (
-        <Handle type="source" position={Position.Bottom} isConnectable={false}
-          style={{ background: "#0d9488", border: "2px solid #134e4a", width: 10, height: 10 }} />
-      )}
       <TypeBadge label={data.controllerType} color="#5eead4" />
       <div style={labelStyle}>{data.label}</div>
 
@@ -159,19 +154,39 @@ export const ControllerNode: React.FC<NodeProps> = ({ data, selected }) => {
         </div>
       )}
 
-      {/* Selector widget */}
+      {/* Selector widget — one source handle per option for group activation edges */}
       {isSelector && (
         <div style={{ marginTop: 4 }}>
-          {(data.options as { id: string; label: string }[] ?? []).map((opt) => (
-            <div key={opt.id} style={{
-              fontSize: 10,
-              color: (data.defaultSelected as string[] ?? []).includes(opt.id) ? "#5eead4" : "#64748b",
-              fontFamily: "monospace",
-              lineHeight: "1.6",
-            }}>
-              {(data.defaultSelected as string[] ?? []).includes(opt.id) ? "☑" : "☐"} {opt.label}
-            </div>
-          ))}
+          {(data.options as { id: string; label: string }[] ?? []).map((opt) => {
+            const isSelected = (data.defaultSelected as string[] ?? []).includes(opt.id);
+            return (
+              <div key={opt.id} style={{ position: "relative", paddingRight: 14 }}>
+                <div style={{
+                  fontSize: 10,
+                  color: isSelected ? "#5eead4" : "#64748b",
+                  fontFamily: "monospace",
+                  lineHeight: "1.6",
+                }}>
+                  {isSelected ? "☑" : "☐"} {opt.label}
+                </div>
+                <Handle
+                  type="source"
+                  position={Position.Right}
+                  id={opt.id}
+                  isConnectable={false}
+                  style={{
+                    background: "#0d9488",
+                    border: "2px solid #134e4a",
+                    width: 8,
+                    height: 8,
+                    right: -16,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                  }}
+                />
+              </div>
+            );
+          })}
           {(data.options as { id: string; label: string }[] ?? []).length === 0 && (
             <div style={{ ...slugStyle, color: "#0f766e", fontStyle: "italic" }}>no options</div>
           )}
