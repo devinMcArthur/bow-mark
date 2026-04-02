@@ -119,6 +119,63 @@ export const QuantityNode: React.FC<NodeProps> = ({ data, selected }) => (
   </div>
 );
 
+export const ControllerNode: React.FC<NodeProps> = ({ data, selected }) => {
+  const isSelector = data.controllerType === "selector";
+  const isToggle = data.controllerType === "toggle";
+
+  return (
+    <div style={{
+      ...baseStyle,
+      background: "#134e4a",
+      border: `1.5px solid ${selected ? "#5eead4" : "#0d9488"}`,
+      borderTop: `3px solid #0d9488`,
+      boxShadow: selected ? "0 0 0 2px #0d948840, 0 4px 12px #00000060" : "0 2px 8px #00000050",
+      minWidth: isSelector ? 180 : 160,
+    }}>
+      {/* Percentage and Toggle output to formula graph */}
+      {!isSelector && (
+        <Handle type="source" position={Position.Right} isConnectable={false}
+          style={{ background: "#0d9488", border: "2px solid #134e4a", width: 10, height: 10 }} />
+      )}
+      <TypeBadge label={data.controllerType} color="#5eead4" />
+      <div style={labelStyle}>{data.label}</div>
+
+      {/* Percentage widget */}
+      {data.controllerType === "percentage" && (
+        <div style={{ ...valueStyle, color: "#99f6e4" }}>
+          {((data.defaultValue as number ?? 0) * 100).toFixed(0)}%
+        </div>
+      )}
+
+      {/* Toggle widget */}
+      {isToggle && (
+        <div style={{ ...valueStyle, color: "#99f6e4" }}>
+          {data.defaultValue ? "ON" : "OFF"}
+        </div>
+      )}
+
+      {/* Selector widget */}
+      {isSelector && (
+        <div style={{ marginTop: 4 }}>
+          {(data.options as { id: string; label: string }[] ?? []).map((opt) => (
+            <div key={opt.id} style={{
+              fontSize: 10,
+              color: (data.defaultSelected as string[] ?? []).includes(opt.id) ? "#5eead4" : "#64748b",
+              fontFamily: "monospace",
+              lineHeight: "1.6",
+            }}>
+              {(data.defaultSelected as string[] ?? []).includes(opt.id) ? "☑" : "☐"} {opt.label}
+            </div>
+          ))}
+          {(data.options as { id: string; label: string }[] ?? []).length === 0 && (
+            <div style={{ ...slugStyle, color: "#0f766e", fontStyle: "italic" }}>no options</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── KaTeX formula renderer ───────────────────────────────────────────────────
 
 const katexOpts: katex.KatexOptions = {
@@ -272,4 +329,5 @@ export const nodeTypes = {
   breakdown: BreakdownNode,
   priceOutput: OutputNode,
   group: GroupNode,
+  controller: ControllerNode,
 };
