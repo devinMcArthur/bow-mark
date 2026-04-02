@@ -1,6 +1,6 @@
 // client/src/components/pages/developer/CalculatorCanvas/canvasOps.ts
 import { v4 as uuidv4 } from "uuid";
-import { CanvasDocument, GroupDef } from "./canvasStorage";
+import { CanvasDocument, GroupDef, ControllerDef } from "./canvasStorage";
 import {
   FormulaStep,
   ParameterDef,
@@ -228,6 +228,13 @@ export function deleteNodes(nodeIds: string[], doc: CanvasDocument): CanvasDocum
   for (const id of toDelete) {
     if (workingDoc.groupDefs.some((g) => g.id === id)) {
       workingDoc = deleteGroup(id, workingDoc);
+    }
+  }
+
+  // Handle controller deletions
+  for (const id of toDelete) {
+    if (workingDoc.controllerDefs.some((c) => c.id === id)) {
+      workingDoc = deleteController(id, workingDoc);
     }
   }
 
@@ -465,6 +472,49 @@ export function createGroup(
 }
 
 /**
+ * Create a new Controller node at the given canvas position.
+ * Returns the updated doc and the new controller's ID.
+ */
+export function createController(
+  doc: CanvasDocument,
+  position: { x: number; y: number },
+  type: "percentage" | "toggle" | "selector" = "percentage"
+): { doc: CanvasDocument; newId: string } {
+  const takenIds = new Set([
+    ...doc.controllerDefs.map((c) => c.id),
+    ...doc.groupDefs.map((g) => g.id),
+    ...doc.formulaSteps.map((s) => s.id),
+    ...doc.parameterDefs.map((p) => p.id),
+    ...doc.tableDefs.map((t) => t.id),
+    ...doc.tableDefs.map((t) => `${t.id}RatePerHr`),
+    ...doc.breakdownDefs.map((b) => b.id),
+    "quantity", "unitPrice",
+  ]);
+  const takenLabels = new Set(doc.controllerDefs.map((c) => c.label));
+  const baseLabel = type === "percentage" ? "Percentage" : type === "toggle" ? "Toggle" : "Selector";
+  const label = nextLabel(baseLabel, takenLabels);
+  const id = nextSlugId(slugify(label), takenIds);
+
+  const newController: ControllerDef = {
+    id,
+    label,
+    type,
+    ...(type === "percentage" ? { defaultValue: 0.5 } : {}),
+    ...(type === "toggle" ? { defaultValue: false } : {}),
+    ...(type === "selector" ? { options: [], defaultSelected: [] } : {}),
+  };
+
+  return {
+    newId: id,
+    doc: {
+      ...doc,
+      controllerDefs: [...doc.controllerDefs, newController],
+      nodePositions: { ...doc.nodePositions, [id]: position },
+    },
+  };
+}
+
+/**
  * Delete a group. Its direct members are un-parented (stay at their current absolute
  * positions). Sub-groups become top-level. Removes the GroupDef and its nodePositions entry.
  */
@@ -514,6 +564,26 @@ export function deleteGroup(groupId: string, doc: CanvasDocument): CanvasDocumen
   delete newPositions[groupId];
 
   return { ...updatedDoc, groupDefs: newGroupDefs, nodePositions: newPositions };
+}
+
+/**
+ * Delete a controller. Clears `activation` from any groups that reference it.
+ * Removes the ControllerDef and its nodePositions entry.
+ */
+export function deleteController(controllerId: string, doc: CanvasDocument): CanvasDocument {
+  const newPositions = { ...doc.nodePositions };
+  delete newPositions[controllerId];
+
+  return {
+    ...doc,
+    controllerDefs: doc.controllerDefs.filter((c) => c.id !== controllerId),
+    groupDefs: doc.groupDefs.map((g) =>
+      g.activation?.controllerId === controllerId
+        ? { ...g, activation: undefined }
+        : g
+    ),
+    nodePositions: newPositions,
+  };
 }
 
 // ─── Create ───────────────────────────────────────────────────────────────────
