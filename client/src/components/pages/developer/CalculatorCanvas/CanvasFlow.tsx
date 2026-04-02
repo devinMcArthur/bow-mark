@@ -19,6 +19,7 @@ import {
   ClipboardPayload, SINGLETONS,
   copyNodes, pasteNodes, deleteNodes, createNode, createGroup, createController,
   assignNodeToGroup, removeNodeFromGroup,
+  applyPositionMapToDoc, buildPositionMapFromDoc,
 } from "./canvasOps";
 import { parseEdges } from "./edgeParser";
 import { dagreLayout } from "./layoutEngine";
@@ -29,7 +30,6 @@ import { nodeTypes } from "./nodeTypes";
 function buildNodes(
   doc: CanvasDocument,
   stepDebug: StepDebugInfo[],
-  positions: Record<string, { x: number; y: number; w?: number; h?: number }>,
   quantity: number,
   onQuantityChange: (v: number) => void,
   onGroupResizeEnd: (groupId: string, w: number, h: number) => void
@@ -46,14 +46,22 @@ function buildNodes(
   }
 
   // Helper: create a node with parentId if grouped
-  const makeNode = (id: string, type: string, data: Record<string, unknown>): Node => {
-    const pos = positions[id] ?? { x: 0, y: 0 };
+  const makeNode = (
+    id: string,
+    type: string,
+    data: Record<string, unknown>,
+    position: { x: number; y: number },
+    style?: React.CSSProperties,
+    extra?: Record<string, unknown>
+  ): Node => {
     const parentId = memberOf[id];
     return {
       id,
       type,
-      position: { x: pos.x, y: pos.y },
+      position: { x: position.x, y: position.y },
       ...(parentId !== undefined ? { parentId } : {}),
+      ...(style ? { style } : {}),
+      ...(extra ?? {}),
       data,
     };
   };
@@ -67,28 +75,20 @@ function buildNodes(
       defaultValue: c.defaultValue,
       defaultSelected: c.defaultSelected,
       options: c.options,
-    }));
+    }, c.position));
   }
 
   // Group container nodes (rendered behind other nodes)
   for (const g of doc.groupDefs) {
-    const pos = positions[g.id] ?? { x: 0, y: 0 };
-    const w = pos.w ?? 400;
-    const h = pos.h ?? 300;
-    const parentId = memberOf[g.id];
-    nodes.push({
-      id: g.id,
-      type: "group",
-      position: { x: pos.x, y: pos.y },
-      ...(parentId !== undefined ? { parentId } : {}),
-      style: { width: w, height: h },
-      zIndex: -1,
-      draggable: false, // only draggable once selected — see selectedNodeId effect in CanvasFlow
-      data: {
-        label: g.label,
-        onResizeEnd: (newW: number, newH: number) => onGroupResizeEnd(g.id, newW, newH),
-      },
-    });
+    const w = g.position.w ?? 400;
+    const h = g.position.h ?? 300;
+    nodes.push(makeNode(
+      g.id, "group",
+      { label: g.label, onResizeEnd: (newW: number, newH: number) => onGroupResizeEnd(g.id, newW, newH) },
+      g.position,
+      { width: w, height: h },
+      { zIndex: -1, draggable: false } // only draggable once selected
+    ));
   }
 
   for (const p of doc.parameterDefs) {
@@ -96,22 +96,22 @@ function buildNodes(
       id: p.id,
       label: p.label,
       suffix: p.suffix,
-      value: doc.defaultInputs.params[p.id] ?? p.defaultValue,
-    }));
+      value: p.defaultValue,
+    }, p.position));
   }
 
   for (const t of doc.tableDefs) {
     const nodeId = `${t.id}RatePerHr`;
-    const rows = doc.defaultInputs.tables[t.id] ?? [];
+    const rows = t.defaultRows ?? [];
     const ratePerHr = rows.reduce((s, r) => s + r.qty * r.ratePerHour, 0);
-    nodes.push(makeNode(nodeId, "table", { id: nodeId, label: t.label, value: ratePerHr }));
+    nodes.push(makeNode(nodeId, "table", { id: nodeId, label: t.label, value: ratePerHr }, t.position));
   }
 
   // Singletons — never grouped
   nodes.push({
     id: "quantity",
     type: "quantity",
-    position: positions["quantity"] ?? { x: 0, y: 0 },
+    position: { x: doc.specialPositions.quantity.x, y: doc.specialPositions.quantity.y },
     data: { value: quantity, onChange: onQuantityChange },
   });
 
@@ -130,12 +130,12 @@ function buildNodes(
       labelMap,
       value: debug?.value ?? 0,
       hasError: !!debug?.error,
-    }));
+    }, step.position));
   }
 
   for (const bd of doc.breakdownDefs) {
     const value = (bd.items ?? []).reduce((s, item) => s + (debugMap[item.stepId]?.value ?? 0), 0);
-    nodes.push(makeNode(bd.id, "breakdown", { label: bd.label, value }));
+    nodes.push(makeNode(bd.id, "breakdown", { label: bd.label, value }, bd.position));
   }
 
   const unitPrice = doc.breakdownDefs.reduce(
@@ -145,7 +145,7 @@ function buildNodes(
   nodes.push({
     id: "unitPrice",
     type: "priceOutput",
-    position: positions["unitPrice"] ?? { x: 0, y: 0 },
+    position: { x: doc.specialPositions.unitPrice.x, y: doc.specialPositions.unitPrice.y },
     data: { value: unitPrice },
   });
 
@@ -411,17 +411,18 @@ const CanvasFlow: React.FC<Props> = ({
 
   const handleGroupResizeEnd = useCallback(
     (groupId: string, w: number, h: number) => {
-      const existing = docRef.current.nodePositions[groupId] ?? { x: 0, y: 0 };
       onUpdateDoc({
         ...docRef.current,
-        nodePositions: { ...docRef.current.nodePositions, [groupId]: { ...existing, w, h } },
+        groupDefs: docRef.current.groupDefs.map((g) =>
+          g.id === groupId ? { ...g, position: { ...g.position, w, h } } : g
+        ),
       });
     },
     [onUpdateDoc]
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState(
-    buildNodes(doc, stepDebug, doc.nodePositions, quantity, onQuantityChange, handleGroupResizeEnd)
+    buildNodes(doc, stepDebug, quantity, onQuantityChange, handleGroupResizeEnd)
   );
   nodesRef.current = nodes; // always current, used by the native mousedown capture
 
@@ -455,29 +456,24 @@ const CanvasFlow: React.FC<Props> = ({
 
     if (docSwitched || positionReset) {
       // Doc switch or undo/redo: restore positions from the document
-      setNodes(buildNodes(doc, stepDebug, doc.nodePositions, quantity, onQuantityChange, handleGroupResizeEnd));
+      setNodes(buildNodes(doc, stepDebug, quantity, onQuantityChange, handleGroupResizeEnd));
     } else {
       // Content change (formula edit, etc.): preserve current drag positions.
-      // Merge doc.nodePositions as base so newly-created nodes (not yet in prev)
-      // land at their intended position rather than falling back to {x:0, y:0}.
-      // IMPORTANT: only apply the live React Flow position for nodes whose group
-      // membership is unchanged. If membership changed (drag into/out of group),
-      // doc.nodePositions already holds the correctly converted relative position —
-      // overriding it with the pre-update absolute position from `prev` would
-      // cause the node to jump.
+      // Merge live React Flow positions for nodes whose group membership is unchanged,
+      // so nodes don't snap back during formula edits.
       setNodes((prev) => {
         const newMemberOf: Record<string, string | undefined> = {};
         for (const g of doc.groupDefs) {
           for (const mid of g.memberIds) newMemberOf[mid] = g.id;
         }
-        const positions = { ...doc.nodePositions };
+        const livePositions: Record<string, { x: number; y: number }> = {};
         for (const n of prev) {
           if (newMemberOf[n.id] === n.parentId) {
-            const existing = positions[n.id];
-            positions[n.id] = { ...existing, x: n.position.x, y: n.position.y };
+            livePositions[n.id] = { x: n.position.x, y: n.position.y };
           }
         }
-        return buildNodes(doc, stepDebug, positions, quantity, onQuantityChange, handleGroupResizeEnd);
+        const mergedDoc = applyPositionMapToDoc(doc, livePositions);
+        return buildNodes(mergedDoc, stepDebug, quantity, onQuantityChange, handleGroupResizeEnd);
       });
     }
   // Intentional omissions from deps: `doc` (we only want to re-run on doc.id
@@ -553,20 +549,14 @@ const CanvasFlow: React.FC<Props> = ({
       // node.position is in the correct coordinate space already:
       //   - absolute for ungrouped nodes and group containers
       //   - relative to parent for grouped nodes (React Flow gives relative for parentId children)
-      const existingEntry = docRef.current.nodePositions[draggedNode.id] ?? {};
-      const newPositions = {
-        ...docRef.current.nodePositions,
-        [draggedNode.id]: {
-          ...existingEntry,
-          x: draggedNode.position.x,
-          y: draggedNode.position.y,
-        },
-      };
+      // Apply the new drag position to the appropriate def.
+      let updatedDoc = applyPositionMapToDoc(docRef.current, {
+        [draggedNode.id]: { x: draggedNode.position.x, y: draggedNode.position.y },
+      });
 
       // Detect whether group membership changed
       if (draggedNode.type === "group") {
         // Group nodes: only nest if the dragged group is FULLY contained within another group.
-        // Partial intersection is not enough — avoids accidental nesting on near-misses.
         const allNodes = reactFlowInstance.current?.getNodes() ?? [];
         const otherGroups = allNodes.filter((n) => n.type === "group" && n.id !== draggedNode.id);
 
@@ -586,7 +576,6 @@ const CanvasFlow: React.FC<Props> = ({
           );
         });
 
-        // Pick the innermost (smallest-area) fully-containing group
         const targetGroup =
           containingGroups.length > 0
             ? containingGroups.reduce((best, g) =>
@@ -603,24 +592,20 @@ const CanvasFlow: React.FC<Props> = ({
         if (targetGroupId !== currentGroupId) {
           // Guard: don't create a cycle (targetGroup is already inside draggedNode)
           if (targetGroupId && isDescendantOf(draggedNode.id, targetGroupId, docRef.current.groupDefs)) {
-            onUpdateDoc({ ...docRef.current, nodePositions: newPositions });
+            onUpdateDoc(updatedDoc);
             return;
           }
-          let updatedDoc = { ...docRef.current, nodePositions: newPositions };
           if (targetGroupId) {
             updatedDoc = assignNodeToGroup(draggedNode.id, targetGroupId, updatedDoc);
           } else {
             updatedDoc = removeNodeFromGroup(draggedNode.id, updatedDoc);
           }
-          onUpdateDoc(updatedDoc);
-          return;
         }
       } else {
         // Non-group nodes: partial intersection with a group is enough to assign
         const intersecting = reactFlowInstance.current?.getIntersectingNodes(draggedNode) ?? [];
         const intersectingGroups = intersecting.filter((n) => n.type === "group");
 
-        // Pick the innermost (smallest-area) intersecting group
         const targetGroup =
           intersectingGroups.length > 0
             ? intersectingGroups.reduce((best, g) =>
@@ -635,19 +620,15 @@ const CanvasFlow: React.FC<Props> = ({
         const targetGroupId = targetGroup?.id ?? null;
 
         if (targetGroupId !== currentGroupId) {
-          // Membership changed: use helpers that handle absolute↔relative conversion
-          let updatedDoc = { ...docRef.current, nodePositions: newPositions };
           if (targetGroupId) {
             updatedDoc = assignNodeToGroup(draggedNode.id, targetGroupId, updatedDoc);
           } else {
             updatedDoc = removeNodeFromGroup(draggedNode.id, updatedDoc);
           }
-          onUpdateDoc(updatedDoc);
-          return;
         }
       }
 
-      onUpdateDoc({ ...docRef.current, nodePositions: newPositions });
+      onUpdateDoc(updatedDoc);
     },
     [onUpdateDoc]
   );
@@ -734,7 +715,7 @@ const CanvasFlow: React.FC<Props> = ({
     const groupedIds = new Set(doc.groupDefs.flatMap((g) => g.memberIds));
     const nodeMap = Object.fromEntries(nodes.map((n) => [n.id, n]));
     const groupSizes: Record<string, { w: number; h: number }> = {};
-    const newPositions = { ...doc.nodePositions };
+    const newPositions = buildPositionMapFromDoc(doc);
 
     // Sort groups deepest-first so child groups are sized before their parents use them
     const getDepth = (id: string, depth = 0): number => {
@@ -871,7 +852,7 @@ const CanvasFlow: React.FC<Props> = ({
       })
     );
 
-    onUpdateDoc({ ...doc, nodePositions: newPositions });
+    onUpdateDoc(applyPositionMapToDoc(doc, newPositions));
     requestAnimationFrame(() => reactFlowInstance.current?.fitView({ duration: 400 }));
   }, [nodes, rawEdges, doc, setNodes, onUpdateDoc]);
 
