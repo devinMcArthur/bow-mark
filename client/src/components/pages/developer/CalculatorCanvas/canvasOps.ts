@@ -347,6 +347,18 @@ export function renameNodeId(
     newPositions[k === oldId ? newId : k] = v;
   }
 
+  const newControllerDefs = (doc.controllerDefs ?? []).map((c) =>
+    c.id === oldId ? { ...c, id: newId } : c
+  );
+
+  const newGroupDefs = (doc.groupDefs ?? []).map((g) => ({
+    ...g,
+    memberIds: g.memberIds.map((mid) => (mid === oldId ? newId : mid)),
+    ...(g.activation?.controllerId === oldId
+      ? { activation: { ...g.activation, controllerId: newId } }
+      : {}),
+  }));
+
   return {
     ...doc,
     formulaSteps: newFormulas,
@@ -355,6 +367,8 @@ export function renameNodeId(
     breakdownDefs: newBreakdowns,
     defaultInputs: { params: newParamInputs, tables: newTableInputs },
     nodePositions: newPositions,
+    controllerDefs: newControllerDefs,
+    groupDefs: newGroupDefs,
   };
 }
 
@@ -493,7 +507,7 @@ export function createController(
   const takenLabels = new Set(doc.controllerDefs.map((c) => c.label));
   const baseLabel = type === "percentage" ? "Percentage" : type === "toggle" ? "Toggle" : "Selector";
   const label = nextLabel(baseLabel, takenLabels);
-  const id = nextSlugId(slugify(label), takenIds);
+  const id = nextSlugId(`${slugify(label)}_${type}`, takenIds);
 
   const newController: ControllerDef = {
     id,
@@ -595,7 +609,7 @@ function nextLabel(base: string, taken: Set<string>): string {
   return `${base} ${n}`;
 }
 
-function nextSlugId(slug: string, taken: Set<string>): string {
+export function nextSlugId(slug: string, taken: Set<string>): string {
   if (!taken.has(slug)) return slug;
   let n = 2;
   while (taken.has(`${slug}_${n}`)) n++;
