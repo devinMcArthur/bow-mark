@@ -83,6 +83,7 @@ function buildNodes(
       ...(parentId !== undefined ? { parentId } : {}),
       style: { width: w, height: h },
       zIndex: -1,
+      draggable: false, // only draggable once selected — see selectedNodeId effect in CanvasFlow
       data: {
         label: g.label,
         onResizeEnd: (newW: number, newH: number) => onGroupResizeEnd(g.id, newW, newH),
@@ -472,6 +473,16 @@ const CanvasFlow: React.FC<Props> = ({
   // spurious rebuilds that reset selection).
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc.id, stepDebug, quantity, positionResetKey]);
+
+  // Groups are only draggable when selected — lets users pan over large groups without
+  // accidentally moving them. Click to select, then drag.
+  useEffect(() => {
+    setNodes((prev) => prev.map((n) => {
+      if (n.type !== "group") return n;
+      const draggable = n.id === selectedNodeId;
+      return n.draggable === draggable ? n : { ...n, draggable };
+    }));
+  }, [selectedNodeId]);
 
   const edges: Edge[] = useMemo(() => {
     const all = rawEdges;
