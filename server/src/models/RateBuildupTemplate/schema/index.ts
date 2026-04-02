@@ -99,6 +99,10 @@ export class RateBuildupTemplateSchema {
   public groupDefs!: string;
 
   @Field()
+  @prop({ required: true, default: '[]' })
+  public controllerDefs!: string;
+
+  @Field()
   @prop({ required: true, default: 1 })
   public schemaVersion!: number;
 

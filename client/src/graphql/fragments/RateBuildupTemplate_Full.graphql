@@ -35,6 +35,7 @@ fragment RateBuildupTemplateFullSnippet on RateBuildupTemplateClass {
   defaultInputs
   nodePositions
   groupDefs
+  controllerDefs
   schemaVersion
   createdAt
   updatedAt

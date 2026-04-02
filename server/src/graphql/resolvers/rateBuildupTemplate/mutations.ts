@@ -64,6 +64,8 @@ export class SaveRateBuildupTemplateData {
   @Field() public nodePositions!: string;
   /** JSON-serialized GroupDef[] */
   @Field() public groupDefs!: string;
+  /** JSON-serialized ControllerDef[] */
+  @Field() public controllerDefs!: string;
 }
 
 // ─── Mutation logic ───────────────────────────────────────────────────────────
@@ -85,6 +87,7 @@ const save = async (
       defaultInputs: data.defaultInputs,
       nodePositions: data.nodePositions,
       groupDefs: data.groupDefs,
+      controllerDefs: data.controllerDefs,
       updatedAt: new Date(),
     });
     await existing.save();
@@ -101,6 +104,7 @@ const save = async (
       defaultInputs: data.defaultInputs,
       nodePositions: data.nodePositions,
       groupDefs: data.groupDefs,
+      controllerDefs: data.controllerDefs,
       schemaVersion: SchemaVersions.RateBuildupTemplate,
     });
     await doc.save();
