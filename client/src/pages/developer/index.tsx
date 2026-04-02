@@ -33,7 +33,8 @@ const DeveloperPage: React.FC = () => {
 
   const [tabIndex, setTabIndex] = useState(() => {
     if (typeof window === "undefined") return 0;
-    return parseInt(localStorage.getItem("developer:tab") ?? "0", 10);
+    const saved = parseInt(localStorage.getItem("developer:tab") ?? "0", 10);
+    return Number.isNaN(saved) || saved > 1 ? 0 : saved;
   });
 
   if (!user || user.role !== UserRoles.Developer) return null;
