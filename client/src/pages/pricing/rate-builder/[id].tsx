@@ -6,9 +6,10 @@ import { UserRoles } from "../../../generated/graphql";
 import hasPermission from "../../../utils/hasPermission";
 import ClientOnly from "../../../components/Common/ClientOnly";
 import CalculatorCanvas from "../../../components/pages/developer/CalculatorCanvas";
+import { navbarHeight } from "../../../constants/styles";
 
-// Navbar is 3.4rem, header bar is 36px
-const CANVAS_HEIGHT = "calc(100vh - 3.4rem - 36px)";
+// Standalone header bar is 36px
+const CANVAS_HEIGHT = `calc(100vh - ${navbarHeight} - 36px)`;
 
 const RateBuildupEditorPage: React.FC = () => {
   const { state: { user } } = useAuth();
