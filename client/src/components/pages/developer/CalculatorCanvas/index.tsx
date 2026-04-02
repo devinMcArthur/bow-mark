@@ -82,11 +82,17 @@ const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px", docId }) =>
     }
   }, [docs, selectedDocId]);
 
-  // When a docId is provided (standalone page mode), pin selection to it
+  // When a docId is provided (standalone page mode), pin selection to it.
+  // Only clear selectedNodeId when docId itself changes (navigating to a different template),
+  // not when docs updates due to a save — otherwise every formula keystroke closes the panel.
+  const prevDocId = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (docId && docs.find((d) => d.id === docId)) {
       setSelectedDocId(docId);
-      setSelectedNodeId(null);
+      if (prevDocId.current !== docId) {
+        setSelectedNodeId(null);
+        prevDocId.current = docId;
+      }
     }
   }, [docId, docs]);
 
