@@ -8,12 +8,13 @@ import {
   SaveRateBuildupTemplateMutationVariables,
 } from "../../../../generated/graphql";
 import {
-  ParameterDef,
-  TableDef,
-  FormulaStep,
-  BreakdownDef,
+  Position,
+  CanvasParameterDef,
+  CanvasTableDef,
+  CanvasFormulaStep,
+  CanvasBreakdownDef,
   IntermediateDef,
-  CalculatorInputs,
+  SpecialNodePositions,
 } from "../../../../components/TenderPricing/calculators/types";
 
 // ─── CanvasDocument ───────────────────────────────────────────────────────────
@@ -42,6 +43,8 @@ export interface ControllerDef {
   options?: ControllerOption[];
   /** Selector only: option IDs selected by default */
   defaultSelected?: string[];
+  hint?: string;      // template-level guidance shown read-only to estimators
+  position: Position; // canvas node position
 }
 
 export interface GroupDef {
@@ -50,24 +53,27 @@ export interface GroupDef {
   parentGroupId?: string;
   memberIds: string[]; // ordered list: param/table/formula step/sub-group IDs
   activation?: GroupActivation;   // omitted = always active
+  position: Position;  // canvas position; w/h used for group resize
 }
 
 // CanvasDocument is the in-memory representation used by the canvas.
-// `defaultInputs`, `nodePositions`, and `groupDefs` are kept as parsed objects
-// here; they are JSON-serialised only when sent to / received from the server.
+// Canvas-specific concerns (positions, defaultRows) are co-located on each def.
+// `specialPositions` holds positions for the two synthetic nodes (quantity, unitPrice)
+// that have no def object.
 export interface CanvasDocument {
   id: string; // MongoDB _id (or a temp "new_<timestamp>" before first save)
   label: string;
   defaultUnit: string;
-  parameterDefs: ParameterDef[];
-  tableDefs: TableDef[];
-  formulaSteps: FormulaStep[];
-  breakdownDefs: BreakdownDef[];
+  parameterDefs: CanvasParameterDef[];
+  tableDefs: CanvasTableDef[];
+  formulaSteps: CanvasFormulaStep[];
+  breakdownDefs: CanvasBreakdownDef[];
   intermediateDefs: IntermediateDef[];
-  defaultInputs: CalculatorInputs;
-  nodePositions: Record<string, { x: number; y: number; w?: number; h?: number }>;
+  specialPositions: SpecialNodePositions; // positions for quantity/unitPrice synthetic nodes
   groupDefs: GroupDef[];
   controllerDefs: ControllerDef[];
+  // REMOVED: defaultInputs (defaultValue now on ParameterDef; defaultRows now on CanvasTableDef)
+  // REMOVED: nodePositions (position now on each canvas def)
 }
 
 /**
@@ -159,28 +165,46 @@ export function computeInactiveNodeIds(
 // ─── Serialise / deserialise ──────────────────────────────────────────────────
 
 function fragmentToDoc(f: RateBuildupTemplateFullSnippetFragment): CanvasDocument {
-  let defaultInputs: CalculatorInputs = { params: {}, tables: {} };
-  let nodePositions: Record<string, { x: number; y: number }> = {
+  const specialPositions: SpecialNodePositions = {
     quantity: { x: 100, y: 200 },
     unitPrice: { x: 700, y: 200 },
   };
-  try { defaultInputs = JSON.parse(f.defaultInputs); } catch { /* ignore */ }
-  try { nodePositions = JSON.parse(f.nodePositions); } catch { /* ignore */ }
+  if (f.specialPositions) {
+    try {
+      const sp = typeof f.specialPositions === "string"
+        ? JSON.parse(f.specialPositions)
+        : f.specialPositions;
+      if (sp?.quantity) specialPositions.quantity = sp.quantity;
+      if (sp?.unitPrice) specialPositions.unitPrice = sp.unitPrice;
+    } catch { /* ignore */ }
+  }
+
+  // groupDefs and controllerDefs arrive as typed sub-docs after server migration;
+  // fall back to parsing JSON strings for pre-migration data.
   let groupDefs: GroupDef[] = [];
-  try { groupDefs = JSON.parse(f.groupDefs ?? '[]'); } catch { /* ignore */ }
+  if (Array.isArray(f.groupDefs)) {
+    groupDefs = f.groupDefs as GroupDef[];
+  } else if (typeof f.groupDefs === "string") {
+    try { groupDefs = JSON.parse(f.groupDefs); } catch { /* ignore */ }
+  }
+
   let controllerDefs: ControllerDef[] = [];
-  try { controllerDefs = JSON.parse(f.controllerDefs ?? '[]'); } catch { /* ignore */ }
+  if (Array.isArray(f.controllerDefs)) {
+    controllerDefs = f.controllerDefs as ControllerDef[];
+  } else if (typeof f.controllerDefs === "string") {
+    try { controllerDefs = JSON.parse(f.controllerDefs); } catch { /* ignore */ }
+  }
+
   return {
     id: f._id,
     label: f.label,
     defaultUnit: f.defaultUnit ?? "unit",
-    parameterDefs: (f.parameterDefs ?? []) as ParameterDef[],
-    tableDefs: (f.tableDefs ?? []) as TableDef[],
-    formulaSteps: (f.formulaSteps ?? []) as FormulaStep[],
-    breakdownDefs: (f.breakdownDefs ?? []) as BreakdownDef[],
+    parameterDefs: (f.parameterDefs ?? []) as CanvasParameterDef[],
+    tableDefs: (f.tableDefs ?? []) as CanvasTableDef[],
+    formulaSteps: (f.formulaSteps ?? []) as CanvasFormulaStep[],
+    breakdownDefs: (f.breakdownDefs ?? []) as CanvasBreakdownDef[],
     intermediateDefs: (f.intermediateDefs ?? []) as IntermediateDef[],
-    defaultInputs,
-    nodePositions,
+    specialPositions,
     groupDefs,
     controllerDefs,
   };
@@ -215,10 +239,9 @@ function docToVariables(
       formulaSteps: omitTypename(doc.formulaSteps),
       breakdownDefs: omitTypename(doc.breakdownDefs),
       intermediateDefs: omitTypename(doc.intermediateDefs),
-      defaultInputs: JSON.stringify(doc.defaultInputs),
-      nodePositions: JSON.stringify(doc.nodePositions),
-      groupDefs: JSON.stringify(doc.groupDefs),
-      controllerDefs: JSON.stringify(doc.controllerDefs),
+      specialPositions: JSON.stringify(doc.specialPositions),
+      groupDefs: omitTypename(doc.groupDefs),
+      controllerDefs: omitTypename(doc.controllerDefs),
     },
   };
 }
@@ -235,8 +258,7 @@ function blankDocument(): CanvasDocument {
     formulaSteps: [],
     breakdownDefs: [],
     intermediateDefs: [],
-    defaultInputs: { params: {}, tables: {} },
-    nodePositions: {
+    specialPositions: {
       quantity: { x: 100, y: 200 },
       unitPrice: { x: 700, y: 200 },
     },
