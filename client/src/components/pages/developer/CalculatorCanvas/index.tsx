@@ -110,10 +110,14 @@ const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px", docId }) =>
 
   const handleStandaloneDelete = useCallback(async () => {
     if (!activeDoc) return;
+    if (docs.length <= 1) {
+      window.alert("Cannot delete the only template.");
+      return;
+    }
     if (!window.confirm(`Delete "${activeDoc.label}"? This cannot be undone.`)) return;
     await deleteDocument(activeDoc.id);
     router.push("/pricing");
-  }, [activeDoc, deleteDocument, router]);
+  }, [activeDoc, docs.length, deleteDocument, router]);
 
   const controllerDefaults = useMemo(() => {
     if (!activeDoc) return {};
