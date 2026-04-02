@@ -148,7 +148,7 @@ const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px", docId }) =>
   const stepDebug = useMemo(
     () =>
       activeDoc
-        ? debugEvaluateTemplate(activeDoc, activeDoc.defaultInputs, quantity, controllerDefaults, canvasInactiveNodeIds)
+        ? debugEvaluateTemplate(activeDoc, undefined, quantity, controllerDefaults, canvasInactiveNodeIds)
         : [],
     [activeDoc, quantity, controllerDefaults, canvasInactiveNodeIds]
   );
@@ -167,7 +167,7 @@ const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px", docId }) =>
     [saveDocument]
   );
 
-  // Full-document edits from InspectPanel (includes slug renames that change nodePositions).
+  // Full-document edits from InspectPanel (includes slug renames that update def IDs).
   const handleUpdateDocFromPanel = useCallback(
     (updated: CanvasDocument, newSelectedId?: string) => {
       saveDocument(updated);

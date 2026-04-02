@@ -1,10 +1,30 @@
 // client/src/components/TenderPricing/calculators/evaluate.ts
 import { Parser } from "expr-eval";
 import {
+  ParameterDef,
+  TableDef,
+  FormulaStep,
+  BreakdownDef,
+  IntermediateDef,
+  RateEntry,
   CalculatorTemplate,
   CalculatorInputs,
   CalculatorResult,
 } from "./types";
+
+/**
+ * Minimal interface accepted by the evaluator. Both CalculatorTemplate and
+ * CanvasDocument (with canvas-specific def variants) satisfy this.
+ * `inputs` may be omitted when each ParameterDef carries `defaultValue` and
+ * each TableDef carries `defaultRows` (i.e. CanvasDocument).
+ */
+export interface EvaluatableTemplate {
+  parameterDefs: ParameterDef[];
+  tableDefs: (TableDef & { defaultRows?: RateEntry[] })[];
+  formulaSteps: FormulaStep[];
+  breakdownDefs: BreakdownDef[];
+  intermediateDefs: IntermediateDef[];
+}
 
 export interface StepDebugInfo {
   id: string;
@@ -65,8 +85,8 @@ export function safeEval(formula: string, ctx: Record<string, number>): number {
 }
 
 export function evaluateTemplate(
-  template: CalculatorTemplate,
-  inputs: CalculatorInputs,
+  template: EvaluatableTemplate,
+  inputs: CalculatorInputs | undefined,
   quantity: number,
   controllerValues?: Record<string, number>,   // optional: percentage/toggle controller values
   inactiveNodeIds?: Set<string>                // optional: nodes in disabled groups → zeroed out
@@ -75,14 +95,12 @@ export function evaluateTemplate(
   const ctx: Record<string, number> = { quantity };
 
   for (const p of template.parameterDefs) {
-    ctx[p.id] = inputs.params[p.id] ?? p.defaultValue;
+    ctx[p.id] = inputs?.params[p.id] ?? p.defaultValue;
   }
 
   for (const t of template.tableDefs) {
-    ctx[`${t.id}RatePerHr`] = (inputs.tables[t.id] ?? []).reduce(
-      (s, r) => s + r.qty * r.ratePerHour,
-      0
-    );
+    const rows = inputs?.tables[t.id] ?? t.defaultRows ?? [];
+    ctx[`${t.id}RatePerHr`] = rows.reduce((s, r) => s + r.qty * r.ratePerHour, 0);
   }
 
   // Inject controller values (percentage/toggle) — formula steps may reference them by ID
@@ -114,8 +132,8 @@ export function evaluateTemplate(
 }
 
 export function debugEvaluateTemplate(
-  template: CalculatorTemplate,
-  inputs: CalculatorInputs,
+  template: EvaluatableTemplate,
+  inputs: CalculatorInputs | undefined,
   quantity: number,
   controllerValues?: Record<string, number>,   // optional: percentage/toggle controller values
   inactiveNodeIds?: Set<string>                // optional: nodes in disabled groups → zeroed out
@@ -123,14 +141,12 @@ export function debugEvaluateTemplate(
   const ctx: Record<string, number> = { quantity };
 
   for (const p of template.parameterDefs) {
-    ctx[p.id] = inputs.params[p.id] ?? p.defaultValue;
+    ctx[p.id] = inputs?.params[p.id] ?? p.defaultValue;
   }
 
   for (const t of template.tableDefs) {
-    ctx[`${t.id}RatePerHr`] = (inputs.tables[t.id] ?? []).reduce(
-      (s, r) => s + r.qty * r.ratePerHour,
-      0
-    );
+    const rows = inputs?.tables[t.id] ?? t.defaultRows ?? [];
+    ctx[`${t.id}RatePerHr`] = rows.reduce((s, r) => s + r.qty * r.ratePerHour, 0);
   }
 
   // Inject controller values (percentage/toggle) — formula steps may reference them by ID

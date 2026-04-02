@@ -12,7 +12,7 @@ import {
   RateEntry,
 } from "../../../../components/TenderPricing/calculators/types";
 import { CanvasDocument, GroupDef, ControllerDef, ControllerOption } from "./canvasStorage";
-import { slugify, renameNodeId } from "./canvasOps";
+import { slugify, renameNodeId, nextSlugId } from "./canvasOps";
 import { formulaToLatex } from "./formulaToLatex";
 import katex from "katex";
 import { StepDebugInfo } from "../../../../components/TenderPricing/calculators/evaluate";
@@ -95,10 +95,9 @@ const TableInspect: React.FC<{
   const save = (updatedRows: RateEntry[]) => {
     onUpdateDoc({
       ...doc,
-      defaultInputs: {
-        ...doc.defaultInputs,
-        tables: { ...doc.defaultInputs.tables, [tableDef.id]: updatedRows },
-      },
+      tableDefs: doc.tableDefs.map((t) =>
+        t.id === tableDef.id ? { ...t, defaultRows: updatedRows } : t
+      ),
     });
   };
 
@@ -182,14 +181,8 @@ const ParamEdit: React.FC<{
   const param = doc.parameterDefs.find((p) => p.id === nodeId)!;
 
   const saveField = (updates: { label?: string; suffix?: string | undefined; defaultValue?: number }) => {
-    const updatedDefs = doc.parameterDefs.map((p) =>
-      p.id === nodeId ? { ...p, ...updates } : p
-    );
-    const updatedParams =
-      updates.defaultValue !== undefined
-        ? { ...doc.defaultInputs.params, [nodeId]: updates.defaultValue }
-        : doc.defaultInputs.params;
-    onUpdateDoc({ ...doc, parameterDefs: updatedDefs, defaultInputs: { ...doc.defaultInputs, params: updatedParams } });
+    // defaultValue is now stored directly on the ParameterDef
+    onUpdateDoc({ ...doc, parameterDefs: doc.parameterDefs.map((p) => p.id === nodeId ? { ...p, ...updates } : p) });
   };
 
   const saveLabel = (newLabel: string) => {
@@ -211,7 +204,7 @@ const ParamEdit: React.FC<{
       <EditField label="Label" value={param.label} onBlur={saveLabel} />
       <EditField label="Suffix" value={param.suffix ?? ""} placeholder="e.g. mm, /t, /hr"
         onBlur={(v) => saveField({ suffix: v || undefined })} />
-      <EditField label="Default Value" value={String(doc.defaultInputs.params[nodeId] ?? param.defaultValue)}
+      <EditField label="Default Value" value={String(param.defaultValue)}
         type="number" mono onBlur={(v) => saveField({ defaultValue: parseFloat(v) || 0 })} />
     </>
   );
@@ -425,12 +418,37 @@ const ControllerEdit: React.FC<{
     });
   };
 
+  const saveLabel = (newLabel: string) => {
+    const takenIds = new Set([
+      ...doc.parameterDefs.map((p) => p.id),
+      ...doc.tableDefs.map((t) => t.id),
+      ...doc.tableDefs.map((t) => `${t.id}RatePerHr`),
+      ...doc.formulaSteps.map((s) => s.id),
+      ...doc.breakdownDefs.map((b) => b.id),
+      ...(doc.controllerDefs ?? []).filter((c) => c.id !== nodeId).map((c) => c.id),
+      ...(doc.groupDefs ?? []).map((g) => g.id),
+      "quantity", "unitPrice",
+    ]);
+    const newSlug = nextSlugId(`${slugify(newLabel)}_${ctrl.type}`, takenIds);
+    const labeledDoc: CanvasDocument = {
+      ...doc,
+      controllerDefs: doc.controllerDefs.map((c) =>
+        c.id === nodeId ? { ...c, label: newLabel } : c
+      ),
+    };
+    if (newSlug !== nodeId) {
+      onUpdateDoc(renameNodeId(nodeId, newSlug, labeledDoc), newSlug);
+    } else {
+      onUpdateDoc(labeledDoc);
+    }
+  };
+
   return (
     <>
       <EditField
         label="Label"
         value={ctrl.label}
-        onBlur={(v) => updateCtrl({ label: v })}
+        onBlur={saveLabel}
       />
 
       <Box mb={3}>
@@ -759,7 +777,7 @@ const InspectPanel: React.FC<Props> = ({
           </Text>
           <TableInspect
             tableDef={tableDef}
-            rows={template.defaultInputs.tables[tableDef.id] ?? []}
+            rows={tableDef.defaultRows ?? []}
             doc={template}
             onUpdateDoc={onUpdateDoc}
           />

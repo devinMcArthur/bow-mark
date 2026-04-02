@@ -19,9 +19,6 @@ interface Props {
   onCollapse: () => void;
 }
 
-const copyTables = (tables: Record<string, RateEntry[]>) =>
-  Object.fromEntries(Object.entries(tables).map(([k, v]) => [k, [...v]]));
-
 // ─── Param row ────────────────────────────────────────────────────────────────
 
 const ParamRow: React.FC<{
@@ -366,12 +363,10 @@ const GroupSection: React.FC<GroupSectionProps> = ({
 const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
   const [quantity, setQuantity] = useState(100);
   const [params, setParams] = useState<Record<string, number>>(() =>
-    Object.fromEntries(
-      doc.parameterDefs.map((p) => [p.id, doc.defaultInputs.params[p.id] ?? p.defaultValue])
-    )
+    Object.fromEntries(doc.parameterDefs.map((p) => [p.id, p.defaultValue]))
   );
   const [tables, setTables] = useState<Record<string, RateEntry[]>>(
-    () => copyTables(doc.defaultInputs.tables)
+    () => Object.fromEntries(doc.tableDefs.map((t) => [t.id, [...(t.defaultRows ?? [])]]))
   );
   const [controllers, setControllers] = useState<Record<string, number | boolean | string[]>>(
     () => buildControllerDefaults(doc)
@@ -379,12 +374,8 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
 
   useEffect(() => {
     setQuantity(100);
-    setParams(
-      Object.fromEntries(
-        doc.parameterDefs.map((p) => [p.id, doc.defaultInputs.params[p.id] ?? p.defaultValue])
-      )
-    );
-    setTables(copyTables(doc.defaultInputs.tables));
+    setParams(Object.fromEntries(doc.parameterDefs.map((p) => [p.id, p.defaultValue])));
+    setTables(Object.fromEntries(doc.tableDefs.map((t) => [t.id, [...(t.defaultRows ?? [])]])));
     setControllers(buildControllerDefaults(doc));
   }, [doc.id]);
 
