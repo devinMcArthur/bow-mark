@@ -15,6 +15,7 @@ import {
   CanvasBreakdownDef,
   IntermediateDef,
   SpecialNodePositions,
+  RateEntry,
 } from "../../../../components/TenderPricing/calculators/types";
 
 // ─── CanvasDocument ───────────────────────────────────────────────────────────
@@ -162,9 +163,89 @@ export function computeInactiveNodeIds(
   return inactiveNodeIds;
 }
 
+// ─── RateBuildupSnapshot ──────────────────────────────────────────────────────
+
+/**
+ * A frozen copy of a CanvasDocument attached to a tender pricing row.
+ * `params`, `tables`, `controllers` hold job-specific estimator values.
+ * `paramNotes` holds estimator context notes keyed by param ID.
+ * `sourceTemplateId` is the server _id of the template this was forked from.
+ */
+export interface RateBuildupSnapshot extends CanvasDocument {
+  sourceTemplateId: string;
+  params: Record<string, number>;
+  tables: Record<string, RateEntry[]>;
+  controllers: Record<string, number | boolean | string[]>;
+  paramNotes?: Record<string, string>;
+}
+
+/**
+ * Instantiate a snapshot from a template. Copies all canvas structure.
+ * Params are seeded from each ParameterDef.defaultValue.
+ * Tables are seeded from each CanvasTableDef.defaultRows.
+ * Controllers are seeded from each ControllerDef's default.
+ */
+export function snapshotFromTemplate(template: CanvasDocument): RateBuildupSnapshot {
+  const params: Record<string, number> = {};
+  for (const p of template.parameterDefs ?? []) {
+    params[p.id] = p.defaultValue;
+  }
+
+  const tables: Record<string, RateEntry[]> = {};
+  for (const t of template.tableDefs ?? []) {
+    tables[t.id] = (t.defaultRows ?? []) as RateEntry[];
+  }
+
+  const controllers: Record<string, number | boolean | string[]> = {};
+  for (const c of template.controllerDefs ?? []) {
+    if (c.type === "percentage")
+      controllers[c.id] = typeof c.defaultValue === "number" ? c.defaultValue : 0;
+    else if (c.type === "toggle")
+      controllers[c.id] = typeof c.defaultValue === "boolean" ? c.defaultValue : false;
+    else if (c.type === "selector")
+      controllers[c.id] = c.defaultSelected ?? [];
+  }
+
+  return {
+    ...template,
+    sourceTemplateId: template.id,
+    params,
+    tables,
+    controllers,
+  };
+}
+
+/**
+ * Convert a snapshot back to a CanvasDocument for rendering in CalculatorCanvas.
+ * Strips the snapshot-specific fields, returning the pure canvas structure.
+ */
+export function snapshotToCanvasDoc(snapshot: RateBuildupSnapshot): CanvasDocument {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { sourceTemplateId, params, tables, controllers, paramNotes, ...rest } = snapshot;
+  return rest;
+}
+
+/**
+ * Merge an updated CanvasDocument (structural edits) back into a snapshot,
+ * preserving params, tables, controllers, and paramNotes from the existing snapshot.
+ */
+export function canvasDocToSnapshot(
+  doc: CanvasDocument,
+  existing: RateBuildupSnapshot
+): RateBuildupSnapshot {
+  return {
+    ...doc,
+    sourceTemplateId: existing.sourceTemplateId,
+    params: existing.params,
+    tables: existing.tables,
+    controllers: existing.controllers,
+    paramNotes: existing.paramNotes,
+  };
+}
+
 // ─── Serialise / deserialise ──────────────────────────────────────────────────
 
-function fragmentToDoc(f: RateBuildupTemplateFullSnippetFragment): CanvasDocument {
+export function fragmentToDoc(f: RateBuildupTemplateFullSnippetFragment): CanvasDocument {
   const specialPositions: SpecialNodePositions = {
     quantity: { x: 100, y: 200 },
     unitPrice: { x: 700, y: 200 },
