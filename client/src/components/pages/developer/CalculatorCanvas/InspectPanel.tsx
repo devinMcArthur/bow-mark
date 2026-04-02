@@ -638,7 +638,7 @@ const GroupEdit: React.FC<{
             placeholder={ctrl.type === "percentage" ? "> 0" : "=== 1"}
             value={group.activation?.condition ?? ""}
             onChange={(e) =>
-              setActivation({ ...group.activation!, condition: e.target.value })
+              setActivation(group.activation ? { ...group.activation, condition: e.target.value } : { controllerId: ctrl!.id, condition: e.target.value })
             }
           />
         </Box>
@@ -652,7 +652,7 @@ const GroupEdit: React.FC<{
             size="sm"
             value={group.activation?.optionId ?? ""}
             onChange={(e) =>
-              setActivation({ ...group.activation!, optionId: e.target.value || undefined })
+              setActivation(group.activation ? { ...group.activation, optionId: e.target.value || undefined } : { controllerId: ctrl!.id, optionId: e.target.value || undefined })
             }
           >
             <option value="">— Pick option —</option>
