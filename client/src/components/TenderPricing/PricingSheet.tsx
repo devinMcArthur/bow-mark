@@ -52,6 +52,13 @@ const ROW_FIELDS = `
   calculatorType
   calculatorInputsJson
   markupOverride
+  rateBuildupSnapshot
+`;
+
+export const SNAPSHOT_QUERY = gql`
+  query TenderPricingRowSnapshot($sheetId: ID!, $rowId: ID!) {
+    tenderPricingRowSnapshot(sheetId: $sheetId, rowId: $rowId)
+  }
 `;
 
 const SHEET_FIELDS = `

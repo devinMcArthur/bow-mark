@@ -2106,6 +2106,7 @@ export type Query = {
   system: SystemClass;
   tender?: Maybe<TenderClass>;
   tenderPricingSheet?: Maybe<TenderPricingSheetClass>;
+  tenderPricingRowSnapshot?: Maybe<Scalars['String']>;
   tenders: Array<TenderClass>;
   user?: Maybe<UserClass>;
   users: Array<UserClass>;
@@ -2358,6 +2359,12 @@ export type QueryTenderArgs = {
 
 export type QueryTenderPricingSheetArgs = {
   tenderId: Scalars['ID'];
+};
+
+
+export type QueryTenderPricingRowSnapshotArgs = {
+  sheetId: Scalars['ID'];
+  rowId: Scalars['ID'];
 };
 
 
@@ -2804,6 +2811,7 @@ export type TenderPricingRowClass = {
   materialUP?: Maybe<Scalars['Float']>;
   notes?: Maybe<Scalars['String']>;
   quantity?: Maybe<Scalars['Float']>;
+  rateBuildupSnapshot?: Maybe<Scalars['String']>;
   rentalUP?: Maybe<Scalars['Float']>;
   sortOrder: Scalars['Float'];
   subcontractorUP?: Maybe<Scalars['Float']>;
@@ -2838,6 +2846,7 @@ export type TenderPricingRowUpdateData = {
   materialUP?: InputMaybe<Scalars['Float']>;
   notes?: InputMaybe<Scalars['String']>;
   quantity?: InputMaybe<Scalars['Float']>;
+  rateBuildupSnapshot?: InputMaybe<Scalars['String']>;
   rentalUP?: InputMaybe<Scalars['Float']>;
   subcontractorUP?: InputMaybe<Scalars['Float']>;
   truckingUP?: InputMaybe<Scalars['Float']>;

@@ -23,6 +23,7 @@ export interface TenderPricingRow {
   notes?: string | null;
   calculatorType?: string | null;
   calculatorInputsJson?: string | null;
+  rateBuildupSnapshot?: string | null;
 }
 
 export interface TenderPricingSheet {
