@@ -202,7 +202,7 @@ interface ContextMenuProps {
   onCopy: (ids: string[]) => void;
   onPaste: (position: { x: number; y: number }) => void;
   onDelete: (ids: string[]) => void;
-  onCreate: (type: "formula" | "param" | "table" | "breakdown" | "group" | "controller", pos: { x: number; y: number }) => void;
+  onCreate: (type: "formula" | "param" | "table" | "breakdown" | "group" | "controller:percentage" | "controller:toggle" | "controller:selector", pos: { x: number; y: number }) => void;
   onDismiss: () => void;
 }
 
@@ -212,6 +212,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   const actionableIds = menu.nodeIds.filter((id) => !SINGLETONS.has(id));
   const isNodeMenu = menu.nodeIds.length > 0;
   const label = actionableIds.length > 1 ? ` (${actionableIds.length})` : "";
+  const [showControllerSub, setShowControllerSub] = React.useState(false);
 
   return (
     <>
@@ -273,7 +274,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
           </>
         ) : (
           <>
-            {(["formula", "param", "table", "breakdown", "group", "controller"] as const).map((type) => (
+            {(["formula", "param", "table", "breakdown", "group"] as const).map((type) => (
               <div
                 key={type}
                 style={MENU_ITEM}
@@ -290,11 +291,49 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
                   type === "param" ? "Parameter" :
                   type === "table" ? "Rate Table" :
                   type === "breakdown" ? "Summary" :
-                  type === "group" ? "Group" :
-                  "Controller"
+                  "Group"
                 }
               </div>
             ))}
+            {/* Controller sub-menu */}
+            <div
+              style={{ ...MENU_ITEM, display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative" }}
+              onMouseEnter={(e) => { (e.currentTarget.style.background = "#334155"); setShowControllerSub(true); }}
+              onMouseLeave={(e) => { (e.currentTarget.style.background = "transparent"); setShowControllerSub(false); }}
+            >
+              <span>Add Controller</span>
+              <span style={{ fontSize: 10, color: "#64748b", marginLeft: 8 }}>▶</span>
+              {showControllerSub && (
+                <div style={{
+                  position: "absolute",
+                  top: 0,
+                  left: "100%",
+                  background: "#1e293b",
+                  border: "1px solid #334155",
+                  borderRadius: 8,
+                  padding: "4px 0",
+                  minWidth: 130,
+                  boxShadow: "0 8px 30px rgba(0,0,0,0.6)",
+                  zIndex: 1001,
+                }}>
+                  {(["percentage", "toggle", "selector"] as const).map((ctrlType) => (
+                    <div
+                      key={ctrlType}
+                      style={MENU_ITEM}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        onCreate(`controller:${ctrlType}`, menu.flowPos);
+                        onDismiss();
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#334155")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      {ctrlType === "percentage" ? "Percentage" : ctrlType === "toggle" ? "Toggle" : "Selector"}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             {clipboard && (
               <>
                 <div style={MENU_DIVIDER} />
@@ -336,7 +375,7 @@ interface Props {
   onCopy: (nodeIds: string[]) => void;
   onPaste: (position: { x: number; y: number }) => void;
   onDeleteNodes: (nodeIds: string[]) => void;
-  onCreateNode: (type: "formula" | "param" | "table" | "breakdown" | "group" | "controller", position: { x: number; y: number }) => void;
+  onCreateNode: (type: "formula" | "param" | "table" | "breakdown" | "group" | "controller:percentage" | "controller:toggle" | "controller:selector", position: { x: number; y: number }) => void;
   positionResetKey: number;
 }
 

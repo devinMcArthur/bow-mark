@@ -177,15 +177,16 @@ const CalculatorCanvas: React.FC<Props> = ({ canvasHeight = "700px" }) => {
   }, [activeDoc, saveDocument, selectedNodeId]);
 
   const handleCreateNode = useCallback(
-    (type: "formula" | "param" | "table" | "breakdown" | "group" | "controller", position: { x: number; y: number }) => {
+    (type: "formula" | "param" | "table" | "breakdown" | "group" | "controller:percentage" | "controller:toggle" | "controller:selector", position: { x: number; y: number }) => {
       if (!activeDoc) return;
       if (type === "group") {
         const { doc, newId } = createGroup(activeDoc, position);
         saveDocument(doc);
         setSelectedNodeId(newId);
         setPositionResetKey((k) => k + 1);
-      } else if (type === "controller") {
-        const { doc: newDoc, newId } = createController(activeDoc, position);
+      } else if (type.startsWith("controller:")) {
+        const ctrlType = type.split(":")[1] as "percentage" | "toggle" | "selector";
+        const { doc: newDoc, newId } = createController(activeDoc, position, ctrlType);
         saveDocument(newDoc);
         setSelectedNodeId(newId);
         setPositionResetKey((k) => k + 1);
