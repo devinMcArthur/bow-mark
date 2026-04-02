@@ -1,6 +1,6 @@
 // client/src/components/pages/developer/CalculatorCanvas/LiveTestPanel.tsx
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Box, Button, Flex, Grid, Input, Text } from "@chakra-ui/react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Box, Button, Flex, Grid, Input, Text, Textarea } from "@chakra-ui/react";
 import { v4 as uuidv4 } from "uuid";
 import { FiChevronDown, FiChevronRight, FiPlus } from "react-icons/fi";
 import { CanvasDocument, GroupDef, ControllerDef, isGroupActive, computeInactiveNodeIds } from "./canvasStorage";
@@ -17,6 +17,22 @@ import {
 interface Props {
   doc: CanvasDocument;
   onCollapse: () => void;
+  /** Seed values from snapshot (params, tables, controllers). Used in tender row context. */
+  initialInputs?: {
+    params?: Record<string, number>;
+    tables?: Record<string, RateEntry[]>;
+    controllers?: Record<string, number | boolean | string[]>;
+  };
+  /** Fires whenever any param, table, or controller value changes. */
+  onInputsChange?: (
+    params: Record<string, number>,
+    tables: Record<string, RateEntry[]>,
+    controllers: Record<string, number | boolean | string[]>
+  ) => void;
+  /** Current paramNotes from snapshot. Only present in tender row context. */
+  paramNotes?: Record<string, string>;
+  /** Fires when a param note changes. */
+  onParamNoteChange?: (paramId: string, note: string) => void;
 }
 
 // ─── Param row ────────────────────────────────────────────────────────────────
@@ -26,19 +42,41 @@ const ParamRow: React.FC<{
   doc: CanvasDocument;
   value: number;
   onChange: (id: string, v: number) => void;
-}> = ({ paramId, doc, value, onChange }) => {
+  paramNote?: string;
+  onParamNoteChange?: (id: string, note: string) => void;
+}> = ({ paramId, doc, value, onChange, paramNote, onParamNoteChange }) => {
   const p = doc.parameterDefs.find((p) => p.id === paramId);
   if (!p) return null;
   return (
     <React.Fragment>
-      <Text fontSize="sm" color="gray.700">
-        {p.label}
-        {p.suffix && (
-          <Text as="span" fontSize="xs" color="gray.400">
-            {" "}({p.suffix})
-          </Text>
+      <Box>
+        <Text fontSize="sm" color="gray.700">
+          {p.label}
+          {p.suffix && (
+            <Text as="span" fontSize="xs" color="gray.400">
+              {" "}({p.suffix})
+            </Text>
+          )}
+        </Text>
+        {p.hint && (
+          <Text fontSize="xs" color="gray.400" fontStyle="italic" mt="2px">{p.hint}</Text>
         )}
-      </Text>
+        {onParamNoteChange && (
+          <Textarea
+            size="xs"
+            placeholder="Add a note…"
+            value={paramNote ?? ""}
+            onChange={(e) => onParamNoteChange(p.id, e.target.value)}
+            mt={1}
+            rows={1}
+            resize="vertical"
+            fontSize="xs"
+            color="gray.600"
+            borderColor="gray.200"
+            _focus={{ borderColor: "blue.300", boxShadow: "none" }}
+          />
+        )}
+      </Box>
       <Input
         size="sm"
         type="number"
@@ -126,39 +164,49 @@ const ControllerWidget: React.FC<{
   if (ctrl.type === "percentage") {
     const pct = (value as number) * 100;
     return (
-      <Flex align="center" gap={2} mb={3}>
-        <Text fontSize="sm" color="gray.700" flex={1}>
-          {ctrl.label}
-          <Text as="span" fontSize="xs" color="gray.400"> (%)</Text>
-        </Text>
-        <Input
-          size="sm"
-          type="number"
-          w="80px"
-          min={0}
-          max={100}
-          textAlign="right"
-          value={pct}
-          onChange={(e) => onChange(ctrl.id, Math.min(1, Math.max(0, (parseFloat(e.target.value) || 0) / 100)))}
-        />
-      </Flex>
+      <Box mb={3}>
+        <Flex align="center" gap={2}>
+          <Text fontSize="sm" color="gray.700" flex={1}>
+            {ctrl.label}
+            <Text as="span" fontSize="xs" color="gray.400"> (%)</Text>
+          </Text>
+          <Input
+            size="sm"
+            type="number"
+            w="80px"
+            min={0}
+            max={100}
+            textAlign="right"
+            value={pct}
+            onChange={(e) => onChange(ctrl.id, Math.min(1, Math.max(0, (parseFloat(e.target.value) || 0) / 100)))}
+          />
+        </Flex>
+        {ctrl.hint && (
+          <Text fontSize="xs" color="gray.400" fontStyle="italic" mt="2px">{ctrl.hint}</Text>
+        )}
+      </Box>
     );
   }
 
   if (ctrl.type === "toggle") {
     return (
-      <Flex align="center" gap={2} mb={3} cursor="pointer"
-        onClick={() => onChange(ctrl.id, !(value as boolean))}
-      >
-        <Box
-          w={4} h={4}
-          border="1.5px solid"
-          borderColor={(value as boolean) ? "teal.400" : "gray.300"}
-          bg={(value as boolean) ? "teal.400" : "transparent"}
-          rounded="sm"
-        />
-        <Text fontSize="sm" color="gray.700">{ctrl.label}</Text>
-      </Flex>
+      <Box mb={3}>
+        <Flex align="center" gap={2} cursor="pointer"
+          onClick={() => onChange(ctrl.id, !(value as boolean))}
+        >
+          <Box
+            w={4} h={4}
+            border="1.5px solid"
+            borderColor={(value as boolean) ? "teal.400" : "gray.300"}
+            bg={(value as boolean) ? "teal.400" : "transparent"}
+            rounded="sm"
+          />
+          <Text fontSize="sm" color="gray.700">{ctrl.label}</Text>
+        </Flex>
+        {ctrl.hint && (
+          <Text fontSize="xs" color="gray.400" fontStyle="italic" mt="2px">{ctrl.hint}</Text>
+        )}
+      </Box>
     );
   }
 
@@ -169,6 +217,9 @@ const ControllerWidget: React.FC<{
       <Text fontSize="xs" fontWeight="semibold" color="teal.600" textTransform="uppercase" letterSpacing="wide" mb={1}>
         {ctrl.label}
       </Text>
+      {ctrl.hint && (
+        <Text fontSize="xs" color="gray.400" fontStyle="italic" mb={1}>{ctrl.hint}</Text>
+      )}
       {(ctrl.options ?? []).map((opt) => {
         const isSelected = selected.includes(opt.id);
         return (
@@ -210,10 +261,12 @@ interface GroupSectionProps {
   onAddRow: (tableId: string) => void;
   onRemoveRow: (tableId: string, rowId: string) => void;
   onControllerChange: (id: string, v: number | boolean | string[]) => void;
+  paramNotes?: Record<string, string>;
+  onParamNoteChange?: (id: string, note: string) => void;
 }
 
 const GroupSection: React.FC<GroupSectionProps> = ({
-  group, depth, doc, params, tables, controllers, onParamChange, onUpdateRow, onAddRow, onRemoveRow, onControllerChange,
+  group, depth, doc, params, tables, controllers, onParamChange, onUpdateRow, onAddRow, onRemoveRow, onControllerChange, paramNotes, onParamNoteChange,
 }) => {
   const active = isGroupActive(group, doc, controllers);
   const [open, setOpen] = useState(true);
@@ -311,7 +364,8 @@ const GroupSection: React.FC<GroupSectionProps> = ({
           {paramIds.length > 0 && (
             <Grid templateColumns="1fr 80px" gap={2} alignItems="center" mb={2}>
               {paramIds.map((id) => (
-                <ParamRow key={id} paramId={id} doc={doc} value={params[id]} onChange={onParamChange} />
+                <ParamRow key={id} paramId={id} doc={doc} value={params[id]} onChange={onParamChange}
+                  paramNote={paramNotes?.[id]} onParamNoteChange={onParamNoteChange} />
               ))}
             </Grid>
           )}
@@ -336,7 +390,8 @@ const GroupSection: React.FC<GroupSectionProps> = ({
                   <GroupSection key={id} group={subGroup} depth={depth + 1} doc={doc}
                     params={params} tables={tables} controllers={controllers}
                     onParamChange={onParamChange} onUpdateRow={onUpdateRow}
-                    onAddRow={onAddRow} onRemoveRow={onRemoveRow} onControllerChange={onControllerChange} />
+                    onAddRow={onAddRow} onRemoveRow={onRemoveRow} onControllerChange={onControllerChange}
+                    paramNotes={paramNotes} onParamNoteChange={onParamNoteChange} />
                 );
               })}
             </Box>
@@ -360,23 +415,56 @@ const GroupSection: React.FC<GroupSectionProps> = ({
 
 // ─── Main panel ───────────────────────────────────────────────────────────────
 
-const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
+const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse, initialInputs, onInputsChange, paramNotes, onParamNoteChange }) => {
   const [quantity, setQuantity] = useState(100);
-  const [params, setParams] = useState<Record<string, number>>(() =>
-    Object.fromEntries(doc.parameterDefs.map((p) => [p.id, p.defaultValue]))
-  );
-  const [tables, setTables] = useState<Record<string, RateEntry[]>>(
-    () => Object.fromEntries(doc.tableDefs.map((t) => [t.id, [...(t.defaultRows ?? [])]]))
-  );
-  const [controllers, setControllers] = useState<Record<string, number | boolean | string[]>>(
-    () => buildControllerDefaults(doc)
-  );
+  const [params, setParams] = useState<Record<string, number>>(() => {
+    const seed = initialInputs?.params ?? {};
+    return Object.fromEntries(doc.parameterDefs.map((p) => [p.id, seed[p.id] ?? p.defaultValue]));
+  });
+  const [tables, setTables] = useState<Record<string, RateEntry[]>>(() => {
+    const seed = initialInputs?.tables ?? {};
+    return Object.fromEntries(doc.tableDefs.map((t) => [t.id, seed[t.id] ?? [...(t.defaultRows ?? [])]]));
+  });
+  const [controllers, setControllers] = useState<Record<string, number | boolean | string[]>>(() => {
+    const seed = initialInputs?.controllers ?? {};
+    return Object.fromEntries(
+      (doc.controllerDefs ?? []).map((c) => [
+        c.id,
+        seed[c.id] !== undefined
+          ? seed[c.id]
+          : c.type === "selector"
+          ? (c.defaultSelected ?? [])
+          : c.type === "toggle"
+          ? (c.defaultValue as boolean ?? false)
+          : (c.defaultValue as number ?? 0),
+      ])
+    );
+  });
+
+  // Refs for current values so handlers can call onInputsChange without stale closures
+  const paramsRef = useRef(params);
+  paramsRef.current = params;
+  const tablesRef = useRef(tables);
+  tablesRef.current = tables;
+  const controllersRef = useRef(controllers);
+  controllersRef.current = controllers;
 
   useEffect(() => {
     setQuantity(100);
-    setParams(Object.fromEntries(doc.parameterDefs.map((p) => [p.id, p.defaultValue])));
-    setTables(Object.fromEntries(doc.tableDefs.map((t) => [t.id, [...(t.defaultRows ?? [])]])));
-    setControllers(buildControllerDefaults(doc));
+    const seedP = initialInputs?.params ?? {};
+    setParams(Object.fromEntries(doc.parameterDefs.map((p) => [p.id, seedP[p.id] ?? p.defaultValue])));
+    const seedT = initialInputs?.tables ?? {};
+    setTables(Object.fromEntries(doc.tableDefs.map((t) => [t.id, seedT[t.id] ?? [...(t.defaultRows ?? [])]])));
+    const seedC = initialInputs?.controllers ?? {};
+    setControllers(Object.fromEntries(
+      (doc.controllerDefs ?? []).map((c) => [
+        c.id,
+        seedC[c.id] !== undefined
+          ? seedC[c.id]
+          : c.type === "selector" ? (c.defaultSelected ?? []) : c.type === "toggle" ? (c.defaultValue as boolean ?? false) : (c.defaultValue as number ?? 0),
+      ])
+    ));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc.id]);
 
   const inputs = useMemo(() => ({ params, tables }), [params, tables]);
@@ -405,28 +493,51 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
   );
 
   const updateParam = useCallback(
-    (id: string, v: number) => setParams((prev) => ({ ...prev, [id]: v })),
-    []
+    (id: string, v: number) => {
+      const next = { ...paramsRef.current, [id]: v };
+      setParams(next);
+      onInputsChange?.(next, tablesRef.current, controllersRef.current);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [onInputsChange]
   );
 
-  const updateRow = (tableId: string, rowId: string, field: keyof RateEntry, value: string | number) => {
-    setTables((prev) => ({
-      ...prev,
-      [tableId]: (prev[tableId] ?? []).map((r) => r.id === rowId ? { ...r, [field]: value } : r),
-    }));
-  };
-  const addRow = (tableId: string) => {
-    setTables((prev) => ({
-      ...prev,
-      [tableId]: [...(prev[tableId] ?? []), { id: uuidv4(), name: "", qty: 1, ratePerHour: 0 }],
-    }));
-  };
-  const removeRow = (tableId: string, rowId: string) => {
-    setTables((prev) => ({
-      ...prev,
-      [tableId]: (prev[tableId] ?? []).filter((r) => r.id !== rowId),
-    }));
-  };
+  const updateRow = useCallback((tableId: string, rowId: string, field: keyof RateEntry, value: string | number) => {
+    const next = {
+      ...tablesRef.current,
+      [tableId]: (tablesRef.current[tableId] ?? []).map((r) => r.id === rowId ? { ...r, [field]: value } : r),
+    };
+    setTables(next);
+    onInputsChange?.(paramsRef.current, next, controllersRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onInputsChange]);
+
+  const addRow = useCallback((tableId: string) => {
+    const next = {
+      ...tablesRef.current,
+      [tableId]: [...(tablesRef.current[tableId] ?? []), { id: uuidv4(), name: "", qty: 1, ratePerHour: 0 }],
+    };
+    setTables(next);
+    onInputsChange?.(paramsRef.current, next, controllersRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onInputsChange]);
+
+  const removeRow = useCallback((tableId: string, rowId: string) => {
+    const next = {
+      ...tablesRef.current,
+      [tableId]: (tablesRef.current[tableId] ?? []).filter((r) => r.id !== rowId),
+    };
+    setTables(next);
+    onInputsChange?.(paramsRef.current, next, controllersRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onInputsChange]);
+
+  const updateController = useCallback((id: string, v: number | boolean | string[]) => {
+    const next = { ...controllersRef.current, [id]: v };
+    setControllers(next);
+    onInputsChange?.(paramsRef.current, tablesRef.current, next);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onInputsChange]);
 
   // Determine which params/tables/controllers are in any group (member of at least one groupDef)
   const { ungroupedParams, ungroupedTables, topLevelGroups, controllerBlocks, loneControllers, uncontrolledTopGroups } = useMemo(() => {
@@ -517,7 +628,7 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
                 key={c.id}
                 ctrl={c}
                 value={controllers[c.id] ?? (c.type === "selector" ? [] : c.type === "toggle" ? false : 0)}
-                onChange={(id, v) => setControllers((prev) => ({ ...prev, [id]: v }))}
+                onChange={updateController}
               />
             ))}
           </Box>
@@ -533,6 +644,8 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
                 doc={doc}
                 value={params[p.id]}
                 onChange={updateParam}
+                paramNote={paramNotes?.[p.id]}
+                onParamNoteChange={onParamNoteChange}
               />
             ))}
           </Grid>
@@ -557,7 +670,7 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
             <ControllerWidget
               ctrl={ctrl}
               value={controllers[ctrl.id] ?? (ctrl.type === "selector" ? [] : ctrl.type === "toggle" ? false : 0)}
-              onChange={(id, v) => setControllers((prev) => ({ ...prev, [id]: v }))}
+              onChange={updateController}
             />
             {groups.map((g) => (
               <GroupSection
@@ -572,7 +685,7 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
                 onUpdateRow={updateRow}
                 onAddRow={addRow}
                 onRemoveRow={removeRow}
-                onControllerChange={(id, v) => setControllers((prev) => ({ ...prev, [id]: v }))}
+                onControllerChange={updateController}
               />
             ))}
           </Box>
@@ -592,7 +705,7 @@ const LiveTestPanel: React.FC<Props> = ({ doc, onCollapse }) => {
             onUpdateRow={updateRow}
             onAddRow={addRow}
             onRemoveRow={removeRow}
-            onControllerChange={(id, v) => setControllers((prev) => ({ ...prev, [id]: v }))}
+            onControllerChange={updateController}
           />
         ))}
 
