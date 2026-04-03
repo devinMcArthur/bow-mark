@@ -73,7 +73,7 @@ const SystemUnits = ({ system }: ISystemUnits) => {
               <Text as="span" fontSize="xs" color="gray.500">({u.code})</Text>
             </ListItem>
           ))}
-          {system.unitExtras.map((unit, index) => (
+          {(system.unitExtras ?? []).map((unit, index) => (
             <ListItem key={`extra-${index}`}>{unit}</ListItem>
           ))}
         </UnorderedList>
