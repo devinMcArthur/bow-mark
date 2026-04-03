@@ -1,6 +1,7 @@
 // client/src/components/pages/developer/CalculatorCanvas/LiveTestPanel.tsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Box, Button, Flex, Input, Text } from "@chakra-ui/react";
+import { Box, Button, Flex, Input, Select, Text } from "@chakra-ui/react";
+import { unitLabel } from "../../../../constants/units";
 import { v4 as uuidv4 } from "uuid";
 import { CanvasDocument } from "./canvasStorage";
 import { RateEntry } from "../../../../components/TenderPricing/calculators/types";
@@ -70,6 +71,9 @@ const LiveTestPanel: React.FC<Props> = ({
   const [params, setParams] = useState(() => initParams(doc, initialInputs?.params));
   const [tables, setTables] = useState(() => initTables(doc, initialInputs?.tables));
   const [controllers, setControllers] = useState(() => initControllers(doc, initialInputs?.controllers));
+  // Local unit selector — only used when no unit is provided externally (standalone canvas editor).
+  // Defaults to the first unit variant so variant groups are active out-of-the-box.
+  const [testUnit, setTestUnit] = useState<string | undefined>(() => doc.unitVariants?.[0]?.unit);
 
   // Refs so handlers don't go stale between renders
   const paramsRef = useRef(params);
@@ -85,6 +89,7 @@ const LiveTestPanel: React.FC<Props> = ({
     setParams(initParams(doc, initialInputs?.params));
     setTables(initTables(doc, initialInputs?.tables));
     setControllers(initControllers(doc, initialInputs?.controllers));
+    setTestUnit(doc.unitVariants?.[0]?.unit);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc.id]);
 
@@ -177,6 +182,24 @@ const LiveTestPanel: React.FC<Props> = ({
           <Text fontSize="xs" color="gray.400" whiteSpace="nowrap">{doc.defaultUnit}</Text>
         </Flex>
 
+        {/* Unit variant selector — only shown in standalone canvas editor when no unit is provided externally */}
+        {!unit && (doc.unitVariants ?? []).length > 0 && (
+          <Flex align="center" gap={2} mb={4}>
+            <Text fontSize="sm" color="gray.600" flex={1}>Test unit</Text>
+            <Select
+              size="sm" w="120px"
+              value={testUnit ?? ""}
+              onChange={(e) => setTestUnit(e.target.value || undefined)}
+            >
+              {(doc.unitVariants ?? []).map((v) => (
+                <option key={v.unit} value={v.unit}>
+                  {unitLabel(v.unit)}
+                </option>
+              ))}
+            </Select>
+          </Flex>
+        )}
+
         <RateBuildupInputs
           doc={doc}
           params={params}
@@ -191,7 +214,7 @@ const LiveTestPanel: React.FC<Props> = ({
           paramNotes={paramNotes}
           onParamNoteChange={onParamNoteChange}
           onResult={(r) => setUnitPrice(r.unitPrice)}
-          unit={unit}
+          unit={unit ?? testUnit}
         />
       </Box>
     </Box>
