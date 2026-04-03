@@ -5,7 +5,7 @@ import { FiChevronDown, FiChevronRight, FiMessageSquare, FiPlus } from "react-ic
 import katex from "katex";
 import { CanvasDocument, GroupDef, ControllerDef, isGroupActive, computeInactiveNodeIds } from "./canvasStorage";
 import { RateEntry } from "../../../../components/TenderPricing/calculators/types";
-import { evaluateTemplate, debugEvaluateTemplate } from "../../../../components/TenderPricing/calculators/evaluate";
+import { evaluateTemplate, debugEvaluateTemplate, evaluateExpression } from "../../../../components/TenderPricing/calculators/evaluate";
 import { RateRow } from "../../../../components/TenderPricing/calculatorShared";
 import { formulaToLatex } from "./formulaToLatex";
 
@@ -28,6 +28,8 @@ export interface RateBuildupInputsProps {
   columns?: 1 | 2;
   /** Fires whenever the evaluated result changes. Use this to display unit price outside the scroll area. */
   onResult?: (result: { unitPrice: number; breakdown: { id: string; label: string; value: number }[] }) => void;
+  /** Canonical unit code from the line item (e.g. "m3"). Used to activate unit variant groups. */
+  unit?: string;
 }
 
 // ─── NotePopover ──────────────────────────────────────────────────────────────
@@ -659,7 +661,7 @@ const FormulaOutputRow: React.FC<{
 const RateBuildupInputs: React.FC<RateBuildupInputsProps> = ({
   doc, params, tables, controllers, quantity,
   onParamChange, onUpdateRow, onAddRow, onRemoveRow, onControllerChange,
-  paramNotes, onParamNoteChange, columns = 1, onResult,
+  paramNotes, onParamNoteChange, columns = 1, onResult, unit,
 }) => {
   const inputs = useMemo(() => ({ params, tables }), [params, tables]);
 
@@ -673,13 +675,23 @@ const RateBuildupInputs: React.FC<RateBuildupInputsProps> = ({
   }, [doc.controllerDefs, controllers]);
 
   const inactiveNodeIds = useMemo(
-    () => computeInactiveNodeIds(doc, controllers),
-    [doc, controllers]
+    () => computeInactiveNodeIds(doc, controllers, unit),
+    [doc, controllers, unit]
   );
 
+  const normalizedQuantity = useMemo(() => {
+    if (!unit || !doc.unitVariants?.length) return quantity;
+    const variant = doc.unitVariants.find((v) => v.unit === unit);
+    if (!variant?.conversionFormula) return quantity;
+    const ctx: Record<string, number> = { quantity };
+    for (const p of doc.parameterDefs) ctx[p.id] = params[p.id] ?? p.defaultValue;
+    const converted = evaluateExpression(variant.conversionFormula, ctx);
+    return converted !== null && converted > 0 ? converted : quantity;
+  }, [unit, doc.unitVariants, doc.parameterDefs, quantity, params]);
+
   const result = useMemo(
-    () => evaluateTemplate(doc, inputs, quantity, controllerValues, inactiveNodeIds),
-    [doc, inputs, quantity, controllerValues, inactiveNodeIds]
+    () => evaluateTemplate(doc, inputs, normalizedQuantity, controllerValues, inactiveNodeIds),
+    [doc, inputs, normalizedQuantity, controllerValues, inactiveNodeIds]
   );
 
   const onResultRef = useRef(onResult);
@@ -694,7 +706,7 @@ const RateBuildupInputs: React.FC<RateBuildupInputsProps> = ({
   const formulaOutputMap = useMemo<Record<string, { label: string; value: number; formula: string }>>(() => {
     if (!doc.formulaSteps.length) return {};
     const stepMeta = new Map(doc.formulaSteps.map((s) => [s.id, { label: s.label, formula: s.formula }]));
-    const stepResults = debugEvaluateTemplate(doc, inputs, quantity, controllerValues, inactiveNodeIds);
+    const stepResults = debugEvaluateTemplate(doc, inputs, normalizedQuantity, controllerValues, inactiveNodeIds);
     const map: Record<string, { label: string; value: number; formula: string }> = {};
     for (const s of stepResults) {
       const meta = stepMeta.get(s.id);
@@ -703,7 +715,7 @@ const RateBuildupInputs: React.FC<RateBuildupInputsProps> = ({
       }
     }
     return map;
-  }, [doc, inputs, quantity, controllerValues, inactiveNodeIds]);
+  }, [doc, inputs, normalizedQuantity, controllerValues, inactiveNodeIds]);
 
   // id → label for all variables in scope (used by formulaToLatex inside FormulaOutputRow)
   const variableLabelMap = useMemo<Record<string, string>>(() => {
@@ -717,7 +729,7 @@ const RateBuildupInputs: React.FC<RateBuildupInputsProps> = ({
 
   // id → current numeric value for all variables (used in the variable breakdown table)
   const variableValueMap = useMemo<Record<string, number>>(() => {
-    const map: Record<string, number> = { quantity };
+    const map: Record<string, number> = { quantity: normalizedQuantity };
     for (const p of doc.parameterDefs) map[p.id] = params[p.id] ?? p.defaultValue;
     for (const t of doc.tableDefs) {
       const rows = tables[t.id] ?? [];
@@ -729,7 +741,7 @@ const RateBuildupInputs: React.FC<RateBuildupInputsProps> = ({
       if (c.type === "toggle") map[c.id] = (controllers[c.id] as boolean) ? 1 : 0;
     }
     return map;
-  }, [doc, params, tables, quantity, formulaOutputMap, controllers]);
+  }, [doc, params, tables, normalizedQuantity, formulaOutputMap, controllers]);
 
   // Ungrouped formula outputs (not a member of any group)
   const ungroupedFormulaOutputs = useMemo(() => {

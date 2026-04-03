@@ -192,7 +192,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
   // This is the source of truth for display and reconciliation.
   const snapshotUnitPrice = useMemo<number | null>(() => {
     if (!parsedSnapshot) return null;
-    return computeSnapshotUnitPrice(parsedSnapshot, row.quantity ?? 1) || null;
+    return computeSnapshotUnitPrice(parsedSnapshot, row.quantity ?? 1, row.unit ?? undefined) || null;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parsedSnapshot, row.quantity]);
 
@@ -231,7 +231,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
     const base = snapshotRef.current;
     if (!base) return;
     const updatedSnapshot: RateBuildupSnapshot = { ...base, params, tables, controllers, paramNotes };
-    const freshUP = computeSnapshotUnitPrice(updatedSnapshot, parseFloat(quantityRef.current) || 1);
+    const freshUP = computeSnapshotUnitPrice(updatedSnapshot, parseFloat(quantityRef.current) || 1, row.unit ?? undefined);
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       onUpdate(row._id, {
@@ -633,7 +633,8 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
                       onClick={() => {
                         const q = parseFloat(quantity);
                         const qs = !isNaN(q) && q > 0 ? `?quantity=${q}` : "";
-                        router.push(`/tender/${tenderId}/pricing/row/${row._id}${qs}`);
+                        const us = row.unit ? `${qs ? "&" : "?"}unit=${encodeURIComponent(row.unit)}` : "";
+                        router.push(`/tender/${tenderId}/pricing/row/${row._id}${qs}${us}`);
                       }}
                     />
                     <IconButton
@@ -688,6 +689,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
                     onParamNoteChange={onSnapParamNoteChange}
                     columns={2}
                     onResult={setSnapResult}
+                    unit={row.unit ?? undefined}
                   />
                 </Box>
               )}

@@ -46,6 +46,8 @@ interface Props {
     canUndo: boolean;
     canRedo: boolean;
   }) => React.ReactNode;
+  /** Canonical unit code from the line item (e.g. "m3"). Threaded to LiveTestPanel → RateBuildupInputs. */
+  unit?: string;
 }
 
 const CalculatorCanvas: React.FC<Props> = ({
@@ -58,6 +60,7 @@ const CalculatorCanvas: React.FC<Props> = ({
   onParamNoteChange,
   initialQuantity,
   renderToolbar,
+  unit,
 }) => {
   // Internal undo/redo — stacks reset when doc.id changes
   const [undoStack, setUndoStack] = useState<CanvasDocument[]>([]);
@@ -335,6 +338,7 @@ const CalculatorCanvas: React.FC<Props> = ({
                 onInputsChange={onInputsChange}
                 paramNotes={paramNotes}
                 onParamNoteChange={onParamNoteChange}
+                unit={unit}
               />
             </Box>
             <Box

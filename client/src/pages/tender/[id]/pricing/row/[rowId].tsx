@@ -55,9 +55,10 @@ const CANVAS_HEIGHT = `calc(100vh - ${navbarHeight} - 36px)`;
 const TenderRowCanvasPage: React.FC = () => {
   const { state: { user } } = useAuth();
   const router = useRouter();
-  const { id: tenderId, rowId, quantity: quantityParam } = router.query;
+  const { id: tenderId, rowId, quantity: quantityParam, unit: unitParam } = router.query;
   // Quantity passed via URL param takes priority (set by LineItemDetail on navigation)
   const urlQuantity = quantityParam ? parseFloat(quantityParam as string) : null;
+  const urlUnit = typeof unitParam === "string" && unitParam ? unitParam : undefined;
 
   useEffect(() => {
     if (user === null) router.replace("/");
@@ -108,7 +109,7 @@ const TenderRowCanvasPage: React.FC = () => {
       if (!sheetId || !rowId) return;
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
-        const freshUP = computeSnapshotUnitPrice(updatedSnapshot, rowQuantityRef.current);
+        const freshUP = computeSnapshotUnitPrice(updatedSnapshot, rowQuantityRef.current, urlUnit);
         try {
           await updateRow({
             variables: {
@@ -199,6 +200,7 @@ const TenderRowCanvasPage: React.FC = () => {
         key={`${rowId}-snapshot`}
         doc={canvasDoc}
         onSave={handleCanvasSave}
+        unit={urlUnit}
         canvasHeight={CANVAS_HEIGHT}
         initialInputs={{ params: snapshot.params, tables: snapshot.tables, controllers: snapshot.controllers }}
         onInputsChange={handleInputsChange}

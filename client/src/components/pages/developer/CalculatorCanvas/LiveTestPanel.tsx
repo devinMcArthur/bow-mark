@@ -28,6 +28,8 @@ interface Props {
   paramNotes?: Record<string, string>;
   /** Fires when a param note changes. */
   onParamNoteChange?: (paramId: string, note: string) => void;
+  /** Canonical unit code from the line item (e.g. "m3"). Passed to RateBuildupInputs for variant activation. */
+  unit?: string;
 }
 
 // ─── State initializers ───────────────────────────────────────────────────────
@@ -61,7 +63,7 @@ function initControllers(
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const LiveTestPanel: React.FC<Props> = ({
-  doc, onCollapse, initialQuantity, initialInputs, onInputsChange, paramNotes, onParamNoteChange,
+  doc, onCollapse, initialQuantity, initialInputs, onInputsChange, paramNotes, onParamNoteChange, unit,
 }) => {
   const [quantity, setQuantity] = useState(initialQuantity ?? 100);
   const [unitPrice, setUnitPrice] = useState<number | null>(null);
@@ -189,6 +191,7 @@ const LiveTestPanel: React.FC<Props> = ({
           paramNotes={paramNotes}
           onParamNoteChange={onParamNoteChange}
           onResult={(r) => setUnitPrice(r.unitPrice)}
+          unit={unit}
         />
       </Box>
     </Box>
