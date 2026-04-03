@@ -34,11 +34,20 @@ import {
 } from "../pages/developer/CalculatorCanvas/canvasStorage";
 import RateBuildupInputs from "../pages/developer/CalculatorCanvas/RateBuildupInputs";
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function templateSupportsUnit(templateDoc: CanvasDocument, unit: string | null | undefined): boolean {
+  if (!unit) return true;                              // no unit on row — show everything
+  if (!templateDoc.unitVariants?.length) return true; // no variants — compatible with all units
+  return templateDoc.unitVariants.some((v) => v.unit === unit);
+}
+
 // ── AttachTemplateButton ───────────────────────────────────────────────────────
 
 const AttachTemplateButton: React.FC<{
   onAttach: (doc: CanvasDocument) => void;
-}> = ({ onAttach }) => {
+  rowUnit?: string | null;
+}> = ({ onAttach, rowUnit }) => {
   const client = useApolloClient();
   const [templates, setTemplates] = useState<CanvasDocument[]>([]);
   const [open, setOpen] = useState(false);
@@ -51,6 +60,11 @@ const AttachTemplateButton: React.FC<{
     setTemplates((data?.rateBuildupTemplates ?? []).map(fragmentToDoc));
     setOpen(true);
   };
+
+  const filtered = React.useMemo(
+    () => templates.filter((t) => templateSupportsUnit(t, rowUnit)),
+    [templates, rowUnit]
+  );
 
   return (
     <>
@@ -71,8 +85,12 @@ const AttachTemplateButton: React.FC<{
             <Text fontWeight="semibold" mb={3} fontSize="sm">Select a Rate Buildup Template</Text>
             {templates.length === 0 ? (
               <Text fontSize="sm" color="gray.400">No templates found.</Text>
+            ) : filtered.length === 0 ? (
+              <Text fontSize="xs" color="gray.400" p={3}>
+                No buildups found for unit &quot;{rowUnit}&quot;. Add a unit variant in the canvas editor or change the line item unit.
+              </Text>
             ) : (
-              templates.map((t) => (
+              filtered.map((t) => (
                 <Button
                   key={t.id}
                   variant="ghost"
@@ -698,6 +716,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
             <Flex align="center" justify="space-between" py={4}>
               <Text fontSize="xs" color="gray.400">No rate buildup attached</Text>
               <AttachTemplateButton
+                rowUnit={row.unit}
                 onAttach={(templateDoc) => {
                   const snapshot = snapshotFromTemplate(templateDoc);
                   onUpdate(row._id, {
