@@ -113,6 +113,15 @@ export class RateBuildupIntermediateDefInput {
   @Field() public unit!: string;
 }
 
+// ─── Unit variant ─────────────────────────────────────────────────────────────
+
+@InputType()
+export class RateBuildupUnitVariantInput {
+  @Field() public unit!: string;
+  @Field() public activatesGroupId!: string;
+  @Field({ nullable: true }) public conversionFormula?: string;
+}
+
 // ─── Top-level save input ─────────────────────────────────────────────────────
 
 @InputType()
@@ -128,6 +137,7 @@ export class SaveRateBuildupTemplateData {
   @Field(() => [RateBuildupIntermediateDefInput]) public intermediateDefs!: RateBuildupIntermediateDefInput[];
   @Field(() => [RateBuildupControllerDefInput]) public controllerDefs!: RateBuildupControllerDefInput[];
   @Field(() => [RateBuildupGroupDefInput]) public groupDefs!: RateBuildupGroupDefInput[];
+  @Field(() => [RateBuildupUnitVariantInput], { nullable: true }) public unitVariants?: RateBuildupUnitVariantInput[];
   /** JSON string for the two synthetic nodes: { quantity: Position, unitPrice: Position } */
   @Field({ nullable: true }) public specialPositions?: string;
 }
@@ -150,6 +160,7 @@ const save = async (
       intermediateDefs: data.intermediateDefs,
       controllerDefs: data.controllerDefs,
       groupDefs: data.groupDefs,
+      unitVariants: data.unitVariants ?? [],
       specialPositions: data.specialPositions,
       updatedAt: new Date(),
     });
@@ -166,6 +177,7 @@ const save = async (
       intermediateDefs: data.intermediateDefs,
       controllerDefs: data.controllerDefs,
       groupDefs: data.groupDefs,
+      unitVariants: data.unitVariants ?? [],
       specialPositions: data.specialPositions,
       schemaVersion: SchemaVersions.RateBuildupTemplate,
     });

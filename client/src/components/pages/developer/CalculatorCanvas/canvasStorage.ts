@@ -366,7 +366,7 @@ export function fragmentToDoc(f: RateBuildupTemplateFullSnippetFragment): Canvas
     specialPositions,
     groupDefs,
     controllerDefs,
-    unitVariants: (f as unknown as { unitVariants?: UnitVariant[] }).unitVariants ?? [],
+    unitVariants: (f.unitVariants ?? []).map(({ unit, activatesGroupId, conversionFormula }) => ({ unit, activatesGroupId, conversionFormula: conversionFormula ?? undefined })),
   };
 }
 
@@ -402,6 +402,11 @@ function docToVariables(
       specialPositions: JSON.stringify(doc.specialPositions),
       groupDefs: omitTypename(doc.groupDefs),
       controllerDefs: omitTypename(doc.controllerDefs),
+      unitVariants: (doc.unitVariants ?? []).map(({ unit, activatesGroupId, conversionFormula }) => ({
+        unit,
+        activatesGroupId,
+        ...(conversionFormula ? { conversionFormula } : {}),
+      })),
     },
   };
 }

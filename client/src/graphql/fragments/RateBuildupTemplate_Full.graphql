@@ -57,6 +57,11 @@ fragment RateBuildupTemplateFullSnippet on RateBuildupTemplateClass {
     activation { controllerId condition optionId }
     position { x y w h }
   }
+  unitVariants {
+    unit
+    activatesGroupId
+    conversionFormula
+  }
   specialPositions
   schemaVersion
   createdAt
