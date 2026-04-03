@@ -5,10 +5,12 @@ import {
   Heading,
   IconButton,
   ListItem,
+  Text,
   UnorderedList,
 } from "@chakra-ui/react";
 import Card from "../Card";
 import { SystemSnippetFragment } from "../../../generated/graphql";
+import { CANONICAL_UNITS } from "../../../constants/units";
 import { FiEdit, FiX } from "react-icons/fi";
 import SystemUnitUpdate from "../../Forms/System/SystemUnitUpdate";
 import Permission from "../Permission";
@@ -65,8 +67,14 @@ const SystemUnits = ({ system }: ISystemUnits) => {
       )}
       {!collapsed && (
         <UnorderedList>
-          {system.unitDefaults.map((unit, index) => (
-            <ListItem key={index}>{unit}</ListItem>
+          {CANONICAL_UNITS.map((u) => (
+            <ListItem key={u.code}>
+              {u.label}{" "}
+              <Text as="span" fontSize="xs" color="gray.500">({u.code})</Text>
+            </ListItem>
+          ))}
+          {system.unitExtras.map((unit, index) => (
+            <ListItem key={`extra-${index}`}>{unit}</ListItem>
           ))}
         </UnorderedList>
       )}

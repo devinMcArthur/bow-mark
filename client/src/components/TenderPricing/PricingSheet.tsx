@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   Box,
   Button,
@@ -120,7 +120,20 @@ interface PricingSheetProps {
 const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate }) => {
   const [markupDraft, setMarkupDraft] = useState(String(sheet.defaultMarkupPct));
   const [editingMarkup, setEditingMarkup] = useState(false);
-  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+
+  // Initialise from ?row= query param so navigation back from buildup editor restores state
+  const [selectedRowId, setSelectedRowIdRaw] = useState<string | null>(() => {
+    const q = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("row") : null;
+    return q ?? null;
+  });
+
+  const setSelectedRowId = useCallback((id: string | null) => {
+    setSelectedRowIdRaw(id);
+    const url = new URL(window.location.href);
+    if (id) url.searchParams.set("row", id);
+    else url.searchParams.delete("row");
+    window.history.replaceState(null, "", url.pathname + url.search);
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -215,10 +228,17 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate }
   );
 
   const handleSelect = useCallback((rowId: string) => {
-    setSelectedRowId((prev) => (prev === rowId ? null : rowId));
-  }, []);
+    setSelectedRowId(selectedRowId === rowId ? null : rowId);
+  }, [selectedRowId, setSelectedRowId]);
 
   const isDetailOpen = selectedRow != null && selectedRow.type === TenderPricingRowType.Item;
+
+  useEffect(() => {
+    if (isDetailOpen) {
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = ""; };
+    }
+  }, [isDetailOpen]);
 
   return (
     <Box>

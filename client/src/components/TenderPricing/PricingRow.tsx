@@ -10,6 +10,7 @@ import {
 } from "@chakra-ui/react";
 import { FiTrash2, FiMenu } from "react-icons/fi";
 import { useSystem } from "../../contexts/System";
+import { CANONICAL_UNITS } from "../../constants/units";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TenderPricingRow, TenderPricingRowType } from "./types";
@@ -178,7 +179,6 @@ interface UnitCellProps {
 
 const UnitCell: React.FC<UnitCellProps> = ({ value, onSave }) => {
   const { state: { system } } = useSystem();
-  const units = system?.unitDefaults ?? [];
 
   return (
     <select
@@ -196,7 +196,10 @@ const UnitCell: React.FC<UnitCellProps> = ({ value, onSave }) => {
       }}
     >
       <option value="">—</option>
-      {units.map((u) => (
+      {CANONICAL_UNITS.map((u) => (
+        <option key={u.code} value={u.code}>{u.label}</option>
+      ))}
+      {(system?.unitExtras ?? []).map((u) => (
         <option key={u} value={u}>{u}</option>
       ))}
     </select>

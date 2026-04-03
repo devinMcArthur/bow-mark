@@ -17,6 +17,7 @@ import {
   SpecialNodePositions,
   RateEntry,
 } from "../../../../components/TenderPricing/calculators/types";
+import { evaluateTemplate } from "../../../../components/TenderPricing/calculators/evaluate";
 
 // ─── CanvasDocument ───────────────────────────────────────────────────────────
 
@@ -241,6 +242,38 @@ export function canvasDocToSnapshot(
     controllers: existing.controllers,
     paramNotes: existing.paramNotes,
   };
+}
+
+/**
+ * Compute the unit price for a snapshot at the given quantity.
+ *
+ * This is the single authoritative function for deriving unitPrice from a
+ * RateBuildupSnapshot. All save paths must call this — never inline the
+ * evaluateTemplate boilerplate directly, as formulas may reference `quantity`
+ * (e.g. `mobilization / quantity + laborRate`) and the result changes with it.
+ *
+ * Returns the unit price rounded to 4 decimal places (0 if computation fails).
+ */
+export function computeSnapshotUnitPrice(
+  snapshot: RateBuildupSnapshot,
+  quantity: number
+): number {
+  const doc = snapshotToCanvasDoc(snapshot);
+  const controllerNumeric: Record<string, number> = {};
+  for (const [k, v] of Object.entries(snapshot.controllers ?? {})) {
+    if (typeof v === "number") controllerNumeric[k] = v;
+    else if (typeof v === "boolean") controllerNumeric[k] = v ? 1 : 0;
+    // string[] selector controllers: not numeric, not injected
+  }
+  const inactiveNodeIds = computeInactiveNodeIds(doc, snapshot.controllers ?? {});
+  const result = evaluateTemplate(
+    doc,
+    { params: snapshot.params, tables: snapshot.tables },
+    quantity,
+    controllerNumeric,
+    inactiveNodeIds
+  );
+  return parseFloat(result.unitPrice.toFixed(4));
 }
 
 // ─── Serialise / deserialise ──────────────────────────────────────────────────

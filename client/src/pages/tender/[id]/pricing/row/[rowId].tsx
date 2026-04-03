@@ -1,7 +1,7 @@
 // client/src/pages/tender/[id]/pricing/row/[rowId].tsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
-import { Box, Button, Flex, Spinner, Text } from "@chakra-ui/react";
+import { Box, Button, Flex, Spinner, Text, Tooltip } from "@chakra-ui/react";
 import { gql, useMutation, useQuery } from "@apollo/client";
 import { useAuth } from "../../../../../contexts/Auth";
 import { UserRoles } from "../../../../../generated/graphql";
@@ -13,9 +13,8 @@ import {
   RateBuildupSnapshot,
   snapshotToCanvasDoc,
   canvasDocToSnapshot,
-  computeInactiveNodeIds,
+  computeSnapshotUnitPrice,
 } from "../../../../../components/pages/developer/CalculatorCanvas/canvasStorage";
-import { evaluateTemplate } from "../../../../../components/TenderPricing/calculators/evaluate";
 import type { RateEntry } from "../../../../../components/TenderPricing/calculators/types";
 import { navbarHeight } from "../../../../../constants/styles";
 
@@ -31,6 +30,10 @@ const SHEET_ID_QUERY = gql`
   query TenderPricingSheetId($tenderId: ID!) {
     tenderPricingSheet(tenderId: $tenderId) {
       _id
+      rows {
+        _id
+        quantity
+      }
     }
   }
 `;
@@ -44,7 +47,7 @@ const UPDATE_ROW = gql`
 `;
 
 // ─── Canvas height ────────────────────────────────────────────────────────────
-// Page header = 36px; CalculatorCanvas internal undo strip = 28px (inside the component)
+// 36px combined header bar replaces both the page header and the CalculatorCanvas undo strip
 const CANVAS_HEIGHT = `calc(100vh - ${navbarHeight} - 36px)`;
 
 // ─── Page ────────────────────────────────────────────────────────────────────
@@ -52,7 +55,9 @@ const CANVAS_HEIGHT = `calc(100vh - ${navbarHeight} - 36px)`;
 const TenderRowCanvasPage: React.FC = () => {
   const { state: { user } } = useAuth();
   const router = useRouter();
-  const { id: tenderId, rowId } = router.query;
+  const { id: tenderId, rowId, quantity: quantityParam } = router.query;
+  // Quantity passed via URL param takes priority (set by LineItemDetail on navigation)
+  const urlQuantity = quantityParam ? parseFloat(quantityParam as string) : null;
 
   useEffect(() => {
     if (user === null) router.replace("/");
@@ -65,6 +70,10 @@ const TenderRowCanvasPage: React.FC = () => {
     skip: !tenderId,
   });
   const sheetId = sheetData?.tenderPricingSheet?._id ?? null;
+  const serverQuantity: number = sheetData?.tenderPricingSheet?.rows?.find(
+    (r: { _id: string; quantity: number | null }) => r._id === rowId
+  )?.quantity ?? 1;
+  const rowQuantity = (urlQuantity !== null && !isNaN(urlQuantity) && urlQuantity > 0) ? urlQuantity : serverQuantity;
 
   // Step 2: lazy-load the snapshot
   const { data: snapData, loading: snapLoading } = useQuery(SNAPSHOT_QUERY, {
@@ -91,26 +100,15 @@ const TenderRowCanvasPage: React.FC = () => {
 
   // Debounced save to server
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rowQuantityRef = useRef(rowQuantity);
+  rowQuantityRef.current = rowQuantity;
 
   const scheduleSave = useCallback(
     (updatedSnapshot: RateBuildupSnapshot) => {
       if (!sheetId || !rowId) return;
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
-        const doc = snapshotToCanvasDoc(updatedSnapshot);
-        const inactiveNodeIds = computeInactiveNodeIds(doc, updatedSnapshot.controllers);
-        const controllerNumericValues: Record<string, number> = {};
-        for (const [k, v] of Object.entries(updatedSnapshot.controllers)) {
-          if (typeof v === "number") controllerNumericValues[k] = v;
-          else if (typeof v === "boolean") controllerNumericValues[k] = v ? 1 : 0;
-        }
-        const result = evaluateTemplate(
-          doc,
-          { params: updatedSnapshot.params, tables: updatedSnapshot.tables },
-          1, // quantity = 1; real quantity lives on the row itself
-          controllerNumericValues,
-          inactiveNodeIds
-        );
+        const freshUP = computeSnapshotUnitPrice(updatedSnapshot, rowQuantityRef.current);
         try {
           await updateRow({
             variables: {
@@ -118,7 +116,7 @@ const TenderRowCanvasPage: React.FC = () => {
               rowId,
               data: {
                 rateBuildupSnapshot: JSON.stringify(updatedSnapshot),
-                unitPrice: parseFloat(result.unitPrice.toFixed(4)) || null,
+                unitPrice: freshUP || null,
               },
             },
           });
@@ -188,7 +186,7 @@ const TenderRowCanvasPage: React.FC = () => {
     return (
       <Flex align="center" justify="center" h="100vh" direction="column" gap={3}>
         <Text color="gray.400">No rate buildup found for this row.</Text>
-        <Button size="sm" onClick={() => router.back()}>← Back</Button>
+        <Button size="sm" onClick={() => router.push(`/tender/${tenderId}/pricing?row=${rowId}`)}>← Back to Pricing</Button>
       </Flex>
     );
   }
@@ -197,46 +195,64 @@ const TenderRowCanvasPage: React.FC = () => {
 
   return (
     <ClientOnly>
-      <Box w="100%" overflow="hidden">
-        {/* ── Page header ──────────────────────────────────────────────── */}
-        <Flex
-          align="center"
-          gap={2}
-          px={3}
-          h="36px"
-          bg="#1e293b"
-          borderBottom="1px solid"
-          borderColor="whiteAlpha.100"
-          flexShrink={0}
-        >
-          <Button
-            size="xs" variant="ghost" color="gray.400" _hover={{ color: "white" }}
-            onClick={() => router.back()}
-            px={1} fontWeight="normal" fontSize="xs"
+      <CalculatorCanvas
+        key={`${rowId}-snapshot`}
+        doc={canvasDoc}
+        onSave={handleCanvasSave}
+        canvasHeight={CANVAS_HEIGHT}
+        initialInputs={{ params: snapshot.params, tables: snapshot.tables, controllers: snapshot.controllers }}
+        onInputsChange={handleInputsChange}
+        paramNotes={snapshot.paramNotes}
+        onParamNoteChange={handleParamNoteChange}
+        initialQuantity={rowQuantity}
+        renderToolbar={({ onUndo, onRedo, canUndo, canRedo }) => (
+          <Flex
+            align="center"
+            gap={2}
+            px={3}
+            h="36px"
+            bg="#1e293b"
+            borderBottom="1px solid"
+            borderColor="whiteAlpha.100"
+            flexShrink={0}
+            overflow="hidden"
           >
-            ← Back to Pricing
-          </Button>
-          <Box w="1px" h="16px" bg="whiteAlpha.300" />
-          <Text fontSize="sm" fontWeight="semibold" color="white">
-            {snapshot.label}
-          </Text>
-          <Text fontSize="xs" color="gray.500" ml={1}>
-            (line item buildup)
-          </Text>
-        </Flex>
-
-        {/* ── Canvas ───────────────────────────────────────────────────── */}
-        <CalculatorCanvas
-          key={`${rowId}-snapshot`}
-          doc={canvasDoc}
-          onSave={handleCanvasSave}
-          canvasHeight={CANVAS_HEIGHT}
-          initialInputs={{ params: snapshot.params, tables: snapshot.tables, controllers: snapshot.controllers }}
-          onInputsChange={handleInputsChange}
-          paramNotes={snapshot.paramNotes}
-          onParamNoteChange={handleParamNoteChange}
-        />
-      </Box>
+            <Button
+              size="xs" variant="ghost" color="gray.400" _hover={{ color: "white" }}
+              onClick={() => router.push(`/tender/${tenderId}/pricing?row=${rowId}`)}
+              px={1} fontWeight="normal" fontSize="xs" flexShrink={0}
+            >
+              ← Back to Pricing
+            </Button>
+            <Box w="1px" h="16px" bg="whiteAlpha.300" flexShrink={0} />
+            <Text fontSize="sm" fontWeight="semibold" color="white" noOfLines={1} flex={1} minW={0}>
+              {snapshot.label}
+            </Text>
+            <Text fontSize="xs" color="gray.500" flexShrink={0} pr={1}>
+              (line item buildup)
+            </Text>
+            <Box w="1px" h="16px" bg="whiteAlpha.200" flexShrink={0} />
+            <Tooltip label="Undo (Ctrl+Z)" placement="bottom">
+              <Button
+                size="xs" variant="ghost" color="gray.400" _hover={{ color: "white" }}
+                onClick={onUndo} isDisabled={!canUndo}
+                fontFamily="mono" fontSize="md" px={2} flexShrink={0}
+              >
+                ↩
+              </Button>
+            </Tooltip>
+            <Tooltip label="Redo (Ctrl+Y)" placement="bottom">
+              <Button
+                size="xs" variant="ghost" color="gray.400" _hover={{ color: "white" }}
+                onClick={onRedo} isDisabled={!canRedo}
+                fontFamily="mono" fontSize="md" px={2} flexShrink={0}
+              >
+                ↪
+              </Button>
+            </Tooltip>
+          </Flex>
+        )}
+      />
     </ClientOnly>
   );
 };

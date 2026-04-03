@@ -1,14 +1,15 @@
-import { Button, Flex, IconButton, useToast } from "@chakra-ui/react";
+import { Box, Button, Flex, IconButton, Text, useToast } from "@chakra-ui/react";
 import React from "react";
 import { FiPlus, FiTrash } from "react-icons/fi";
 import {
   SystemDocument,
   SystemSnippetFragment,
-  useSystemUpdateUnitDefaultsMutation,
+  useSystemUpdateUnitExtrasMutation,
 } from "../../../generated/graphql";
 import FormContainer from "../../Common/FormContainer";
 import SubmitButton from "../../Common/forms/SubmitButton";
 import TextField from "../../Common/forms/TextField";
+import { CANONICAL_UNITS } from "../../../constants/units";
 
 interface ISystemUnitUpdate {
   system: SystemSnippetFragment;
@@ -22,11 +23,11 @@ const SystemUnitUpdate = ({ system, onSuccess }: ISystemUnitUpdate) => {
 
   const toast = useToast();
 
-  const [update, { loading }] = useSystemUpdateUnitDefaultsMutation({
+  const [update, { loading }] = useSystemUpdateUnitExtrasMutation({
     refetchQueries: [SystemDocument],
   });
 
-  const [units, setUnits] = React.useState<string[]>(system.unitDefaults);
+  const [units, setUnits] = React.useState<string[]>(system.unitExtras);
 
   /**
    * ----- Variables -----
@@ -72,7 +73,7 @@ const SystemUnitUpdate = ({ system, onSuccess }: ISystemUnitUpdate) => {
         },
       });
 
-      if (res.data?.systemUpdateUnitDefaults) {
+      if (res.data?.systemUpdateUnitExtras) {
         if (onSuccess) onSuccess();
       } else {
         toast({
@@ -103,6 +104,14 @@ const SystemUnitUpdate = ({ system, onSuccess }: ISystemUnitUpdate) => {
         handleSubmit();
       }}
     >
+      <Box mb={3} p={2} bg="gray.50" rounded="md">
+        <Text fontSize="xs" color="gray.500" fontWeight="semibold" mb={1}>
+          Canonical units (built-in, not editable):
+        </Text>
+        <Text fontSize="xs" color="gray.600">
+          {CANONICAL_UNITS.map((u) => u.label).join(", ")}
+        </Text>
+      </Box>
       {units.map((unit, index) => (
         <FormContainer
           key={index}

@@ -34,6 +34,18 @@ interface Props {
   paramNotes?: Record<string, string>;
   /** Fires when a param note changes. */
   onParamNoteChange?: (paramId: string, note: string) => void;
+  /** Initial quantity for the LiveTest panel. Defaults to 100. */
+  initialQuantity?: number;
+  /**
+   * When provided, replaces the default internal undo/redo strip.
+   * Receives undo/redo handlers and state so the parent can render its own toolbar.
+   */
+  renderToolbar?: (props: {
+    onUndo: () => void;
+    onRedo: () => void;
+    canUndo: boolean;
+    canRedo: boolean;
+  }) => React.ReactNode;
 }
 
 const CalculatorCanvas: React.FC<Props> = ({
@@ -44,6 +56,8 @@ const CalculatorCanvas: React.FC<Props> = ({
   onInputsChange,
   paramNotes,
   onParamNoteChange,
+  initialQuantity,
+  renderToolbar,
 }) => {
   // Internal undo/redo — stacks reset when doc.id changes
   const [undoStack, setUndoStack] = useState<CanvasDocument[]>([]);
@@ -62,7 +76,7 @@ const CalculatorCanvas: React.FC<Props> = ({
   const canRedo = redoStack.length > 0;
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [quantity, setQuantity] = useState(100);
+  const [quantity, setQuantity] = useState(initialQuantity ?? 100);
   const [clipboard, setClipboard] = useState<ClipboardPayload | null>(null);
   const [positionResetKey, setPositionResetKey] = useState(0);
   const [inspectWidth, setInspectWidth] = useState(260);
@@ -244,7 +258,9 @@ const CalculatorCanvas: React.FC<Props> = ({
 
   // ─── Canvas height accounting for the 28px undo strip ───────────────────────
 
-  const innerHeight = typeof canvasHeight === "number"
+  const innerHeight = renderToolbar
+    ? canvasHeight
+    : typeof canvasHeight === "number"
     ? canvasHeight - 28
     : `calc(${canvasHeight} - 28px)`;
 
@@ -252,49 +268,51 @@ const CalculatorCanvas: React.FC<Props> = ({
 
   return (
     <Box w="100%" overflow="hidden">
-      {/* Slim internal undo/redo strip */}
-      <Flex
-        align="center"
-        gap={1}
-        px={2}
-        h="28px"
-        bg="#1e293b"
-        borderBottom="1px solid"
-        borderColor="whiteAlpha.100"
-        flexShrink={0}
-        justify="flex-end"
-      >
-        <Tooltip label="Undo (Ctrl+Z)" placement="bottom">
-          <Button
-            size="xs"
-            variant="ghost"
-            color="gray.400"
-            _hover={{ color: "white" }}
-            onClick={handleUndo}
-            isDisabled={!canUndo}
-            fontFamily="mono"
-            fontSize="md"
-            px={2}
-          >
-            ↩
-          </Button>
-        </Tooltip>
-        <Tooltip label="Redo (Ctrl+Y)" placement="bottom">
-          <Button
-            size="xs"
-            variant="ghost"
-            color="gray.400"
-            _hover={{ color: "white" }}
-            onClick={handleRedo}
-            isDisabled={!canRedo}
-            fontFamily="mono"
-            fontSize="md"
-            px={2}
-          >
-            ↪
-          </Button>
-        </Tooltip>
-      </Flex>
+      {/* Toolbar: external (renderToolbar) or built-in undo/redo strip */}
+      {renderToolbar ? renderToolbar({ onUndo: handleUndo, onRedo: handleRedo, canUndo, canRedo }) : (
+        <Flex
+          align="center"
+          gap={1}
+          px={2}
+          h="28px"
+          bg="#1e293b"
+          borderBottom="1px solid"
+          borderColor="whiteAlpha.100"
+          flexShrink={0}
+          justify="flex-end"
+        >
+          <Tooltip label="Undo (Ctrl+Z)" placement="bottom">
+            <Button
+              size="xs"
+              variant="ghost"
+              color="gray.400"
+              _hover={{ color: "white" }}
+              onClick={handleUndo}
+              isDisabled={!canUndo}
+              fontFamily="mono"
+              fontSize="md"
+              px={2}
+            >
+              ↩
+            </Button>
+          </Tooltip>
+          <Tooltip label="Redo (Ctrl+Y)" placement="bottom">
+            <Button
+              size="xs"
+              variant="ghost"
+              color="gray.400"
+              _hover={{ color: "white" }}
+              onClick={handleRedo}
+              isDisabled={!canRedo}
+              fontFamily="mono"
+              fontSize="md"
+              px={2}
+            >
+              ↪
+            </Button>
+          </Tooltip>
+        </Flex>
+      )}
 
       {/* Canvas area */}
       <Flex overflow="hidden" h={innerHeight}>
@@ -312,6 +330,7 @@ const CalculatorCanvas: React.FC<Props> = ({
               <LiveTestPanel
                 doc={doc}
                 onCollapse={() => setLiveTestOpen(false)}
+                initialQuantity={initialQuantity}
                 initialInputs={initialInputs}
                 onInputsChange={onInputsChange}
                 paramNotes={paramNotes}
