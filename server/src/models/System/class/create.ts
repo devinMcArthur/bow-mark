@@ -6,7 +6,7 @@ const document = async (System: SystemModel): Promise<SystemDocument> => {
     throw new Error("Can only create a single System document");
 
   const system = new System({
-    unitDefaults: ["m", "m²", "m³", "t", "km", "t·km", "LS", "EA", "hr", "day"],
+    unitExtras: [],
     laborTypes: [],
     internalExpenseOverheadRate: [
       {
