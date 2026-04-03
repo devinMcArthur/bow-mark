@@ -112,7 +112,7 @@ function buildNodes(
     id: "quantity",
     type: "quantity",
     position: { x: doc.specialPositions.quantity.x, y: doc.specialPositions.quantity.y },
-    data: { value: quantity, onChange: onQuantityChange },
+    data: { value: quantity, onChange: onQuantityChange, unitVariants: doc.unitVariants ?? [] },
   });
 
   const labelMap: Record<string, string> = { quantity: "Quantity" };

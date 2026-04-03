@@ -11,7 +11,8 @@ import {
   TableDef,
   RateEntry,
 } from "../../../../components/TenderPricing/calculators/types";
-import { CanvasDocument, GroupDef, ControllerDef, ControllerOption } from "./canvasStorage";
+import { CanvasDocument, GroupDef, ControllerDef, ControllerOption, UnitVariant } from "./canvasStorage";
+import { CANONICAL_UNITS, unitLabel } from "../../../../constants/units";
 import { slugify, renameNodeId, nextSlugId } from "./canvasOps";
 import { formulaToLatex } from "./formulaToLatex";
 import katex from "katex";
@@ -724,6 +725,100 @@ const TableLabelEdit: React.FC<{
   );
 };
 
+// ─── Unit Variants Editor ─────────────────────────────────────────────────────
+
+const UnitVariantsEditor: React.FC<{
+  doc: CanvasDocument;
+  onUpdateDoc: (doc: CanvasDocument) => void;
+}> = ({ doc, onUpdateDoc }) => {
+  const [unit, setUnit] = useState("");
+  const [groupId, setGroupId] = useState("");
+  const [formula, setFormula] = useState("");
+
+  const canAdd = unit.trim() !== "" && groupId !== "";
+
+  return (
+    <Box>
+      <Text fontSize="xs" fontWeight="semibold" color="gray.500" textTransform="uppercase" letterSpacing="wide" mb={2}>
+        Unit Variants
+      </Text>
+      <Text fontSize="xs" color="gray.400" mb={3}>
+        Each variant activates a group and optionally normalises the quantity via a conversion formula.
+      </Text>
+
+      {(doc.unitVariants ?? []).map((v, i) => (
+        <Box key={i} mb={2} p={2} border="1px solid" borderColor="gray.600" rounded="md">
+          <Flex align="center" justify="space-between" mb={1}>
+            <Text fontSize="xs" fontWeight="medium" color="gray.300">
+              {unitLabel(v.unit)} <Text as="span" color="gray.500">({v.unit})</Text>
+            </Text>
+            <Box
+              as="button"
+              fontSize="xs"
+              color="red.400"
+              _hover={{ color: "red.300" }}
+              onClick={() => onUpdateDoc({
+                ...doc,
+                unitVariants: (doc.unitVariants ?? []).filter((_, j) => j !== i),
+              })}
+            >
+              Remove
+            </Box>
+          </Flex>
+          <Text fontSize="xs" color="gray.500" mb={0.5}>
+            Group: {doc.groupDefs.find((g) => g.id === v.activatesGroupId)?.label ?? v.activatesGroupId}
+          </Text>
+          {v.conversionFormula && (
+            <Text fontSize="xs" color="gray.400" fontFamily="mono">{v.conversionFormula}</Text>
+          )}
+        </Box>
+      ))}
+
+      <Box pt={2} borderTop="1px solid" borderColor="gray.700">
+        <Text fontSize="10px" fontWeight="semibold" color="gray.500" textTransform="uppercase" mb={1.5}>
+          Add Variant
+        </Text>
+        <Select size="xs" mb={1.5} placeholder="Unit" value={unit} onChange={(e) => setUnit(e.target.value)}>
+          {CANONICAL_UNITS.map((u) => (
+            <option key={u.code} value={u.code}>{u.label} ({u.code})</option>
+          ))}
+        </Select>
+        <Select size="xs" mb={1.5} placeholder="Activates group" value={groupId} onChange={(e) => setGroupId(e.target.value)}>
+          {doc.groupDefs.filter((g) => !doc.groupDefs.some((pg) => pg.memberIds.includes(g.id))).map((g) => (
+            <option key={g.id} value={g.id}>{g.label}</option>
+          ))}
+        </Select>
+        <Input
+          size="xs"
+          mb={1.5}
+          placeholder="Conversion formula (optional, e.g. quantity / depth_m)"
+          value={formula}
+          onChange={(e) => setFormula(e.target.value)}
+          fontFamily="mono"
+        />
+        <Button
+          size="xs"
+          colorScheme="orange"
+          isDisabled={!canAdd}
+          onClick={() => {
+            onUpdateDoc({
+              ...doc,
+              unitVariants: [...(doc.unitVariants ?? []), {
+                unit: unit.trim(),
+                activatesGroupId: groupId,
+                conversionFormula: formula.trim() || undefined,
+              }],
+            });
+            setUnit(""); setGroupId(""); setFormula("");
+          }}
+        >
+          Add Variant
+        </Button>
+      </Box>
+    </Box>
+  );
+};
+
 // ─── Main panel ───────────────────────────────────────────────────────────────
 
 const InspectPanel: React.FC<Props> = ({
@@ -785,9 +880,12 @@ const InspectPanel: React.FC<Props> = ({
         </>
       )}
       {kind === "quantity" && (
-        <Text fontSize="xs" color="gray.400" mb={4}>
-          Simulation input only — quantity is provided by the tender sheet at runtime, not stored in the template.
-        </Text>
+        <Box>
+          <Text fontSize="xs" color="gray.400" mb={4}>
+            Simulation input only — quantity is provided by the tender sheet at runtime, not stored in the template.
+          </Text>
+          <UnitVariantsEditor doc={template} onUpdateDoc={onUpdateDoc} />
+        </Box>
       )}
       {kind === "output" && (
         <Text fontSize="xs" color="gray.400" mb={4}>Derived from all summary nodes. Read-only.</Text>

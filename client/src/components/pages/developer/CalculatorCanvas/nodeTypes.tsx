@@ -3,6 +3,7 @@ import React, { useMemo } from "react";
 import { Handle, Position, NodeProps, NodeResizer } from "reactflow";
 import katex from "katex";
 import { formulaToLatex } from "./formulaToLatex";
+import { unitLabel } from "../../../../constants/units";
 
 const baseStyle: React.CSSProperties = {
   borderRadius: 8,
@@ -116,6 +117,11 @@ export const QuantityNode: React.FC<NodeProps> = ({ data, selected }) => (
         width: "100%",
       }}
     />
+    {(data.unitVariants as any[] ?? []).length > 0 && (
+      <div style={{ fontSize: 10, color: "#f59e0b", padding: "4px 8px 2px", borderTop: "1px solid #374151" }}>
+        {(data.unitVariants as any[]).map((v: any) => unitLabel(v.unit)).join(" · ")}
+      </div>
+    )}
   </div>
 );
 
