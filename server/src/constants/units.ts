@@ -1,4 +1,5 @@
 // server/src/constants/units.ts
+// Keep in sync with client/src/constants/units.ts (client adds the unitLabel helper function) — static data, no GQL roundtrip needed.
 
 export type UnitDimension = "area" | "volume" | "length" | "mass" | "time" | null;
 

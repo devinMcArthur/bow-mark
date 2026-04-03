@@ -1,5 +1,5 @@
 // client/src/constants/units.ts
-// Keep in sync with server/src/constants/units.ts — this is static data, no GQL roundtrip needed.
+// Keep in sync with server/src/constants/units.ts (identical except for the unitLabel helper function) — static data, no GQL roundtrip needed.
 
 export type UnitDimension = "area" | "volume" | "length" | "mass" | "time" | null;
 
@@ -24,10 +24,14 @@ export const CANONICAL_UNITS: CanonicalUnit[] = [
   { code: "day",    label: "day",    name: "Days",           dimension: "time"   },
   { code: "ea",     label: "EA",     name: "Each",           dimension: null     },
   { code: "ls",     label: "LS",     name: "Lump Sum",       dimension: null     },
-];
+] as const;
 
 export const CANONICAL_UNIT_CODES = new Set(CANONICAL_UNITS.map((u) => u.code));
 
+/**
+ * Maps legacy stored strings to canonical codes.
+ * Only entries that need to change are listed here.
+ */
 export const UNIT_LEGACY_MAP: Record<string, string> = {
   "tonnes": "t",
   "each":   "ea",
