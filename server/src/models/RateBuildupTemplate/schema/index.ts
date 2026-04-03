@@ -141,6 +141,15 @@ export class RateBuildupIntermediateDef {
   @Field() @prop({ required: true }) public unit!: string;
 }
 
+// ─── Unit variant ─────────────────────────────────────────────────────────────
+
+@ObjectType()
+export class RateBuildupUnitVariant {
+  @Field() @prop({ required: true }) public unit!: string;
+  @Field() @prop({ required: true }) public activatesGroupId!: string;
+  @Field({ nullable: true }) @prop() public conversionFormula?: string;
+}
+
 // ─── Main schema ──────────────────────────────────────────────────────────────
 
 @ObjectType()
@@ -183,6 +192,10 @@ export class RateBuildupTemplateSchema {
   @Field(() => [RateBuildupGroupDef])
   @prop({ type: () => [RateBuildupGroupDef], _id: false, default: [] })
   public groupDefs!: RateBuildupGroupDef[];
+
+  @Field(() => [RateBuildupUnitVariant], { nullable: true })
+  @prop({ type: () => [RateBuildupUnitVariant], _id: false })
+  public unitVariants?: RateBuildupUnitVariant[];
 
   /** JSON string for the two synthetic nodes: { quantity: Position, unitPrice: Position } */
   @Field({ nullable: true })

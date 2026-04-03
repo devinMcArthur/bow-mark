@@ -17,7 +17,7 @@ import {
   SpecialNodePositions,
   RateEntry,
 } from "../../../../components/TenderPricing/calculators/types";
-import { evaluateTemplate } from "../../../../components/TenderPricing/calculators/evaluate";
+import { evaluateTemplate, evaluateExpression } from "../../../../components/TenderPricing/calculators/evaluate";
 
 // ─── CanvasDocument ───────────────────────────────────────────────────────────
 
@@ -33,6 +33,23 @@ export interface GroupActivation {
 export interface ControllerOption {
   id: string;
   label: string;
+}
+
+/**
+ * Describes how the Quantity node handles a specific input unit.
+ * When a line item's unit matches `unit`, the group `activatesGroupId` is
+ * activated, and `conversionFormula` (if present) is evaluated to normalise
+ * the raw quantity before the rest of the formulas run.
+ *
+ * conversionFormula may reference `quantity` (the raw input) and any param IDs
+ * defined on the template. Result replaces `quantity` in the formula context.
+ * Omit or leave empty for units that require no conversion (i.e. the template's
+ * native unit).
+ */
+export interface UnitVariant {
+  unit: string;              // canonical code, e.g. "m3"
+  activatesGroupId: string;  // group to activate when this unit is selected
+  conversionFormula?: string; // e.g. "quantity / depth_m"
 }
 
 export interface ControllerDef {
@@ -74,6 +91,7 @@ export interface CanvasDocument {
   specialPositions: SpecialNodePositions; // positions for quantity/unitPrice synthetic nodes
   groupDefs: GroupDef[];
   controllerDefs: ControllerDef[];
+  unitVariants?: UnitVariant[];
   // REMOVED: defaultInputs (defaultValue now on ParameterDef; defaultRows now on CanvasTableDef)
   // REMOVED: nodePositions (position now on each canvas def)
 }
@@ -134,21 +152,37 @@ export function isGroupActive(
  */
 export function computeInactiveNodeIds(
   doc: CanvasDocument,
-  controllers: Record<string, number | boolean | string[]>
+  controllers: Record<string, number | boolean | string[]>,
+  activeUnit?: string   // canonical code of the line item's unit
 ): Set<string> {
-  const inactiveGroupIds = new Set<string>();
+  // Groups that serve as unit variant branches — their activation is driven by
+  // activeUnit, not by controller values.
+  const unitVariantGroupIds = new Set((doc.unitVariants ?? []).map((v) => v.activatesGroupId));
+  const activeVariantGroupId = activeUnit
+    ? (doc.unitVariants ?? []).find((v) => v.unit === activeUnit)?.activatesGroupId
+    : undefined;
 
-  // Propagate inactivity: a group is inactive if it's directly disabled OR
-  // if any ancestor group is inactive. Iterate until stable.
+  const inactiveGroupIds = new Set<string>();
   let changed = true;
   while (changed) {
     changed = false;
     for (const g of doc.groupDefs) {
       if (inactiveGroupIds.has(g.id)) continue;
-      const directlyInactive = !isGroupActive(g, doc, controllers);
-      const parentGroup = doc.groupDefs.find((pg) => pg.memberIds.includes(g.id));
-      const parentInactive = parentGroup ? inactiveGroupIds.has(parentGroup.id) : false;
-      if (directlyInactive || parentInactive) {
+
+      let shouldBeInactive: boolean;
+
+      if (unitVariantGroupIds.has(g.id)) {
+        // Unit variant group: active only if it's the matching variant
+        shouldBeInactive = g.id !== activeVariantGroupId;
+      } else {
+        // Normal group: use existing controller-based logic
+        const directlyInactive = !isGroupActive(g, doc, controllers);
+        const parentGroup = doc.groupDefs.find((pg) => pg.memberIds.includes(g.id));
+        const parentInactive = parentGroup ? inactiveGroupIds.has(parentGroup.id) : false;
+        shouldBeInactive = directlyInactive || parentInactive;
+      }
+
+      if (shouldBeInactive) {
         inactiveGroupIds.add(g.id);
         changed = true;
       }
@@ -256,16 +290,27 @@ export function canvasDocToSnapshot(
  */
 export function computeSnapshotUnitPrice(
   snapshot: RateBuildupSnapshot,
-  quantity: number
+  rawQuantity: number,
+  unit?: string   // canonical code of the line item's unit
 ): number {
   const doc = snapshotToCanvasDoc(snapshot);
+
+  // Resolve active unit variant and normalize quantity via conversion formula
+  const variant = unit ? (doc.unitVariants ?? []).find((v) => v.unit === unit) : undefined;
+  let quantity = rawQuantity;
+  if (variant?.conversionFormula) {
+    const ctx: Record<string, number> = { quantity: rawQuantity };
+    for (const p of doc.parameterDefs) ctx[p.id] = snapshot.params[p.id] ?? p.defaultValue;
+    const converted = evaluateExpression(variant.conversionFormula, ctx);
+    if (converted !== null && converted > 0) quantity = converted;
+  }
+
   const controllerNumeric: Record<string, number> = {};
   for (const [k, v] of Object.entries(snapshot.controllers ?? {})) {
     if (typeof v === "number") controllerNumeric[k] = v;
     else if (typeof v === "boolean") controllerNumeric[k] = v ? 1 : 0;
-    // string[] selector controllers: not numeric, not injected
   }
-  const inactiveNodeIds = computeInactiveNodeIds(doc, snapshot.controllers ?? {});
+  const inactiveNodeIds = computeInactiveNodeIds(doc, snapshot.controllers ?? {}, unit);
   const result = evaluateTemplate(
     doc,
     { params: snapshot.params, tables: snapshot.tables },
@@ -321,6 +366,7 @@ export function fragmentToDoc(f: RateBuildupTemplateFullSnippetFragment): Canvas
     specialPositions,
     groupDefs,
     controllerDefs,
+    unitVariants: (f as unknown as { unitVariants?: UnitVariant[] }).unitVariants ?? [],
   };
 }
 

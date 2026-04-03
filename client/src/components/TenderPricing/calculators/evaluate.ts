@@ -131,6 +131,24 @@ export function evaluateTemplate(
   };
 }
 
+/**
+ * Evaluate a simple arithmetic expression with a numeric variable context.
+ * Returns null if the formula throws or produces a non-finite result.
+ * Used by the unit variant conversion step in computeSnapshotUnitPrice.
+ */
+export function evaluateExpression(
+  formula: string,
+  ctx: Record<string, number>
+): number | null {
+  if (!formula.trim()) return null;
+  try {
+    const result = parser.evaluate(formula, { ...ctx });
+    return typeof result === "number" && isFinite(result) ? result : null;
+  } catch {
+    return null;
+  }
+}
+
 export function debugEvaluateTemplate(
   template: EvaluatableTemplate,
   inputs: CalculatorInputs | undefined,
