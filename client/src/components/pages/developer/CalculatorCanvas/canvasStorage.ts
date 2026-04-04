@@ -403,7 +403,10 @@ function docToVariables(
       intermediateDefs: omitTypename(doc.intermediateDefs),
       specialPositions: JSON.stringify(doc.specialPositions),
       groupDefs: omitTypename(doc.groupDefs),
-      controllerDefs: omitTypename(doc.controllerDefs),
+      controllerDefs: omitTypename(doc.controllerDefs).map((c) => ({
+        ...c,
+        defaultValue: typeof c.defaultValue === "boolean" ? (c.defaultValue ? 1 : 0) : c.defaultValue,
+      })),
       unitVariants: (doc.unitVariants ?? []).map(({ unit, activatesGroupId, conversionFormula }) => ({
         unit,
         activatesGroupId,

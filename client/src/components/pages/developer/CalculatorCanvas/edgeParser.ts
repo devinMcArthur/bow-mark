@@ -5,7 +5,7 @@ import { CanvasDocument } from "./canvasStorage";
 export function parseEdges(template: CalculatorTemplate): Edge[] {
   const edges: Edge[] = [];
 
-  const controllerDefs = (template as CanvasDocument).controllerDefs ?? [];
+  const controllerDefs = (template as unknown as CanvasDocument).controllerDefs ?? [];
 
   // All valid source node ids — include all formula step ids upfront so edges are
   // generated regardless of declaration order (order is irrelevant since the
@@ -56,7 +56,7 @@ export function parseEdges(template: CalculatorTemplate): Edge[] {
   }
 
   // Activation edges: controller → group (dashed style to distinguish from formula edges)
-  const groupDefs = (template as CanvasDocument).groupDefs ?? [];
+  const groupDefs = (template as unknown as CanvasDocument).groupDefs ?? [];
   for (const group of groupDefs) {
     if (!group.activation) continue;
     const ctrl = controllerDefs.find((c) => c.id === group.activation!.controllerId);

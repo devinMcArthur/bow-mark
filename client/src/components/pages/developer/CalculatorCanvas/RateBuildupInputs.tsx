@@ -619,7 +619,7 @@ const FormulaOutputRow: React.FC<{
         align="baseline" justify="space-between" py={1.5}
         cursor="pointer"
         onClick={() => setOpen((o) => !o)}
-        _hover={{ "& > *": { color: "gray.700" } }}
+        sx={{ "&:hover > *": { color: "gray.700" } }}
         role="button"
       >
         <Flex align="center" gap={1} flex={1} minW={0}>
@@ -718,7 +718,7 @@ const RateBuildupInputs: React.FC<RateBuildupInputsProps> = ({
   // Map of formula step id → { label, value, formula } for all active, non-errored steps
   const formulaOutputMap = useMemo<Record<string, { label: string; value: number; formula: string }>>(() => {
     if (!doc.formulaSteps.length) return {};
-    const stepMeta = new Map(doc.formulaSteps.map((s) => [s.id, { label: s.label, formula: s.formula }]));
+    const stepMeta = new Map(doc.formulaSteps.map((s) => [s.id, { label: s.label ?? s.id, formula: s.formula }]));
     const stepResults = debugEvaluateTemplate(doc, inputs, normalizedQuantity, controllerValues, inactiveNodeIds);
     const map: Record<string, { label: string; value: number; formula: string }> = {};
     for (const s of stepResults) {
@@ -735,7 +735,7 @@ const RateBuildupInputs: React.FC<RateBuildupInputsProps> = ({
     const map: Record<string, string> = { quantity: "Quantity" };
     for (const p of doc.parameterDefs) map[p.id] = p.label;
     for (const t of doc.tableDefs) map[`${t.id}RatePerHr`] = t.label;
-    for (const s of doc.formulaSteps) map[s.id] = s.label;
+    for (const s of doc.formulaSteps) map[s.id] = s.label ?? s.id;
     for (const c of (doc.controllerDefs ?? [])) map[c.id] = c.label;
     return map;
   }, [doc]);

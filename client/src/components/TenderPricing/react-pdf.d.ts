@@ -10,6 +10,7 @@ declare module "react-pdf" {
     onLoadSuccess?: (pdf: { numPages: number }) => void;
     onLoadError?: (error: Error) => void;
     loading?: ReactNode;
+    error?: ReactNode;
     children?: ReactNode;
   }
 

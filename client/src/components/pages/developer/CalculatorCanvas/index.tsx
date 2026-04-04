@@ -11,7 +11,7 @@ import { ClipboardPayload, copyNodes, pasteNodes, deleteNodes, createNode, creat
 import CanvasFlow from "./CanvasFlow";
 import InspectPanel from "./InspectPanel";
 import LiveTestPanel from "./LiveTestPanel";
-import { RateEntry } from "../../../../components/TenderPricing/calculators/types";
+import { RateEntry, CalculatorTemplate } from "../../../../components/TenderPricing/calculators/types";
 
 interface Props {
   doc: CanvasDocument;
@@ -223,7 +223,7 @@ const CalculatorCanvas: React.FC<Props> = ({
     return next;
   })();
 
-  const edges: Edge[] = useMemo(() => parseEdges(doc), [doc]);
+  const edges: Edge[] = useMemo(() => parseEdges(doc as unknown as CalculatorTemplate), [doc]);
 
   // ─── Doc-level saves ────────────────────────────────────────────────────────
 
@@ -271,7 +271,7 @@ const CalculatorCanvas: React.FC<Props> = ({
         setSelectedNodeId(newId);
         setPositionResetKey((k) => k + 1);
       } else {
-        const { doc: updatedDoc, newId } = createNode(type, doc, position);
+        const { doc: updatedDoc, newId } = createNode(type as "table" | "formula" | "param" | "breakdown", doc, position);
         handleSave(updatedDoc);
         setSelectedNodeId(newId);
         setPositionResetKey((k) => k + 1);

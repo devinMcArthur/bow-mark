@@ -6,7 +6,7 @@ import ReactFlow, {
   Node,
   Edge,
   NodeMouseHandler,
-  NodeDragStopHandler,
+  NodeDragHandler,
   Background,
   Controls,
   MiniMap,
@@ -544,8 +544,8 @@ const CanvasFlow: React.FC<Props> = ({
     [onSelectNode, setNodes]
   );
 
-  const handleNodeDragStop: NodeDragStopHandler = useCallback(
-    (_, draggedNode) => {
+  const handleNodeDragStop: NodeDragHandler = useCallback(
+    (_: React.MouseEvent, draggedNode: Node) => {
       // node.position is in the correct coordinate space already:
       //   - absolute for ungrouped nodes and group containers
       //   - relative to parent for grouped nodes (React Flow gives relative for parentId children)
