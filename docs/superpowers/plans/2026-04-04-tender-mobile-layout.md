@@ -592,7 +592,7 @@ const TenderMobileLayout: React.FC<TenderMobileLayoutProps> = ({
       </Flex>
 
       {/* Tab content */}
-      <Box flex={1} overflow="hidden" h={contentHeight}>
+      <Box flex={1} overflow="hidden">
         {activeTab === "pricing" && (
           sheet ? (
             <TenderMobilePricingTab
@@ -718,7 +718,7 @@ return (
 );
 ```
 
-The `tender ?? ({} as TenderDetail)` guard handles the loading state — `TenderMobileLayout` renders a spinner in the pricing tab when sheet is null, and the top bar will show empty strings until data arrives, which is acceptable.
+The `!tender` guard shows a full-screen spinner until the tender query resolves, then renders `TenderMobileLayout` with the real data. The sheet can still be null while loading (spinner shown in pricing tab).
 
 - [ ] **Step 2: Verify TypeScript compiles**
 
