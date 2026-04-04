@@ -256,8 +256,7 @@ export function snapshotFromTemplate(template: CanvasDocument): RateBuildupSnaps
  * Strips the snapshot-specific fields, returning the pure canvas structure.
  */
 export function snapshotToCanvasDoc(snapshot: RateBuildupSnapshot): CanvasDocument {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { sourceTemplateId, params, tables, controllers, paramNotes, ...rest } = snapshot;
+  const { sourceTemplateId: _sid, params: _p, tables: _t, controllers: _c, paramNotes: _pn, ...rest } = snapshot;
   return rest;
 }
 
@@ -372,7 +371,6 @@ export function fragmentToDoc(f: RateBuildupTemplateFullSnippetFragment): Canvas
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function omitTypename<T>(obj: T): T {
   if (Array.isArray(obj)) return obj.map(omitTypename) as unknown as T;
   if (obj && typeof obj === "object") {
