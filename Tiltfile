@@ -315,6 +315,7 @@ docker_build(
 # ============================================================================
 
 k8s_yaml([
+    'k8s-dev/cloudflare-tunnel.yaml',
     'k8s-dev/server-deployment.yaml',
     'k8s-dev/consumer-deployment.yaml',
     'k8s-dev/mcp-server-deployment.yaml',
@@ -331,6 +332,13 @@ k8s_resource(
     resource_deps=['mongo', 'postgres', 'rabbitmq', 'meilisearch', 'db-migrate', 'restore-mongo', 'restore-postgres'],
     port_forwards=['0.0.0.0:8080:8080'],
     labels=['app'],
+)
+
+# Cloudflare tunnel - exposes app publicly via dev.hubsite.app
+k8s_resource(
+    'cloudflare-tunnel',
+    resource_deps=['lan-access'],
+    labels=['utilities'],
 )
 
 # RabbitMQ consumer - needs DBs and RabbitMQ
