@@ -25,6 +25,8 @@ import {
 } from "@models";
 import { JobsiteMaterialCostType } from "@typescript/jobsiteMaterial";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+dayjs.extend(utc);
 
 /**
  * Upsert a jobsite dimension record
@@ -574,6 +576,26 @@ async function syncJobsiteMaterialRates(
       }
     }
   }
+
+  // Insert scenario rates (mongo_id = scenario._id — same lookup pattern as deliveredRates)
+  if (jobsiteMaterial.scenarios && jobsiteMaterial.scenarios.length > 0) {
+    for (const scenario of jobsiteMaterial.scenarios) {
+      if (scenario.rates && scenario.rates.length > 0) {
+        const rateValues = scenario.rates.map((r) => ({
+          jobsite_material_id: jobsiteMaterialId,
+          mongo_id: scenario._id?.toString() || null,
+          rate: r.rate.toString(),
+          estimated: r.estimated || false,
+          effective_date: r.date,
+        }));
+
+        await db
+          .insertInto("dim_jobsite_material_rate")
+          .values(rateValues)
+          .execute();
+      }
+    }
+  }
 }
 
 /**
@@ -635,8 +657,8 @@ async function getInvoiceMonthRate(
     return 0;
   }
 
-  const monthStart = dayjs(dayInMonth).startOf("month").toDate();
-  const monthEnd = dayjs(dayInMonth).endOf("month").toDate();
+  const monthStart = dayjs.utc(dayInMonth).startOf("month").toDate();
+  const monthEnd = dayjs.utc(dayInMonth).endOf("month").toDate();
 
   // Get all invoices for this material in this month
   const invoices = await Invoice.find({
@@ -687,8 +709,18 @@ export async function getMaterialShipmentRate(
   jobsiteMaterialId: string,
   jobsiteMaterial: JobsiteMaterialDocument,
   workDate: Date,
-  deliveredRateId?: string
+  deliveredRateId?: string,
+  rateScenarioId?: string
 ): Promise<{ rate: number; estimated: boolean }> {
+  // New scenario model — takes priority over legacy costType
+  if (rateScenarioId) {
+    return getJobsiteMaterialRateForDate(
+      jobsiteMaterialId,
+      workDate,
+      rateScenarioId
+    );
+  }
+
   const costType = jobsiteMaterial.costType;
 
   switch (costType) {

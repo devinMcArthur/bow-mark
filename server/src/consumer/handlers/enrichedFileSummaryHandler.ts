@@ -1,9 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { EnrichedFile } from "@models";
+import { EnrichedFile, Tender } from "@models";
 import { getFile } from "@utils/fileStorage";
 import type { EnrichedFileSummaryMessage } from "../../rabbitmq/publisher";
-import { summarizePdf, DocumentSummary, withRateLimitRetry, RateLimitExhaustedError } from "./summarizePdf";
+import { summarizePdf, DocumentSummary, withRateLimitRetry, RateLimitExhaustedError, generatePageIndex } from "./summarizePdf";
 import { publishEnrichedFileCreated } from "../../rabbitmq/publisher";
+import { scheduleTenderSummary } from "../../lib/generateTenderSummary";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -115,10 +116,53 @@ export const enrichedFileSummaryHandler = {
       await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
         $set: {
           summary,
-          summaryStatus: "ready",
           ...(pageCount !== undefined ? { pageCount } : {}),
         },
       });
+
+      // Generate page-level index for PDFs (not spreadsheets or images)
+      // summaryStatus is set to "ready" only after both summary and page index are complete
+      if (!isSpreadsheet && !contentType.startsWith("image/")) {
+        try {
+          console.log(`[EnrichedFileSummary] Generating page index for file ${fileId}...`);
+          const pageIndex = await generatePageIndex(anthropic, buffer);
+          if (pageIndex.length > 0) {
+            await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
+              $set: { pageIndex },
+            });
+            console.log(`[EnrichedFileSummary] Page index saved: ${pageIndex.length} pages for file ${fileId}`);
+          }
+        } catch (indexErr) {
+          // Non-fatal — document is still usable without page index
+          console.warn(`[EnrichedFileSummary] Page index generation failed for file ${fileId}:`, indexErr);
+        }
+      }
+
+      await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
+        $set: { summaryStatus: "ready" },
+      });
+
+      // Trigger tender summary regeneration if this file belongs to a tender
+      // and all of that tender's files are now ready
+      try {
+        const tender = await Tender.findOne({ files: enrichedFileId }).lean();
+        if (tender) {
+          const fileIds = ((tender as any).files as any[]).map((f: any) =>
+            f._id ? f._id.toString() : f.toString()
+          );
+          const pendingCount = await EnrichedFile.countDocuments({
+            _id: { $in: fileIds },
+            summaryStatus: { $in: ["pending", "processing"] },
+          });
+          if (pendingCount === 0) {
+            console.log(`[EnrichedFileSummary] All tender files ready — scheduling summary for tender ${(tender as any)._id}`);
+            scheduleTenderSummary((tender as any)._id.toString());
+          }
+        }
+      } catch (triggerErr) {
+        // Non-fatal — document is still fully processed without the tender summary
+        console.warn("[EnrichedFileSummary] Tender summary trigger check failed:", triggerErr);
+      }
 
       console.log(`[EnrichedFileSummary] Done for file ${fileId}`);
     } catch (error) {

@@ -310,6 +310,7 @@ interface ChatPageProps {
   disableRouting?: boolean;        // when true, don't navigate on conversation select/new
   height?: string;                 // override container height, default: calc(100vh - navbarHeight)
   minRole?: UserRoles;             // minimum role required to access chat, default: ProjectManager
+  onToolResult?: (toolName: string, result: string) => void;
 }
 
 const ChatPage = ({
@@ -321,6 +322,7 @@ const ChatPage = ({
   disableRouting = false,
   height,
   minRole = UserRoles.ProjectManager,
+  onToolResult,
 }: ChatPageProps) => {
   const router = useRouter();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
@@ -496,6 +498,9 @@ const ChatPage = ({
         content: text.trim(),
       };
 
+      // Mark as at-bottom before adding the message so the layoutEffect pins scrollTop=0
+      isAtBottomRef.current = true;
+      setShowScrollButton(false);
       setMessages((prev) => [...prev, userMessage]);
       setInput("");
       setLoading(true);
@@ -604,6 +609,9 @@ const ChatPage = ({
                       : m
                   )
                 );
+                if (onToolResult) {
+                  onToolResult(event.toolName, event.result ?? "");
+                }
               } else if (event.type === "conversation_id" && event.id) {
                 currentConvoId = event.id;
                 setConversationId(event.id);

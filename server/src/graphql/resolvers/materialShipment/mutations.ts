@@ -71,6 +71,9 @@ export class MaterialShipmentVehicleObjectData {
 
   @Field({ nullable: true })
   public deliveredRateId?: string;
+
+  @Field({ nullable: true })
+  public rateScenarioId?: string;
 }
 
 @InputType()

@@ -1,9 +1,10 @@
 import { Router } from "express";
 import mongoose from "mongoose";
+import Anthropic from "@anthropic-ai/sdk";
 import { Jobsite, User, System, EnrichedFile } from "@models";
 import { isDocument } from "@typegoose/typegoose";
 import { streamConversation } from "../lib/streamConversation";
-import { READ_DOCUMENT_TOOL, makeReadDocumentExecutor } from "../lib/readDocumentExecutor";
+import { READ_DOCUMENT_TOOL, LIST_DOCUMENT_PAGES_TOOL, makeReadDocumentExecutor } from "../lib/readDocumentExecutor";
 import { buildFileIndex } from "../lib/buildFileIndex";
 import { UserRoles } from "../typescript/user";
 import { requireAuth } from "../lib/authMiddleware";
@@ -64,23 +65,65 @@ router.post("/message", requireAuth, async (req, res) => {
     req.token
   );
 
-  const systemPrompt = `${userContext ? userContext + "\n\n" : ""}You are a field assistant helping foremen and crew at Bow-Mark, a paving and concrete company.
+  // ── Query decomposition ────────────────────────────────────────────────────
+  const lastUserMessage = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
+  let decomposedQuestions: string[] = [];
+  if (lastUserMessage.trim()) {
+    try {
+      const anthropicForDecomp = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const decompResponse = await anthropicForDecomp.messages.create({
+        model: "claude-haiku-4-5",
+        max_tokens: 200,
+        messages: [
+          {
+            role: "user",
+            content: `Does this question contain multiple distinct parts that should each be answered separately from a document?
+If yes, list each part as a short, focused question (one per line, no numbering or bullets).
+If no, reply with exactly: SINGLE
+
+Question: "${lastUserMessage}"`,
+          },
+        ],
+      });
+      const decompText =
+        decompResponse.content[0]?.type === "text"
+          ? decompResponse.content[0].text.trim()
+          : "SINGLE";
+      if (decompText !== "SINGLE") {
+        decomposedQuestions = decompText
+          .split("\n")
+          .map((q) => q.trim())
+          .filter(Boolean);
+      }
+    } catch {
+      // Non-fatal — proceed without decomposition
+    }
+  }
+
+  const decompositionBlock =
+    decomposedQuestions.length > 1
+      ? `\n## This Question\nThis question has multiple parts — address each one:\n${decomposedQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}\n`
+      : "";
+
+  const systemPrompt = `${userContext ? userContext + "\n\n" : ""}You are a field assistant helping foremen and crew at Bow Mark, a paving and concrete company.
 
 You are helping with jobsite: **${(jobsite as any).name}**${(jobsite as any).jobcode ? ` (Job Code: ${(jobsite as any).jobcode})` : ""}
 
 ## Jobsite Documents
 
 ${fileIndex || "No documents have been uploaded yet."}${pendingNotice}${specFileIndex ? `\n\n## Reference Specifications\n\n${specFileIndex}` : ""}
-
+${decompositionBlock}
 ## Instructions
 
 - Write at an 8th grade reading level. Use plain, simple language. Avoid jargon.
 - Respond in the same language the user writes in. Workers may write in Spanish, French, or other languages — always reply in their language.
 - Focus on practical, actionable information: what needs to be done, safety requirements, material specs for the current work.
-- Use document summaries to find the right document, then use read_document to load it.
+- **Loading documents — two steps.** For documents with a page index, call list_document_pages first to see the page-by-page breakdown, then call read_document with only the specific pages you need. Only skip list_document_pages if the document has no page index.
 - Load ONE document at a time. Never call read_document more than once per response.
 - There is a strict 90-page limit per conversation turn.
 - When quoting requirements, include the page number: e.g. "According to the specs (p. 12)..."
+- **Cross-references.** If a page references another drawing or standard, note it so the worker knows where else to look.
+- **Completeness.** Before answering, confirm you have addressed all parts of the question.
 - Keep answers short and focused. Workers are in the field.`;
 
   await streamConversation({
@@ -91,7 +134,7 @@ ${fileIndex || "No documents have been uploaded yet."}${pendingNotice}${specFile
     chatType: "jobsite-foreman",
     messages,
     systemPrompt,
-    tools: [READ_DOCUMENT_TOOL],
+    tools: [LIST_DOCUMENT_PAGES_TOOL, READ_DOCUMENT_TOOL],
     toolChoice: { type: "auto", disable_parallel_tool_use: true },
     maxTokens: 4096,
     executeTool: makeReadDocumentExecutor([...jobsiteFiles, ...specFiles]),

@@ -318,3 +318,123 @@ Return only valid JSON, no markdown, no explanation.`,
     return valid[0];
   }
 }
+
+export const PAGE_INDEX_PROMPT = `You are indexing one page from a construction document for a paving/concrete company.
+Describe this page in 1-2 sentences. Be specific:
+- Spec/text pages: include section number or heading and the most specific values, requirements, or standards (e.g. "Section 3.2 Temperature Requirements: minimum pavement surface temp 5°C, minimum air temp 3°C and rising")
+- Drawing sheets: include drawing number, title, and what is shown (e.g. "Drawing C-3: culvert crossing detail, 900mm HDPE pipe at station 4+200")
+- Tables/schedules: describe what the table contains and any key totals or items
+- Cover/TOC pages: note it is a cover page or table of contents
+Return only the description text — no JSON, no labels, no formatting.`;
+
+async function summarizePageForIndex(
+  anthropic: Anthropic,
+  pageBuffer: Buffer,
+  pageNumber: number
+): Promise<string> {
+  // Large pages (e.g. high-res drawing sheets) fall back to text extraction
+  if (pageBuffer.length > MAX_CHUNK_BYTES) {
+    let text = "";
+    try {
+      const pdfParse: (buf: Buffer) => Promise<{ text: string }> = require("pdf-parse");
+      const parsed = await pdfParse(pageBuffer);
+      text = parsed.text.trim().slice(0, 3000);
+    } catch {
+      // ignore
+    }
+    if (!text) return `Page ${pageNumber}: drawing or image page`;
+
+    const response = await withRateLimitRetry(
+      () =>
+        anthropic.messages.create({
+          model: "claude-haiku-4-5",
+          max_tokens: 150,
+          messages: [
+            {
+              role: "user",
+              content: `${PAGE_INDEX_PROMPT}\n\nPage content (text extracted from page ${pageNumber}):\n${text}`,
+            },
+          ],
+        }),
+      `page-index-text-${pageNumber}`
+    );
+    return response.content[0]?.type === "text"
+      ? response.content[0].text.trim()
+      : `Page ${pageNumber}`;
+  }
+
+  const base64 = pageBuffer.toString("base64");
+  const response = await withRateLimitRetry(
+    () =>
+      anthropic.messages.create({
+        model: "claude-haiku-4-5",
+        max_tokens: 150,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text" as const, text: PAGE_INDEX_PROMPT },
+              {
+                type: "document" as any,
+                source: {
+                  type: "base64" as const,
+                  media_type: "application/pdf" as const,
+                  data: base64,
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    `page-index-${pageNumber}`
+  );
+
+  return response.content[0]?.type === "text"
+    ? response.content[0].text.trim()
+    : `Page ${pageNumber}`;
+}
+
+/**
+ * Generate a page-by-page index for a PDF.
+ * Each entry is a 1-2 sentence description of that page's content.
+ * Uses a 1.5s inter-page delay to stay well under Anthropic rate limits.
+ * Returns an empty array if the PDF cannot be parsed.
+ */
+export async function generatePageIndex(
+  anthropic: Anthropic,
+  buffer: Buffer
+): Promise<Array<{ page: number; summary: string }>> {
+  let pdfDoc: PDFDocument;
+  try {
+    pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+  } catch {
+    console.warn("[generatePageIndex] pdf-lib failed to parse — skipping page index");
+    return [];
+  }
+
+  const totalPages = pdfDoc.getPageCount();
+  console.log(`[generatePageIndex] Indexing ${totalPages} pages...`);
+
+  const index: Array<{ page: number; summary: string }> = [];
+  const INTER_PAGE_DELAY_MS = 1_500;
+
+  for (let i = 0; i < totalPages; i++) {
+    if (i > 0) {
+      await new Promise((resolve) => setTimeout(resolve, INTER_PAGE_DELAY_MS));
+    }
+    try {
+      const pageBuffer = await extractPages(pdfDoc, i, i + 1);
+      const summary = await summarizePageForIndex(anthropic, pageBuffer, i + 1);
+      index.push({ page: i + 1, summary });
+      if ((i + 1) % 10 === 0) {
+        console.log(`[generatePageIndex] ${i + 1}/${totalPages} pages indexed`);
+      }
+    } catch (err) {
+      console.warn(`[generatePageIndex] Failed to index page ${i + 1}:`, err);
+      index.push({ page: i + 1, summary: `Page ${i + 1}` });
+    }
+  }
+
+  console.log(`[generatePageIndex] Done — ${index.length} pages indexed`);
+  return index;
+}

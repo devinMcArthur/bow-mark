@@ -35,6 +35,15 @@ interface IMaterialShipmentShipmentForm {
   errors?: ShipmentErrors;
   index: number;
   deliveredMaterial?: JobsiteMaterialForDailyReportSnippetFragment;
+  /**
+   * Controls start/end time visibility:
+   *   undefined — legacy behaviour: show as optional
+   *   true      — show as required (hourly pickup scenario)
+   *   false     — hide (invoice or delivered scenario)
+   */
+  showStartEndTime?: boolean;
+  /** Rendered between the material selector and quantity — used for the scenario picker. */
+  afterMaterial?: React.ReactNode;
   onChange: (shipment: MaterialShipmentShipmentData) => void;
   remove: () => void;
 }
@@ -48,6 +57,8 @@ const MaterialShipmentShipmentForm = ({
   errors,
   index,
   deliveredMaterial,
+  showStartEndTime,
+  afterMaterial,
   onChange,
   remove,
 }: IMaterialShipmentShipmentForm) => {
@@ -230,7 +241,7 @@ const MaterialShipmentShipmentForm = ({
         </>
       ) : (
         // JOBSITE MATERIAL
-        <SimpleGrid spacing={2} columns={[1, 1, 2]}>
+        <>
           <Select
             name="jobsiteMaterialId"
             options={jobsiteMaterialOptions}
@@ -243,6 +254,7 @@ const MaterialShipmentShipmentForm = ({
               updateJobsiteMaterial(e.target.value);
             }}
           />
+          {afterMaterial}
           <NumberForm
             step={10}
             stepper
@@ -252,32 +264,32 @@ const MaterialShipmentShipmentForm = ({
             errorMessage={errors?.quantity}
             onChange={(e) => updateQuantity(parseFloat(e))}
           />
-          {jobsiteMaterials
-            .find((material) => shipment.jobsiteMaterialId === material._id)
-            ?.deliveredRates.map((rate) => rate.title)}
-        </SimpleGrid>
+        </>
       )}
 
-      <SimpleGrid spacing={2} columns={[1, 1, 2]}>
-        <TextField
-          label="Start Time (optional)"
-          isDisabled={isLoading}
-          value={shipment.startTime}
-          bgColor="white"
-          type="time"
-          onChange={(e) => updateStartTime(e.target.value)}
-          errorMessage={errors?.startTime}
-        />
-        <TextField
-          label="End Time (optional)"
-          isDisabled={isLoading}
-          value={shipment.endTime}
-          bgColor="white"
-          type="time"
-          onChange={(e) => updateEndTime(e.target.value)}
-          errorMessage={errors?.endTime}
-        />
-      </SimpleGrid>
+      {/* showStartEndTime: undefined = legacy (optional), true = required, false = hidden */}
+      {showStartEndTime !== false && (
+        <SimpleGrid spacing={2} columns={[1, 1, 2]}>
+          <TextField
+            label={showStartEndTime ? "Start Time" : "Start Time (optional)"}
+            isDisabled={isLoading}
+            value={shipment.startTime}
+            bgColor="white"
+            type="time"
+            onChange={(e) => updateStartTime(e.target.value)}
+            errorMessage={errors?.startTime}
+          />
+          <TextField
+            label={showStartEndTime ? "End Time" : "End Time (optional)"}
+            isDisabled={isLoading}
+            value={shipment.endTime}
+            bgColor="white"
+            type="time"
+            onChange={(e) => updateEndTime(e.target.value)}
+            errorMessage={errors?.endTime}
+          />
+        </SimpleGrid>
+      )}
       {/* END SHIPMENT */}
     </Box>
   );

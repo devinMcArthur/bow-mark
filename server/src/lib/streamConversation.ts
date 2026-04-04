@@ -127,10 +127,10 @@ export async function streamConversation(opts: StreamConversationOptions): Promi
               role: "user",
               content: `Classify this query as SIMPLE or COMPLEX.
 
-SIMPLE: A single direct lookup — one specific fact, clause, or data point.
-COMPLEX: Synthesis, comparisons, multi-document reading, rankings, trends, or anything requiring multi-step reasoning.
+SIMPLE: Most questions — lookups, summaries, explanations, single or multi-document reading, comparisons, calculations, and general reasoning. Default to SIMPLE when uncertain.
+COMPLEX: Only use for tasks requiring deep multi-step reasoning chains — e.g. synthesising contradictory information across many sources, complex financial modelling, or open-ended analysis where the answer requires significant judgment.
 
-Err towards COMPLEX when uncertain.
+Err towards SIMPLE when uncertain.
 
 Query: "${queryText}"
 
@@ -140,13 +140,13 @@ Reply with exactly one word: SIMPLE or COMPLEX`,
         })
         .then((r) => {
           const text = r.content[0]?.type === "text" ? r.content[0].text.trim().toUpperCase() : "";
-          return text === "SIMPLE" ? "simple" : "complex";
+          return text === "COMPLEX" ? "complex" : "simple";
         })
-        .catch(() => "complex" as const)
-    : Promise.resolve("complex" as const);
+        .catch(() => "simple" as const)
+    : Promise.resolve("simple" as const);
 
   const complexity = await classificationPromise;
-  const MODEL = complexity === "simple" ? "claude-sonnet-4-6" : "claude-opus-4-6";
+  const MODEL = complexity === "complex" ? "claude-opus-4-6" : "claude-sonnet-4-6";
   console.log(`${logPrefix} complexity=${complexity} → model=${MODEL}`);
   convo!.aiModel = MODEL;
 

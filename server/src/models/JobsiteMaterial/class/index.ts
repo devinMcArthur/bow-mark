@@ -6,6 +6,7 @@ import {
 import {
   IJobsiteMaterialCreate,
   IJobsiteMaterialUpdate,
+  IRateScenarioData,
 } from "@typescript/jobsiteMaterial";
 import { GetByIDOptions, Id } from "@typescript/models";
 import { ObjectType } from "type-graphql";
@@ -104,6 +105,28 @@ export class JobsiteMaterialClass extends JobsiteMaterialSchema {
     invoice: InvoiceDocument
   ) {
     return update.addInvoice(this, invoice);
+  }
+
+  public async addScenario(
+    this: JobsiteMaterialDocument,
+    data: IRateScenarioData
+  ) {
+    return update.addScenario(this, data);
+  }
+
+  public async updateScenario(
+    this: JobsiteMaterialDocument,
+    scenarioId: string,
+    data: IRateScenarioData
+  ) {
+    return update.updateScenario(this, scenarioId, data);
+  }
+
+  public async removeScenario(
+    this: JobsiteMaterialDocument,
+    scenarioId: string
+  ) {
+    return update.removeScenario(this, scenarioId);
   }
 
   /**

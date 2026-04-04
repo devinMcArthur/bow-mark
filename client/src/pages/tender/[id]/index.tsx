@@ -1,10 +1,13 @@
 import {
   Box,
-  Button,
   Divider,
   Flex,
-  Heading,
   Spinner,
+  Tab,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Tabs,
   Text,
 } from "@chakra-ui/react";
 import { navbarHeight } from "../../../constants/styles";
@@ -17,6 +20,8 @@ import Container from "../../../components/Common/Container";
 import Permission from "../../../components/Common/Permission";
 import TenderOverview from "../../../components/Tender/TenderOverview";
 import TenderDocuments from "../../../components/Tender/TenderDocuments";
+import TenderSummaryTab from "../../../components/Tender/TenderSummaryTab";
+import TenderNotesTab from "../../../components/Tender/TenderNotesTab";
 import ChatPage from "../../../components/Chat/ChatPage";
 import { TenderDetail } from "../../../components/Tender/types";
 import { UserRoles } from "../../../generated/graphql";
@@ -24,7 +29,7 @@ import { UserRoles } from "../../../generated/graphql";
 // ─── GQL ─────────────────────────────────────────────────────────────────────
 
 const TENDER_QUERY = gql`
-  query TenderDetailIndex($id: ID!) {
+  query TenderDetail($id: ID!) {
     tender(id: $id) {
       _id
       name
@@ -49,6 +54,22 @@ const TENDER_QUERY = gql`
           mimetype
           description
         }
+      }
+      notes {
+        _id
+        content
+        savedBy {
+          name
+        }
+        savedAt
+        conversationId
+      }
+      summaryGenerating
+      jobSummary {
+        content
+        generatedAt
+        generatedBy
+        generatedFrom
       }
       jobsite {
         _id
@@ -82,7 +103,8 @@ const TenderDetailPage = () => {
   const { id } = router.query;
   const tenderId = typeof id === "string" ? id : "";
   const conversationIdParam = router.query.conversationId;
-  const initialConversationId = typeof conversationIdParam === "string" ? conversationIdParam : undefined;
+  const initialConversationId =
+    typeof conversationIdParam === "string" ? conversationIdParam : undefined;
 
   const { data, loading, refetch, startPolling, stopPolling } = Apollo.useQuery<
     TenderQueryResult,
@@ -99,12 +121,12 @@ const TenderDetailPage = () => {
     const hasProcessing = tender?.files.some(
       (f) => f.summaryStatus === "pending" || f.summaryStatus === "processing"
     );
-    if (hasProcessing) {
+    if (hasProcessing || tender?.summaryGenerating) {
       startPolling(3000);
     } else {
       stopPolling();
     }
-  }, [tender?.files, startPolling, stopPolling]);
+  }, [tender?.files, tender?.summaryGenerating, startPolling, stopPolling]);
 
   if (loading) {
     return (
@@ -129,57 +151,79 @@ const TenderDetailPage = () => {
   return (
     <Permission minRole={UserRoles.ProjectManager} type={null} showError>
       <Flex h={`calc(100vh - ${navbarHeight})`} w="100%" overflow="hidden">
-        {/* ── Left panel ─────────────────────────────────────────────────── */}
+        {/* ── Left panel with tabs ─────────────────────────────────────────── */}
         <Box
           w="420px"
           flexShrink={0}
           borderRight="1px solid"
           borderColor="gray.200"
-          overflowY="auto"
-          p={5}
+          display="flex"
+          flexDirection="column"
+          overflow="hidden"
         >
-          <Breadcrumbs
-            crumbs={[
-              { title: "Tenders", link: "/tenders" },
-              {
-                title: tender ? `${tender.jobcode} — ${tender.name}` : "...",
-                isCurrentPage: true,
-              },
-            ]}
-          />
+          <Box px={5} pt={5} pb={3} flexShrink={0}>
+            <Breadcrumbs
+              crumbs={[
+                { title: "Tenders", link: "/tenders" },
+                {
+                  title: tender ? tender.jobcode : "...",
+                  isCurrentPage: true,
+                },
+              ]}
+            />
+          </Box>
 
           {tender && (
-            <>
-              <Button
-                size="sm"
-                colorScheme="blue"
-                variant="outline"
-                mb={4}
-                onClick={() => router.push(`/tender/${tenderId}/pricing`)}
-              >
-                Pricing Sheet
-              </Button>
+            <Tabs
+              display="flex"
+              flexDirection="column"
+              flex={1}
+              overflow="hidden"
+              size="sm"
+              variant="line"
+            >
+              <TabList px={5} pt={1} flexShrink={0}>
+                <Tab>Job</Tab>
+                <Tab>Documents</Tab>
+                <Tab>Notes {tender.notes.length > 0 ? `(${tender.notes.length})` : ""}</Tab>
+              </TabList>
 
-              <TenderOverview
-                key={tender._id}
-                tender={tender}
-                onUpdated={() => refetch()}
-              />
+              <TabPanels flex={1} overflow="hidden">
+                {/* ── Job tab ──────────────────────────────────────────────── */}
+                <TabPanel h="100%" overflowY="auto" px={5} py={3}>
+                  <TenderOverview
+                    key={tender._id}
+                    tender={tender}
+                    onUpdated={() => refetch()}
+                  />
+                  <Divider my={2} />
+                  <TenderSummaryTab
+                    tender={tender}
+                    onUpdated={() => refetch()}
+                  />
+                </TabPanel>
 
-              <Divider my={4} />
+                {/* ── Documents tab ────────────────────────────────────────── */}
+                <TabPanel h="100%" p={0} display="flex" flexDirection="column" overflow="hidden">
+                  <TenderDocuments
+                    tender={tender}
+                    onUpdated={() => refetch()}
+                  />
+                </TabPanel>
 
-              <Heading size="sm" mb={3} color="gray.700">
-                Documents
-              </Heading>
-              <TenderDocuments
-                tender={tender}
-                onUpdated={() => refetch()}
-              />
-            </>
+                {/* ── Notes tab ────────────────────────────────────────────── */}
+                <TabPanel h="100%" overflowY="auto" p={0}>
+                  <TenderNotesTab
+                    tender={tender}
+                    onUpdated={() => refetch()}
+                  />
+                </TabPanel>
+              </TabPanels>
+            </Tabs>
           )}
         </Box>
 
-        {/* ── Right panel: Chat ───────────────────────────────────────────── */}
+        {/* ── Right panel: Chat (always visible) ──────────────────────────── */}
         <Box flex={1} overflow="hidden">
           <ChatPage
             messageEndpoint="/api/tender-chat/message"
@@ -188,6 +232,11 @@ const TenderDetailPage = () => {
             suggestions={TENDER_SUGGESTIONS}
             disableRouting
             initialConversationId={initialConversationId}
+            onToolResult={(toolName) => {
+              if (toolName === "save_tender_note" || toolName === "delete_tender_note") {
+                refetch();
+              }
+            }}
           />
         </Box>
       </Flex>

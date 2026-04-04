@@ -22,6 +22,12 @@ export class EnrichedFileSummaryClass {
 }
 
 @ObjectType()
+export class EnrichedFilePageIndexEntryClass {
+  @Field() public page!: number;
+  @Field() public summary!: string;
+}
+
+@ObjectType()
 export class EnrichedFileSchema {
   @Field(() => ID) public _id!: Types.ObjectId;
 
@@ -48,6 +54,10 @@ export class EnrichedFileSchema {
   @Field({ nullable: true })
   @prop({ required: false })
   public pageCount?: number;
+
+  @Field(() => [EnrichedFilePageIndexEntryClass], { nullable: true })
+  @prop({ type: () => [Object], required: false })
+  public pageIndex?: EnrichedFilePageIndexEntryClass[];
 
   @Field({ nullable: true })
   @prop({ trim: true })

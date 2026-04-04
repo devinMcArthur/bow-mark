@@ -10,9 +10,11 @@ import { Types } from "mongoose";
 import { Field, ID, ObjectType } from "type-graphql";
 import errorHandler from "@utils/errorHandler";
 import {
+  JobsiteMaterialCostModel,
   JobsiteMaterialCostType,
   JobsiteMaterialDeliveredRateClass,
   JobsiteMaterialRateClass,
+  RateScenarioClass,
 } from "@typescript/jobsiteMaterial";
 
 @ObjectType()
@@ -80,6 +82,25 @@ export class JobsiteMaterialSchema {
     default: [],
   })
   public deliveredRates!: JobsiteMaterialDeliveredRateClass[];
+
+  // --- new rate scenario model (alongside legacy fields for migration) ---
+
+  @Field(() => JobsiteMaterialCostModel, { nullable: true })
+  @prop({
+    required: false,
+    enum: JobsiteMaterialCostModel,
+  })
+  public costModel?: JobsiteMaterialCostModel;
+
+  @Field(() => [RateScenarioClass], { nullable: true })
+  @prop({
+    type: () => [RateScenarioClass],
+    required: false,
+    default: undefined,
+  })
+  public scenarios?: RateScenarioClass[];
+
+  // --- end new fields ---
 
   @Field(() => [InvoiceClass], { nullable: true })
   @prop({ ref: () => InvoiceClass })

@@ -39,6 +39,22 @@ export const READ_DOCUMENT_TOOL: Anthropic.Tool = {
   },
 };
 
+export const LIST_DOCUMENT_PAGES_TOOL: Anthropic.Tool = {
+  name: "list_document_pages",
+  description:
+    "Returns a page-by-page index for a specific document — one line per page with a brief description of its content. Use this BEFORE read_document to identify exactly which pages contain the information you need. Much cheaper than loading the full document.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      file_object_id: {
+        type: "string",
+        description: "The _id of the file object from the document list",
+      },
+    },
+    required: ["file_object_id"],
+  },
+};
+
 const MAX_READABLE_PDF_BYTES = 3 * 1024 * 1024; // ~4 MB base64 after encoding
 const PDF_PAGE_LIMIT = 90; // conservative buffer below Anthropic's 100-page hard limit
 
@@ -58,6 +74,31 @@ export function makeReadDocumentExecutor(
   const loadedRangeKeys = new Set<string>();
 
   return async (_name: string, rawInput: Record<string, unknown>): Promise<ToolExecutionResult> => {
+    // ── list_document_pages ────────────────────────────────────────────────
+    if (_name === "list_document_pages") {
+      const fileId = rawInput.file_object_id as string;
+      const fileObj = allFiles.find((f: any) => f._id.toString() === fileId);
+      if (!fileObj) throw new Error(`File ${fileId} not found`);
+
+      const docLabel =
+        (fileObj.summary as any)?.documentType || fileObj.documentType || "Document";
+      const pageIndex = fileObj.pageIndex as Array<{ page: number; summary: string }> | undefined;
+
+      if (!pageIndex || pageIndex.length === 0) {
+        return {
+          content: `No page index is available for "${docLabel}" yet. Use read_document to load pages directly.`,
+          summary: `No page index for ${docLabel}`,
+        };
+      }
+
+      const lines = pageIndex.map((e) => `p.${e.page}: ${e.summary}`).join("\n");
+      return {
+        content: `Page index for "${docLabel}" (${pageIndex.length} pages total):\n\n${lines}`,
+        summary: `Listed ${pageIndex.length} pages for ${docLabel}`,
+      };
+    }
+
+    // ── read_document (existing logic below) ──────────────────────────────
     const input = rawInput as { file_object_id: string; start_page?: number; end_page?: number };
 
     const fileObj = allFiles.find((f: any) => f._id.toString() === input.file_object_id);

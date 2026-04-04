@@ -312,6 +312,7 @@ export const generateCrewEquipmentCatalog = async (
 export interface IMaterialReportCatalog {
   jobsiteMaterial: JobsiteMaterialObject;
   deliveredRateId?: string;
+  rateScenarioId?: string;
   reports: (MaterialReportClass | null)[];
   totalQuantity: number;
   totalCost: number;
@@ -356,7 +357,8 @@ export const generateCrewMaterialCatalog = async (
           (catalog) =>
             catalog.jobsiteMaterial.jobsiteMaterial._id.toString() ===
               materialReport.jobsiteMaterial?.toString() &&
-            catalog.deliveredRateId === materialReport.deliveredRateId
+            catalog.deliveredRateId === materialReport.deliveredRateId?.toString() &&
+            catalog.rateScenarioId === materialReport.rateScenarioId?.toString()
         );
 
         // Add to catalog
@@ -377,6 +379,7 @@ export const generateCrewMaterialCatalog = async (
               totalCost: 0,
               totalQuantity: 0,
               deliveredRateId: materialReport.deliveredRateId?.toString(),
+              rateScenarioId: materialReport.rateScenarioId?.toString(),
             });
             populatedReportIndices[i].push(reportCatalog.length - 1);
           } else {

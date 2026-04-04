@@ -116,11 +116,18 @@ const TenderOverview = ({ tender, onUpdated }: TenderOverviewProps) => {
         {tender.name}
       </Heading>
 
-      <HStack mb={3} spacing={3} align="center">
-        <Text fontFamily="mono" fontWeight="600" color="gray.600">
-          {tender.jobcode}
-        </Text>
-        <Badge colorScheme={tenderStatusColor(tender.status)}>{tender.status}</Badge>
+      <HStack mb={3} spacing={3} align="center" justify="space-between">
+        <HStack spacing={3}>
+          <Text fontFamily="mono" fontWeight="600" color="gray.600">
+            {tender.jobcode}
+          </Text>
+          <Badge colorScheme={tenderStatusColor(tender.status)}>{tender.status}</Badge>
+        </HStack>
+        {!editing && (
+          <Button size="xs" variant="outline" onClick={() => setEditing(true)}>
+            Edit
+          </Button>
+        )}
       </HStack>
 
       {tender.jobsite && (
@@ -143,9 +150,6 @@ const TenderOverview = ({ tender, onUpdated }: TenderOverviewProps) => {
               {tender.description}
             </Text>
           )}
-          <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
-            Edit
-          </Button>
         </>
       ) : (
         <VStack align="stretch" spacing={3}>

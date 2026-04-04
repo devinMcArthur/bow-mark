@@ -4,7 +4,7 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "build": "rimraf dist && tsc && tscpaths -p tsconfig.json -s ./src -o ./dist",
+    "build": "rimraf dist && tsc -p tsconfig.build.json && tscpaths -p tsconfig.build.json -s ./src -o ./dist",
     "start": "node dist/server.js",
     "start:dev": "ts-node-dev --respawn -r tsconfig-paths/register src/server.ts",
     "start:playground": "ts-node -r tsconfig-paths/register src/playground/index.ts",
@@ -19,7 +19,8 @@
     "lint:eslint": "eslint src/**/*.ts",
     "prettier:fix": "prettier --write \"src/**/**/!(*.d).{ts,json,md}\"",
     "db:migrate": "dbmate -d ../db/migrations up && ../scripts/generate-db-types.sh",
-    "db:backfill": "ts-node -r tsconfig-paths/register src/scripts/backfill-postgres.ts"
+    "db:backfill": "ts-node -r tsconfig-paths/register src/scripts/backfill-postgres.ts",
+    "seed:e2e": "ts-node --require ./src/testing/mockFileStorageSetup.ts --require ./src/testing/mockEmailSetup.ts --require ./src/testing/mockRabbitMQSetup.ts ./src/testing/seed-e2e.ts"
   },
   "author": "Devin McArthur",
   "license": "ISC",

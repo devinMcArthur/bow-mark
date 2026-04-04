@@ -214,11 +214,8 @@ describe("materialShipmentSyncHandler", () => {
         .where("mongo_id", "=", mongoId)
         .executeTakeFirst();
 
-      // The current system returns 0 for invoice cost type rates.
-      // getInvoiceMonthRate requires the jobsiteMaterial.invoices to be populated,
-      // which may not work correctly through nested populate() calls.
-      // TODO: investigate if getInvoiceMonthRate works correctly in production.
-      expect(Number(row!.rate)).toBe(0);
+      // invoice cost = 500, total shipment quantity = 10, so per-unit rate = 50
+      expect(Number(row!.rate)).toBe(50);
       // Invoice rates are never estimated
       expect(row!.estimated).toBe(false);
     });
@@ -257,6 +254,84 @@ describe("materialShipmentSyncHandler", () => {
       expect(row!.estimated).toBe(false);
       // delivered_rate_id should be stored on the fact row
       expect(row!.delivered_rate_id).toBeDefined();
+    });
+  });
+
+  describe("scenario-based cost model", () => {
+    describe("pickup scenario (delivered=false)", () => {
+      it("writes to fact_material_shipment with rate from the scenario", async () => {
+        const mongoId =
+          documents.materialShipments.sync_shipment_scenario_pickup_1._id.toString();
+        await materialShipmentSyncHandler.handle({ mongoId, action: "created" });
+
+        const row = await db
+          .selectFrom("fact_material_shipment")
+          .select(["quantity", "rate", "estimated", "rate_scenario_id"])
+          .where("mongo_id", "=", mongoId)
+          .executeTakeFirst();
+
+        expect(row).toBeDefined();
+        // sync_shipment_scenario_pickup_1 has quantity=6
+        expect(Number(row!.quantity)).toBe(6);
+        // Pickup scenario has rate=$30
+        expect(Number(row!.rate)).toBe(30);
+        expect(row!.estimated).toBe(false);
+        // rate_scenario_id should be stored so PG can group by scenario
+        expect(row!.rate_scenario_id).toBe("629a49205f76f65244785a15");
+      });
+
+      it("also writes to fact_trucking (pickup scenario has truckingRateId)", async () => {
+        const mongoId =
+          documents.materialShipments.sync_shipment_scenario_pickup_1._id.toString();
+        await materialShipmentSyncHandler.handle({ mongoId, action: "created" });
+
+        const row = await db
+          .selectFrom("fact_trucking")
+          .select(["rate", "hours", "total_cost"])
+          .where("mongo_id", "=", mongoId)
+          .executeTakeFirst();
+
+        // jobsite_2 trucking: $120/hr, startTime 08:00 endTime 10:00 → 2h → $240
+        expect(row).toBeDefined();
+        expect(Number(row!.rate)).toBe(120);
+        expect(Number(row!.hours)).toBe(2);
+        expect(Number(row!.total_cost)).toBe(240);
+      });
+    });
+
+    describe("delivered scenario (delivered=true)", () => {
+      it("writes to fact_material_shipment with rate from the scenario", async () => {
+        const mongoId =
+          documents.materialShipments.sync_shipment_scenario_delivered_1._id.toString();
+        await materialShipmentSyncHandler.handle({ mongoId, action: "created" });
+
+        const row = await db
+          .selectFrom("fact_material_shipment")
+          .select(["quantity", "rate", "estimated", "rate_scenario_id"])
+          .where("mongo_id", "=", mongoId)
+          .executeTakeFirst();
+
+        expect(row).toBeDefined();
+        // sync_shipment_scenario_delivered_1 has quantity=4
+        expect(Number(row!.quantity)).toBe(4);
+        // Tandem Delivered scenario has rate=$45
+        expect(Number(row!.rate)).toBe(45);
+        // rate_scenario_id should be stored for the delivered scenario
+        expect(row!.rate_scenario_id).toBe("629a49205f76f65244785a16");
+      });
+
+      it("does NOT write to fact_trucking (delivered scenario has no truckingRateId)", async () => {
+        const mongoId =
+          documents.materialShipments.sync_shipment_scenario_delivered_1._id.toString();
+        await materialShipmentSyncHandler.handle({ mongoId, action: "created" });
+
+        const row = await db
+          .selectFrom("fact_trucking")
+          .where("mongo_id", "=", mongoId)
+          .executeTakeFirst();
+
+        expect(row).toBeUndefined();
+      });
     });
   });
 

@@ -1,12 +1,14 @@
 import { Router } from "express";
 import mongoose from "mongoose";
+import Anthropic from "@anthropic-ai/sdk";
 import { Tender, User, System } from "@models";
 import { isDocument } from "@typegoose/typegoose";
 import { streamConversation } from "../lib/streamConversation";
-import { READ_DOCUMENT_TOOL, makeReadDocumentExecutor } from "../lib/readDocumentExecutor";
-import { MAPS_URL_TOOL, mapsUrlExecutor } from "../lib/mapsUrlTool";
+import { READ_DOCUMENT_TOOL, LIST_DOCUMENT_PAGES_TOOL, makeReadDocumentExecutor } from "../lib/readDocumentExecutor";
+import { SAVE_TENDER_NOTE_TOOL, DELETE_TENDER_NOTE_TOOL, makeTenderNoteExecutor } from "../lib/tenderNoteTools";
 import { buildFileIndex } from "../lib/buildFileIndex";
 import { requireAuth } from "../lib/authMiddleware";
+import { UserRoles } from "../typescript/user";
 
 const router = Router();
 
@@ -34,6 +36,7 @@ router.post("/message", requireAuth, async (req, res) => {
   const [tender, systemDoc, user] = await Promise.all([
     Tender.findById(tenderId)
       .populate({ path: "files", populate: { path: "file" } })
+      .populate({ path: "notes.savedBy", select: "name" })
       .lean(),
     System.getSystem(),
     User.findById(req.userId).populate("employee"),
@@ -41,6 +44,12 @@ router.post("/message", requireAuth, async (req, res) => {
 
   if (!tender) {
     res.status(404).json({ error: "Tender not found" });
+    return;
+  }
+
+  // Server-side role guard: only PMs and Admins can use this endpoint
+  if (!user || (user.role ?? UserRoles.User) < UserRoles.ProjectManager) {
+    res.status(403).json({ error: "Forbidden: PM or Admin role required" });
     return;
   }
 
@@ -63,30 +72,107 @@ router.post("/message", requireAuth, async (req, res) => {
     req.token
   );
 
-  const systemPrompt = `${userContext ? userContext + "\n\n" : ""}You are an AI assistant helping to analyze tender documents for Bow-Mark, a paving and concrete company.
+  // ── Notes context ──────────────────────────────────────────────────────────
+  const tenderNotes = ((tender as any).notes ?? []) as Array<{
+    _id: any;
+    content: string;
+    savedBy?: any;
+    savedAt: Date;
+  }>;
+
+  const notesBlock =
+    tenderNotes.length > 0
+      ? `\n\n## Job Notes\n${tenderNotes
+          .map((n) => {
+            const who = n.savedBy?.name ?? "team";
+            const when = new Date(n.savedAt).toLocaleDateString();
+            return `- [id:${n._id}] ${n.content} (saved by ${who}, ${when})`;
+          })
+          .join("\n")}`
+      : "";
+
+  const jobSummary = (tender as any).jobSummary as
+    | { content: string; generatedAt: Date }
+    | undefined;
+
+  const summaryBlock = jobSummary?.content
+    ? `\n\n## Job Summary\n${jobSummary.content}`
+    : "";
+
+  // ── Query decomposition ────────────────────────────────────────────────────
+  // Split multi-part questions into focused sub-questions before the main call.
+  const lastUserMessage = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
+  let decomposedQuestions: string[] = [];
+  if (lastUserMessage.trim()) {
+    try {
+      const anthropicForDecomp = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const decompResponse = await anthropicForDecomp.messages.create({
+        model: "claude-haiku-4-5",
+        max_tokens: 200,
+        messages: [
+          {
+            role: "user",
+            content: `Does this question contain multiple distinct parts that should each be answered separately from a document?
+If yes, list each part as a short, focused question (one per line, no numbering or bullets).
+If no, reply with exactly: SINGLE
+
+Question: "${lastUserMessage}"`,
+          },
+        ],
+      });
+      const decompText =
+        decompResponse.content[0]?.type === "text"
+          ? decompResponse.content[0].text.trim()
+          : "SINGLE";
+      if (decompText !== "SINGLE") {
+        decomposedQuestions = decompText
+          .split("\n")
+          .map((q) => q.trim())
+          .filter(Boolean);
+      }
+    } catch {
+      // Non-fatal — proceed without decomposition
+    }
+  }
+
+  const decompositionBlock =
+    decomposedQuestions.length > 1
+      ? `\n## This Question\nThis question has multiple parts — address each one:\n${decomposedQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}\n`
+      : "";
+
+  const systemPrompt = `${userContext ? userContext + "\n\n" : ""}You are an AI assistant helping estimators analyze tender documents for Bow Mark, a paving and concrete company. The people using this tool are pricing jobs, planning execution, and writing bid proposals — their questions are typically about scope, quantities, spec constraints, sequencing, equipment needs, and anything that would affect cost or how the job gets built.
 
 You are working on tender: **${tender.name}** (Job Code: ${tender.jobcode})${tender.description ? `\nTender description: ${tender.description}` : ""}
 
 ## Tender Documents
 
-${fileIndex || "No tender documents have been processed yet."}${pendingNotice}${specFileIndex ? `\n\n## Reference Specifications (shared across all tenders)\n\n${specFileIndex}` : ""}
-
+${fileIndex || "No tender documents have been processed yet."}${pendingNotice}${specFileIndex ? `\n\n## Reference Specifications (shared across all tenders)\n\n${specFileIndex}` : ""}${notesBlock}${summaryBlock}
+${decompositionBlock}
 ## Instructions
 
-**Clarify before assuming.** Construction documents often contain multiple instances of similar things — two crossings, two structures, two phases, two contract items with similar names. If a question could apply to more than one thing, ask which one the user means before loading a document. It is better to ask one focused question than to answer the wrong thing confidently.
+**Clarify before assuming.** Construction documents often contain multiple instances of similar things — two crossings, two structures, two phases, two contract items with similar names. If a question could apply to more than one thing, ask which one the user means before loading a document.
 
 **Ask when uncertain.** If you read a document and are not confident it contains the answer, say so explicitly and ask the user if they want you to look in a different document or provide more context. Do not guess or fill gaps with general knowledge.
 
-**Loading documents.** Use the document summaries and filenames to identify the most relevant file, then use read_document to load it. Load one document at a time. If the first document doesn't contain what you need, say so and ask the user whether to try another. Be aware that information about a single item — a crossing, a structure, a detail — can span multiple drawings. If a document references another drawing by number, note it and offer to check that drawing as well.
+**Loading documents — two steps.** For documents that have a page index, call list_document_pages first to see the page-by-page breakdown, then call read_document with only the specific pages you need. This is much cheaper and faster than loading large page ranges blindly. Only skip list_document_pages if the document has no page index (the navigation hint will say so).
 
-**Citations.** When you reference a specific fact, requirement, section, or drawing from a document you have read, include a page link in this format: **[[Document Type, p.X]](URL#page=X)**. Only cite pages you have actually read — do not guess page numbers. If you are not certain of the exact page, note it as approximate: **[[Spec, p.~12]](URL#page=12)**.
+**Citations.** When you reference a specific fact, requirement, section, or drawing from a document you have read, include a page link in this format: **[[Document Type, p.X]](URL#page=X)**. Only cite pages you have actually read. If you are not certain of the exact page, note it as approximate: **[[Spec, p.~12]](URL#page=12)**.
 
 **Drawings.** If a document is a drawing, describe what you see as part of your answer.
 
-**Scope.** Answer only from the tender documents and reference specs provided. If the answer is not in the documents, say so clearly rather than drawing on general knowledge.`;
+**Cross-references.** When you read a page that references another drawing, document, or standard (e.g. "see Drawing C-3", "per OPSS 1150"), note it explicitly. If it directly answers the question, follow it automatically. If tangential, mention it so the user can decide whether to pursue it.
+
+**Completeness.** Before giving your final answer, confirm you have addressed all parts of the question. If you found cross-references you have not checked, note what is outstanding so the user can decide.
+
+**Saving job notes.** If the user mentions something important that is not in the documents — owner preferences, site context, verbal agreements, known risks — draft a 1-2 sentence note and ask "Should I save that to the job notes?" before calling save_tender_note. Never save without explicit confirmation.
+
+**Addendum synthesis.** When answering questions about scope, requirements, or quantities, always reflect the net state after all addendums. If an addendum modifies or adds a work item, your answer should incorporate that change — not just the original documents. If you find a conflict between an addendum and the original spec, the addendum takes precedence; note the conflict explicitly.
+
+**Scope.** Answer only from the tender documents, reference specs, and job notes provided. If the answer is not in the documents, say so clearly rather than drawing on general knowledge.`;
 
   // ── Stream ─────────────────────────────────────────────────────────────────
-  const readDocumentExecutor = makeReadDocumentExecutor([...tenderFiles, ...specFiles]);
+  const noteExecutor = makeTenderNoteExecutor(tenderId, req.userId, conversationId);
+  const docExecutor = makeReadDocumentExecutor([...tenderFiles, ...specFiles]);
 
   await streamConversation({
     res,
@@ -95,13 +181,15 @@ ${fileIndex || "No tender documents have been processed yet."}${pendingNotice}${
     tenderId,
     messages,
     systemPrompt,
-    tools: [READ_DOCUMENT_TOOL, MAPS_URL_TOOL],
+    tools: [LIST_DOCUMENT_PAGES_TOOL, READ_DOCUMENT_TOOL, SAVE_TENDER_NOTE_TOOL, DELETE_TENDER_NOTE_TOOL],
     toolChoice: { type: "auto", disable_parallel_tool_use: true },
     maxTokens: 8192,
-    executeTool: async (name, input) =>
-      name === "get_maps_url"
-        ? mapsUrlExecutor(name, input)
-        : readDocumentExecutor(name, input),
+    executeTool: async (name, input) => {
+      if (name === SAVE_TENDER_NOTE_TOOL.name || name === DELETE_TENDER_NOTE_TOOL.name) {
+        return noteExecutor(name, input);
+      }
+      return docExecutor(name, input);
+    },
     logPrefix: "[tender-chat]",
   });
 });

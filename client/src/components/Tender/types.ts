@@ -42,6 +42,21 @@ export interface TenderJobsite {
   name: string;
 }
 
+export interface TenderNote {
+  _id: string;
+  content: string;
+  savedBy?: { name?: string | null } | null;
+  savedAt: string;
+  conversationId: string;
+}
+
+export interface TenderJobSummary {
+  content: string;
+  generatedAt: string;
+  generatedBy: string;
+  generatedFrom: string[];
+}
+
 export interface TenderDetail {
   _id: string;
   name: string;
@@ -49,7 +64,20 @@ export interface TenderDetail {
   status: string;
   description?: string | null;
   files: TenderFileItem[];
+  notes: TenderNote[];
+  summaryGenerating: boolean;
+  jobSummary?: TenderJobSummary | null;
   jobsite?: TenderJobsite | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
