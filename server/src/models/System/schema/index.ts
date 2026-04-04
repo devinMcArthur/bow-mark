@@ -12,7 +12,7 @@ export class SystemSchema {
 
   @Field(() => [String], { nullable: false })
   @prop({ type: () => [String], required: true, default: [] })
-  public unitDefaults!: string[];
+  public unitExtras!: string[];
 
   @Field(() => [String], { nullable: false })
   @prop({ type: () => [String], required: true, default: [] })

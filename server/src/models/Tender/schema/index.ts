@@ -96,6 +96,10 @@ export class TenderSchema {
   @prop({ ref: () => UserClass, required: true })
   public createdBy!: Ref<UserClass>;
 
+  // pricingSheet ref — not exposed in GraphQL; use tenderPricingSheet(tenderId) query
+  @prop({ ref: "TenderPricingSheetClass", required: false })
+  public pricingSheet?: Types.ObjectId;
+
   @Field({ nullable: false })
   @prop({ required: true, default: Date.now })
   public createdAt!: Date;

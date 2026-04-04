@@ -1,6 +1,7 @@
 import React from "react";
 import { useSystem } from "../../../contexts/System";
 import Select, { ISelect } from "./Select";
+import { CANONICAL_UNITS } from "../../../constants/units";
 
 export interface IUnit extends Omit<ISelect, "options"> {}
 
@@ -19,15 +20,9 @@ const Unit = ({ ...props }: IUnit) => {
 
   const options: ISelect["options"] = React.useMemo(() => {
     if (!system) return [];
-    const options: ISelect["options"] = [];
-
-    for (let i = 0; i < system.unitDefaults.length; i++) {
-      options.push({
-        title: system.unitDefaults[i],
-        value: system.unitDefaults[i],
-      });
-    }
-    return options;
+    const canonical = CANONICAL_UNITS.map((u) => ({ title: u.label, value: u.code }));
+    const extras = (system.unitExtras ?? []).map((u) => ({ title: u, value: u }));
+    return [...canonical, ...extras];
   }, [system]);
 
   /**

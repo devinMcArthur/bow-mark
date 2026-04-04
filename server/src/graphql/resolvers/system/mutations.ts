@@ -1,10 +1,10 @@
 import { DefaultRateData, RatesData } from "@graphql/types/mutation";
 import { System, SystemDocument } from "@models";
 
-const unitDefaults = async (data: string[]): Promise<SystemDocument> => {
+const unitExtras = async (data: string[]): Promise<SystemDocument> => {
   const system = await System.getSystem();
 
-  await system.updateUnitDefaults(data);
+  await system.updateUnitExtras(data);
 
   await system.save();
 
@@ -68,7 +68,7 @@ const internalExpenseOverheadRate = async (
 };
 
 export default {
-  unitDefaults,
+  unitExtras,
   laborTypes,
   fluidTypes,
   companyVehicleTypeDefaults,

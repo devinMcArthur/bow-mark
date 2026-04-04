@@ -29,8 +29,8 @@ export class SystemClass extends SystemSchema {
    * ----- Update -----
    */
 
-  public async updateUnitDefaults(this: SystemDocument, units: string[]) {
-    return update.unitDefaults(this, units);
+  public async updateUnitExtras(this: SystemDocument, units: string[]) {
+    return update.unitExtras(this, units);
   }
 
   public async updateLaborTypes(this: SystemDocument, types: string[]) {

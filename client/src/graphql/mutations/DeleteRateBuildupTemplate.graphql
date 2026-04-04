@@ -1,0 +1,3 @@
+mutation DeleteRateBuildupTemplate($id: ID!) {
+  deleteRateBuildupTemplate(id: $id)
+}

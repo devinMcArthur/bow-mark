@@ -1,0 +1,5 @@
+mutation SaveRateBuildupTemplate($data: SaveRateBuildupTemplateData!) {
+  saveRateBuildupTemplate(data: $data) {
+    ...RateBuildupTemplateFullSnippet
+  }
+}

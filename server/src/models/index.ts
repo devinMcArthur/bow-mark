@@ -19,7 +19,9 @@ export * from "./Production";
 export * from "./ReportNote";
 export * from "./Signup";
 export * from "./System";
+export * from "./RateBuildupTemplate";
 export * from "./Tender";
+export * from "./TenderPricingSheet";
 export * from "./User";
 export * from "./Vehicle";
 export * from "./VehicleIssue";
@@ -343,6 +345,20 @@ export const System = getModelForClass(SystemClass, {
 });
 
 /**
+ * ----- RateBuildupTemplate -----
+ */
+
+import { RateBuildupTemplateClass } from "./RateBuildupTemplate/class";
+
+export type RateBuildupTemplateDocument = DocumentType<RateBuildupTemplateClass>;
+
+export type RateBuildupTemplateModel = ReturnModelType<typeof RateBuildupTemplateClass>;
+
+export const RateBuildupTemplate = getModelForClass(RateBuildupTemplateClass, {
+  schemaOptions: { collection: "ratebuilduptemplates" },
+});
+
+/**
  * ----- Tender -----
  */
 
@@ -441,4 +457,18 @@ export type ConversationModel = ReturnModelType<typeof ConversationClass>;
 
 export const Conversation = getModelForClass(ConversationClass, {
   schemaOptions: { collection: "conversations", timestamps: true },
+});
+
+/**
+ * ----- TenderPricingSheet -----
+ */
+
+import { TenderPricingSheetClass } from "./TenderPricingSheet/class";
+
+export type TenderPricingSheetDocument = DocumentType<TenderPricingSheetClass>;
+
+export type TenderPricingSheetModel = ReturnModelType<typeof TenderPricingSheetClass>;
+
+export const TenderPricingSheet = getModelForClass(TenderPricingSheetClass, {
+  schemaOptions: { collection: "tenderpricingsheets" },
 });

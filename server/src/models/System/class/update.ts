@@ -2,11 +2,11 @@ import { SystemDocument } from "@models";
 import { IDefaultRateData, IRatesData } from "@typescript/models";
 import validateRates from "@validation/validateRates";
 
-const unitDefaults = async (
+const unitExtras = async (
   system: SystemDocument,
   units: string[]
 ): Promise<SystemDocument> => {
-  system.unitDefaults = units;
+  system.unitExtras = units;
 
   return system;
 };
@@ -51,7 +51,7 @@ const internalExpenseOverheadRate = async (
 };
 
 export default {
-  unitDefaults,
+  unitExtras,
   laborTypes,
   fluidTypes,
   companyVehicleTypeDefaults,

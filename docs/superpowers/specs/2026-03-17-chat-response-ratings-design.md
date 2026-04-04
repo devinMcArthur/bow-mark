@@ -200,13 +200,14 @@ const rateMessage = useCallback(
 
     try {
       // Always use /api/conversations directly (not conversationsBase)
-      await fetch(`${serverBase}/api/conversations/${conversationId}/messages/${messageId}/rating`, {
+      const res = await fetch(`${serverBase}/api/conversations/${conversationId}/messages/${messageId}/rating`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: getToken() ?? "" },
         body: JSON.stringify({ rating, reasons, comment }),
       });
+      if (!res.ok) throw new Error(`Rating failed: ${res.status}`);
     } catch {
-      // Revert to previous state (not to undefined)
+      // Revert to previous state on network or server error
       setMessages(msgs => msgs.map(m =>
         m.messageId === messageId
           ? { ...m, rating: prevRating, ratingReasons: prevReasons, ratingComment: prevComment }
@@ -214,7 +215,9 @@ const rateMessage = useCallback(
       ));
     }
   },
-  [conversationId, serverBase, messages]
+  // `messages` intentionally excluded — prev state is captured via the functional setMessages
+  // updater, keeping this callback stable so React.memo on MessageBubble is not broken.
+  [conversationId, serverBase]
 );
 ```
 
