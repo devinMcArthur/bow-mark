@@ -6,6 +6,7 @@ import {
   FormLabel,
   Heading,
   HStack,
+  Input,
   Link as ChakraLink,
   Select,
   Text,
@@ -36,6 +37,7 @@ const TENDER_UPDATE = gql`
 interface TenderUpdateVars {
   id: string;
   data: {
+    name?: string;
     status?: string;
     description?: string;
   };
@@ -64,6 +66,7 @@ const TenderOverview = ({ tender, onUpdated }: TenderOverviewProps) => {
   const toast = useToast();
 
   const [editing, setEditing] = React.useState(false);
+  const [name, setName] = React.useState(tender.name);
   const [status, setStatus] = React.useState(tender.status);
   const [description, setDescription] = React.useState(
     tender.description ?? ""
@@ -71,10 +74,11 @@ const TenderOverview = ({ tender, onUpdated }: TenderOverviewProps) => {
 
   React.useEffect(() => {
     if (!editing) {
+      setName(tender.name);
       setStatus(tender.status);
       setDescription(tender.description ?? "");
     }
-  }, [tender.status, tender.description, editing]);
+  }, [tender.name, tender.status, tender.description, editing]);
 
   const [tenderUpdate, { loading }] = Apollo.useMutation<
     TenderUpdateResult,
@@ -87,6 +91,7 @@ const TenderOverview = ({ tender, onUpdated }: TenderOverviewProps) => {
         variables: {
           id: tender._id,
           data: {
+            name: name.trim() || undefined,
             status,
             description: description.trim() || undefined,
           },
@@ -102,9 +107,10 @@ const TenderOverview = ({ tender, onUpdated }: TenderOverviewProps) => {
         isClosable: true,
       });
     }
-  }, [tender._id, status, description, tenderUpdate, toast, onUpdated]);
+  }, [tender._id, name, status, description, tenderUpdate, toast, onUpdated]);
 
   const handleCancel = () => {
+    setName(tender.name);
     setStatus(tender.status);
     setDescription(tender.description ?? "");
     setEditing(false);
@@ -113,7 +119,7 @@ const TenderOverview = ({ tender, onUpdated }: TenderOverviewProps) => {
   return (
     <Box>
       <Heading size="md" mb={2}>
-        {tender.name}
+        {name}
       </Heading>
 
       <HStack mb={3} spacing={3} align="center" justify="space-between">
@@ -153,6 +159,15 @@ const TenderOverview = ({ tender, onUpdated }: TenderOverviewProps) => {
         </>
       ) : (
         <VStack align="stretch" spacing={3}>
+          <FormControl>
+            <FormLabel fontSize="sm">Name</FormLabel>
+            <Input
+              size="sm"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </FormControl>
+
           <FormControl>
             <FormLabel fontSize="sm">Status</FormLabel>
             <Select

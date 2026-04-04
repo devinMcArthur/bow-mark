@@ -445,7 +445,8 @@ const TenderDetailPage = () => {
           h="40px"
           flexShrink={0}
           align="center"
-          px={4}
+          pl={10}
+          pr={4}
           gap={3}
           borderBottom="1px solid"
           borderColor="gray.200"
