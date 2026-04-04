@@ -104,6 +104,8 @@ import { getApolloClient , ApolloClientContext} from '../withApollo';
 
 
 
+
+
 export async function getServerPageArchivedEmployees
     (options: Omit<Apollo.QueryOptions<Types.ArchivedEmployeesQueryVariables>, 'query'>, ctx: ApolloClientContext ){
         const apolloClient = getApolloClient(ctx);
@@ -2378,6 +2380,41 @@ export const ssrPublicDocuments = {
       getServerPage: getServerPagePublicDocuments,
       withPage: withPagePublicDocuments,
       usePage: usePublicDocuments,
+    }
+export async function getServerPageRateBuildupTemplates
+    (options: Omit<Apollo.QueryOptions<Types.RateBuildupTemplatesQueryVariables>, 'query'>, ctx: ApolloClientContext ){
+        const apolloClient = getApolloClient(ctx);
+        
+        const data = await apolloClient.query<Types.RateBuildupTemplatesQuery>({ ...options, query: Operations.RateBuildupTemplatesDocument });
+        
+        const apolloState = apolloClient.cache.extract();
+
+        return {
+            props: {
+                apolloState: apolloState,
+                data: data?.data,
+                error: data?.error ?? data?.errors ?? null,
+            },
+        };
+      }
+export const useRateBuildupTemplates = (
+  optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.RateBuildupTemplatesQuery, Types.RateBuildupTemplatesQueryVariables>) => {
+  const router = useRouter();
+  const options = optionsFunc ? optionsFunc(router) : {};
+  return useQuery(Operations.RateBuildupTemplatesDocument, options);
+};
+export type PageRateBuildupTemplatesComp = React.FC<{data?: Types.RateBuildupTemplatesQuery, error?: Apollo.ApolloError}>;
+export const withPageRateBuildupTemplates = (optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.RateBuildupTemplatesQuery, Types.RateBuildupTemplatesQueryVariables>) => (WrappedComponent:PageRateBuildupTemplatesComp) : NextPage  => (props) => {
+                const router = useRouter()
+                const options = optionsFunc ? optionsFunc(router) : {};
+                const {data, error } = useQuery(Operations.RateBuildupTemplatesDocument, options)    
+                return <WrappedComponent {...props} data={data} error={error} /> ;
+                   
+            }; 
+export const ssrRateBuildupTemplates = {
+      getServerPage: getServerPageRateBuildupTemplates,
+      withPage: withPageRateBuildupTemplates,
+      usePage: useRateBuildupTemplates,
     }
 export async function getServerPageSearch
     (options: Omit<Apollo.QueryOptions<Types.SearchQueryVariables>, 'query'>, ctx: ApolloClientContext ){

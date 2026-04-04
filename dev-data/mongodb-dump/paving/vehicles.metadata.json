@@ -1,1 +1,1 @@
-{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"name":{"$numberInt":"1"}},"name":"name_1","background":true}],"uuid":"af750807281f484b878a0d98f0d44ab1","collectionName":"vehicles","type":"collection"}
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"name":{"$numberInt":"1"}},"name":"name_1","background":true}],"uuid":"0813b127440b4fd2a66f9f1e1cc20578","collectionName":"vehicles","type":"collection"}

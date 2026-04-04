@@ -37,7 +37,7 @@ const Navbar = () => {
       height={navbarHeight}
       width="100%"
       zIndex="998"
-      backgroundColor={isDev ? "orange.500" : "red.500"}
+      backgroundColor={isDev ? "green.700" : "red.500"}
     >
       <Box
         display="flex"

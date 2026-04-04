@@ -1,1 +1,1 @@
-{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"d68352f7b84f417598360d1fecec8942","collectionName":"objectlabs-system.admin.collections","type":"collection"}
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"441f738222e84268a743e2882ff63c02","collectionName":"objectlabs-system.admin.collections","type":"collection"}

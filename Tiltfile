@@ -329,7 +329,7 @@ k8s_yaml([
 k8s_resource(
     'server-deployment',
     resource_deps=['mongo', 'postgres', 'rabbitmq', 'meilisearch', 'db-migrate', 'restore-mongo', 'restore-postgres'],
-    port_forwards=['8080:8080'],
+    port_forwards=['0.0.0.0:8080:8080'],
     labels=['app'],
 )
 
@@ -352,7 +352,7 @@ k8s_resource(
 k8s_resource(
     'client-deployment',
     resource_deps=['server-deployment'],
-    port_forwards=['3000:3000'],
+    port_forwards=['0.0.0.0:3000:3000'],
     labels=['app'],
 )
 

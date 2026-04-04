@@ -19,6 +19,8 @@ interface ChatDrawerProps {
   extraPayload?: Record<string, unknown>;
   suggestions?: string[];
   minRole?: UserRoles;
+  onToolResult?: (toolName: string, result: string) => void;
+  initialConversationId?: string;
 }
 
 const ChatDrawer = ({
@@ -30,6 +32,8 @@ const ChatDrawer = ({
   extraPayload,
   suggestions,
   minRole = UserRoles.User,
+  onToolResult,
+  initialConversationId,
 }: ChatDrawerProps) => {
   const [isDesktop] = useMediaQuery("(min-width: 768px)");
 
@@ -112,6 +116,8 @@ const ChatDrawer = ({
             disableRouting
             height="100%"
             minRole={minRole}
+            onToolResult={onToolResult}
+            initialConversationId={initialConversationId}
           />
         </Box>
       </Box>

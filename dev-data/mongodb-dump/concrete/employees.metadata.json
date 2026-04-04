@@ -1,1 +1,1 @@
-{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"name":{"$numberInt":"1"}},"name":"name_1","background":true,"unique":true}],"uuid":"986a096e40214b269b8f0c415ec381d6","collectionName":"employees","type":"collection"}
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"name":{"$numberInt":"1"}},"name":"name_1","background":true,"unique":true}],"uuid":"57ab616fb6964c168edb493f83ff1d32","collectionName":"employees","type":"collection"}

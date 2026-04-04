@@ -19,7 +19,7 @@ import {
 import { gql } from "@apollo/client";
 import * as Apollo from "@apollo/client";
 import React from "react";
-import { FiChevronDown, FiChevronRight, FiRefreshCw, FiTrash2 } from "react-icons/fi";
+import { FiChevronDown, FiChevronRight, FiExternalLink, FiRefreshCw, FiTrash2 } from "react-icons/fi";
 import { TenderDetail, TenderFileItem } from "./types";
 import dataUrlToBlob from "../../utils/dataUrlToBlob";
 import { collectDroppedFiles } from "../../utils/collectDroppedFiles";
@@ -166,6 +166,7 @@ interface FileRowProps {
   onRetry: (fileObjectId: string) => void;
   removingId: string | null;
   retryingId: string | null;
+  onFileSelect?: (file: TenderFileItem) => void;
 }
 
 const FileCard = ({
@@ -175,15 +176,22 @@ const FileCard = ({
   onRetry,
   removingId,
   retryingId,
+  onFileSelect,
 }: FileRowProps) => {
   const [expanded, setExpanded] = React.useState(false);
   const hasSummary = !!file.summary;
 
   const serverBase = (process.env.NEXT_PUBLIC_API_URL as string).replace("/graphql", "");
-  const openFile = () => {
+  const openInNewTab = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     const token = typeof window !== "undefined" ? localStorage.getItem(localStorageTokenKey) : null;
     if (!token) return;
     window.open(`${serverBase}/api/enriched-files/${file._id}?token=${token}`, "_blank");
+  };
+
+  const handleCardClick = () => {
+    if (onFileSelect) onFileSelect(file);
+    else openInNewTab();
   };
 
   return (
@@ -195,7 +203,7 @@ const FileCard = ({
       cursor="pointer"
       _hover={{ borderColor: "gray.300", bg: "gray.50" }}
       transition="border-color 0.15s, background 0.15s"
-      onClick={openFile}
+      onClick={handleCardClick}
     >
       <Box px={3} pt={3} pb={2}>
         {/* Filename — full width */}
@@ -236,6 +244,17 @@ const FileCard = ({
           </HStack>
 
           <HStack spacing={0} flexShrink={0} onClick={(e) => e.stopPropagation()}>
+            {onFileSelect && (
+              <Tooltip label="Open in new tab" placement="top">
+                <IconButton
+                  aria-label="Open in new tab"
+                  icon={<FiExternalLink />}
+                  size="xs"
+                  variant="ghost"
+                  onClick={openInNewTab}
+                />
+              </Tooltip>
+            )}
             {hasSummary && (
               <IconButton
                 aria-label="Toggle summary"
@@ -301,11 +320,12 @@ const FileCard = ({
 interface TenderDocumentsProps {
   tender: TenderDetail;
   onUpdated?: () => void;
+  onFileSelect?: (file: TenderFileItem) => void;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
+const TenderDocuments = ({ tender, onUpdated, onFileSelect }: TenderDocumentsProps) => {
   const toast = useToast();
 
   const [uploadProgress, setUploadProgress] = React.useState<{ done: number; total: number } | null>(null);
@@ -560,6 +580,7 @@ const TenderDocuments = ({ tender, onUpdated }: TenderDocumentsProps) => {
                 onRetry={handleRetry}
                 removingId={removingId}
                 retryingId={retryingId}
+                onFileSelect={onFileSelect}
               />
             ))}
           </VStack>

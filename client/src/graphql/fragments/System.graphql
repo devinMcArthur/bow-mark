@@ -1,5 +1,5 @@
 fragment SystemSnippet on SystemClass {
-  unitDefaults
+  unitExtras
   laborTypes
   fluidTypes
   companyVehicleTypeDefaults {

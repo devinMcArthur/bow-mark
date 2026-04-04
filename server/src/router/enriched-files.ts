@@ -2,7 +2,7 @@ import { Router } from "express";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { EnrichedFile } from "@models";
-import { getFileSignedUrl } from "@utils/fileStorage";
+import { getFile, getFileSignedUrl } from "@utils/fileStorage";
 
 const router = Router();
 
@@ -46,6 +46,25 @@ router.get("/:enrichedFileId", async (req, res) => {
     typeof enrichedFile.file === "object" && (enrichedFile.file as any)._id
       ? (enrichedFile.file as any)._id.toString()
       : enrichedFile.file.toString();
+
+  // ?stream=1 — proxy the file content directly (avoids cross-origin redirect
+  // issues when embedding in react-pdf or similar client-side viewers).
+  if (req.query.stream === "1") {
+    const fileObj = await getFile(fileId);
+    if (!fileObj?.Body) {
+      res.status(404).send("File not found");
+      return;
+    }
+    const mimetype = (enrichedFile.file as any).mimetype ?? "application/octet-stream";
+    res.setHeader("Content-Type", mimetype);
+    res.setHeader("Cache-Control", "private, max-age=300");
+    if (typeof (fileObj.Body as any).pipe === "function") {
+      (fileObj.Body as any).pipe(res);
+    } else {
+      res.send(fileObj.Body);
+    }
+    return;
+  }
 
   const signedUrl = (await getFileSignedUrl(fileId)) as string;
 

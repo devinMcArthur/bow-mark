@@ -23,8 +23,8 @@ export default class SystemResolver {
 
   @Authorized(["ADMIN"])
   @Mutation(() => SystemClass)
-  async systemUpdateUnitDefaults(@Arg("data", () => [String]) data: string[]) {
-    return mutations.unitDefaults(data);
+  async systemUpdateUnitExtras(@Arg("data", () => [String]) data: string[]) {
+    return mutations.unitExtras(data);
   }
 
   @Authorized(["ADMIN"])

@@ -1,0 +1,69 @@
+fragment RateBuildupTemplateFullSnippet on RateBuildupTemplateClass {
+  _id
+  label
+  defaultUnit
+  parameterDefs {
+    id
+    label
+    prefix
+    suffix
+    defaultValue
+    hint
+    position { x y w h }
+  }
+  tableDefs {
+    id
+    label
+    rowLabel
+    hint
+    position { x y w h }
+    defaultRows { id name qty ratePerHour }
+  }
+  formulaSteps {
+    id
+    label
+    formula
+    position { x y w h }
+  }
+  breakdownDefs {
+    id
+    label
+    items {
+      stepId
+      label
+    }
+    position { x y w h }
+  }
+  intermediateDefs {
+    label
+    stepId
+    unit
+  }
+  controllerDefs {
+    id
+    label
+    type
+    defaultValue
+    options { id label }
+    defaultSelected
+    hint
+    position { x y w h }
+  }
+  groupDefs {
+    id
+    label
+    parentGroupId
+    memberIds
+    activation { controllerId condition optionId }
+    position { x y w h }
+  }
+  unitVariants {
+    unit
+    activatesGroupId
+    conversionFormula
+  }
+  specialPositions
+  schemaVersion
+  createdAt
+  updatedAt
+}

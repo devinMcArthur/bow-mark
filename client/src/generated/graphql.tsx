@@ -378,6 +378,14 @@ export type DefaultRateData = {
   title: Scalars['String'];
 };
 
+export type DocRefClass = {
+  __typename?: 'DocRefClass';
+  _id: Scalars['ID'];
+  description?: Maybe<Scalars['String']>;
+  enrichedFileId: Scalars['String'];
+  page: Scalars['Int'];
+};
+
 export type EmployeeClass = {
   __typename?: 'EmployeeClass';
   _id: Scalars['ID'];
@@ -470,9 +478,16 @@ export type EnrichedFileClass = {
   documentType?: Maybe<Scalars['String']>;
   file: FileClass;
   pageCount?: Maybe<Scalars['Float']>;
+  pageIndex?: Maybe<Array<EnrichedFilePageIndexEntryClass>>;
   summary?: Maybe<EnrichedFileSummaryClass>;
   summaryError?: Maybe<Scalars['String']>;
   summaryStatus: Scalars['String'];
+};
+
+export type EnrichedFilePageIndexEntryClass = {
+  __typename?: 'EnrichedFilePageIndexEntryClass';
+  page: Scalars['Float'];
+  summary: Scalars['String'];
 };
 
 export type EnrichedFileSummaryChunkClass = {
@@ -1172,6 +1187,7 @@ export type Mutation = {
   dailyReportNoteUpdate: DailyReportClass;
   dailyReportPayrollCompleteUpdate: DailyReportClass;
   dailyReportUpdate: DailyReportClass;
+  deleteRateBuildupTemplate: Scalars['Boolean'];
   employeeArchive: EmployeeClass;
   employeeCreate: EmployeeClass;
   employeeUnarchive: EmployeeClass;
@@ -1227,6 +1243,7 @@ export type Mutation = {
   publicDocumentDelete: Scalars['Boolean'];
   publicDocumentUpdate: PublicDocumentClass;
   reportNoteRemoveFile: ReportNoteClass;
+  saveRateBuildupTemplate: RateBuildupTemplateClass;
   signup: Scalars['String'];
   signupCreate: SignupClass;
   systemAddSpecFile: SystemClass;
@@ -1237,9 +1254,22 @@ export type Mutation = {
   systemUpdateInternalExpenseOverheadRate: SystemClass;
   systemUpdateLaborTypes: SystemClass;
   systemUpdateMaterialShipmentVehicleTypeDefaults: SystemClass;
-  systemUpdateUnitDefaults: SystemClass;
+  systemUpdateUnitExtras: SystemClass;
   tenderAddFile: TenderClass;
   tenderCreate: TenderClass;
+  tenderDeleteNote: TenderClass;
+  tenderPricingRowCreate: TenderPricingSheetClass;
+  tenderPricingRowDelete: TenderPricingSheetClass;
+  tenderPricingRowDocRefAdd: TenderPricingSheetClass;
+  tenderPricingRowDocRefRemove: TenderPricingSheetClass;
+  tenderPricingRowDocRefUpdate: TenderPricingSheetClass;
+  tenderPricingRowDuplicate: TenderPricingSheetClass;
+  tenderPricingRowReorder: TenderPricingSheetClass;
+  tenderPricingRowUpdate: TenderPricingSheetClass;
+  tenderPricingSheetAutoNumber: TenderPricingSheetClass;
+  tenderPricingSheetCreate: TenderPricingSheetClass;
+  tenderPricingSheetUpdateMarkup: TenderPricingSheetClass;
+  tenderRegenerateSummary: TenderClass;
   tenderRemove: Scalars['Boolean'];
   tenderRemoveFile: TenderClass;
   tenderRetrySummary: TenderClass;
@@ -1364,6 +1394,11 @@ export type MutationDailyReportPayrollCompleteUpdateArgs = {
 export type MutationDailyReportUpdateArgs = {
   data: DailyReportUpdateData;
   id: Scalars['String'];
+};
+
+
+export type MutationDeleteRateBuildupTemplateArgs = {
+  id: Scalars['ID'];
 };
 
 
@@ -1677,6 +1712,11 @@ export type MutationReportNoteRemoveFileArgs = {
 };
 
 
+export type MutationSaveRateBuildupTemplateArgs = {
+  data: SaveRateBuildupTemplateData;
+};
+
+
 export type MutationSignupArgs = {
   data: SignupData;
   signupId: Scalars['String'];
@@ -1728,7 +1768,7 @@ export type MutationSystemUpdateMaterialShipmentVehicleTypeDefaultsArgs = {
 };
 
 
-export type MutationSystemUpdateUnitDefaultsArgs = {
+export type MutationSystemUpdateUnitExtrasArgs = {
   data: Array<Scalars['String']>;
 };
 
@@ -1741,6 +1781,86 @@ export type MutationTenderAddFileArgs = {
 
 export type MutationTenderCreateArgs = {
   data: TenderCreateData;
+};
+
+
+export type MutationTenderDeleteNoteArgs = {
+  id: Scalars['ID'];
+  noteId: Scalars['ID'];
+};
+
+
+export type MutationTenderPricingRowCreateArgs = {
+  data: TenderPricingRowCreateData;
+  sheetId: Scalars['ID'];
+};
+
+
+export type MutationTenderPricingRowDeleteArgs = {
+  rowId: Scalars['ID'];
+  sheetId: Scalars['ID'];
+};
+
+
+export type MutationTenderPricingRowDocRefAddArgs = {
+  data: TenderPricingRowDocRefAddData;
+  rowId: Scalars['ID'];
+  sheetId: Scalars['ID'];
+};
+
+
+export type MutationTenderPricingRowDocRefRemoveArgs = {
+  docRefId: Scalars['ID'];
+  rowId: Scalars['ID'];
+  sheetId: Scalars['ID'];
+};
+
+
+export type MutationTenderPricingRowDocRefUpdateArgs = {
+  description?: InputMaybe<Scalars['String']>;
+  docRefId: Scalars['ID'];
+  rowId: Scalars['ID'];
+  sheetId: Scalars['ID'];
+};
+
+
+export type MutationTenderPricingRowDuplicateArgs = {
+  rowId: Scalars['ID'];
+  sheetId: Scalars['ID'];
+};
+
+
+export type MutationTenderPricingRowReorderArgs = {
+  rowIds: Array<Scalars['ID']>;
+  sheetId: Scalars['ID'];
+};
+
+
+export type MutationTenderPricingRowUpdateArgs = {
+  data: TenderPricingRowUpdateData;
+  rowId: Scalars['ID'];
+  sheetId: Scalars['ID'];
+};
+
+
+export type MutationTenderPricingSheetAutoNumberArgs = {
+  sheetId: Scalars['ID'];
+};
+
+
+export type MutationTenderPricingSheetCreateArgs = {
+  tenderId: Scalars['ID'];
+};
+
+
+export type MutationTenderPricingSheetUpdateMarkupArgs = {
+  defaultMarkupPct: Scalars['Float'];
+  id: Scalars['ID'];
+};
+
+
+export type MutationTenderRegenerateSummaryArgs = {
+  id: Scalars['ID'];
 };
 
 
@@ -2081,10 +2201,13 @@ export type Query = {
   operatorDailyReports: Array<OperatorDailyReportClass>;
   productivityBenchmarks: ProductivityBenchmarkReport;
   publicDocuments: Array<PublicDocumentClass>;
+  rateBuildupTemplates: Array<RateBuildupTemplateClass>;
   search: Array<SearchClass>;
   signup: SignupClass;
   system: SystemClass;
   tender?: Maybe<TenderClass>;
+  tenderPricingRowSnapshot?: Maybe<Scalars['String']>;
+  tenderPricingSheet?: Maybe<TenderPricingSheetClass>;
   tenders: Array<TenderClass>;
   user?: Maybe<UserClass>;
   users: Array<UserClass>;
@@ -2335,6 +2458,17 @@ export type QueryTenderArgs = {
 };
 
 
+export type QueryTenderPricingRowSnapshotArgs = {
+  rowId: Scalars['ID'];
+  sheetId: Scalars['ID'];
+};
+
+
+export type QueryTenderPricingSheetArgs = {
+  tenderId: Scalars['ID'];
+};
+
+
 export type QueryUserArgs = {
   query: UserQuery;
 };
@@ -2384,6 +2518,228 @@ export type RangeSummaryReportClass = {
   externalRevenueInvoiceValue: Scalars['Float'];
   internalExpenseInvoiceValue: Scalars['Float'];
   internalRevenueInvoiceValue: Scalars['Float'];
+};
+
+export type RateBuildupBreakdownDef = {
+  __typename?: 'RateBuildupBreakdownDef';
+  id: Scalars['String'];
+  items: Array<RateBuildupBreakdownItem>;
+  label: Scalars['String'];
+  position: RateBuildupPosition;
+};
+
+export type RateBuildupBreakdownDefInput = {
+  id: Scalars['String'];
+  items: Array<RateBuildupBreakdownItemInput>;
+  label: Scalars['String'];
+  position: RateBuildupPositionInput;
+};
+
+export type RateBuildupBreakdownItem = {
+  __typename?: 'RateBuildupBreakdownItem';
+  label: Scalars['String'];
+  stepId: Scalars['String'];
+};
+
+export type RateBuildupBreakdownItemInput = {
+  label: Scalars['String'];
+  stepId: Scalars['String'];
+};
+
+export type RateBuildupControllerDef = {
+  __typename?: 'RateBuildupControllerDef';
+  defaultSelected?: Maybe<Array<Scalars['String']>>;
+  defaultValue?: Maybe<Scalars['Float']>;
+  hint?: Maybe<Scalars['String']>;
+  id: Scalars['String'];
+  label: Scalars['String'];
+  options?: Maybe<Array<RateBuildupControllerOption>>;
+  position: RateBuildupPosition;
+  type: Scalars['String'];
+};
+
+export type RateBuildupControllerDefInput = {
+  defaultSelected?: InputMaybe<Array<Scalars['String']>>;
+  defaultValue?: InputMaybe<Scalars['Float']>;
+  hint?: InputMaybe<Scalars['String']>;
+  id: Scalars['String'];
+  label: Scalars['String'];
+  options?: InputMaybe<Array<RateBuildupControllerOptionInput>>;
+  position: RateBuildupPositionInput;
+  type: Scalars['String'];
+};
+
+export type RateBuildupControllerOption = {
+  __typename?: 'RateBuildupControllerOption';
+  id: Scalars['String'];
+  label: Scalars['String'];
+};
+
+export type RateBuildupControllerOptionInput = {
+  id: Scalars['String'];
+  label: Scalars['String'];
+};
+
+export type RateBuildupFormulaStep = {
+  __typename?: 'RateBuildupFormulaStep';
+  formula: Scalars['String'];
+  id: Scalars['String'];
+  label?: Maybe<Scalars['String']>;
+  position: RateBuildupPosition;
+};
+
+export type RateBuildupFormulaStepInput = {
+  formula: Scalars['String'];
+  id: Scalars['String'];
+  label?: InputMaybe<Scalars['String']>;
+  position: RateBuildupPositionInput;
+};
+
+export type RateBuildupGroupActivation = {
+  __typename?: 'RateBuildupGroupActivation';
+  condition?: Maybe<Scalars['String']>;
+  controllerId: Scalars['String'];
+  optionId?: Maybe<Scalars['String']>;
+};
+
+export type RateBuildupGroupActivationInput = {
+  condition?: InputMaybe<Scalars['String']>;
+  controllerId: Scalars['String'];
+  optionId?: InputMaybe<Scalars['String']>;
+};
+
+export type RateBuildupGroupDef = {
+  __typename?: 'RateBuildupGroupDef';
+  activation?: Maybe<RateBuildupGroupActivation>;
+  id: Scalars['String'];
+  label: Scalars['String'];
+  memberIds: Array<Scalars['String']>;
+  parentGroupId?: Maybe<Scalars['String']>;
+  position: RateBuildupPosition;
+};
+
+export type RateBuildupGroupDefInput = {
+  activation?: InputMaybe<RateBuildupGroupActivationInput>;
+  id: Scalars['String'];
+  label: Scalars['String'];
+  memberIds: Array<Scalars['String']>;
+  parentGroupId?: InputMaybe<Scalars['String']>;
+  position: RateBuildupPositionInput;
+};
+
+export type RateBuildupIntermediateDef = {
+  __typename?: 'RateBuildupIntermediateDef';
+  label: Scalars['String'];
+  stepId: Scalars['String'];
+  unit: Scalars['String'];
+};
+
+export type RateBuildupIntermediateDefInput = {
+  label: Scalars['String'];
+  stepId: Scalars['String'];
+  unit: Scalars['String'];
+};
+
+export type RateBuildupParameterDef = {
+  __typename?: 'RateBuildupParameterDef';
+  defaultValue: Scalars['Float'];
+  hint?: Maybe<Scalars['String']>;
+  id: Scalars['String'];
+  label: Scalars['String'];
+  position: RateBuildupPosition;
+  prefix?: Maybe<Scalars['String']>;
+  suffix?: Maybe<Scalars['String']>;
+};
+
+export type RateBuildupParameterDefInput = {
+  defaultValue: Scalars['Float'];
+  hint?: InputMaybe<Scalars['String']>;
+  id: Scalars['String'];
+  label: Scalars['String'];
+  position: RateBuildupPositionInput;
+  prefix?: InputMaybe<Scalars['String']>;
+  suffix?: InputMaybe<Scalars['String']>;
+};
+
+export type RateBuildupPosition = {
+  __typename?: 'RateBuildupPosition';
+  h?: Maybe<Scalars['Float']>;
+  w?: Maybe<Scalars['Float']>;
+  x: Scalars['Float'];
+  y: Scalars['Float'];
+};
+
+export type RateBuildupPositionInput = {
+  h?: InputMaybe<Scalars['Float']>;
+  w?: InputMaybe<Scalars['Float']>;
+  x: Scalars['Float'];
+  y: Scalars['Float'];
+};
+
+export type RateBuildupRateEntry = {
+  __typename?: 'RateBuildupRateEntry';
+  id: Scalars['String'];
+  name: Scalars['String'];
+  qty: Scalars['Float'];
+  ratePerHour: Scalars['Float'];
+};
+
+export type RateBuildupRateEntryInput = {
+  id: Scalars['String'];
+  name: Scalars['String'];
+  qty: Scalars['Float'];
+  ratePerHour: Scalars['Float'];
+};
+
+export type RateBuildupTableDef = {
+  __typename?: 'RateBuildupTableDef';
+  defaultRows: Array<RateBuildupRateEntry>;
+  hint?: Maybe<Scalars['String']>;
+  id: Scalars['String'];
+  label: Scalars['String'];
+  position: RateBuildupPosition;
+  rowLabel: Scalars['String'];
+};
+
+export type RateBuildupTableDefInput = {
+  defaultRows: Array<RateBuildupRateEntryInput>;
+  hint?: InputMaybe<Scalars['String']>;
+  id: Scalars['String'];
+  label: Scalars['String'];
+  position: RateBuildupPositionInput;
+  rowLabel: Scalars['String'];
+};
+
+export type RateBuildupTemplateClass = {
+  __typename?: 'RateBuildupTemplateClass';
+  _id: Scalars['ID'];
+  breakdownDefs: Array<RateBuildupBreakdownDef>;
+  controllerDefs: Array<RateBuildupControllerDef>;
+  createdAt: Scalars['DateTime'];
+  defaultUnit?: Maybe<Scalars['String']>;
+  formulaSteps: Array<RateBuildupFormulaStep>;
+  groupDefs: Array<RateBuildupGroupDef>;
+  intermediateDefs: Array<RateBuildupIntermediateDef>;
+  label: Scalars['String'];
+  parameterDefs: Array<RateBuildupParameterDef>;
+  schemaVersion: Scalars['Float'];
+  specialPositions?: Maybe<Scalars['String']>;
+  tableDefs: Array<RateBuildupTableDef>;
+  unitVariants?: Maybe<Array<RateBuildupUnitVariant>>;
+  updatedAt: Scalars['DateTime'];
+};
+
+export type RateBuildupUnitVariant = {
+  __typename?: 'RateBuildupUnitVariant';
+  activatesGroupId: Scalars['String'];
+  conversionFormula?: Maybe<Scalars['String']>;
+  unit: Scalars['String'];
+};
+
+export type RateBuildupUnitVariantInput = {
+  activatesGroupId: Scalars['String'];
+  conversionFormula?: InputMaybe<Scalars['String']>;
+  unit: Scalars['String'];
 };
 
 export type RateClass = {
@@ -2464,6 +2820,21 @@ export type ReportNoteClass = {
   schemaVersion: Scalars['Float'];
 };
 
+export type SaveRateBuildupTemplateData = {
+  breakdownDefs: Array<RateBuildupBreakdownDefInput>;
+  controllerDefs: Array<RateBuildupControllerDefInput>;
+  defaultUnit?: InputMaybe<Scalars['String']>;
+  formulaSteps: Array<RateBuildupFormulaStepInput>;
+  groupDefs: Array<RateBuildupGroupDefInput>;
+  id?: InputMaybe<Scalars['ID']>;
+  intermediateDefs: Array<RateBuildupIntermediateDefInput>;
+  label: Scalars['String'];
+  parameterDefs: Array<RateBuildupParameterDefInput>;
+  specialPositions?: InputMaybe<Scalars['String']>;
+  tableDefs: Array<RateBuildupTableDefInput>;
+  unitVariants?: InputMaybe<Array<RateBuildupUnitVariantInput>>;
+};
+
 export type SearchClass = {
   __typename?: 'SearchClass';
   company?: Maybe<CompanyClass>;
@@ -2529,7 +2900,7 @@ export type SystemClass = {
   schemaVersion: Scalars['Float'];
   specFiles: Array<EnrichedFileClass>;
   timezone: Scalars['String'];
-  unitDefaults: Array<Scalars['String']>;
+  unitExtras: Array<Scalars['String']>;
 };
 
 export type TenderAddFileData = {
@@ -2546,8 +2917,11 @@ export type TenderClass = {
   files: Array<EnrichedFileClass>;
   jobcode: Scalars['String'];
   jobsite?: Maybe<JobsiteClass>;
+  jobSummary?: Maybe<TenderJobSummaryClass>;
   name: Scalars['String'];
+  notes: Array<TenderNoteClass>;
   status: Scalars['String'];
+  summaryGenerating: Scalars['Boolean'];
   updatedAt: Scalars['DateTime'];
 };
 
@@ -2557,12 +2931,104 @@ export type TenderCreateData = {
   name: Scalars['String'];
 };
 
+export type TenderJobSummaryClass = {
+  __typename?: 'TenderJobSummaryClass';
+  content: Scalars['String'];
+  generatedAt: Scalars['DateTime'];
+  generatedBy: Scalars['String'];
+  generatedFrom: Array<Scalars['String']>;
+};
+
+export type TenderNoteClass = {
+  __typename?: 'TenderNoteClass';
+  _id: Scalars['ID'];
+  content: Scalars['String'];
+  conversationId: Scalars['String'];
+  savedAt: Scalars['DateTime'];
+  savedBy?: Maybe<UserClass>;
+};
+
+export type TenderPricingRowClass = {
+  __typename?: 'TenderPricingRowClass';
+  _id: Scalars['ID'];
+  calculatorInputsJson?: Maybe<Scalars['String']>;
+  calculatorType?: Maybe<TenderWorkType>;
+  description: Scalars['String'];
+  docRefs: Array<DocRefClass>;
+  extraUnitPrice?: Maybe<Scalars['Float']>;
+  extraUnitPriceMemo?: Maybe<Scalars['String']>;
+  indentLevel: Scalars['Int'];
+  itemNumber: Scalars['String'];
+  markupOverride?: Maybe<Scalars['Float']>;
+  notes?: Maybe<Scalars['String']>;
+  quantity?: Maybe<Scalars['Float']>;
+  rateBuildupSnapshot?: Maybe<Scalars['String']>;
+  sortOrder: Scalars['Float'];
+  type: TenderPricingRowType;
+  unit?: Maybe<Scalars['String']>;
+  unitPrice?: Maybe<Scalars['Float']>;
+};
+
+export type TenderPricingRowCreateData = {
+  description: Scalars['String'];
+  indentLevel: Scalars['Int'];
+  itemNumber: Scalars['String'];
+  sortOrder: Scalars['Int'];
+  type: TenderPricingRowType;
+};
+
+export type TenderPricingRowDocRefAddData = {
+  description?: InputMaybe<Scalars['String']>;
+  enrichedFileId: Scalars['String'];
+  page: Scalars['Int'];
+};
+
+export enum TenderPricingRowType {
+  Group = 'Group',
+  Item = 'Item',
+  Schedule = 'Schedule'
+}
+
+export type TenderPricingRowUpdateData = {
+  calculatorInputsJson?: InputMaybe<Scalars['String']>;
+  calculatorType?: InputMaybe<TenderWorkType>;
+  description?: InputMaybe<Scalars['String']>;
+  extraUnitPrice?: InputMaybe<Scalars['Float']>;
+  extraUnitPriceMemo?: InputMaybe<Scalars['String']>;
+  indentLevel?: InputMaybe<Scalars['Int']>;
+  itemNumber?: InputMaybe<Scalars['String']>;
+  markupOverride?: InputMaybe<Scalars['Float']>;
+  notes?: InputMaybe<Scalars['String']>;
+  quantity?: InputMaybe<Scalars['Float']>;
+  rateBuildupSnapshot?: InputMaybe<Scalars['String']>;
+  unit?: InputMaybe<Scalars['String']>;
+  unitPrice?: InputMaybe<Scalars['Float']>;
+};
+
+export type TenderPricingSheetClass = {
+  __typename?: 'TenderPricingSheetClass';
+  _id: Scalars['ID'];
+  createdAt: Scalars['DateTime'];
+  defaultMarkupPct: Scalars['Float'];
+  rows: Array<TenderPricingRowClass>;
+  updatedAt: Scalars['DateTime'];
+};
+
 export type TenderUpdateData = {
   description?: InputMaybe<Scalars['String']>;
   jobsiteId?: InputMaybe<Scalars['String']>;
   name?: InputMaybe<Scalars['String']>;
   status?: InputMaybe<Scalars['String']>;
 };
+
+export enum TenderWorkType {
+  CommonExcavation = 'CommonExcavation',
+  Concrete = 'Concrete',
+  Gravel = 'Gravel',
+  Paving = 'Paving',
+  SubgradePrep = 'SubgradePrep',
+  Toplift = 'Toplift'
+}
 
 export type TruckingRateClass = {
   __typename?: 'TruckingRateClass';
@@ -2969,6 +3435,8 @@ export type PublicDocumentSnippetFragment = { __typename?: 'PublicDocumentClass'
 
 export type RateSnippetFragment = { __typename?: 'RateClass', date: any, rate: number };
 
+export type RateBuildupTemplateFullSnippetFragment = { __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, specialPositions?: string | null, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null }, defaultRows: Array<{ __typename?: 'RateBuildupRateEntry', id: string, name: string, qty: number, ratePerHour: number }> }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }>, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }>, controllerDefs: Array<{ __typename?: 'RateBuildupControllerDef', id: string, label: string, type: string, defaultValue?: number | null, defaultSelected?: Array<string> | null, hint?: string | null, options?: Array<{ __typename?: 'RateBuildupControllerOption', id: string, label: string }> | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, groupDefs: Array<{ __typename?: 'RateBuildupGroupDef', id: string, label: string, parentGroupId?: string | null, memberIds: Array<string>, activation?: { __typename?: 'RateBuildupGroupActivation', controllerId: string, condition?: string | null, optionId?: string | null } | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, unitVariants?: Array<{ __typename?: 'RateBuildupUnitVariant', unit: string, activatesGroupId: string, conversionFormula?: string | null }> | null };
+
 export type ReportIssueSnippetFragment = { __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, costModel?: JobsiteMaterialCostModel | null, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, scenarios?: Array<{ __typename?: 'RateScenarioClass', _id: string, label: string, delivered: boolean, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }> | null } | null };
 
 export type ReportNoteCardSnippetFragment = { __typename?: 'ReportNoteClass', _id: string, note: string, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null, downloadUrl: string }> };
@@ -2979,7 +3447,7 @@ export type SearchSnippetFragment = { __typename?: 'SearchClass', score: number,
 
 export type SignupFullSnippetFragment = { __typename?: 'SignupClass', _id: string, employee: { __typename?: 'EmployeeClass', _id: string, name: string } };
 
-export type SystemSnippetFragment = { __typename?: 'SystemClass', unitDefaults: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> };
+export type SystemSnippetFragment = { __typename?: 'SystemClass', unitExtras: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> };
 
 export type TruckingRateSnippetFragment = { __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes };
 
@@ -3144,6 +3612,13 @@ export type DailyReportUpdateMutationVariables = Exact<{
 
 
 export type DailyReportUpdateMutation = { __typename?: 'Mutation', dailyReportUpdate: { __typename?: 'DailyReportClass', _id: string, date: any, jobCostApproved: boolean, payrollComplete: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, materials: Array<{ __typename?: 'JobsiteMaterialClass', _id: string, unit: string, costType: JobsiteMaterialCostType, costModel?: JobsiteMaterialCostModel | null, delivered?: boolean | null, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, scenarios?: Array<{ __typename?: 'RateScenarioClass', _id: string, label: string, delivered: boolean }> | null }>, truckingRates: Array<{ __typename?: 'TruckingTypeRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'TruckingRateClass', rate: number, date: any, type: TruckingRateTypes }> }>, fileObjects: Array<{ __typename?: 'JobsiteFileObjectClass', _id?: string | null, minRole: UserRoles, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null, downloadUrl: string } }>, enrichedFiles: Array<{ __typename?: 'JobsiteEnrichedFileClass', _id?: string | null, minRole: UserRoles, enrichedFile: { __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string> } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } } }> }, crew: { __typename?: 'CrewClass', _id: string, name: string, type: CrewTypes, employees: Array<{ __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }>, vehicles: Array<{ __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }> }, employeeWork: Array<{ __typename?: 'EmployeeWorkClass', _id: string, jobTitle: string, startTime: any, endTime: any, employee: { __typename?: 'EmployeeClass', _id: string, name: string } }>, vehicleWork: Array<{ __typename?: 'VehicleWorkClass', _id: string, hours: number, jobTitle?: string | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string } | null }>, productions: Array<{ __typename?: 'ProductionClass', _id: string, jobTitle: string, quantity: number, unit: string, startTime: any, endTime: any, description?: string | null }>, materialShipments: Array<{ __typename?: 'MaterialShipmentClass', _id: string, shipmentType?: string | null, supplier?: string | null, quantity: number, unit?: string | null, startTime?: any | null, endTime?: any | null, noJobsiteMaterial?: boolean | null, schemaVersion: number, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, costModel?: JobsiteMaterialCostModel | null, delivered?: boolean | null, canRemove: boolean, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, scenarios?: Array<{ __typename?: 'RateScenarioClass', _id: string, label: string, delivered: boolean, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }> | null } | null, vehicleObject?: { __typename?: 'VehicleObjectClass', source?: string | null, vehicleType?: string | null, vehicleCode?: string | null, truckingRateId?: string | null, deliveredRateId?: string | null } | null }>, reportNote?: { __typename?: 'ReportNoteClass', _id: string, note: string, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null, downloadUrl: string }> } | null, temporaryEmployees: Array<{ __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }>, temporaryVehicles: Array<{ __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }> } };
+
+export type DeleteRateBuildupTemplateMutationVariables = Exact<{
+  id: Scalars['ID'];
+}>;
+
+
+export type DeleteRateBuildupTemplateMutation = { __typename?: 'Mutation', deleteRateBuildupTemplate: boolean };
 
 export type EmployeeArchiveMutationVariables = Exact<{
   id: Scalars['ID'];
@@ -3529,6 +4004,13 @@ export type ReportNoteRemoveFileMutationVariables = Exact<{
 
 export type ReportNoteRemoveFileMutation = { __typename?: 'Mutation', reportNoteRemoveFile: { __typename?: 'ReportNoteClass', _id: string, note: string, dailyReport?: { __typename?: 'DailyReportClass', _id: string, date: any, jobCostApproved: boolean, payrollComplete: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null }, crew: { __typename?: 'CrewClass', _id: string, name: string } } | null, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null, downloadUrl: string }> } };
 
+export type SaveRateBuildupTemplateMutationVariables = Exact<{
+  data: SaveRateBuildupTemplateData;
+}>;
+
+
+export type SaveRateBuildupTemplateMutation = { __typename?: 'Mutation', saveRateBuildupTemplate: { __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, specialPositions?: string | null, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null }, defaultRows: Array<{ __typename?: 'RateBuildupRateEntry', id: string, name: string, qty: number, ratePerHour: number }> }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }>, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }>, controllerDefs: Array<{ __typename?: 'RateBuildupControllerDef', id: string, label: string, type: string, defaultValue?: number | null, defaultSelected?: Array<string> | null, hint?: string | null, options?: Array<{ __typename?: 'RateBuildupControllerOption', id: string, label: string }> | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, groupDefs: Array<{ __typename?: 'RateBuildupGroupDef', id: string, label: string, parentGroupId?: string | null, memberIds: Array<string>, activation?: { __typename?: 'RateBuildupGroupActivation', controllerId: string, condition?: string | null, optionId?: string | null } | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, unitVariants?: Array<{ __typename?: 'RateBuildupUnitVariant', unit: string, activatesGroupId: string, conversionFormula?: string | null }> | null } };
+
 export type SignupMutationVariables = Exact<{
   signupId: Scalars['String'];
   data: SignupData;
@@ -3549,63 +4031,63 @@ export type SystemAddSpecFileMutationVariables = Exact<{
 }>;
 
 
-export type SystemAddSpecFileMutation = { __typename?: 'Mutation', systemAddSpecFile: { __typename?: 'SystemClass', unitDefaults: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+export type SystemAddSpecFileMutation = { __typename?: 'Mutation', systemAddSpecFile: { __typename?: 'SystemClass', unitExtras: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
 
 export type SystemRemoveSpecFileMutationVariables = Exact<{
   fileObjectId: Scalars['ID'];
 }>;
 
 
-export type SystemRemoveSpecFileMutation = { __typename?: 'Mutation', systemRemoveSpecFile: { __typename?: 'SystemClass', unitDefaults: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+export type SystemRemoveSpecFileMutation = { __typename?: 'Mutation', systemRemoveSpecFile: { __typename?: 'SystemClass', unitExtras: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
 
 export type SystemRetrySpecFileMutationVariables = Exact<{
   fileObjectId: Scalars['ID'];
 }>;
 
 
-export type SystemRetrySpecFileMutation = { __typename?: 'Mutation', systemRetrySpecFile: { __typename?: 'SystemClass', unitDefaults: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+export type SystemRetrySpecFileMutation = { __typename?: 'Mutation', systemRetrySpecFile: { __typename?: 'SystemClass', unitExtras: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
 
 export type SystemUpdateCompanyVehicleTypeDefaultsMutationVariables = Exact<{
   data: Array<DefaultRateData> | DefaultRateData;
 }>;
 
 
-export type SystemUpdateCompanyVehicleTypeDefaultsMutation = { __typename?: 'Mutation', systemUpdateCompanyVehicleTypeDefaults: { __typename?: 'SystemClass', unitDefaults: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+export type SystemUpdateCompanyVehicleTypeDefaultsMutation = { __typename?: 'Mutation', systemUpdateCompanyVehicleTypeDefaults: { __typename?: 'SystemClass', unitExtras: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
 
 export type SystemUpdateFluidTypesMutationVariables = Exact<{
   data: Array<Scalars['String']> | Scalars['String'];
 }>;
 
 
-export type SystemUpdateFluidTypesMutation = { __typename?: 'Mutation', systemUpdateFluidTypes: { __typename?: 'SystemClass', unitDefaults: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+export type SystemUpdateFluidTypesMutation = { __typename?: 'Mutation', systemUpdateFluidTypes: { __typename?: 'SystemClass', unitExtras: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
 
 export type SystemUpdateInternalExpenseOverheadRateMutationVariables = Exact<{
   data: Array<RatesData> | RatesData;
 }>;
 
 
-export type SystemUpdateInternalExpenseOverheadRateMutation = { __typename?: 'Mutation', systemUpdateInternalExpenseOverheadRate: { __typename?: 'SystemClass', unitDefaults: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+export type SystemUpdateInternalExpenseOverheadRateMutation = { __typename?: 'Mutation', systemUpdateInternalExpenseOverheadRate: { __typename?: 'SystemClass', unitExtras: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
 
 export type SystemUpdateLaborTypesMutationVariables = Exact<{
   data: Array<Scalars['String']> | Scalars['String'];
 }>;
 
 
-export type SystemUpdateLaborTypesMutation = { __typename?: 'Mutation', systemUpdateLaborTypes: { __typename?: 'SystemClass', unitDefaults: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+export type SystemUpdateLaborTypesMutation = { __typename?: 'Mutation', systemUpdateLaborTypes: { __typename?: 'SystemClass', unitExtras: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
 
 export type SystemUpdateMaterialShipmentVehicleTypeDefaultsMutationVariables = Exact<{
   data: Array<DefaultRateData> | DefaultRateData;
 }>;
 
 
-export type SystemUpdateMaterialShipmentVehicleTypeDefaultsMutation = { __typename?: 'Mutation', systemUpdateMaterialShipmentVehicleTypeDefaults: { __typename?: 'SystemClass', unitDefaults: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+export type SystemUpdateMaterialShipmentVehicleTypeDefaultsMutation = { __typename?: 'Mutation', systemUpdateMaterialShipmentVehicleTypeDefaults: { __typename?: 'SystemClass', unitExtras: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
 
-export type SystemUpdateUnitDefaultsMutationVariables = Exact<{
+export type SystemUpdateUnitExtrasMutationVariables = Exact<{
   data: Array<Scalars['String']> | Scalars['String'];
 }>;
 
 
-export type SystemUpdateUnitDefaultsMutation = { __typename?: 'Mutation', systemUpdateUnitDefaults: { __typename?: 'SystemClass', unitDefaults: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+export type SystemUpdateUnitExtrasMutation = { __typename?: 'Mutation', systemUpdateUnitExtras: { __typename?: 'SystemClass', unitExtras: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
 
 export type UserDeleteMutationVariables = Exact<{
   userId: Scalars['String'];
@@ -4204,6 +4686,11 @@ export type PublicDocumentsQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type PublicDocumentsQuery = { __typename?: 'Query', publicDocuments: Array<{ __typename?: 'PublicDocumentClass', _id: string, slug: string, title: string, description?: string | null, viewCount: number, fileUrl?: string | null, createdAt: any }> };
 
+export type RateBuildupTemplatesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type RateBuildupTemplatesQuery = { __typename?: 'Query', rateBuildupTemplates: Array<{ __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, specialPositions?: string | null, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null }, defaultRows: Array<{ __typename?: 'RateBuildupRateEntry', id: string, name: string, qty: number, ratePerHour: number }> }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }>, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }>, controllerDefs: Array<{ __typename?: 'RateBuildupControllerDef', id: string, label: string, type: string, defaultValue?: number | null, defaultSelected?: Array<string> | null, hint?: string | null, options?: Array<{ __typename?: 'RateBuildupControllerOption', id: string, label: string }> | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, groupDefs: Array<{ __typename?: 'RateBuildupGroupDef', id: string, label: string, parentGroupId?: string | null, memberIds: Array<string>, activation?: { __typename?: 'RateBuildupGroupActivation', controllerId: string, condition?: string | null, optionId?: string | null } | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, unitVariants?: Array<{ __typename?: 'RateBuildupUnitVariant', unit: string, activatesGroupId: string, conversionFormula?: string | null }> | null }> };
+
 export type SearchQueryVariables = Exact<{
   searchString: Scalars['String'];
 }>;
@@ -4221,7 +4708,7 @@ export type SignupSsrQuery = { __typename?: 'Query', signup: { __typename?: 'Sig
 export type SystemQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type SystemQuery = { __typename?: 'Query', system: { __typename?: 'SystemClass', unitDefaults: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
+export type SystemQuery = { __typename?: 'Query', system: { __typename?: 'SystemClass', unitExtras: Array<string>, laborTypes: Array<string>, fluidTypes: Array<string>, companyVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, materialShipmentVehicleTypeDefaults: Array<{ __typename?: 'DefaultRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'RateClass', rate: number, date: any }> }>, internalExpenseOverheadRate: Array<{ __typename?: 'RateClass', date: any, rate: number }>, specFiles: Array<{ __typename?: 'EnrichedFileClass', _id: string, documentType?: string | null, summaryStatus: string, summaryError?: string | null, pageCount?: number | null, summary?: { __typename?: 'EnrichedFileSummaryClass', overview: string, documentType: string, keyTopics: Array<string>, chunks?: Array<{ __typename?: 'EnrichedFileSummaryChunkClass', startPage: number, endPage: number, overview: string, keyTopics: Array<string> }> | null } | null, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } }> } };
 
 export type UserCrewQueryVariables = Exact<{
   query: UserQuery;
@@ -5513,6 +6000,119 @@ export const PublicDocumentSnippetFragmentDoc = gql`
   createdAt
 }
     `;
+export const RateBuildupTemplateFullSnippetFragmentDoc = gql`
+    fragment RateBuildupTemplateFullSnippet on RateBuildupTemplateClass {
+  _id
+  label
+  defaultUnit
+  parameterDefs {
+    id
+    label
+    prefix
+    suffix
+    defaultValue
+    hint
+    position {
+      x
+      y
+      w
+      h
+    }
+  }
+  tableDefs {
+    id
+    label
+    rowLabel
+    hint
+    position {
+      x
+      y
+      w
+      h
+    }
+    defaultRows {
+      id
+      name
+      qty
+      ratePerHour
+    }
+  }
+  formulaSteps {
+    id
+    label
+    formula
+    position {
+      x
+      y
+      w
+      h
+    }
+  }
+  breakdownDefs {
+    id
+    label
+    items {
+      stepId
+      label
+    }
+    position {
+      x
+      y
+      w
+      h
+    }
+  }
+  intermediateDefs {
+    label
+    stepId
+    unit
+  }
+  controllerDefs {
+    id
+    label
+    type
+    defaultValue
+    options {
+      id
+      label
+    }
+    defaultSelected
+    hint
+    position {
+      x
+      y
+      w
+      h
+    }
+  }
+  groupDefs {
+    id
+    label
+    parentGroupId
+    memberIds
+    activation {
+      controllerId
+      condition
+      optionId
+    }
+    position {
+      x
+      y
+      w
+      h
+    }
+  }
+  unitVariants {
+    unit
+    activatesGroupId
+    conversionFormula
+  }
+  specialPositions
+  schemaVersion
+  createdAt
+  updatedAt
+}
+    `;
 export const SearchSnippetFragmentDoc = gql`
     fragment SearchSnippet on SearchClass {
   score
@@ -5565,7 +6165,7 @@ export const DefaultRateSnippetFragmentDoc = gql`
     `;
 export const SystemSnippetFragmentDoc = gql`
     fragment SystemSnippet on SystemClass {
-  unitDefaults
+  unitExtras
   laborTypes
   fluidTypes
   companyVehicleTypeDefaults {
@@ -6280,6 +6880,37 @@ export function useDailyReportUpdateMutation(baseOptions?: Apollo.MutationHookOp
 export type DailyReportUpdateMutationHookResult = ReturnType<typeof useDailyReportUpdateMutation>;
 export type DailyReportUpdateMutationResult = Apollo.MutationResult<DailyReportUpdateMutation>;
 export type DailyReportUpdateMutationOptions = Apollo.BaseMutationOptions<DailyReportUpdateMutation, DailyReportUpdateMutationVariables>;
+export const DeleteRateBuildupTemplateDocument = gql`
+    mutation DeleteRateBuildupTemplate($id: ID!) {
+  deleteRateBuildupTemplate(id: $id)
+}
+    `;
+export type DeleteRateBuildupTemplateMutationFn = Apollo.MutationFunction<DeleteRateBuildupTemplateMutation, DeleteRateBuildupTemplateMutationVariables>;
+
+/**
+ * __useDeleteRateBuildupTemplateMutation__
+ *
+ * To run a mutation, you first call `useDeleteRateBuildupTemplateMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteRateBuildupTemplateMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteRateBuildupTemplateMutation, { data, loading, error }] = useDeleteRateBuildupTemplateMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDeleteRateBuildupTemplateMutation(baseOptions?: Apollo.MutationHookOptions<DeleteRateBuildupTemplateMutation, DeleteRateBuildupTemplateMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeleteRateBuildupTemplateMutation, DeleteRateBuildupTemplateMutationVariables>(DeleteRateBuildupTemplateDocument, options);
+      }
+export type DeleteRateBuildupTemplateMutationHookResult = ReturnType<typeof useDeleteRateBuildupTemplateMutation>;
+export type DeleteRateBuildupTemplateMutationResult = Apollo.MutationResult<DeleteRateBuildupTemplateMutation>;
+export type DeleteRateBuildupTemplateMutationOptions = Apollo.BaseMutationOptions<DeleteRateBuildupTemplateMutation, DeleteRateBuildupTemplateMutationVariables>;
 export const EmployeeArchiveDocument = gql`
     mutation EmployeeArchive($id: ID!) {
   employeeArchive(id: $id) {
@@ -7986,6 +8617,39 @@ export function useReportNoteRemoveFileMutation(baseOptions?: Apollo.MutationHoo
 export type ReportNoteRemoveFileMutationHookResult = ReturnType<typeof useReportNoteRemoveFileMutation>;
 export type ReportNoteRemoveFileMutationResult = Apollo.MutationResult<ReportNoteRemoveFileMutation>;
 export type ReportNoteRemoveFileMutationOptions = Apollo.BaseMutationOptions<ReportNoteRemoveFileMutation, ReportNoteRemoveFileMutationVariables>;
+export const SaveRateBuildupTemplateDocument = gql`
+    mutation SaveRateBuildupTemplate($data: SaveRateBuildupTemplateData!) {
+  saveRateBuildupTemplate(data: $data) {
+    ...RateBuildupTemplateFullSnippet
+  }
+}
+    ${RateBuildupTemplateFullSnippetFragmentDoc}`;
+export type SaveRateBuildupTemplateMutationFn = Apollo.MutationFunction<SaveRateBuildupTemplateMutation, SaveRateBuildupTemplateMutationVariables>;
+
+/**
+ * __useSaveRateBuildupTemplateMutation__
+ *
+ * To run a mutation, you first call `useSaveRateBuildupTemplateMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSaveRateBuildupTemplateMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [saveRateBuildupTemplateMutation, { data, loading, error }] = useSaveRateBuildupTemplateMutation({
+ *   variables: {
+ *      data: // value for 'data'
+ *   },
+ * });
+ */
+export function useSaveRateBuildupTemplateMutation(baseOptions?: Apollo.MutationHookOptions<SaveRateBuildupTemplateMutation, SaveRateBuildupTemplateMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SaveRateBuildupTemplateMutation, SaveRateBuildupTemplateMutationVariables>(SaveRateBuildupTemplateDocument, options);
+      }
+export type SaveRateBuildupTemplateMutationHookResult = ReturnType<typeof useSaveRateBuildupTemplateMutation>;
+export type SaveRateBuildupTemplateMutationResult = Apollo.MutationResult<SaveRateBuildupTemplateMutation>;
+export type SaveRateBuildupTemplateMutationOptions = Apollo.BaseMutationOptions<SaveRateBuildupTemplateMutation, SaveRateBuildupTemplateMutationVariables>;
 export const SignupDocument = gql`
     mutation Signup($signupId: String!, $data: SignupData!) {
   signup(signupId: $signupId, data: $data)
@@ -8315,39 +8979,39 @@ export function useSystemUpdateMaterialShipmentVehicleTypeDefaultsMutation(baseO
 export type SystemUpdateMaterialShipmentVehicleTypeDefaultsMutationHookResult = ReturnType<typeof useSystemUpdateMaterialShipmentVehicleTypeDefaultsMutation>;
 export type SystemUpdateMaterialShipmentVehicleTypeDefaultsMutationResult = Apollo.MutationResult<SystemUpdateMaterialShipmentVehicleTypeDefaultsMutation>;
 export type SystemUpdateMaterialShipmentVehicleTypeDefaultsMutationOptions = Apollo.BaseMutationOptions<SystemUpdateMaterialShipmentVehicleTypeDefaultsMutation, SystemUpdateMaterialShipmentVehicleTypeDefaultsMutationVariables>;
-export const SystemUpdateUnitDefaultsDocument = gql`
-    mutation SystemUpdateUnitDefaults($data: [String!]!) {
-  systemUpdateUnitDefaults(data: $data) {
+export const SystemUpdateUnitExtrasDocument = gql`
+    mutation SystemUpdateUnitExtras($data: [String!]!) {
+  systemUpdateUnitExtras(data: $data) {
     ...SystemSnippet
   }
 }
     ${SystemSnippetFragmentDoc}`;
-export type SystemUpdateUnitDefaultsMutationFn = Apollo.MutationFunction<SystemUpdateUnitDefaultsMutation, SystemUpdateUnitDefaultsMutationVariables>;
+export type SystemUpdateUnitExtrasMutationFn = Apollo.MutationFunction<SystemUpdateUnitExtrasMutation, SystemUpdateUnitExtrasMutationVariables>;
 
 /**
- * __useSystemUpdateUnitDefaultsMutation__
+ * __useSystemUpdateUnitExtrasMutation__
  *
- * To run a mutation, you first call `useSystemUpdateUnitDefaultsMutation` within a React component and pass it any options that fit your needs.
- * When your component renders, `useSystemUpdateUnitDefaultsMutation` returns a tuple that includes:
+ * To run a mutation, you first call `useSystemUpdateUnitExtrasMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSystemUpdateUnitExtrasMutation` returns a tuple that includes:
  * - A mutate function that you can call at any time to execute the mutation
  * - An object with fields that represent the current status of the mutation's execution
  *
  * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
  *
  * @example
- * const [systemUpdateUnitDefaultsMutation, { data, loading, error }] = useSystemUpdateUnitDefaultsMutation({
+ * const [systemUpdateUnitExtrasMutation, { data, loading, error }] = useSystemUpdateUnitExtrasMutation({
  *   variables: {
  *      data: // value for 'data'
  *   },
  * });
  */
-export function useSystemUpdateUnitDefaultsMutation(baseOptions?: Apollo.MutationHookOptions<SystemUpdateUnitDefaultsMutation, SystemUpdateUnitDefaultsMutationVariables>) {
+export function useSystemUpdateUnitExtrasMutation(baseOptions?: Apollo.MutationHookOptions<SystemUpdateUnitExtrasMutation, SystemUpdateUnitExtrasMutationVariables>) {
         const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<SystemUpdateUnitDefaultsMutation, SystemUpdateUnitDefaultsMutationVariables>(SystemUpdateUnitDefaultsDocument, options);
+        return Apollo.useMutation<SystemUpdateUnitExtrasMutation, SystemUpdateUnitExtrasMutationVariables>(SystemUpdateUnitExtrasDocument, options);
       }
-export type SystemUpdateUnitDefaultsMutationHookResult = ReturnType<typeof useSystemUpdateUnitDefaultsMutation>;
-export type SystemUpdateUnitDefaultsMutationResult = Apollo.MutationResult<SystemUpdateUnitDefaultsMutation>;
-export type SystemUpdateUnitDefaultsMutationOptions = Apollo.BaseMutationOptions<SystemUpdateUnitDefaultsMutation, SystemUpdateUnitDefaultsMutationVariables>;
+export type SystemUpdateUnitExtrasMutationHookResult = ReturnType<typeof useSystemUpdateUnitExtrasMutation>;
+export type SystemUpdateUnitExtrasMutationResult = Apollo.MutationResult<SystemUpdateUnitExtrasMutation>;
+export type SystemUpdateUnitExtrasMutationOptions = Apollo.BaseMutationOptions<SystemUpdateUnitExtrasMutation, SystemUpdateUnitExtrasMutationVariables>;
 export const UserDeleteDocument = gql`
     mutation UserDelete($userId: String!) {
   userDelete(userId: $userId)
@@ -11560,6 +12224,40 @@ export function usePublicDocumentsLazyQuery(baseOptions?: Apollo.LazyQueryHookOp
 export type PublicDocumentsQueryHookResult = ReturnType<typeof usePublicDocumentsQuery>;
 export type PublicDocumentsLazyQueryHookResult = ReturnType<typeof usePublicDocumentsLazyQuery>;
 export type PublicDocumentsQueryResult = Apollo.QueryResult<PublicDocumentsQuery, PublicDocumentsQueryVariables>;
+export const RateBuildupTemplatesDocument = gql`
+    query RateBuildupTemplates {
+  rateBuildupTemplates {
+    ...RateBuildupTemplateFullSnippet
+  }
+}
+    ${RateBuildupTemplateFullSnippetFragmentDoc}`;
+
+/**
+ * __useRateBuildupTemplatesQuery__
+ *
+ * To run a query within a React component, call `useRateBuildupTemplatesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useRateBuildupTemplatesQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useRateBuildupTemplatesQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useRateBuildupTemplatesQuery(baseOptions?: Apollo.QueryHookOptions<RateBuildupTemplatesQuery, RateBuildupTemplatesQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<RateBuildupTemplatesQuery, RateBuildupTemplatesQueryVariables>(RateBuildupTemplatesDocument, options);
+      }
+export function useRateBuildupTemplatesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<RateBuildupTemplatesQuery, RateBuildupTemplatesQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<RateBuildupTemplatesQuery, RateBuildupTemplatesQueryVariables>(RateBuildupTemplatesDocument, options);
+        }
+export type RateBuildupTemplatesQueryHookResult = ReturnType<typeof useRateBuildupTemplatesQuery>;
+export type RateBuildupTemplatesLazyQueryHookResult = ReturnType<typeof useRateBuildupTemplatesLazyQuery>;
+export type RateBuildupTemplatesQueryResult = Apollo.QueryResult<RateBuildupTemplatesQuery, RateBuildupTemplatesQueryVariables>;
 export const SearchDocument = gql`
     query Search($searchString: String!) {
   search(searchString: $searchString) {
