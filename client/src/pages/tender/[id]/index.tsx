@@ -8,6 +8,7 @@ import {
   Spinner,
   Text,
   Tooltip,
+  useBreakpointValue,
 } from "@chakra-ui/react";
 import { gql, useQuery, useMutation } from "@apollo/client";
 import * as Apollo from "@apollo/client";
@@ -29,6 +30,7 @@ import { UserRoles } from "../../../generated/graphql";
 import { navbarHeight } from "../../../constants/styles";
 import { localStorageTokenKey } from "../../../contexts/Auth";
 import ChatDrawer from "../../../components/Chat/ChatDrawer";
+import TenderMobileLayout from "../../../components/Tender/TenderMobileLayout";
 
 // Lazy-load PdfViewer to avoid SSR issues with react-pdf
 const PdfViewer = dynamic(
@@ -272,6 +274,7 @@ const TenderDetailPage = () => {
   const [selectedFile, setSelectedFile] = useState<TenderFileItem | null>(null);
   const [selectedFilePage, setSelectedFilePage] = useState<number>(1);
   const isDraggingPanel = useRef(false);
+  const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
 
   // ── URL param helpers for docFile / docPage ────────────────────────────��─────
   const setDocUrlParams = useCallback((fileId: string | null, page: number | null) => {
@@ -430,6 +433,21 @@ const TenderDetailPage = () => {
 
   return (
     <Permission minRole={UserRoles.ProjectManager} type={null} showError>
+      {isMobile ? (
+        !tender ? (
+          <Flex h={`calc(100vh - ${navbarHeight})`} align="center" justify="center">
+            <Spinner />
+          </Flex>
+        ) : (
+          <TenderMobileLayout
+            tender={tender}
+            sheet={sheet}
+            onSheetUpdate={setSheet}
+            tenderId={tenderId}
+            onRefetch={() => refetchTender()}
+          />
+        )
+      ) : (
       <Flex
         direction="column"
         h={`calc(100vh - ${navbarHeight})`}
@@ -682,6 +700,7 @@ const TenderDetailPage = () => {
           }}
         />
       </Flex>
+      )}
     </Permission>
   );
 };
