@@ -31,6 +31,10 @@ interface Props {
   onParamNoteChange?: (paramId: string, note: string) => void;
   /** Canonical unit code from the line item (e.g. "m3"). Passed to RateBuildupInputs for variant activation. */
   unit?: string;
+  /** Controlled test unit — owned by parent (CalculatorCanvas) so canvas nodes stay in sync. */
+  testUnit?: string;
+  /** Fires when the user changes the test unit selector. */
+  onTestUnitChange?: (unit: string | undefined) => void;
 }
 
 // ─── State initializers ───────────────────────────────────────────────────────
@@ -64,17 +68,13 @@ function initControllers(
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const LiveTestPanel: React.FC<Props> = ({
-  doc, onCollapse, initialQuantity, initialInputs, onInputsChange, paramNotes, onParamNoteChange, unit,
+  doc, onCollapse, initialQuantity, initialInputs, onInputsChange, paramNotes, onParamNoteChange, unit, testUnit, onTestUnitChange,
 }) => {
   const [quantity, setQuantity] = useState(initialQuantity ?? 100);
   const [unitPrice, setUnitPrice] = useState<number | null>(null);
   const [params, setParams] = useState(() => initParams(doc, initialInputs?.params));
   const [tables, setTables] = useState(() => initTables(doc, initialInputs?.tables));
   const [controllers, setControllers] = useState(() => initControllers(doc, initialInputs?.controllers));
-  // Local unit selector — only used when no unit is provided externally (standalone canvas editor).
-  // Defaults to the first unit variant so variant groups are active out-of-the-box.
-  const [testUnit, setTestUnit] = useState<string | undefined>(() => doc.unitVariants?.[0]?.unit);
-
   // Refs so handlers don't go stale between renders
   const paramsRef = useRef(params);
   paramsRef.current = params;
@@ -89,7 +89,6 @@ const LiveTestPanel: React.FC<Props> = ({
     setParams(initParams(doc, initialInputs?.params));
     setTables(initTables(doc, initialInputs?.tables));
     setControllers(initControllers(doc, initialInputs?.controllers));
-    setTestUnit(doc.unitVariants?.[0]?.unit);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc.id]);
 
@@ -189,7 +188,7 @@ const LiveTestPanel: React.FC<Props> = ({
             <Select
               size="sm" w="120px"
               value={testUnit ?? ""}
-              onChange={(e) => setTestUnit(e.target.value || undefined)}
+              onChange={(e) => onTestUnitChange?.(e.target.value || undefined)}
             >
               {(doc.unitVariants ?? []).map((v) => (
                 <option key={v.unit} value={v.unit}>

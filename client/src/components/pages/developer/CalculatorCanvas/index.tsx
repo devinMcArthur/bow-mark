@@ -71,6 +71,7 @@ const CalculatorCanvas: React.FC<Props> = ({
       setUndoStack([]);
       setRedoStack([]);
       setSelectedNodeId(null);
+      setTestUnit(doc.unitVariants?.[0]?.unit);
       prevDocId.current = doc.id;
     }
   }, [doc.id]);
@@ -87,6 +88,7 @@ const CalculatorCanvas: React.FC<Props> = ({
   const dragStartWidth = useRef(260);
   const [liveTestOpen, setLiveTestOpen] = useState(true);
   const [liveTestWidth, setLiveTestWidth] = useState(280);
+  const [testUnit, setTestUnit] = useState<string | undefined>(() => doc.unitVariants?.[0]?.unit);
   const liveTestDragStartWidth = useRef(280);
 
   const onResizeStart = useCallback((e: React.MouseEvent) => {
@@ -192,15 +194,34 @@ const CalculatorCanvas: React.FC<Props> = ({
     return result;
   }, [doc]);
 
+  const effectiveUnit = unit ?? testUnit;
+
   const canvasInactiveNodeIds = useMemo(
-    () => computeInactiveNodeIds(doc, canvasControllers),
-    [doc, canvasControllers]
+    () => computeInactiveNodeIds(doc, canvasControllers, effectiveUnit),
+    [doc, canvasControllers, effectiveUnit]
   );
 
-  const stepDebug = useMemo(
+  // Stabilise stepDebug by value: only return a new array reference when ids/values/errors
+  // actually change. Without this, a position-only doc change (drag stop) produces a new
+  // stepDebug reference → CanvasFlow rebuilds all node objects → ReactFlow remounts handles
+  // mid-render → edge paths desync and leave ghost edges.
+  const stepDebugRaw = useMemo(
     () => debugEvaluateTemplate(doc, undefined, quantity, controllerDefaults, canvasInactiveNodeIds),
     [doc, quantity, controllerDefaults, canvasInactiveNodeIds]
   );
+  const stepDebugRef = useRef(stepDebugRaw);
+  const stepDebug = (() => {
+    const prev = stepDebugRef.current;
+    const next = stepDebugRaw;
+    if (
+      prev.length === next.length &&
+      next.every((s, i) => s.id === prev[i].id && s.value === prev[i].value && s.error === prev[i].error)
+    ) {
+      return prev;
+    }
+    stepDebugRef.current = next;
+    return next;
+  })();
 
   const edges: Edge[] = useMemo(() => parseEdges(doc), [doc]);
 
@@ -339,6 +360,8 @@ const CalculatorCanvas: React.FC<Props> = ({
                 paramNotes={paramNotes}
                 onParamNoteChange={onParamNoteChange}
                 unit={unit}
+                testUnit={testUnit}
+                onTestUnitChange={setTestUnit}
               />
             </Box>
             <Box

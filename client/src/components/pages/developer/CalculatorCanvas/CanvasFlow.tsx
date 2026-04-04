@@ -910,6 +910,7 @@ const CanvasFlow: React.FC<Props> = ({
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
+        onEdgesChange={() => {}}
         onNodeClick={handleNodeClick}
         onNodeDragStop={handleNodeDragStop}
         onPaneClick={handlePaneClick}

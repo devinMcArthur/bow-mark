@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Box,
   Button,
@@ -13,7 +13,7 @@ import {
   Thead,
   Tr,
 } from "@chakra-ui/react";
-import { FiPlus } from "react-icons/fi";
+import { FiPlus, FiHash } from "react-icons/fi";
 import { gql, useMutation } from "@apollo/client";
 import {
   DndContext,
@@ -31,6 +31,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { TenderPricingSheet as TPricingSheet, TenderPricingRowType } from "./types";
+import { TenderFileItem } from "../Tender/types";
 import { computeSheetTotal, formatCurrency } from "./compute";
 import { SortableRow } from "./PricingRow";
 import ScheduleList from "./ScheduleList";
@@ -53,6 +54,14 @@ const ROW_FIELDS = `
   calculatorInputsJson
   markupOverride
   rateBuildupSnapshot
+  extraUnitPrice
+  extraUnitPriceMemo
+  docRefs {
+    _id
+    enrichedFileId
+    page
+    description
+  }
 `;
 
 export const SNAPSHOT_QUERY = gql`
@@ -109,15 +118,59 @@ const REORDER_ROWS = gql`
   }
 `;
 
+const DUPLICATE_ROW = gql`
+  mutation TenderPricingRowDuplicate($sheetId: ID!, $rowId: ID!) {
+    tenderPricingRowDuplicate(sheetId: $sheetId, rowId: $rowId) {
+      ${SHEET_FIELDS}
+    }
+  }
+`;
+
+const AUTO_NUMBER = gql`
+  mutation TenderPricingSheetAutoNumber($sheetId: ID!) {
+    tenderPricingSheetAutoNumber(sheetId: $sheetId) {
+      ${SHEET_FIELDS}
+    }
+  }
+`;
+
+const DOC_REF_ADD = gql`
+  mutation TenderPricingRowDocRefAdd($sheetId: ID!, $rowId: ID!, $data: TenderPricingRowDocRefAddData!) {
+    tenderPricingRowDocRefAdd(sheetId: $sheetId, rowId: $rowId, data: $data) {
+      ${SHEET_FIELDS}
+    }
+  }
+`;
+
+const DOC_REF_REMOVE = gql`
+  mutation TenderPricingRowDocRefRemove($sheetId: ID!, $rowId: ID!, $docRefId: ID!) {
+    tenderPricingRowDocRefRemove(sheetId: $sheetId, rowId: $rowId, docRefId: $docRefId) {
+      ${SHEET_FIELDS}
+    }
+  }
+`;
+
+const DOC_REF_UPDATE = gql`
+  mutation TenderPricingRowDocRefUpdate($sheetId: ID!, $rowId: ID!, $docRefId: ID!, $description: String) {
+    tenderPricingRowDocRefUpdate(sheetId: $sheetId, rowId: $rowId, docRefId: $docRefId, description: $description) {
+      ${SHEET_FIELDS}
+    }
+  }
+`;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface PricingSheetProps {
   sheet: TPricingSheet;
   tenderId: string;
   onUpdate: (updated: TPricingSheet) => void;
+  tenderFiles?: TenderFileItem[];
+  activeDocFile?: string;
+  activeDocPage?: number;
+  onDocRefClick?: (enrichedFileId: string, page: number) => void;
 }
 
-const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate }) => {
+const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, tenderFiles, activeDocFile, activeDocPage, onDocRefClick }) => {
   const [markupDraft, setMarkupDraft] = useState(String(sheet.defaultMarkupPct));
   const [editingMarkup, setEditingMarkup] = useState(false);
 
@@ -145,8 +198,24 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate }
   const [updateRow] = useMutation(UPDATE_ROW);
   const [deleteRow] = useMutation(DELETE_ROW);
   const [reorderRows] = useMutation(REORDER_ROWS);
+  const [duplicateRowMutation] = useMutation(DUPLICATE_ROW);
+  const [autoNumberMutation, { loading: autoNumbering }] = useMutation(AUTO_NUMBER);
+  const [addDocRefMutation] = useMutation(DOC_REF_ADD);
+  const [removeDocRefMutation] = useMutation(DOC_REF_REMOVE);
+  const [updateDocRefMutation] = useMutation(DOC_REF_UPDATE);
 
   const sheetTotal = computeSheetTotal(sheet.rows, sheet.defaultMarkupPct);
+
+  // Section index for alternating row backgrounds — increments on each Schedule or Group
+  const sectionIndices = useMemo(() => {
+    const map: Record<string, number> = {};
+    let idx = 0;
+    for (const row of sheet.rows) {
+      if (row.type === TenderPricingRowType.Schedule || row.type === TenderPricingRowType.Group) idx++;
+      map[row._id] = idx;
+    }
+    return map;
+  }, [sheet.rows]);
 
   const selectedRow = selectedRowId
     ? sheet.rows.find((r) => r._id === selectedRowId) ?? null
@@ -231,6 +300,46 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate }
     setSelectedRowId(selectedRowId === rowId ? null : rowId);
   }, [selectedRowId, setSelectedRowId]);
 
+  const handleDuplicateRow = useCallback(async (rowId: string) => {
+    const res = await duplicateRowMutation({ variables: { sheetId: sheet._id, rowId } });
+    onUpdate(res.data.tenderPricingRowDuplicate);
+  }, [sheet._id, duplicateRowMutation, onUpdate]);
+
+  const handleAutoNumber = useCallback(async () => {
+    const res = await autoNumberMutation({ variables: { sheetId: sheet._id } });
+    onUpdate(res.data.tenderPricingSheetAutoNumber);
+  }, [sheet._id, autoNumberMutation, onUpdate]);
+
+  const handleDocRefAdd = useCallback(
+    async (rowId: string, enrichedFileId: string, page: number, description?: string) => {
+      const res = await addDocRefMutation({
+        variables: { sheetId: sheet._id, rowId, data: { enrichedFileId, page, description } },
+      });
+      onUpdate(res.data.tenderPricingRowDocRefAdd);
+    },
+    [sheet._id, addDocRefMutation, onUpdate]
+  );
+
+  const handleDocRefRemove = useCallback(
+    async (rowId: string, docRefId: string) => {
+      const res = await removeDocRefMutation({
+        variables: { sheetId: sheet._id, rowId, docRefId },
+      });
+      onUpdate(res.data.tenderPricingRowDocRefRemove);
+    },
+    [sheet._id, removeDocRefMutation, onUpdate]
+  );
+
+  const handleDocRefUpdate = useCallback(
+    async (rowId: string, docRefId: string, description: string | null) => {
+      const res = await updateDocRefMutation({
+        variables: { sheetId: sheet._id, rowId, docRefId, description },
+      });
+      onUpdate(res.data.tenderPricingRowDocRefUpdate);
+    },
+    [sheet._id, updateDocRefMutation, onUpdate]
+  );
+
   const isDetailOpen = selectedRow != null && selectedRow.type === TenderPricingRowType.Item;
 
   useEffect(() => {
@@ -269,6 +378,14 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate }
               Line Item
             </Button>
           </ButtonGroup>
+          <Button
+            size="sm" variant="ghost" colorScheme="gray"
+            leftIcon={<FiHash size={14} />}
+            onClick={handleAutoNumber}
+            isLoading={autoNumbering}
+          >
+            Renumber
+          </Button>
         </Flex>
 
         <Flex align="center" gap={4}>
@@ -367,6 +484,13 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate }
               tenderId={tenderId}
               onUpdate={handleUpdateRow}
               onClose={() => setSelectedRowId(null)}
+              tenderFiles={tenderFiles}
+              activeDocFile={activeDocFile}
+              activeDocPage={activeDocPage}
+              onDocRefAdd={handleDocRefAdd}
+              onDocRefRemove={handleDocRefRemove}
+              onDocRefUpdate={handleDocRefUpdate}
+              onDocRefClick={onDocRefClick}
             />
           </Box>
         </Flex>
@@ -381,10 +505,11 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate }
                 <Th>Description</Th>
                 <Th isNumeric whiteSpace="nowrap" w="60px">Qty</Th>
                 <Th whiteSpace="nowrap" w="70px">Unit</Th>
-                <Th isNumeric whiteSpace="nowrap" w="90px">Unit Price</Th>
+                <Th isNumeric whiteSpace="nowrap" w="80px">Cost UP</Th>
+                <Th isNumeric whiteSpace="nowrap" w="80px" color="blue.600">Bid UP</Th>
                 <Th textAlign="center" whiteSpace="nowrap" w="90px">Markup</Th>
                 <Th isNumeric whiteSpace="nowrap" w="110px">Total</Th>
-                <Th w="36px" />
+                <Th w="52px" />
               </Tr>
             </Thead>
             <DndContext
@@ -405,9 +530,11 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate }
                       rowIndex={index}
                       defaultMarkupPct={sheet.defaultMarkupPct}
                       selectedRowId={selectedRowId}
+                      sectionIndex={sectionIndices[row._id] ?? 0}
                       onUpdate={handleUpdateRow}
                       onDelete={handleDeleteRow}
                       onSelect={handleSelect}
+                      onDuplicate={handleDuplicateRow}
                     />
                   ))}
                 </Tbody>

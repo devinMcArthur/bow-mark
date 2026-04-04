@@ -2,6 +2,7 @@ import { ObjectType } from "type-graphql";
 import { TenderPricingSheetDocument, TenderPricingSheetModel } from "@models";
 import { Id, GetByIDOptions } from "@typescript/models";
 import {
+  IDocRef,
   ITenderPricingSheetCreate,
   ITenderPricingRowCreate,
   ITenderPricingRowUpdate,
@@ -69,5 +70,41 @@ export class TenderPricingSheetClass extends TenderPricingSheetSchema {
     rowIds: string[]
   ) {
     return update.reorderRows(this, rowIds);
+  }
+
+  public async duplicateRow(
+    this: TenderPricingSheetDocument,
+    rowId: Id
+  ) {
+    return update.duplicateRow(this, rowId);
+  }
+
+  public async autoNumber(this: TenderPricingSheetDocument) {
+    return update.autoNumber(this);
+  }
+
+  public async addDocRef(
+    this: TenderPricingSheetDocument,
+    rowId: Id,
+    data: IDocRef
+  ) {
+    return update.addDocRef(this, rowId, data);
+  }
+
+  public async removeDocRef(
+    this: TenderPricingSheetDocument,
+    rowId: Id,
+    docRefId: Id
+  ) {
+    return update.removeDocRef(this, rowId, docRefId);
+  }
+
+  public async updateDocRef(
+    this: TenderPricingSheetDocument,
+    rowId: Id,
+    docRefId: Id,
+    description: string | null
+  ) {
+    return update.updateDocRef(this, rowId, docRefId, description);
   }
 }

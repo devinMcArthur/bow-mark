@@ -187,7 +187,7 @@ const TenderRowCanvasPage: React.FC = () => {
     return (
       <Flex align="center" justify="center" h="100vh" direction="column" gap={3}>
         <Text color="gray.400">No rate buildup found for this row.</Text>
-        <Button size="sm" onClick={() => router.push(`/tender/${tenderId}/pricing?row=${rowId}`)}>← Back to Pricing</Button>
+        <Button size="sm" onClick={() => router.push(`/tender/${tenderId}?row=${rowId}`)}>← Back to Pricing</Button>
       </Flex>
     );
   }
@@ -221,7 +221,7 @@ const TenderRowCanvasPage: React.FC = () => {
           >
             <Button
               size="xs" variant="ghost" color="gray.400" _hover={{ color: "white" }}
-              onClick={() => router.push(`/tender/${tenderId}/pricing?row=${rowId}`)}
+              onClick={() => router.push(`/tender/${tenderId}?row=${rowId}`)}
               px={1} fontWeight="normal" fontSize="xs" flexShrink={0}
             >
               ← Back to Pricing

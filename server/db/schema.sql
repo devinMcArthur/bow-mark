@@ -1,6 +1,6 @@
 \restrict dbmate
 
--- Dumped from database version 16.11 (Debian 16.11-1.pgdg13+1)
+-- Dumped from database version 16.13 (Debian 16.13-1.pgdg13+1)
 -- Dumped by pg_dump version 18.2
 
 SET statement_timeout = 0;

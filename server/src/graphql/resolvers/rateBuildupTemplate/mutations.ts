@@ -147,6 +147,12 @@ export class SaveRateBuildupTemplateData {
 const save = async (
   data: SaveRateBuildupTemplateData
 ): Promise<RateBuildupTemplateDocument> => {
+  const duplicate = await RateBuildupTemplate.findOne({
+    label: data.label,
+    ...(data.id ? { _id: { $ne: data.id } } : {}),
+  });
+  if (duplicate) throw new Error(`A rate buildup template named "${data.label}" already exists`);
+
   if (data.id) {
     const existing = await RateBuildupTemplate.getById(data.id);
     if (!existing) throw new Error(`RateBuildupTemplate ${data.id} not found`);

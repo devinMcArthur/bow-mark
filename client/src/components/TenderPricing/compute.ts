@@ -9,7 +9,7 @@ export function computeRow(
   row: TenderPricingRow,
   defaultMarkupPct: number
 ): RowComputedValues {
-  const totalUP = row.unitPrice ?? 0;
+  const totalUP = (row.unitPrice ?? 0) + (row.extraUnitPrice ?? 0);
 
   const effectiveMarkup = defaultMarkupPct + (row.markupOverride ?? 0);
 

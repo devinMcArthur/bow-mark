@@ -3,6 +3,24 @@ import { modelOptions, prop, Severity } from "@typegoose/typegoose";
 import { Types } from "mongoose";
 import { Field, Float, ID, Int, ObjectType } from "type-graphql";
 
+@ObjectType()
+export class DocRefClass {
+  @Field(() => ID)
+  public _id!: Types.ObjectId;
+
+  @Field(() => ID)
+  @prop({ ref: "EnrichedFileClass", required: true })
+  public enrichedFileId!: Types.ObjectId;
+
+  @Field(() => Int)
+  @prop({ required: true })
+  public page!: number;
+
+  @Field({ nullable: true })
+  @prop({ trim: true })
+  public description?: string;
+}
+
 @modelOptions({ options: { allowMixed: Severity.ALLOW } })
 @ObjectType()
 export class TenderPricingRowClass {
@@ -40,26 +58,6 @@ export class TenderPricingRowClass {
 
   @Field(() => Float, { nullable: true })
   @prop()
-  public subcontractorUP?: number | null;
-
-  @Field(() => Float, { nullable: true })
-  @prop({ default: 0 })
-  public truckingUP?: number;
-
-  @Field(() => Float, { nullable: true })
-  @prop({ default: 0 })
-  public materialUP?: number;
-
-  @Field(() => Float, { nullable: true })
-  @prop({ default: 0 })
-  public crewUP?: number;
-
-  @Field(() => Float, { nullable: true })
-  @prop({ default: 0 })
-  public rentalUP?: number;
-
-  @Field(() => Float, { nullable: true })
-  @prop()
   public markupOverride?: number | null;
 
   @Field({ nullable: true })
@@ -84,6 +82,18 @@ export class TenderPricingRowClass {
   @Field({ nullable: true })
   @prop({ trim: true })
   public rateBuildupSnapshot?: string;
+
+  @Field(() => Float, { nullable: true })
+  @prop()
+  public extraUnitPrice?: number | null;
+
+  @Field(() => String, { nullable: true })
+  @prop({ trim: true })
+  public extraUnitPriceMemo?: string;
+
+  @Field(() => [DocRefClass])
+  @prop({ type: () => [DocRefClass], default: [] })
+  public docRefs!: DocRefClass[];
 }
 
 @ObjectType()
@@ -102,6 +112,10 @@ export class TenderPricingSheetSchema {
   @Field(() => [TenderPricingRowClass])
   @prop({ type: () => [TenderPricingRowClass], default: [] })
   public rows!: TenderPricingRowClass[];
+
+  @Field()
+  @prop({ required: true, default: 1 })
+  public schemaVersion!: number;
 
   @Field()
   @prop({ required: true, default: Date.now })

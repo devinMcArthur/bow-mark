@@ -37,21 +37,6 @@ export class TenderPricingRowUpdateData {
   public unit?: string;
 
   @Field(() => Float, { nullable: true })
-  public subcontractorUP?: number | null;
-
-  @Field(() => Float, { nullable: true })
-  public truckingUP?: number;
-
-  @Field(() => Float, { nullable: true })
-  public materialUP?: number;
-
-  @Field(() => Float, { nullable: true })
-  public crewUP?: number;
-
-  @Field(() => Float, { nullable: true })
-  public rentalUP?: number;
-
-  @Field(() => Float, { nullable: true })
   public markupOverride?: number | null;
 
   @Field({ nullable: true })
@@ -68,4 +53,22 @@ export class TenderPricingRowUpdateData {
 
   @Field(() => String, { nullable: true })
   public rateBuildupSnapshot?: string | null;
+
+  @Field(() => Float, { nullable: true })
+  public extraUnitPrice?: number | null;
+
+  @Field(() => String, { nullable: true })
+  public extraUnitPriceMemo?: string | null;
+}
+
+@InputType()
+export class TenderPricingRowDocRefAddData {
+  @Field(() => ID)
+  public enrichedFileId!: string;
+
+  @Field(() => Int)
+  public page!: number;
+
+  @Field(() => String, { nullable: true })
+  public description?: string;
 }

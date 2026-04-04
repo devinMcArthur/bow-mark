@@ -13,6 +13,7 @@ import {
 } from "type-graphql";
 import {
   TenderPricingRowCreateData,
+  TenderPricingRowDocRefAddData,
   TenderPricingRowUpdateData,
 } from "./mutations";
 
@@ -103,6 +104,69 @@ export default class TenderPricingSheetResolver {
   ) {
     const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
     sheet!.reorderRows(rowIds);
+    await sheet!.save();
+    return sheet;
+  }
+
+  @Authorized(["ADMIN", "PM"])
+  @Mutation(() => TenderPricingSheetClass)
+  async tenderPricingRowDuplicate(
+    @Arg("sheetId", () => ID) sheetId: Id,
+    @Arg("rowId", () => ID) rowId: Id
+  ) {
+    const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
+    sheet!.duplicateRow(rowId);
+    await sheet!.save();
+    return sheet;
+  }
+
+  @Authorized(["ADMIN", "PM"])
+  @Mutation(() => TenderPricingSheetClass)
+  async tenderPricingSheetAutoNumber(
+    @Arg("sheetId", () => ID) sheetId: Id
+  ) {
+    const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
+    sheet!.autoNumber();
+    await sheet!.save();
+    return sheet;
+  }
+
+  @Authorized(["ADMIN", "PM"])
+  @Mutation(() => TenderPricingSheetClass)
+  async tenderPricingRowDocRefAdd(
+    @Arg("sheetId", () => ID) sheetId: Id,
+    @Arg("rowId", () => ID) rowId: Id,
+    @Arg("data") data: TenderPricingRowDocRefAddData
+  ) {
+    const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
+    sheet!.addDocRef(rowId, data);
+    await sheet!.save();
+    return sheet;
+  }
+
+  @Authorized(["ADMIN", "PM"])
+  @Mutation(() => TenderPricingSheetClass)
+  async tenderPricingRowDocRefRemove(
+    @Arg("sheetId", () => ID) sheetId: Id,
+    @Arg("rowId", () => ID) rowId: Id,
+    @Arg("docRefId", () => ID) docRefId: Id
+  ) {
+    const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
+    sheet!.removeDocRef(rowId, docRefId);
+    await sheet!.save();
+    return sheet;
+  }
+
+  @Authorized(["ADMIN", "PM"])
+  @Mutation(() => TenderPricingSheetClass)
+  async tenderPricingRowDocRefUpdate(
+    @Arg("sheetId", () => ID) sheetId: Id,
+    @Arg("rowId", () => ID) rowId: Id,
+    @Arg("docRefId", () => ID) docRefId: Id,
+    @Arg("description", () => String, { nullable: true }) description: string | null
+  ) {
+    const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
+    sheet!.updateDocRef(rowId, docRefId, description);
     await sheet!.save();
     return sheet;
   }

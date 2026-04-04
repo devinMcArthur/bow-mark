@@ -370,8 +370,7 @@ const GroupSection: React.FC<GroupSectionProps> = ({
   const loneControllerIds = controllerIds.filter((cid) => !ctrlSubGroupMap.has(cid));
   const uncontrolledSubGroupIds = subGroupIds.filter((id) => !subGroupsWithCtrl.has(id));
 
-  const hasVisibleContent = controllerIds.length > 0 || paramIds.length > 0 || tableIds.length > 0 || subGroupIds.length > 0 || formulaIds.length > 0;
-  if (!hasVisibleContent) return null;
+  if (!groupHasInputs(group, doc)) return null;
 
   // Depth-based card styling
   const isTop = depth === 0;
@@ -556,6 +555,20 @@ const GroupSection: React.FC<GroupSectionProps> = ({
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Returns true if a group (or any subgroup, recursively) contains at least one
+ *  user-editable input: a param, a table, or a controller. Groups that contain
+ *  only formula steps have no inputs and are excluded from the inputs panel. */
+function groupHasInputs(group: GroupDef, doc: CanvasDocument): boolean {
+  for (const id of group.memberIds) {
+    if (doc.parameterDefs.some((p) => p.id === id)) return true;
+    if (doc.tableDefs.some((t) => `${t.id}RatePerHr` === id)) return true;
+    if ((doc.controllerDefs ?? []).some((c) => c.id === id)) return true;
+    const sub = doc.groupDefs.find((g) => g.id === id);
+    if (sub && groupHasInputs(sub, doc)) return true;
+  }
+  return false;
+}
 
 function formatOutputValue(v: number): string {
   if (!isFinite(v)) return "—";
@@ -773,9 +786,10 @@ const RateBuildupInputs: React.FC<RateBuildupInputsProps> = ({
       ungroupedTables: doc.tableDefs.filter((t) => !allMemberIds.has(`${t.id}RatePerHr`)),
       controllerBlocks: ungroupedControllers
         .filter((c) => controllerGroupMap.has(c.id))
-        .map((c) => ({ ctrl: c, groups: controllerGroupMap.get(c.id)! })),
+        .map((c) => ({ ctrl: c, groups: controllerGroupMap.get(c.id)!.filter((g) => groupHasInputs(g, doc)) }))
+        .filter(({ groups }) => groups.length > 0),
       loneControllers: ungroupedControllers.filter((c) => !controllerGroupMap.has(c.id)),
-      uncontrolledTopGroups: topLevelGroups.filter((g) => !groupsWithController.has(g.id)),
+      uncontrolledTopGroups: topLevelGroups.filter((g) => !groupsWithController.has(g.id) && groupHasInputs(g, doc)),
     };
   }, [doc]);
 

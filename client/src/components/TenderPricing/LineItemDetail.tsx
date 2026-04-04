@@ -14,13 +14,15 @@ import {
   InputLeftAddon,
   Text,
   Textarea,
+  useToast,
 } from "@chakra-ui/react";
 import { v4 as uuidv4 } from "uuid";
-import { FiChevronDown, FiChevronUp, FiEdit2, FiSlash, FiX } from "react-icons/fi";
+import { FiChevronDown, FiChevronUp, FiEdit2, FiExternalLink, FiSlash, FiTrash2, FiX } from "react-icons/fi";
 import { useRouter } from "next/router";
 import { useApolloClient } from "@apollo/client";
 import { useSystem } from "../../contexts/System";
 import { TenderPricingRow } from "./types";
+import { TenderFileItem } from "../Tender/types";
 import { computeRow, formatCurrency, formatMarkup } from "./compute";
 import type { RateEntry } from "./calculators/types";
 import { RateBuildupTemplatesDocument } from "../../generated/graphql";
@@ -33,6 +35,7 @@ import {
   computeSnapshotUnitPrice,
 } from "../pages/developer/CalculatorCanvas/canvasStorage";
 import RateBuildupInputs from "../pages/developer/CalculatorCanvas/RateBuildupInputs";
+import { TemplateCard } from "../../pages/pricing";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -79,30 +82,36 @@ const AttachTemplateButton: React.FC<{
           onClick={() => setOpen(false)}
         >
           <Box
-            bg="white" rounded="md" p={4} minW="300px" maxW="400px"
+            bg="white" rounded="lg" overflow="hidden"
+            w="560px" maxW="90vw" maxH="70vh"
+            display="flex" flexDirection="column"
             onClick={(e) => e.stopPropagation()}
           >
-            <Text fontWeight="semibold" mb={3} fontSize="sm">Select a Rate Buildup Template</Text>
-            {templates.length === 0 ? (
-              <Text fontSize="sm" color="gray.400">No templates found.</Text>
-            ) : filtered.length === 0 ? (
-              <Text fontSize="xs" color="gray.400" p={3}>
-                No buildups found for unit &quot;{rowUnit}&quot;. Add a unit variant in the canvas editor or change the line item unit.
-              </Text>
-            ) : (
-              filtered.map((t) => (
-                <Button
-                  key={t.id}
-                  variant="ghost"
-                  size="sm"
-                  w="100%"
-                  justifyContent="flex-start"
-                  onClick={() => { onAttach(t); setOpen(false); }}
-                >
-                  {t.label}
-                </Button>
-              ))
-            )}
+            <Box px={5} py={3} borderBottom="1px solid" borderColor="gray.100" flexShrink={0} bg="gray.50">
+              <Text fontWeight="semibold" fontSize="sm" color="gray.800">Select a Rate Buildup Template</Text>
+            </Box>
+            <Box overflowY="auto" flex={1}>
+              {templates.length === 0 ? (
+                <Text fontSize="sm" color="gray.400" p={5}>No templates found.</Text>
+              ) : filtered.length === 0 ? (
+                <Text fontSize="xs" color="gray.400" p={5}>
+                  No buildups found for unit &quot;{rowUnit}&quot;. Add a unit variant in the canvas editor or change the line item unit.
+                </Text>
+              ) : (
+                <Box borderColor="gray.100">
+                  {filtered.map((t, i) => (
+                    <TemplateCard
+                      key={t.id}
+                      doc={t}
+                      index={i}
+                      cardH={96}
+                      previewW={120}
+                      onClick={() => { onAttach(t); setOpen(false); }}
+                    />
+                  ))}
+                </Box>
+              )}
+            </Box>
           </Box>
         </Box>
       )}
@@ -119,18 +128,33 @@ interface LineItemDetailProps {
   tenderId: string;
   onUpdate: (rowId: string, data: Record<string, unknown>) => void;
   onClose: () => void;
+  tenderFiles?: TenderFileItem[];
+  activeDocFile?: string;
+  activeDocPage?: number;
+  onDocRefAdd?: (rowId: string, enrichedFileId: string, page: number, description?: string) => Promise<void>;
+  onDocRefRemove?: (rowId: string, docRefId: string) => Promise<void>;
+  onDocRefUpdate?: (rowId: string, docRefId: string, description: string | null) => Promise<void>;
+  onDocRefClick?: (enrichedFileId: string, page: number) => void;
 }
 
 const LineItemDetail: React.FC<LineItemDetailProps> = ({
   row,
   defaultMarkupPct,
-  sheetId: _sheetId,
+  sheetId,
   tenderId,
   onUpdate,
   onClose,
+  tenderFiles,
+  activeDocFile,
+  activeDocPage,
+  onDocRefAdd,
+  onDocRefRemove,
+  onDocRefUpdate,
+  onDocRefClick,
 }) => {
   const { state: { system } } = useSystem();
   const router = useRouter();
+  const toast = useToast();
 
   const [itemNumber, setItemNumber] = useState(row.itemNumber ?? "");
   const [description, setDescription] = useState(row.description ?? "");
@@ -195,6 +219,8 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
   );
   const [snapResult, setSnapResult] = useState<{ unitPrice: number; breakdown: { id: string; label: string; value: number }[] } | null>(null);
   const [buildupExpanded, setBuildupExpanded] = useState(true);
+  const [extraUnitPrice, setExtraUnitPrice] = useState(row.extraUnitPrice != null ? String(row.extraUnitPrice) : "");
+  const [extraUnitPriceMemo, setExtraUnitPriceMemo] = useState(row.extraUnitPriceMemo ?? "");
 
   useEffect(() => {
     setSnapParams(parsedSnapshot?.params ?? {});
@@ -203,6 +229,8 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
     setSnapParamNotes(parsedSnapshot?.paramNotes ?? {});
     setSnapResult(null);
     setBuildupExpanded(true);
+    setExtraUnitPrice(row.extraUnitPrice != null ? String(row.extraUnitPrice) : "");
+    setExtraUnitPriceMemo(row.extraUnitPriceMemo ?? "");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [row._id]);
 
@@ -677,12 +705,22 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
                         </Text>
                       </Box>
                     ))}
+                    {(row.extraUnitPrice ?? 0) !== 0 && (
+                      <Box px={3} py={1.5} borderRight="1px solid" borderColor="gray.100">
+                        <Text fontSize="9px" fontWeight="medium" color="gray.400" textTransform="uppercase" letterSpacing="wide">
+                          {row.extraUnitPriceMemo || "Extra"}
+                        </Text>
+                        <Text fontSize="xs" fontWeight="semibold" color="gray.600">
+                          +${(row.extraUnitPrice ?? 0).toFixed(2)}
+                        </Text>
+                      </Box>
+                    )}
                     <Box px={3} py={1.5} minW="80px" bg="orange.50" ml="auto">
                       <Text fontSize="9px" fontWeight="medium" color="orange.400" textTransform="uppercase" letterSpacing="wide">
                         Unit Price
                       </Text>
                       <Text fontSize="xs" fontWeight="bold" color="orange.700">
-                        ${(snapResult?.unitPrice ?? row.unitPrice ?? 0).toFixed(2)}
+                        ${((snapResult?.unitPrice ?? row.unitPrice ?? 0) + (row.extraUnitPrice ?? 0)).toFixed(2)}
                       </Text>
                     </Box>
                   </Flex>
@@ -711,6 +749,46 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
                   />
                 </Box>
               )}
+
+              {/* Extra unit price */}
+              <Box borderTop="1px solid" borderColor="gray.100" px={1} pt={4} pb={5}>
+                <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={3}>
+                  Additional Cost
+                </Text>
+                <Grid templateColumns="140px 1fr" gap={3}>
+                  <FormControl>
+                    <FormLabel fontSize="xs" color="gray.500" fontWeight="medium" mb={1}>Extra $/unit</FormLabel>
+                    <InputGroup size="sm">
+                      <InputLeftAddon bg="gray.100" color="gray.500" borderColor="gray.200" fontSize="xs" px={2}>+$</InputLeftAddon>
+                      <Input
+                        value={extraUnitPrice}
+                        onChange={(e) => setExtraUnitPrice(e.target.value)}
+                        onBlur={() => {
+                          const n = parseFloat(extraUnitPrice);
+                          onUpdate(row._id, { extraUnitPrice: isNaN(n) ? null : n });
+                        }}
+                        placeholder="0.00"
+                        bg="gray.50"
+                        borderColor="gray.200"
+                        _focus={{ bg: "white", borderColor: "orange.400", boxShadow: "0 0 0 1px #fb923c" }}
+                      />
+                    </InputGroup>
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel fontSize="xs" color="gray.500" fontWeight="medium" mb={1}>Memo</FormLabel>
+                    <Input
+                      size="sm"
+                      value={extraUnitPriceMemo}
+                      onChange={(e) => setExtraUnitPriceMemo(e.target.value)}
+                      onBlur={() => onUpdate(row._id, { extraUnitPriceMemo: extraUnitPriceMemo || null })}
+                      placeholder="Subcontractor, haul-off, etc."
+                      bg="gray.50"
+                      borderColor="gray.200"
+                      _focus={{ bg: "white", borderColor: "orange.400", boxShadow: "0 0 0 1px #fb923c" }}
+                    />
+                  </FormControl>
+                </Grid>
+              </Box>
             </Box>
           ) : (
             <Flex align="center" justify="space-between" py={4}>
@@ -728,6 +806,121 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
             </Flex>
           )}
         </Box>
+
+        {/* ── Spec References ── */}
+        {onDocRefAdd && (
+          <Box borderTop="1px solid" borderColor="gray.100" pt={4} pb={5}>
+            <Flex align="center" justify="space-between" mb={3}>
+              <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wider">
+                Spec References
+              </Text>
+              {activeDocFile && activeDocPage != null && (() => {
+                const alreadyAttached = (row.docRefs ?? []).some(
+                  (r) => r.enrichedFileId === activeDocFile && r.page === activeDocPage
+                );
+                return (
+                  <Button
+                    size="xs"
+                    colorScheme={alreadyAttached ? "gray" : "blue"}
+                    variant="outline"
+                    isDisabled={alreadyAttached}
+                    onClick={() => {
+                      if (alreadyAttached) {
+                        toast({
+                          title: "Already attached",
+                          description: `p.${activeDocPage} is already linked to this item.`,
+                          status: "info",
+                          duration: 2500,
+                          isClosable: true,
+                        });
+                        return;
+                      }
+                      onDocRefAdd(row._id, activeDocFile, activeDocPage);
+                    }}
+                  >
+                    {alreadyAttached ? "Already attached" : `+ Use current page (p.${activeDocPage})`}
+                  </Button>
+                );
+              })()}
+            </Flex>
+
+            {(row.docRefs ?? []).length === 0 ? (
+              <Text fontSize="xs" color="gray.400">
+                No references attached. Navigate to a page in the Documents panel, then click &quot;Use current page&quot;.
+              </Text>
+            ) : (
+              <Flex direction="column" gap={2}>
+                {(row.docRefs ?? []).map((ref) => {
+                  const file = tenderFiles?.find((f) => f._id === ref.enrichedFileId);
+                  const fileName = file?.file.description ?? ref.enrichedFileId.slice(-6);
+                  return (
+                    <Box
+                      key={ref._id}
+                      border="1px solid"
+                      borderColor="gray.200"
+                      rounded="md"
+                      px={3}
+                      py={2}
+                      bg="gray.50"
+                    >
+                      <Flex align="center" gap={2} mb={ref.description != null ? 1.5 : 0}>
+                        <Text
+                          fontSize="xs"
+                          color="blue.600"
+                          fontWeight="medium"
+                          flex={1}
+                          minW={0}
+                          isTruncated
+                          cursor="pointer"
+                          _hover={{ textDecoration: "underline" }}
+                          onClick={() => onDocRefClick?.(ref.enrichedFileId, ref.page)}
+                          title={fileName}
+                        >
+                          {fileName}
+                        </Text>
+                        <Text fontSize="xs" color="gray.500" flexShrink={0}>
+                          p.{ref.page}
+                        </Text>
+                        <IconButton
+                          aria-label="Open page"
+                          icon={<FiExternalLink size={11} />}
+                          size="xs"
+                          variant="ghost"
+                          color="gray.400"
+                          _hover={{ color: "blue.500" }}
+                          onClick={() => onDocRefClick?.(ref.enrichedFileId, ref.page)}
+                        />
+                        <IconButton
+                          aria-label="Remove reference"
+                          icon={<FiTrash2 size={11} />}
+                          size="xs"
+                          variant="ghost"
+                          color="gray.400"
+                          _hover={{ color: "red.500", bg: "red.50" }}
+                          onClick={() => onDocRefRemove?.(row._id, ref._id)}
+                        />
+                      </Flex>
+                      <Input
+                        size="xs"
+                        placeholder="Add description (optional)…"
+                        defaultValue={ref.description ?? ""}
+                        onBlur={(e) => {
+                          const val = e.target.value.trim() || null;
+                          if (val !== (ref.description ?? null)) {
+                            onDocRefUpdate?.(row._id, ref._id, val);
+                          }
+                        }}
+                        bg="white"
+                        borderColor="gray.200"
+                        _focus={{ borderColor: "orange.400", boxShadow: "0 0 0 1px #fb923c" }}
+                      />
+                    </Box>
+                  );
+                })}
+              </Flex>
+            )}
+          </Box>
+        )}
 
       </Box>
     </Flex>

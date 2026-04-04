@@ -21,13 +21,15 @@ function nodeSize(n: Node): { w: number; h: number } {
 export function dagreLayout(nodes: Node[], edges: Edge[]): Node[] {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: "LR", ranksep: 90, nodesep: 40 });
+  g.setGraph({ rankdir: "LR", ranksep: 160, nodesep: 25 });
 
   nodes.forEach((n) => {
     const { w, h } = nodeSize(n);
     g.setNode(n.id, { width: w, height: h });
   });
-  edges.forEach((e) => g.setEdge(e.source, e.target));
+  // Pass through weight if present on the edge (higher weight = dagre tries harder
+  // to keep the two nodes vertically aligned / in adjacent ranks).
+  edges.forEach((e) => g.setEdge(e.source, e.target, { weight: (e as any).weight ?? 1 }));
 
   dagre.layout(g);
 

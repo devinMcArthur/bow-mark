@@ -8,7 +8,7 @@ import {
   Tr,
   Tooltip,
 } from "@chakra-ui/react";
-import { FiTrash2, FiMenu } from "react-icons/fi";
+import { FiTrash2, FiMenu, FiCopy } from "react-icons/fi";
 import { useSystem } from "../../contexts/System";
 import { CANONICAL_UNITS } from "../../constants/units";
 import { useSortable } from "@dnd-kit/sortable";
@@ -214,9 +214,11 @@ interface SortableRowProps {
   rowIndex: number;
   defaultMarkupPct: number;
   selectedRowId: string | null;
+  sectionIndex: number;
   onUpdate: (rowId: string, data: Record<string, unknown>) => void;
   onDelete: (rowId: string) => void;
   onSelect: (rowId: string) => void;
+  onDuplicate: (rowId: string) => void;
 }
 
 export const SortableRow: React.FC<SortableRowProps> = ({
@@ -225,9 +227,11 @@ export const SortableRow: React.FC<SortableRowProps> = ({
   rowIndex,
   defaultMarkupPct,
   selectedRowId,
+  sectionIndex,
   onUpdate,
   onDelete,
   onSelect,
+  onDuplicate,
 }) => {
   const {
     attributes,
@@ -271,11 +275,42 @@ export const SortableRow: React.FC<SortableRowProps> = ({
       row={row}
       defaultMarkupPct={defaultMarkupPct}
       isSelected={row._id === selectedRowId}
+      sectionIndex={sectionIndex}
       onDelete={onDelete}
       onSelect={onSelect}
+      onDuplicate={onDuplicate}
       nodeRef={setNodeRef}
       style={style}
       dragHandleProps={{ ...attributes, ...listeners }}
+    />
+  );
+};
+
+// ─── Confirm delete button ────────────────────────────────────────────────────
+
+const ConfirmDeleteButton: React.FC<{ onConfirm: () => void; dark?: boolean }> = ({ onConfirm, dark }) => {
+  const [armed, setArmed] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (armed) {
+      if (timer.current) clearTimeout(timer.current);
+      onConfirm();
+    } else {
+      setArmed(true);
+      timer.current = setTimeout(() => setArmed(false), 2000);
+    }
+  };
+
+  return (
+    <IconButton
+      aria-label={armed ? "Confirm delete" : "Delete row"}
+      icon={<FiTrash2 size={12} />}
+      size="xs"
+      variant={armed ? "solid" : "ghost"}
+      colorScheme={armed ? "red" : dark ? "whiteAlpha" : "red"}
+      onClick={handleClick}
     />
   );
 };
@@ -347,7 +382,7 @@ const HeaderRow: React.FC<HeaderRowProps> = ({
           />
         )}
       </Td>
-      <Td colSpan={5}>
+      <Td colSpan={6}>
         <EditableCell
           value={row.description}
           placeholder="Description"
@@ -362,14 +397,7 @@ const HeaderRow: React.FC<HeaderRowProps> = ({
         </Text>
       </Td>
       <Td>
-        <IconButton
-          aria-label="Delete row"
-          icon={<FiTrash2 />}
-          size="xs"
-          variant="ghost"
-          colorScheme={isSchedule ? "whiteAlpha" : "red"}
-          onClick={() => onDelete(row._id)}
-        />
+        <ConfirmDeleteButton onConfirm={() => onDelete(row._id)} dark={isSchedule} />
       </Td>
     </Tr>
   );
@@ -381,8 +409,10 @@ interface ItemRowProps {
   row: TenderPricingRow;
   defaultMarkupPct: number;
   isSelected: boolean;
+  sectionIndex: number;
   onDelete: (rowId: string) => void;
   onSelect: (rowId: string) => void;
+  onDuplicate: (rowId: string) => void;
   nodeRef?: (node: HTMLElement | null) => void;
   style?: React.CSSProperties;
   dragHandleProps?: Record<string, unknown>;
@@ -392,22 +422,26 @@ const ItemRow: React.FC<ItemRowProps> = ({
   row,
   defaultMarkupPct,
   isSelected,
+  sectionIndex,
   onDelete,
   onSelect,
+  onDuplicate,
   nodeRef,
   style,
   dragHandleProps,
 }) => {
-  const { effectiveMarkup, lineItemTotal } = computeRow(row, defaultMarkupPct);
+  const { effectiveMarkup, suggestedBidUP, lineItemTotal } = computeRow(row, defaultMarkupPct);
+  const costUP = (row.unitPrice ?? 0) + (row.extraUnitPrice ?? 0);
+  const stripeBg = sectionIndex % 2 === 0 ? "white" : "gray.50";
 
   return (
     <Tr
       ref={nodeRef as any}
       style={style}
-      bg={isSelected ? "blue.50" : undefined}
-      borderLeft={isSelected ? "3px solid" : "3px solid transparent"}
+      bg={isSelected ? "blue.50" : stripeBg}
+      borderLeft="3px solid"
       borderLeftColor={isSelected ? "blue.400" : "transparent"}
-      _hover={{ bg: isSelected ? "blue.50" : "gray.50" }}
+      _hover={{ bg: isSelected ? "blue.50" : "blue.50" }}
       fontSize="sm"
       cursor="pointer"
       onClick={() => onSelect(row._id)}
@@ -418,7 +452,7 @@ const ItemRow: React.FC<ItemRowProps> = ({
           {row.itemNumber || "—"}
         </Text>
       </Td>
-      <Td>
+      <Td pl={5}>
         <Text fontSize="sm" color={row.description ? "gray.800" : "gray.400"} noOfLines={1}>
           {row.description || "Untitled"}
         </Text>
@@ -434,15 +468,17 @@ const ItemRow: React.FC<ItemRowProps> = ({
         </Text>
       </Td>
       <Td isNumeric whiteSpace="nowrap">
-        <Text fontSize="sm" color={row.unitPrice != null ? "gray.800" : "gray.400"}>
-          {row.unitPrice != null ? `$${row.unitPrice.toFixed(2)}` : "—"}
+        <Text fontSize="sm" color={costUP > 0 ? "gray.800" : "gray.400"}>
+          {costUP > 0 ? `$${costUP.toFixed(2)}` : "—"}
+        </Text>
+      </Td>
+      <Td isNumeric whiteSpace="nowrap">
+        <Text fontSize="sm" fontWeight="medium" color={suggestedBidUP > 0 ? "blue.700" : "gray.400"}>
+          {suggestedBidUP > 0 ? `$${suggestedBidUP.toFixed(2)}` : "—"}
         </Text>
       </Td>
       <Td textAlign="center" whiteSpace="nowrap">
-        <Text
-          fontSize="xs"
-          color={row.markupOverride != null ? "blue.600" : "gray.400"}
-        >
+        <Text fontSize="xs" color={row.markupOverride != null ? "blue.600" : "gray.400"}>
           {formatMarkup(row.markupOverride)}
         </Text>
       </Td>
@@ -452,14 +488,15 @@ const ItemRow: React.FC<ItemRowProps> = ({
         </Text>
       </Td>
       <Td onClick={(e) => e.stopPropagation()}>
-        <IconButton
-          aria-label="Delete row"
-          icon={<FiTrash2 />}
-          size="xs"
-          variant="ghost"
-          colorScheme="red"
-          onClick={() => onDelete(row._id)}
-        />
+        <Flex gap={0.5}>
+          <IconButton
+            aria-label="Duplicate row"
+            icon={<FiCopy size={12} />}
+            size="xs" variant="ghost" colorScheme="gray"
+            onClick={() => onDuplicate(row._id)}
+          />
+          <ConfirmDeleteButton onConfirm={() => onDelete(row._id)} />
+        </Flex>
       </Td>
     </Tr>
   );

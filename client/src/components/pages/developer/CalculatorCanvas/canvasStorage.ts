@@ -92,6 +92,7 @@ export interface CanvasDocument {
   groupDefs: GroupDef[];
   controllerDefs: ControllerDef[];
   unitVariants?: UnitVariant[];
+  updatedAt?: string;
   // REMOVED: defaultInputs (defaultValue now on ParameterDef; defaultRows now on CanvasTableDef)
   // REMOVED: nodePositions (position now on each canvas def)
 }
@@ -367,6 +368,7 @@ export function fragmentToDoc(f: RateBuildupTemplateFullSnippetFragment): Canvas
     groupDefs,
     controllerDefs,
     unitVariants: (f.unitVariants ?? []).map(({ unit, activatesGroupId, conversionFormula }) => ({ unit, activatesGroupId, conversionFormula: conversionFormula ?? undefined })),
+    updatedAt: f.updatedAt ?? undefined,
   };
 }
 

@@ -158,7 +158,7 @@ export class RateBuildupTemplateSchema {
   public _id!: Types.ObjectId;
 
   @Field()
-  @prop({ required: true, trim: true })
+  @prop({ required: true, trim: true, unique: true })
   public label!: string;
 
   @Field({ nullable: true })

@@ -32,7 +32,9 @@ export function parseEdges(template: CalculatorTemplate): Edge[] {
           id: `${token}->${step.id}`,
           source: token,
           target: step.id,
-        });
+          // Bias dagre to keep the quantity node vertically centred among its consumers.
+          ...(token === "quantity" ? { weight: 3 } : {}),
+        } as any);
       }
     }
   }

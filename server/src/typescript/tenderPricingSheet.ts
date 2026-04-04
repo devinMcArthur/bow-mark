@@ -44,6 +44,12 @@ export interface ITenderCalculatorInputs {
   [key: string]: unknown;
 }
 
+export interface IDocRef {
+  enrichedFileId: string | Types.ObjectId;
+  page: number;
+  description?: string;
+}
+
 export interface ITenderPricingSheetCreate {
   tenderId: string | Types.ObjectId;
 }
@@ -62,11 +68,6 @@ export interface ITenderPricingRowUpdate {
   indentLevel?: number;
   quantity?: number;
   unit?: string;
-  subcontractorUP?: number | null;
-  truckingUP?: number;
-  materialUP?: number;
-  crewUP?: number;
-  rentalUP?: number;
   markupOverride?: number | null;
   calculatorInputsJson?: string;
   unitPrice?: number | null;
@@ -74,4 +75,6 @@ export interface ITenderPricingRowUpdate {
   calculatorType?: TenderWorkType;
   calculatorInputs?: ITenderCalculatorInputs;
   rateBuildupSnapshot?: string | null;
+  extraUnitPrice?: number | null;
+  extraUnitPriceMemo?: string | null;
 }

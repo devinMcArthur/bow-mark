@@ -1,3 +1,10 @@
+export interface DocRef {
+  _id: string;
+  enrichedFileId: string;
+  page: number;
+  description?: string | null;
+}
+
 export enum TenderPricingRowType {
   Schedule = "Schedule",
   Group = "Group",
@@ -13,17 +20,15 @@ export interface TenderPricingRow {
   indentLevel: number;
   quantity?: number | null;
   unit?: string | null;
-  subcontractorUP?: number | null;
-  truckingUP?: number | null;
-  materialUP?: number | null;
-  crewUP?: number | null;
-  rentalUP?: number | null;
   markupOverride?: number | null;
   unitPrice?: number | null;
   notes?: string | null;
   calculatorType?: string | null;
   calculatorInputsJson?: string | null;
   rateBuildupSnapshot?: string | null;
+  extraUnitPrice?: number | null;
+  extraUnitPriceMemo?: string | null;
+  docRefs?: DocRef[] | null;
 }
 
 export interface TenderPricingSheet {
