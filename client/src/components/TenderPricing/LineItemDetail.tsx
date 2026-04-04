@@ -645,7 +645,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
                     cursor="pointer"
                     role="button"
                     onClick={() => setBuildupExpanded((e) => !e)}
-                    _hover={{ "& .buildup-chevron": { color: "gray.700" } }}
+                    sx={{ "&:hover .buildup-chevron": { color: "gray.700" } }}
                   >
                     <Flex
                       className="buildup-chevron"
