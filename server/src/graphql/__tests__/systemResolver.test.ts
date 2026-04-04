@@ -216,10 +216,10 @@ describe("System Resolver", () => {
       });
     });
 
-    describe("systemUpdateUnitDefaults", () => {
+    describe("systemUpdateUnitExtras", () => {
       const mutation = `
-        mutation SystemUpdateUnitDefaults($data: [String!]!) {
-          systemUpdateUnitDefaults(data: $data) {
+        mutation SystemUpdateUnitExtras($data: [String!]!) {
+          systemUpdateUnitExtras(data: $data) {
             _id
           }
         }
