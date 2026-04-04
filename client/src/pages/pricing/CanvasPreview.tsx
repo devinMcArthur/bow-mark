@@ -98,7 +98,7 @@ interface Props {
 }
 
 const CanvasPreview: React.FC<Props> = ({ doc, width = 200, height = 110 }) => {
-  const rects = useMemo(() => collectRects(doc), [doc]);
+  const rects = useMemo(() => (doc ? collectRects(doc) : []), [doc]);
 
   const { scaleX, scaleY, offsetX, offsetY } = useMemo(() => {
     if (rects.length === 0) return { scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 };
