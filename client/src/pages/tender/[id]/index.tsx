@@ -159,11 +159,7 @@ type PanelState = "open" | "hidden" | "fullscreen";
 
 // ─── File URL helper ──────────────────────────────────────────────────────────
 
-const apiBase = (
-  typeof process !== "undefined"
-    ? (process.env.NEXT_PUBLIC_API_URL as string | undefined) ?? ""
-    : ""
-).replace("/graphql", "");
+const apiBase = "";
 
 function buildFileUrl(fileId: string, stream = false): string {
   const token =

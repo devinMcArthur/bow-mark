@@ -82,55 +82,34 @@ const vehicleIssue = (vehicleIssueId: string) => {
 };
 
 const server_dailyReportExcelDownload = (dailyReportId: string) => {
-  return `${(process.env.NEXT_PUBLIC_API_URL as string).replace(
-    "/graphql",
-    ""
-  )}/file/daily-report/${dailyReportId}`;
+  return `/file/daily-report/${dailyReportId}`;
 };
 
 const server_crewDailyReportMonthExcelDownload = (
   crewId: string,
   dateString: string
 ) => {
-  return `${(process.env.NEXT_PUBLIC_API_URL as string).replace(
-    "/graphql",
-    ""
-  )}/file/crew/${crewId}?start_of_month=${dateString}`;
+  return `/file/crew/${crewId}?start_of_month=${dateString}`;
 };
 
 const server_vehiclesExcelDownload = () => {
-  return `${(process.env.NEXT_PUBLIC_API_URL as string).replace(
-    "/graphql",
-    ""
-  )}/file/vehicles`;
+  return `/file/vehicles`;
 };
 
 const server_employeesExcelDownload = () => {
-  return `${(process.env.NEXT_PUBLIC_API_URL as string).replace(
-    "/graphql",
-    ""
-  )}/file/employees`;
+  return `/file/employees`;
 };
 
 const server_operatorDailyReportDownloadPDF = (operatorDailyReportId: string) => {
-  return `${(process.env.NEXT_PUBLIC_API_URL as string).replace(
-    "/graphql",
-    ""
-  )}/file/operator-daily-report/${operatorDailyReportId}/pdf`;
+  return `/file/operator-daily-report/${operatorDailyReportId}/pdf`;
 }
 
 const server_companyMaterialReportDownload = (companyId: string, year: number) => {
-  return `${(process.env.NEXT_PUBLIC_API_URL as string).replace(
-    "/graphql",
-    ""
-  )}/file/company/${companyId}/material-report/${year}`;
+  return `/file/company/${companyId}/material-report/${year}`;
 }
 
 const server_companyInvoiceReportDownload = (companyId: string, year: number) => {
-  return `${(process.env.NEXT_PUBLIC_API_URL as string).replace(
-    "/graphql",
-    ""
-  )}/file/company/${companyId}/invoice-report/${year}`;
+  return `/file/company/${companyId}/invoice-report/${year}`;
 }
 
 const createLink = {

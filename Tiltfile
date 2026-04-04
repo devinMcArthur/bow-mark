@@ -357,6 +357,21 @@ k8s_resource(
 )
 
 # ============================================================================
+# LAN Access (ingress on all interfaces)
+# ============================================================================
+
+# Port-forward the nginx ingress controller to 0.0.0.0:8000 so the app is
+# reachable from other devices on the local network. All traffic (client,
+# /graphql, /file) goes through a single port — no hardcoded localhost URLs.
+local_resource(
+    'lan-access',
+    serve_cmd='kubectl port-forward -n ingress-nginx service/ingress-nginx-controller 80:80 --address=0.0.0.0',
+    resource_deps=['client-deployment'],
+    labels=['utilities'],
+    links=['http://localhost', 'http://bowmark.local'],
+)
+
+# ============================================================================
 # Additional Port Forwards
 # ============================================================================
 
