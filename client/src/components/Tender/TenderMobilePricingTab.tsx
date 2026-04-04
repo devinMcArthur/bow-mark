@@ -164,9 +164,9 @@ const TenderMobilePricingTab: React.FC<TenderMobilePricingTabProps> = ({
       const res = await updateRow({
         variables: { sheetId: sheet._id, rowId, data },
       });
-      const updated: TenderPricingSheet = res.data.tenderPricingRowUpdate;
+      const updated: TenderPricingSheet | undefined = res.data?.tenderPricingRowUpdate;
+      if (!updated) return;
       onSheetUpdate(updated);
-      // Keep selectedRow in sync with the updated sheet
       const updatedRow = updated.rows.find((r) => r._id === rowId);
       if (updatedRow) setSelectedRow(updatedRow);
     },
