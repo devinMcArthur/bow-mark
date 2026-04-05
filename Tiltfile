@@ -259,7 +259,7 @@ local_resource(
 
             # Check if database already has data (skip if so)
             ROW_COUNT=$(kubectl exec "$PG_POD" -- psql -U bowmark -d "$DB_NAME" -tAc \
-                "SELECT COALESCE(SUM(n_live_tup), 0) FROM pg_stat_user_tables" 2>/dev/null || echo "0")
+                "SELECT COALESCE(SUM(n_live_tup), 0) FROM pg_stat_user_tables WHERE relname != 'schema_migrations'" 2>/dev/null || echo "0")
 
             if [ "$ROW_COUNT" -gt 0 ]; then
                 echo "PostgreSQL $APP_TYPE already has data ($ROW_COUNT rows) - skipping restore"

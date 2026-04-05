@@ -6,6 +6,7 @@ import {
 } from "../../generated/graphql";
 import TextDropdown, { IOptions } from "../Common/forms/TextDropdown";
 import { ITextField } from "../Common/forms/TextField";
+import { BoxProps } from "@chakra-ui/react";
 
 interface IExtraData {
   type: "employee" | "vehicle" | "jobsite" | "dailyReport" | "crew" | "company";
@@ -18,6 +19,7 @@ interface IGeneralSearch extends Omit<ITextField, "onChange"> {
   ) => void;
   onChange?: (value: string) => void;
   handleSubmit?: (string: string) => void;
+  dropdownProps?: BoxProps;
 }
 
 const GeneralSearch = ({
