@@ -181,7 +181,7 @@ const FileCard = ({
   const [expanded, setExpanded] = React.useState(false);
   const hasSummary = !!file.summary;
 
-  const serverBase = (process.env.NEXT_PUBLIC_API_URL as string).replace("/graphql", "");
+  const serverBase = "";
   const openInNewTab = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     const token = typeof window !== "undefined" ? localStorage.getItem(localStorageTokenKey) : null;

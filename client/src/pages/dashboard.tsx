@@ -1,14 +1,13 @@
 import React from "react";
 import {
-  Box, Button, ButtonGroup, Flex,
-  HStack, Input, Menu, MenuButton, MenuItem, MenuList,
-  Tab, TabList, TabPanel,
-  TabPanels, Tabs, Text,
+  Box, Button, Flex, Input, Menu, MenuButton, MenuItem, MenuList,
+  Popover, PopoverArrow, PopoverBody, PopoverContent, PopoverTrigger,
+  Tab, TabList, TabPanel, TabPanels, Tabs, Text,
 } from "@chakra-ui/react";
 import { NextPage } from "next";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
-import { FiChevronDown } from "react-icons/fi";
+import { FiCalendar, FiChevronDown } from "react-icons/fi";
 import Permission from "../components/Common/Permission";
 import { UserRoles } from "../generated/graphql";
 import { navbarHeight } from "../constants/styles";
@@ -28,10 +27,9 @@ const Productivity = dynamic<{ startDate: string; endDate: string }>(
 
 const toDateInput = (d: Date) => d.toISOString().slice(0, 10);
 
-type ActivePreset = string | null; // year string (e.g. "2026")
-
 const THIS_YEAR = new Date().getFullYear();
-const PAST_YEARS = Array.from({ length: 5 }, (_, i) => THIS_YEAR - 1 - i);
+// Past years shown in the dropdown — grows as the app ages
+const PAST_YEARS = Array.from({ length: THIS_YEAR - 2020 }, (_, i) => THIS_YEAR - 1 - i);
 
 const getYearRange = (year: number) => {
   const today = new Date();
@@ -41,14 +39,20 @@ const getYearRange = (year: number) => {
   };
 };
 
-const detectPreset = (start: string, end: string): ActivePreset => {
-  const thisYearRange = getYearRange(THIS_YEAR);
-  if (start === thisYearRange.startDate && end === thisYearRange.endDate) return String(THIS_YEAR);
-  for (const y of PAST_YEARS) {
+const detectPreset = (start: string, end: string): number | null => {
+  for (const y of [THIS_YEAR, ...PAST_YEARS]) {
     const r = getYearRange(y);
-    if (start === r.startDate && end === r.endDate) return String(y);
+    if (start === r.startDate && end === r.endDate) return y;
   }
   return null;
+};
+
+const formatDateRange = (start: string, end: string) => {
+  const fmt = (s: string) => new Date(s + "T00:00:00").toLocaleDateString("en-CA", { month: "short", day: "numeric" });
+  const startYear = new Date(start + "T00:00:00").getFullYear();
+  const endYear = new Date(end + "T00:00:00").getFullYear();
+  if (startYear === endYear) return `${fmt(start)} – ${fmt(end)}, ${startYear}`;
+  return `${fmt(start)}, ${startYear} – ${fmt(end)}, ${endYear}`;
 };
 
 const getDefaultRange = () => {
@@ -65,9 +69,11 @@ const DashboardPage: NextPage = () => {
   const [startDate, setStartDate] = React.useState(defaults.startDate);
   const [endDate, setEndDate] = React.useState(defaults.endDate);
   const [tabIndex, setTabIndex] = React.useState(0);
-  const [activePreset, setActivePreset] = React.useState<ActivePreset>(String(THIS_YEAR));
+  const [activePreset, setActivePreset] = React.useState<number | null>(THIS_YEAR);
+  // Staging state inside popover — only committed on Apply
+  const [draftStart, setDraftStart] = React.useState(defaults.startDate);
+  const [draftEnd, setDraftEnd] = React.useState(defaults.endDate);
 
-  // Hydrate state from URL query params once router is ready
   React.useEffect(() => {
     if (!router.isReady) return;
     const { startDate: qs, endDate: qe, tab: qt } = router.query;
@@ -75,6 +81,8 @@ const DashboardPage: NextPage = () => {
     const resolvedEnd = typeof qe === "string" ? qe : toDateInput(new Date());
     setStartDate(resolvedStart);
     setEndDate(resolvedEnd);
+    setDraftStart(resolvedStart);
+    setDraftEnd(resolvedEnd);
     setActivePreset(detectPreset(resolvedStart, resolvedEnd));
     if (typeof qt === "string") {
       const idx = parseInt(qt, 10);
@@ -82,9 +90,6 @@ const DashboardPage: NextPage = () => {
     }
   }, [router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Keep URL in sync with current state.
-  // endDate is omitted when it equals today so that revisiting the URL
-  // on a future day automatically uses the new current date.
   React.useEffect(() => {
     if (!router.isReady) return;
     const query: Record<string, string | number> = { startDate, tab: tabIndex };
@@ -96,66 +101,184 @@ const DashboardPage: NextPage = () => {
     const range = getYearRange(year);
     setStartDate(range.startDate);
     setEndDate(range.endDate);
-    setActivePreset(String(year));
+    setActivePreset(year);
   };
+
+  const isCustom = activePreset === null;
+
+  const isPastYear = activePreset !== null && activePreset !== THIS_YEAR;
+
+  const dateFilter = (
+    <Flex align="center" gap={1.5} wrap="wrap">
+      {/* This Year */}
+      <Button
+        size="sm"
+        variant={activePreset === THIS_YEAR ? "solid" : "ghost"}
+        colorScheme={activePreset === THIS_YEAR ? "blue" : "gray"}
+        fontWeight={activePreset === THIS_YEAR ? "600" : "400"}
+        color={activePreset === THIS_YEAR ? undefined : "gray.600"}
+        onClick={() => setYear(THIS_YEAR)}
+        px={3} h="28px" fontSize="sm" borderRadius="full"
+      >
+        This Year
+      </Button>
+
+      {/* Past years dropdown */}
+      <Menu>
+        <MenuButton
+          as={Button}
+          size="sm"
+          variant={isPastYear ? "solid" : "ghost"}
+          colorScheme={isPastYear ? "blue" : "gray"}
+          fontWeight={isPastYear ? "600" : "400"}
+          color={isPastYear ? undefined : "gray.600"}
+          rightIcon={<FiChevronDown size={12} />}
+          px={3} h="28px" fontSize="sm" borderRadius="full"
+        >
+          {isPastYear ? activePreset : "Past Year"}
+        </MenuButton>
+        <MenuList minW="120px" maxH="240px" overflowY="auto">
+          {PAST_YEARS.map((y) => (
+            <MenuItem key={y} fontSize="sm" onClick={() => setYear(y)}>
+              {y}
+            </MenuItem>
+          ))}
+        </MenuList>
+      </Menu>
+
+      <Popover placement="bottom-end" onOpen={() => { setDraftStart(startDate); setDraftEnd(endDate); }}>
+        {({ onClose }) => (
+          <>
+            <PopoverTrigger>
+              <Button
+                size="sm"
+                variant={isCustom ? "solid" : "ghost"}
+                colorScheme={isCustom ? "blue" : "gray"}
+                fontWeight={isCustom ? "600" : "400"}
+                color={isCustom ? undefined : "gray.600"}
+                leftIcon={<FiCalendar size={13} />}
+                px={3}
+                h="28px"
+                fontSize="sm"
+                borderRadius="full"
+              >
+                {isCustom ? formatDateRange(startDate, endDate) : "Custom"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent w="260px" shadow="lg">
+              <PopoverArrow />
+              <PopoverBody p={4}>
+                <Flex direction="column" gap={3}>
+                  <Flex direction="column" gap={1}>
+                    <Text fontSize="xs" fontWeight="600" color="gray.500" textTransform="uppercase" letterSpacing="wide">
+                      From
+                    </Text>
+                    <Input
+                      type="date"
+                      size="sm"
+                      value={draftStart}
+                      onChange={e => setDraftStart(e.target.value)}
+                    />
+                  </Flex>
+                  <Flex direction="column" gap={1}>
+                    <Text fontSize="xs" fontWeight="600" color="gray.500" textTransform="uppercase" letterSpacing="wide">
+                      To
+                    </Text>
+                    <Input
+                      type="date"
+                      size="sm"
+                      value={draftEnd}
+                      onChange={e => setDraftEnd(e.target.value)}
+                    />
+                  </Flex>
+                  <Flex gap={2} justify="flex-end" pt={1}>
+                    <Button size="sm" variant="ghost" onClick={onClose}>Cancel</Button>
+                    <Button
+                      size="sm"
+                      colorScheme="blue"
+                      onClick={() => {
+                        setStartDate(draftStart);
+                        setEndDate(draftEnd);
+                        setActivePreset(null);
+                        onClose();
+                      }}
+                    >
+                      Apply
+                    </Button>
+                  </Flex>
+                </Flex>
+              </PopoverBody>
+            </PopoverContent>
+          </>
+        )}
+      </Popover>
+    </Flex>
+  );
 
   return (
     <Permission minRole={UserRoles.ProjectManager} type={null} showError>
-      <Box p={4} h={`calc(100vh - ${navbarHeight})`} w="100%" display="flex" flexDirection="column" overflow="hidden">
-        <Tabs variant="enclosed" index={tabIndex} onChange={setTabIndex}
-          display="flex" flexDirection="column" flex={1} minH={0} w="100%">
-          {/* Tabs and date controls on one line, sharing the bottom border */}
+      <Box
+        px={{ base: 3, md: 5 }}
+        pt={{ base: 3, md: 4 }}
+        h={`calc(100vh - ${navbarHeight})`}
+        w="100%"
+        display="flex"
+        flexDirection="column"
+        overflow="hidden"
+      >
+        <Tabs
+          variant="line"
+          index={tabIndex}
+          onChange={setTabIndex}
+          display="flex"
+          flexDirection="column"
+          flex={1}
+          minH={0}
+          w="100%"
+        >
+          {/* Mobile: date filter above tabs */}
+          <Box display={{ base: "block", md: "none" }} mb={3} flexShrink={0}>
+            {dateFilter}
+          </Box>
+
           <Flex
-            align="flex-end"
+            align="center"
             justify="space-between"
-            borderBottom="1px solid"
-            borderColor="inherit"
+            borderBottom="2px solid"
+            borderColor="gray.100"
             flexShrink={0}
-            flexWrap="wrap"
-            gap={2}
+            gap={4}
           >
-            <TabList borderBottom="none">
-              <Tab>Overview</Tab>
-              <Tab>Financial</Tab>
-              <Tab>Productivity</Tab>
-            </TabList>
-            <HStack spacing={2} wrap="wrap" pb="1px">
-              <ButtonGroup size="sm" isAttached variant="outline">
-                <Button
-                  onClick={() => setYear(THIS_YEAR)}
-                  colorScheme={activePreset === String(THIS_YEAR) ? "blue" : "gray"}
-                  variant={activePreset === String(THIS_YEAR) ? "solid" : "outline"}
+            <TabList border="none" gap={1}>
+              {["Overview", "Financial", "Productivity"].map((label) => (
+                <Tab
+                  key={label}
+                  px={3}
+                  pb={3}
+                  pt={1}
+                  fontSize="sm"
+                  fontWeight="500"
+                  color="gray.500"
+                  borderBottom="2px solid transparent"
+                  mb="-2px"
+                  _selected={{
+                    color: "blue.600",
+                    borderColor: "blue.500",
+                    fontWeight: "600",
+                  }}
+                  _hover={{ color: "gray.700" }}
                 >
-                  This Year
-                </Button>
-                <Menu>
-                  <MenuButton
-                    as={Button}
-                    rightIcon={<FiChevronDown />}
-                    colorScheme={PAST_YEARS.some(y => activePreset === String(y)) ? "blue" : "gray"}
-                    variant={PAST_YEARS.some(y => activePreset === String(y)) ? "solid" : "outline"}
-                  >
-                    {PAST_YEARS.some(y => activePreset === String(y)) ? activePreset : THIS_YEAR - 1}
-                  </MenuButton>
-                  <MenuList minW="0" w="100px">
-                    {PAST_YEARS.map((y) => (
-                      <MenuItem key={y} fontSize="sm" onClick={() => setYear(y)}>
-                        {y}
-                      </MenuItem>
-                    ))}
-                  </MenuList>
-                </Menu>
-              </ButtonGroup>
-              <HStack spacing={1}>
-                <Text fontSize="sm" color="gray.500">From</Text>
-                <Input type="date" size="sm" w="150px" value={startDate}
-                  onChange={e => { setStartDate(e.target.value); setActivePreset(null); }} />
-                <Text fontSize="sm" color="gray.500">to</Text>
-                <Input type="date" size="sm" w="150px" value={endDate}
-                  onChange={e => { setEndDate(e.target.value); setActivePreset(null); }} />
-              </HStack>
-            </HStack>
+                  {label}
+                </Tab>
+              ))}
+            </TabList>
+
+            {/* Desktop: date filter right of tabs */}
+            <Box display={{ base: "none", md: "block" }} pb={2}>
+              {dateFilter}
+            </Box>
           </Flex>
+
           <TabPanels flex={1} minH={0} overflowY="auto" w="100%">
             <TabPanel w="100%" p={0} pt={4}>
               <Overview startDate={startDate} endDate={endDate} />

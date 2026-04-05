@@ -68,7 +68,7 @@ const IndividualEmployeeHoursCard = ({
             <GridItem colSpan={[4, 4, 4, 2]}>
               <FormComponents.EndTime />
             </GridItem>
-            <GridItem colspan={[1, 1, 1, 1]}>
+            <GridItem colSpan={[1, 1, 1, 1]}>
               <IconButton
                 py="auto"
                 type="submit"

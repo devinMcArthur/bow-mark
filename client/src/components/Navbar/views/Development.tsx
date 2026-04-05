@@ -1,4 +1,4 @@
-import { Menu, MenuButton, MenuList } from "@chakra-ui/react";
+import { Menu, MenuButton, MenuList, Button } from "@chakra-ui/react";
 import React from "react";
 import { useAuth } from "../../../contexts/Auth";
 import { CurrentUserDocument } from "../../../generated/graphql";
@@ -16,7 +16,19 @@ const Development = () => {
     if (user && isDevelopment) {
       return (
         <Menu>
-          <MenuButton>Dev</MenuButton>
+          <MenuButton
+            as={Button}
+            size="xs"
+            variant="ghost"
+            color="yellow.300"
+            fontWeight="600"
+            letterSpacing="wider"
+            fontSize="10px"
+            _hover={{ bg: "whiteAlpha.100" }}
+            _active={{ bg: "whiteAlpha.200" }}
+          >
+            DEV
+          </MenuButton>
           <MenuList p={2}>
             <UserUpdateRole
               user={user}

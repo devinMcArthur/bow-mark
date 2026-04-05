@@ -55,7 +55,6 @@ const JobsiteMasterReportExcelGenerate = () => {
     if (data?.jobsiteMasterExcelReportByDate) {
       return (
         <Link
-          passHref
           href={data.jobsiteMasterExcelReportByDate}
           download={`Master-Costing-${dayjs(startEnd?.startTime).format(
             "MMM-D-YY"

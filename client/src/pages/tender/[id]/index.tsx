@@ -29,6 +29,7 @@ import { UserRoles } from "../../../generated/graphql";
 import { navbarHeight } from "../../../constants/styles";
 import { localStorageTokenKey } from "../../../contexts/Auth";
 import ChatDrawer from "../../../components/Chat/ChatDrawer";
+import TenderMobileLayout from "../../../components/Tender/TenderMobileLayout";
 
 // Lazy-load PdfViewer to avoid SSR issues with react-pdf
 const PdfViewer = dynamic(
@@ -60,6 +61,12 @@ const SHEET_QUERY = gql`
         rateBuildupSnapshot
         extraUnitPrice
         extraUnitPriceMemo
+        docRefs {
+          _id
+          enrichedFileId
+          page
+          description
+        }
       }
     }
   }
@@ -159,11 +166,7 @@ type PanelState = "open" | "hidden" | "fullscreen";
 
 // ─── File URL helper ──────────────────────────────────────────────────────────
 
-const apiBase = (
-  typeof process !== "undefined"
-    ? (process.env.NEXT_PUBLIC_API_URL as string | undefined) ?? ""
-    : ""
-).replace("/graphql", "");
+const apiBase = "";
 
 function buildFileUrl(fileId: string, stream = false): string {
   const token =
@@ -276,6 +279,13 @@ const TenderDetailPage = () => {
   const [selectedFile, setSelectedFile] = useState<TenderFileItem | null>(null);
   const [selectedFilePage, setSelectedFilePage] = useState<number>(1);
   const isDraggingPanel = useRef(false);
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // ── URL param helpers for docFile / docPage ────────────────────────────��─────
   const setDocUrlParams = useCallback((fileId: string | null, page: number | null) => {
@@ -434,6 +444,21 @@ const TenderDetailPage = () => {
 
   return (
     <Permission minRole={UserRoles.ProjectManager} type={null} showError>
+      {isMobile ? (
+        !tender ? (
+          <Flex h={`calc(100vh - ${navbarHeight})`} align="center" justify="center">
+            <Spinner />
+          </Flex>
+        ) : (
+          <TenderMobileLayout
+            tender={tender}
+            sheet={sheet}
+            onSheetUpdate={setSheet}
+            tenderId={tenderId}
+            onRefetch={() => refetchTender()}
+          />
+        )
+      ) : (
       <Flex
         direction="column"
         h={`calc(100vh - ${navbarHeight})`}
@@ -686,6 +711,7 @@ const TenderDetailPage = () => {
           }}
         />
       </Flex>
+      )}
     </Permission>
   );
 };

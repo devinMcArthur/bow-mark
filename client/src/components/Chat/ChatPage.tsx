@@ -351,7 +351,7 @@ const ChatPage = ({
     }
   }, [input]);
 
-  const serverBase = (process.env.NEXT_PUBLIC_API_URL as string).replace("/graphql", "");
+  const serverBase = (process.env.NEXT_PUBLIC_API_URL ?? "").replace("/graphql", "");
   // Base path without query string — used for per-conversation endpoints (/id, /title, etc.)
   const conversationsBase = conversationsEndpoint.split("?")[0];
   const getToken = () =>

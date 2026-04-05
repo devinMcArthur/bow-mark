@@ -4,7 +4,7 @@ import { useAuth } from "../../../contexts/Auth";
 import createLink from "../../../utils/createLink";
 import GeneralSearch from "../../Search/GeneralSearch";
 
-const NavbarSearch = () => {
+const NavbarSearch = ({ autoFocus }: { autoFocus?: boolean }) => {
   const router = useRouter();
 
   const {
@@ -12,49 +12,49 @@ const NavbarSearch = () => {
   } = useAuth();
 
   return (
-    <Box p="auto" w={["50%", "50%"]} mx={2}>
+    <Box>
       {user && (
         <GeneralSearch
-          mt={1}
           placeholder="Search . . ."
+          autoFocus={autoFocus}
           handleSubmit={(value) => {
             router.push(`/search?search_string=${value}`);
           }}
           itemSelected={(value, extraData) => {
-            if (!extraData) {
-              // eslint-disable-next-line no-console
-              console.warn("Internal error: no extra data found");
-              return;
-            }
-
+            if (!extraData) return;
             switch (extraData.type) {
-              case "employee": {
+              case "employee":
                 router.push(createLink.employee(value.value));
                 break;
-              }
-              case "vehicle": {
+              case "vehicle":
                 router.push(createLink.vehicle(value.value));
                 break;
-              }
-              case "jobsite": {
+              case "jobsite":
                 router.push(createLink.jobsite(value.value));
                 break;
-              }
-              case "dailyReport": {
+              case "dailyReport":
                 router.push(createLink.dailyReport(value.value));
                 break;
-              }
-              case "crew": {
+              case "crew":
                 router.push(createLink.crew(value.value));
                 break;
-              }
-              case "company": {
+              case "company":
                 router.push(createLink.company(value.value));
                 break;
-              }
             }
           }}
-          _focus={{ boxShadow: "none" }}
+          backgroundColor="whiteAlpha.100"
+          borderColor="whiteAlpha.200"
+          color="white"
+          _placeholder={{ color: "whiteAlpha.500" }}
+          _hover={{ borderColor: "whiteAlpha.400" }}
+          _focus={{ borderColor: "red.400", boxShadow: "none", backgroundColor: "whiteAlpha.200" }}
+          size="sm"
+          dropdownProps={{
+            backgroundColor: "#334155",
+            borderColor: "whiteAlpha.200",
+            color: "white",
+          }}
         />
       )}
     </Box>

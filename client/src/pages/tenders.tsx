@@ -14,14 +14,8 @@ import {
   ModalFooter,
   ModalHeader,
   ModalOverlay,
-  Table,
-  Tbody,
-  Td,
   Text,
   Textarea,
-  Th,
-  Thead,
-  Tr,
   useDisclosure,
   useToast,
 } from "@chakra-ui/react";
@@ -29,6 +23,7 @@ import { gql } from "@apollo/client";
 import { useRouter } from "next/router";
 import NextLink from "next/link";
 import React from "react";
+import { FiChevronRight, FiFileText } from "react-icons/fi";
 import Breadcrumbs from "../components/Common/Breadcrumbs";
 import Container from "../components/Common/Container";
 import Loading from "../components/Common/Loading";
@@ -89,6 +84,10 @@ interface TenderCreateVars {
   };
 }
 
+// ─── Status order for sorting ─────────────────────────────────────────────────
+
+const STATUS_ORDER: Record<string, number> = { bidding: 0, won: 1, lost: 2 };
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 const Tenders = () => {
@@ -100,9 +99,7 @@ const Tenders = () => {
   const [jobcode, setJobcode] = React.useState("");
   const [description, setDescription] = React.useState("");
 
-  const { data, loading, refetch } = Apollo.useQuery<TendersQueryResult>(
-    TENDERS_QUERY
-  );
+  const { data, loading } = Apollo.useQuery<TendersQueryResult>(TENDERS_QUERY);
 
   const [tenderCreate, { loading: creating }] = Apollo.useMutation<
     TenderCreateResult,
@@ -159,21 +156,43 @@ const Tenders = () => {
   const content = React.useMemo(() => {
     if (!data?.tenders && loading) return <Loading />;
 
-    const tenders = data?.tenders ?? [];
+    const tenders = [...(data?.tenders ?? [])].sort((a, b) => {
+      const so = (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9);
+      if (so !== 0) return so;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    const bidding = tenders.filter((t) => t.status === "bidding").length;
+    const won = tenders.filter((t) => t.status === "won").length;
+    const lost = tenders.filter((t) => t.status === "lost").length;
 
     return (
       <Box>
-        <Flex
-          w="100%"
-          flexDir="row"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={4}
-        >
-          <Breadcrumbs
-            crumbs={[{ title: "Tenders", isCurrentPage: true }]}
-          />
-          <Flex gap={2} align="center">
+        {/* Header */}
+        <Flex align="flex-start" justify="space-between" mb={6} wrap="wrap" gap={3}>
+          <Box>
+            <Breadcrumbs crumbs={[{ title: "Tenders", isCurrentPage: true }]} />
+            {tenders.length > 0 && (
+              <Flex mt={1} gap={3}>
+                {bidding > 0 && (
+                  <Text fontSize="sm" color="blue.600" fontWeight="500">
+                    {bidding} bidding
+                  </Text>
+                )}
+                {won > 0 && (
+                  <Text fontSize="sm" color="green.600" fontWeight="500">
+                    {won} won
+                  </Text>
+                )}
+                {lost > 0 && (
+                  <Text fontSize="sm" color="red.500">
+                    {lost} lost
+                  </Text>
+                )}
+              </Flex>
+            )}
+          </Box>
+          <Flex gap={2} align="center" flexShrink={0}>
             <NextLink href="/pricing" passHref>
               <Button as="a" size="sm" variant="outline" colorScheme="teal">
                 Rate Builder
@@ -185,44 +204,89 @@ const Tenders = () => {
           </Flex>
         </Flex>
 
+        {/* List */}
         {tenders.length === 0 && !loading ? (
-          <Text color="gray.500">No tenders yet.</Text>
+          <Flex
+            direction="column"
+            align="center"
+            justify="center"
+            py={16}
+            color="gray.400"
+          >
+            <Text fontSize="sm">No tenders yet.</Text>
+          </Flex>
         ) : (
-          <Table variant="simple" size="sm">
-            <Thead>
-              <Tr>
-                <Th>Job Code</Th>
-                <Th>Name</Th>
-                <Th>Status</Th>
-                <Th isNumeric>Files</Th>
-                <Th>Created</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {tenders.map((tender) => (
-                <Tr
-                  key={tender._id}
-                  cursor="pointer"
-                  _hover={{ bg: "gray.50" }}
-                  onClick={() => router.push(`/tender/${tender._id}`)}
-                >
-                  <Td fontFamily="mono" fontWeight="600">
-                    {tender.jobcode}
-                  </Td>
-                  <Td>{tender.name}</Td>
-                  <Td>
-                    <Badge colorScheme={tenderStatusColor(tender.status)}>
+          <Box>
+            {tenders.map((tender) => (
+              <Flex
+                key={tender._id}
+                align="center"
+                px={4}
+                py={3}
+                mb={2}
+                bg="white"
+                border="1px solid"
+                borderColor="gray.200"
+                borderRadius="lg"
+                cursor="pointer"
+                _hover={{ borderColor: "blue.200", shadow: "sm" }}
+                onClick={() => router.push(`/tender/${tender._id}`)}
+                transition="border-color 0.15s, box-shadow 0.15s"
+              >
+                {/* Status accent bar */}
+                <Box
+                  w="3px"
+                  alignSelf="stretch"
+                  borderRadius="full"
+                  bg={`${tenderStatusColor(tender.status)}.400`}
+                  mr={3}
+                  flexShrink={0}
+                />
+
+                {/* Main info */}
+                <Box flex={1} minW={0}>
+                  <Flex align="center" gap={2} mb="2px" wrap="wrap">
+                    <Text
+                      fontWeight="600"
+                      fontSize="sm"
+                      color="gray.800"
+                      isTruncated
+                    >
+                      {tender.name}
+                    </Text>
+                    <Badge
+                      colorScheme={tenderStatusColor(tender.status)}
+                      flexShrink={0}
+                      fontSize="10px"
+                    >
                       {tender.status}
                     </Badge>
-                  </Td>
-                  <Td isNumeric>{tender.files.length}</Td>
-                  <Td>
-                    {new Date(tender.createdAt).toLocaleDateString("en-CA")}
-                  </Td>
-                </Tr>
-              ))}
-            </Tbody>
-          </Table>
+                  </Flex>
+                  <Flex align="center" gap={3}>
+                    <Text fontSize="xs" fontFamily="mono" color="gray.500">
+                      {tender.jobcode}
+                    </Text>
+                    <Text fontSize="xs" color="gray.400">
+                      {new Date(tender.createdAt).toLocaleDateString("en-CA")}
+                    </Text>
+                    {tender.files.length > 0 && (
+                      <Flex align="center" gap={1}>
+                        <FiFileText size={11} color="var(--chakra-colors-gray-400)" />
+                        <Text fontSize="xs" color="gray.400">
+                          {tender.files.length}
+                        </Text>
+                      </Flex>
+                    )}
+                  </Flex>
+                </Box>
+
+                {/* Chevron */}
+                <Box color="gray.300" ml={2} flexShrink={0}>
+                  <FiChevronRight size={16} />
+                </Box>
+              </Flex>
+            ))}
+          </Box>
         )}
       </Box>
     );

@@ -259,7 +259,7 @@ local_resource(
 
             # Check if database already has data (skip if so)
             ROW_COUNT=$(kubectl exec "$PG_POD" -- psql -U bowmark -d "$DB_NAME" -tAc \
-                "SELECT COALESCE(SUM(n_live_tup), 0) FROM pg_stat_user_tables" 2>/dev/null || echo "0")
+                "SELECT COALESCE(SUM(n_live_tup), 0) FROM pg_stat_user_tables WHERE relname != 'schema_migrations'" 2>/dev/null || echo "0")
 
             if [ "$ROW_COUNT" -gt 0 ]; then
                 echo "PostgreSQL $APP_TYPE already has data ($ROW_COUNT rows) - skipping restore"
@@ -315,6 +315,7 @@ docker_build(
 # ============================================================================
 
 k8s_yaml([
+    'k8s-dev/cloudflare-tunnel.yaml',
     'k8s-dev/server-deployment.yaml',
     'k8s-dev/consumer-deployment.yaml',
     'k8s-dev/mcp-server-deployment.yaml',
@@ -331,6 +332,13 @@ k8s_resource(
     resource_deps=['mongo', 'postgres', 'rabbitmq', 'meilisearch', 'db-migrate', 'restore-mongo', 'restore-postgres'],
     port_forwards=['0.0.0.0:8080:8080'],
     labels=['app'],
+)
+
+# Cloudflare tunnel - exposes app publicly via dev.hubsite.app
+k8s_resource(
+    'cloudflare-tunnel',
+    resource_deps=['lan-access'],
+    labels=['utilities'],
 )
 
 # RabbitMQ consumer - needs DBs and RabbitMQ
@@ -354,6 +362,21 @@ k8s_resource(
     resource_deps=['server-deployment'],
     port_forwards=['0.0.0.0:3000:3000'],
     labels=['app'],
+)
+
+# ============================================================================
+# LAN Access (ingress on all interfaces)
+# ============================================================================
+
+# Port-forward the nginx ingress controller to 0.0.0.0:8000 so the app is
+# reachable from other devices on the local network. All traffic (client,
+# /graphql, /file) goes through a single port — no hardcoded localhost URLs.
+local_resource(
+    'lan-access',
+    serve_cmd='kubectl port-forward -n ingress-nginx service/ingress-nginx-controller 80:80 --address=0.0.0.0',
+    resource_deps=['client-deployment'],
+    labels=['utilities'],
+    links=['http://localhost', 'http://bowmark.local'],
 )
 
 # ============================================================================
@@ -458,14 +481,14 @@ local_resource(
 local_resource(
     'reindex-search',
     cmd='''
-        POD=$(kubectl get pods -l component=server -o jsonpath='{.items[0].metadata.name}')
-        if [ -z "$POD" ]; then
-            echo "Error: Could not find server pod"
-            exit 1
-        fi
-
-        echo "Running MeiliSearch reindex on pod $POD..."
-        kubectl exec "$POD" -- node dist/scripts/reindex-search.js
+        IMAGE=$(kubectl get deployment server-deployment -o jsonpath='{.spec.template.spec.containers[0].image}')
+        echo "Running MeiliSearch reindex using image $IMAGE..."
+        kubectl delete pod reindex-search --ignore-not-found
+        OVERRIDES=$(echo '{"spec":{"containers":[{"name":"reindex-search","image":"IMAGE_PLACEHOLDER","workingDir":"/usr/app","resources":{"limits":{"memory":"3000Mi"}},"env":[{"name":"MONGO_URI","value":"mongodb://mongo:27017/paving"},{"name":"SEARCH_HOST","value":"http://meilisearch-service.default.svc:7700"},{"name":"SEARCH_API_KEY","value":"dev-master-key"},{"name":"SEARCH_GROUP","value":"bow-mark-dev"},{"name":"NODE_ENV","value":"development"}],"command":["node_modules/.bin/ts-node","-r","tsconfig-paths/register","src/scripts/reindex-search.ts"]}]}}' | sed "s|IMAGE_PLACEHOLDER|$IMAGE|g")
+        kubectl run reindex-search --restart=Never --image="$IMAGE" --overrides="$OVERRIDES"
+        kubectl wait --for=condition=Ready pod/reindex-search --timeout=120s
+        kubectl logs -f reindex-search
+        kubectl delete pod reindex-search --ignore-not-found
         echo "MeiliSearch reindex complete!"
     ''',
     resource_deps=['server-deployment', 'restore-mongo', 'meilisearch'],
@@ -476,14 +499,14 @@ local_resource(
 local_resource(
     'reindex-search-force',
     cmd='''
-        POD=$(kubectl get pods -l component=server -o jsonpath='{.items[0].metadata.name}')
-        if [ -z "$POD" ]; then
-            echo "Error: Could not find server pod"
-            exit 1
-        fi
-
-        echo "Force reindexing MeiliSearch on pod $POD..."
-        kubectl exec "$POD" -- node dist/scripts/reindex-search.js
+        IMAGE=$(kubectl get deployment server-deployment -o jsonpath='{.spec.template.spec.containers[0].image}')
+        echo "Force reindexing MeiliSearch using image $IMAGE..."
+        kubectl delete pod reindex-search-force --ignore-not-found
+        OVERRIDES=$(echo '{"spec":{"containers":[{"name":"reindex-search-force","image":"IMAGE_PLACEHOLDER","workingDir":"/usr/app","resources":{"limits":{"memory":"3000Mi"}},"env":[{"name":"MONGO_URI","value":"mongodb://mongo:27017/paving"},{"name":"SEARCH_HOST","value":"http://meilisearch-service.default.svc:7700"},{"name":"SEARCH_API_KEY","value":"dev-master-key"},{"name":"SEARCH_GROUP","value":"bow-mark-dev"},{"name":"NODE_ENV","value":"development"}],"command":["node_modules/.bin/ts-node","-r","tsconfig-paths/register","src/scripts/reindex-search.ts"]}]}}' | sed "s|IMAGE_PLACEHOLDER|$IMAGE|g")
+        kubectl run reindex-search-force --restart=Never --image="$IMAGE" --overrides="$OVERRIDES"
+        kubectl wait --for=condition=Ready pod/reindex-search-force --timeout=120s
+        kubectl logs -f reindex-search-force
+        kubectl delete pod reindex-search-force --ignore-not-found
         echo "MeiliSearch reindex complete!"
     ''',
     resource_deps=['server-deployment', 'meilisearch'],

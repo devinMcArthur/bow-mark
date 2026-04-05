@@ -55,21 +55,17 @@ const NavbarCreate = () => {
   return React.useMemo(() => {
     if (user) {
       return (
-        <Box height="100%" pt={1}>
+        <Box height="100%">
           <Menu>
             <MenuButton
               as={IconButton}
               icon={React.createElement(FiPlus) as React.ReactElement<any, any>}
-              my="auto"
               size="sm"
-              backgroundColor="transparent"
               aria-label="add"
-              p={0}
-              border="2px solid"
-              borderColor="gray.700"
-              _hover={{ backgroundColor: "rgba(113,128,150,0.1)" }}
-              _focus={{ backgroundColor: "rgba(113,128,150,0.1)" }}
-              _active={{ backgroundColor: "rgba(113,128,150,0.1)" }}
+              variant="ghost"
+              color="whiteAlpha.800"
+              _hover={{ bg: "whiteAlpha.100", color: "white" }}
+              _active={{ bg: "whiteAlpha.200" }}
             />
             <MenuList>
               <Permission minRole={UserRoles.User} type={UserTypes.Operations}>
