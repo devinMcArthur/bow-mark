@@ -835,7 +835,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
                         });
                         return;
                       }
-                      onDocRefAdd(row._id, activeDocFile, activeDocPage);
+                      onDocRefAdd?.(row._id, activeDocFile, activeDocPage);
                     }}
                   >
                     {alreadyAttached ? "Already attached" : `+ Use current page (p.${activeDocPage})`}
