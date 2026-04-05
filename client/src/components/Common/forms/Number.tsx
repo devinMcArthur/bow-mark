@@ -77,7 +77,7 @@ const NumberForm = ({
           <InputLeftElement h="auto">{inputLeftElement}</InputLeftElement>
         )}
         {inputLeftAddon && (
-          <InputLeftAddon size="sm">{inputLeftAddon}</InputLeftAddon>
+          <InputLeftAddon>{inputLeftAddon}</InputLeftAddon>
         )}
         <NumberInput
           {...props}

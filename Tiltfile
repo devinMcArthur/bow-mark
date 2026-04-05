@@ -481,14 +481,14 @@ local_resource(
 local_resource(
     'reindex-search',
     cmd='''
-        POD=$(kubectl get pods -l component=server -o jsonpath='{.items[0].metadata.name}')
-        if [ -z "$POD" ]; then
-            echo "Error: Could not find server pod"
-            exit 1
-        fi
-
-        echo "Running MeiliSearch reindex on pod $POD..."
-        kubectl exec "$POD" -- node dist/scripts/reindex-search.js
+        IMAGE=$(kubectl get deployment server-deployment -o jsonpath='{.spec.template.spec.containers[0].image}')
+        echo "Running MeiliSearch reindex using image $IMAGE..."
+        kubectl delete pod reindex-search --ignore-not-found
+        OVERRIDES=$(echo '{"spec":{"containers":[{"name":"reindex-search","image":"IMAGE_PLACEHOLDER","workingDir":"/usr/app","resources":{"limits":{"memory":"3000Mi"}},"env":[{"name":"MONGO_URI","value":"mongodb://mongo:27017/paving"},{"name":"SEARCH_HOST","value":"http://meilisearch-service.default.svc:7700"},{"name":"SEARCH_API_KEY","value":"dev-master-key"},{"name":"SEARCH_GROUP","value":"bow-mark-dev"},{"name":"NODE_ENV","value":"development"}],"command":["node_modules/.bin/ts-node","-r","tsconfig-paths/register","src/scripts/reindex-search.ts"]}]}}' | sed "s|IMAGE_PLACEHOLDER|$IMAGE|g")
+        kubectl run reindex-search --restart=Never --image="$IMAGE" --overrides="$OVERRIDES"
+        kubectl wait --for=condition=Ready pod/reindex-search --timeout=120s
+        kubectl logs -f reindex-search
+        kubectl delete pod reindex-search --ignore-not-found
         echo "MeiliSearch reindex complete!"
     ''',
     resource_deps=['server-deployment', 'restore-mongo', 'meilisearch'],
@@ -499,14 +499,14 @@ local_resource(
 local_resource(
     'reindex-search-force',
     cmd='''
-        POD=$(kubectl get pods -l component=server -o jsonpath='{.items[0].metadata.name}')
-        if [ -z "$POD" ]; then
-            echo "Error: Could not find server pod"
-            exit 1
-        fi
-
-        echo "Force reindexing MeiliSearch on pod $POD..."
-        kubectl exec "$POD" -- node dist/scripts/reindex-search.js
+        IMAGE=$(kubectl get deployment server-deployment -o jsonpath='{.spec.template.spec.containers[0].image}')
+        echo "Force reindexing MeiliSearch using image $IMAGE..."
+        kubectl delete pod reindex-search-force --ignore-not-found
+        OVERRIDES=$(echo '{"spec":{"containers":[{"name":"reindex-search-force","image":"IMAGE_PLACEHOLDER","workingDir":"/usr/app","resources":{"limits":{"memory":"3000Mi"}},"env":[{"name":"MONGO_URI","value":"mongodb://mongo:27017/paving"},{"name":"SEARCH_HOST","value":"http://meilisearch-service.default.svc:7700"},{"name":"SEARCH_API_KEY","value":"dev-master-key"},{"name":"SEARCH_GROUP","value":"bow-mark-dev"},{"name":"NODE_ENV","value":"development"}],"command":["node_modules/.bin/ts-node","-r","tsconfig-paths/register","src/scripts/reindex-search.ts"]}]}}' | sed "s|IMAGE_PLACEHOLDER|$IMAGE|g")
+        kubectl run reindex-search-force --restart=Never --image="$IMAGE" --overrides="$OVERRIDES"
+        kubectl wait --for=condition=Ready pod/reindex-search-force --timeout=120s
+        kubectl logs -f reindex-search-force
+        kubectl delete pod reindex-search-force --ignore-not-found
         echo "MeiliSearch reindex complete!"
     ''',
     resource_deps=['server-deployment', 'meilisearch'],

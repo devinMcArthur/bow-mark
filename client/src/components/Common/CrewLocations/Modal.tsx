@@ -96,7 +96,6 @@ const CrewLocationsModal = ({ isOpen, onClose }: ICrewLocationsModal) => {
             <Flex flexDir="row" my="auto">
               Crew Location Report
               <Link
-                passHref
                 href={excelData?.crewLocationsExcel}
                 download={`Crew-Locations-${dayjs(startTime).format(
                   "YYYY-MM-DD"
@@ -157,7 +156,7 @@ const CrewLocationsModal = ({ isOpen, onClose }: ICrewLocationsModal) => {
                     }}
                   />
                 </GridItem>
-                <GridItem colspan={[1, 1, 1, 1]}>
+                <GridItem colSpan={[1, 1, 1, 1]}>
                   <IconButton
                     icon={<FiCheck />}
                     type="submit"

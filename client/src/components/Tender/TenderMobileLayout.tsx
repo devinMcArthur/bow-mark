@@ -56,10 +56,12 @@ const TenderMobileLayout: React.FC<TenderMobileLayoutProps> = ({
   return (
     <Flex
       direction="column"
-      h={`calc(100vh - ${navbarHeight})`}
-      w="100%"
+      position="fixed"
+      top={navbarHeight}
+      bottom={0}
+      left={0}
+      right={0}
       overflow="hidden"
-      position="relative"
     >
       {/* Top bar */}
       <Flex
@@ -67,7 +69,6 @@ const TenderMobileLayout: React.FC<TenderMobileLayoutProps> = ({
         flexShrink={0}
         align="center"
         px={2}
-        gap={2}
         borderBottom="1px solid"
         borderColor="gray.200"
         bg="white"
@@ -78,11 +79,12 @@ const TenderMobileLayout: React.FC<TenderMobileLayoutProps> = ({
           size="sm"
           variant="ghost"
           onClick={() => router.push("/tenders")}
+          mr={1}
         />
         <Text fontSize="sm" fontWeight="600" isTruncated flex={1} color="gray.800">
           {tender.name}
         </Text>
-        <Text fontFamily="mono" fontSize="xs" color="gray.500" flexShrink={0}>
+        <Text fontFamily="mono" fontSize="xs" color="gray.500" flexShrink={0} mx={2}>
           {tender.jobcode}
         </Text>
         <Badge colorScheme={tenderStatusColor(tender.status)} flexShrink={0}>
@@ -98,6 +100,7 @@ const TenderMobileLayout: React.FC<TenderMobileLayoutProps> = ({
               sheet={sheet}
               tenderId={tenderId}
               onSheetUpdate={onSheetUpdate}
+              tenderFiles={tender.files}
             />
           ) : (
             <Flex h="100%" align="center" justify="center">
@@ -128,6 +131,7 @@ const TenderMobileLayout: React.FC<TenderMobileLayoutProps> = ({
         borderColor="gray.200"
         bg="white"
         align="stretch"
+        pb="env(safe-area-inset-bottom, 0px)"
       >
         {TABS.map((tab) => (
           <Flex
@@ -136,7 +140,6 @@ const TenderMobileLayout: React.FC<TenderMobileLayoutProps> = ({
             direction="column"
             align="center"
             justify="center"
-            gap={0.5}
             cursor="pointer"
             onClick={() => setActiveTab(tab.key)}
             color={activeTab === tab.key ? "blue.500" : "gray.400"}
@@ -145,7 +148,7 @@ const TenderMobileLayout: React.FC<TenderMobileLayoutProps> = ({
             transition="color 0.15s, border-color 0.15s"
             _active={{ bg: "gray.50" }}
           >
-            {tab.icon}
+            <Box mb="2px">{tab.icon}</Box>
             <Text fontSize="10px" fontWeight={activeTab === tab.key ? "600" : "400"}>
               {tab.label}
             </Text>

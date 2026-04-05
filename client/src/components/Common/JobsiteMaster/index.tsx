@@ -329,7 +329,7 @@ const JobsiteMaster = ({ report }: IJobsiteMaster) => {
             </Tr>
             <Tr>
               <Th scope="row">Jobsite</Th>
-              <Th isNumberic>Accruals</Th>
+              <Th isNumeric>Accruals</Th>
               <Th isNumeric>Revenue</Th>
               <Th isNumeric>
                 <Tooltip label="Employees, equipment, materials and trucking">

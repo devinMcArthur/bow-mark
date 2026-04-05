@@ -192,7 +192,7 @@ const JobsiteRemoveModal = ({
           <SimpleGrid columns={2} spacing={2}>
             <Button
               onClick={() => onClose()}
-              variantColor="gray"
+              colorScheme="gray"
               variant="outline"
               leftIcon={<FiX />}
               size="md"

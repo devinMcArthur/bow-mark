@@ -8,7 +8,6 @@ import {
   Spinner,
   Text,
   Tooltip,
-  useBreakpointValue,
 } from "@chakra-ui/react";
 import { gql, useQuery, useMutation } from "@apollo/client";
 import * as Apollo from "@apollo/client";
@@ -62,6 +61,12 @@ const SHEET_QUERY = gql`
         rateBuildupSnapshot
         extraUnitPrice
         extraUnitPriceMemo
+        docRefs {
+          _id
+          enrichedFileId
+          page
+          description
+        }
       }
     }
   }
@@ -274,7 +279,13 @@ const TenderDetailPage = () => {
   const [selectedFile, setSelectedFile] = useState<TenderFileItem | null>(null);
   const [selectedFilePage, setSelectedFilePage] = useState<number>(1);
   const isDraggingPanel = useRef(false);
-  const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // ── URL param helpers for docFile / docPage ────────────────────────────��─────
   const setDocUrlParams = useCallback((fileId: string | null, page: number | null) => {

@@ -47,15 +47,14 @@ const FileListItem: React.FC<FileListItemProps> = ({ file, onSelect }) => {
       borderBottom="1px solid"
       borderColor="gray.100"
       align="flex-start"
-      gap={3}
       cursor="pointer"
       _active={{ bg: "gray.50" }}
       onClick={() => onSelect(file)}
     >
       <Box flex={1} minW={0}>
-        <Flex align="center" gap={2} mb={1} flexWrap="wrap">
+        <Flex align="center" mb={1} flexWrap="wrap">
           {file.documentType && (
-            <Badge fontSize="xs" colorScheme="blue" flexShrink={0}>
+            <Badge fontSize="xs" colorScheme="blue" flexShrink={0} mr={2}>
               {file.documentType}
             </Badge>
           )}
@@ -64,8 +63,8 @@ const FileListItem: React.FC<FileListItemProps> = ({ file, onSelect }) => {
           </Text>
         </Flex>
         {isProcessing ? (
-          <Flex align="center" gap={1}>
-            <Spinner size="xs" color="gray.400" />
+          <Flex align="center">
+            <Spinner size="xs" color="gray.400" mr={1} />
             <Text fontSize="xs" color="gray.400">Processing…</Text>
           </Flex>
         ) : file.summary?.overview ? (
@@ -102,7 +101,6 @@ const TenderMobileDocumentsTab: React.FC<TenderMobileDocumentsTabProps> = ({ fil
         <Flex
           h="44px"
           align="center"
-          gap={2}
           px={2}
           borderBottom="1px solid"
           borderColor="gray.200"
@@ -115,6 +113,7 @@ const TenderMobileDocumentsTab: React.FC<TenderMobileDocumentsTabProps> = ({ fil
             size="sm"
             variant="ghost"
             onClick={() => setSelectedFile(null)}
+            mr={1}
           />
           <Text fontSize="sm" color="gray.700" isTruncated flex={1}>
             {selectedFile.file.description || "File"}
@@ -138,8 +137,8 @@ const TenderMobileDocumentsTab: React.FC<TenderMobileDocumentsTabProps> = ({ fil
               />
             </ClientOnly>
           ) : (
-            <Flex h="100%" align="center" justify="center" direction="column" gap={3} p={4}>
-              <Text fontSize="sm" color="gray.500" textAlign="center">
+            <Flex h="100%" align="center" justify="center" direction="column" p={4}>
+              <Text fontSize="sm" color="gray.500" textAlign="center" mb={3}>
                 Preview not available for this file type.
               </Text>
               <Button size="sm" leftIcon={<FiDownload />} onClick={() => window.open(fileUrl, "_blank")}>

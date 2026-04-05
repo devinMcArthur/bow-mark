@@ -808,7 +808,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
         </Box>
 
         {/* ── Spec References ── */}
-        {onDocRefAdd && (
+        {(onDocRefAdd || (row.docRefs ?? []).length > 0) && (
           <Box borderTop="1px solid" borderColor="gray.100" pt={4} pb={5}>
             <Flex align="center" justify="space-between" mb={3}>
               <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wider">

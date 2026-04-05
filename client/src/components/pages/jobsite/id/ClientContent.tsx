@@ -203,7 +203,7 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
                   id="previous-data"
                 />
               </Box>
-              <Flex flexDir="row" spacing={2}>
+              <Flex direction="row">
                 <Tooltip label="View Report">
                   <NextLink href={`/jobsite/${jobsite._id}/report`} passHref>
                     <IconButton

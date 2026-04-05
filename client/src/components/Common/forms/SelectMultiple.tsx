@@ -40,7 +40,7 @@ const SelectMultiple = ({
   return (
     <FormControl>
       <FormLabel>{label}</FormLabel>
-      <VStack space={2}>
+      <VStack spacing={2}>
         {options.map((option) => (
           <Checkbox
             w="100%"

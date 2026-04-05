@@ -27,7 +27,7 @@ interface PdfViewerProps {
 }
 
 const MIN_SCALE = 0.3;
-const MAX_SCALE = 5;
+const MAX_SCALE = 10;
 const ZOOM_STEP = 0.25;
 
 const PdfViewer: React.FC<PdfViewerProps> = ({ url, fileName, initialPage, onPageChange }) => {
@@ -38,8 +38,21 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, fileName, initialPage, onPag
   const [containerWidth, setContainerWidth] = useState(380);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0, px: 0, py: 0 });
+
+  // Refs so touch handlers always see current values without stale closures
+  const panRef = useRef(pan);
+  panRef.current = pan;
+  const scaleRef = useRef(scale);
+  scaleRef.current = scale;
+  const containerWidthRef = useRef(containerWidth);
+  containerWidthRef.current = containerWidth;
+  const touchStart = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
+  const pinchStart = useRef<{ dist: number; scale: number } | null>(null);
+  const livePinchScale = useRef(1); // visual-only scale during gesture, avoids re-renders
+  const pinchMidpoint = useRef({ x: 0, y: 0 });
 
   // Track container width for page sizing
   useEffect(() => {
@@ -53,27 +66,125 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, fileName, initialPage, onPag
     return () => ro.disconnect();
   }, []);
 
-  // Non-passive wheel handler so we can prevent page scroll while zooming
+  // Non-passive wheel handler — zoom toward cursor position
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
       const factor = e.deltaY < 0 ? 1.1 : 0.9;
-      setScale((s) => Math.max(MIN_SCALE, Math.min(MAX_SCALE, s * factor)));
+      const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scaleRef.current * factor));
+      const ratio = newScale / scaleRef.current;
+      const c = containerWidthRef.current / 2;
+      const newPan = {
+        x: (cx - c) * (1 - ratio) + panRef.current.x * ratio,
+        y: cy * (1 - ratio) + panRef.current.y * ratio,
+      };
+      setScale(newScale);
+      setPan(newPan);
     };
     el.addEventListener("wheel", handleWheel, { passive: false });
     return () => el.removeEventListener("wheel", handleWheel);
   }, []);
 
+  // Non-passive touch handlers for pan + pinch-to-zoom
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const dist = (t: TouchList) => {
+      const dx = t[0].clientX - t[1].clientX;
+      const dy = t[0].clientY - t[1].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      e.preventDefault();
+      if (e.touches.length === 1) {
+        touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, px: panRef.current.x, py: panRef.current.y };
+        pinchStart.current = null;
+      } else if (e.touches.length === 2) {
+        pinchStart.current = { dist: dist(e.touches), scale: scaleRef.current };
+        touchStart.current = null;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      if (e.touches.length === 1 && touchStart.current) {
+        const nx = touchStart.current.px + (e.touches[0].clientX - touchStart.current.x);
+        const ny = touchStart.current.py + (e.touches[0].clientY - touchStart.current.y);
+        if (innerRef.current) innerRef.current.style.transform = `translate(${nx}px, ${ny}px)`;
+        setPan({ x: nx, y: ny });
+      } else if (e.touches.length === 2 && pinchStart.current) {
+        const rect = el.getBoundingClientRect();
+        const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+        const my = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+        pinchMidpoint.current = { x: mx, y: my };
+        const ratio = dist(e.touches) / pinchStart.current.dist;
+        const clamped = Math.max(MIN_SCALE / scaleRef.current, Math.min(MAX_SCALE / scaleRef.current, ratio));
+        livePinchScale.current = clamped;
+        if (innerRef.current) {
+          // Set transform-origin to finger midpoint so visual zoom tracks fingers
+          innerRef.current.style.transformOrigin = `${mx - panRef.current.x}px ${my - panRef.current.y}px`;
+          innerRef.current.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px) scale(${clamped})`;
+        }
+      }
+    };
+
+    const onTouchEnd = () => {
+      if (pinchStart.current && livePinchScale.current !== 1) {
+        const S = livePinchScale.current;
+        const committed = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scaleRef.current * S));
+        const ratio = committed / scaleRef.current;
+        const { x: mx, y: my } = pinchMidpoint.current;
+        const c = containerWidthRef.current / 2;
+        const newPan = {
+          x: (mx - c) * (1 - ratio) + panRef.current.x * ratio,
+          y: my * (1 - ratio) + panRef.current.y * ratio,
+        };
+        livePinchScale.current = 1;
+        if (innerRef.current) {
+          innerRef.current.style.transformOrigin = "center top";
+          innerRef.current.style.transform = `translate(${newPan.x}px, ${newPan.y}px)`;
+        }
+        setScale(committed);
+        setPan(newPan);
+      }
+      touchStart.current = null;
+      pinchStart.current = null;
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: false });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd);
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+    };
+  }, []);
+
+  // Sync pan/scale state → DOM after wheel zoom or pinch commit.
+  // Drives the transform exclusively via ref so React's style prop never fights imperative updates.
+  useEffect(() => {
+    if (innerRef.current) {
+      innerRef.current.style.transformOrigin = "center top";
+      innerRef.current.style.transform = `translate(${pan.x}px, ${pan.y}px)`;
+    }
+  }, [pan, scale]);
+
   const onDocumentLoadSuccess = useCallback(
     ({ numPages: n }: { numPages: number }) => {
       setNumPages(n);
-      setPageNumber(1);
+      setPageNumber(initialPage ?? 1);
       setScale(1.0);
       setPan({ x: 0, y: 0 });
     },
-    []
+    [initialPage]
   );
 
   const resetView = useCallback(() => {
@@ -218,6 +329,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, fileName, initialPage, onPag
         onMouseLeave={handleMouseUp}
       >
         <Box
+          ref={innerRef}
           position="absolute"
           top={0}
           left={0}
@@ -227,9 +339,6 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, fileName, initialPage, onPag
           alignItems="flex-start"
           justifyContent="center"
           pt={4}
-          style={{
-            transform: `translate(${pan.x}px, ${pan.y}px)`,
-          }}
         >
           <Document
             file={url}

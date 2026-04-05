@@ -23,6 +23,13 @@ spec:
                 name: server-cluster-ip-service
                 port:
                   number: 8080
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: server-cluster-ip-service
+                port:
+                  number: 8080
           - path: /
             pathType: Prefix
             backend:
