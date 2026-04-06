@@ -346,6 +346,8 @@ export function fragmentToDoc(f: RateBuildupTemplateFullSnippetFragment): Canvas
   } else if (typeof f.groupDefs === "string") {
     try { groupDefs = JSON.parse(f.groupDefs); } catch { /* ignore */ }
   }
+  // Deduplicate memberIds within each group
+  groupDefs = groupDefs.map((g) => ({ ...g, memberIds: [...new Set(g.memberIds)] }));
 
   let controllerDefs: ControllerDef[] = [];
   if (Array.isArray(f.controllerDefs)) {
