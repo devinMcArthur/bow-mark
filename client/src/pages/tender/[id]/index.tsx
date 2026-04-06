@@ -23,6 +23,7 @@ import TenderOverview from "../../../components/Tender/TenderOverview";
 import TenderSummaryTab from "../../../components/Tender/TenderSummaryTab";
 import TenderNotesTab from "../../../components/Tender/TenderNotesTab";
 import TenderDocuments from "../../../components/Tender/TenderDocuments";
+import TenderReviewTab from "../../../components/Tender/TenderReviewTab";
 import { TenderPricingSheet } from "../../../components/TenderPricing/types";
 import { TenderDetail, TenderFileItem } from "../../../components/Tender/types";
 import { UserRoles } from "../../../generated/graphql";
@@ -157,7 +158,7 @@ const TENDER_SUGGESTIONS = [
 
 // ─── Panel tab types ──────────────────────────────────────────────────────────
 
-type RightTab = "job" | "documents" | "notes" | "summary";
+type RightTab = "job" | "documents" | "notes" | "summary" | "review";
 type PanelState = "open" | "hidden" | "fullscreen";
 
 // ─── File URL helper ──────────────────────────────────────────────────────────
@@ -436,6 +437,7 @@ const TenderDetailPage = () => {
       label: `Notes${tender && tender.notes.length > 0 ? ` (${tender.notes.length})` : ""}`,
     },
     { key: "summary", label: "Summary" },
+    { key: "review", label: "Review" },
   ];
 
   return (
@@ -666,6 +668,13 @@ const TenderDetailPage = () => {
                   <Flex h="100%" align="center" justify="center">
                     <Spinner />
                   </Flex>
+                )}
+
+                {rightTab === "review" && (
+                  <TenderReviewTab
+                    tenderId={tenderId}
+                    currentUserId={undefined}
+                  />
                 )}
               </Box>
             </Flex>
