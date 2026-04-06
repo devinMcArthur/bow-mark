@@ -28,7 +28,7 @@ import { TenderPricingSheet } from "../../../components/TenderPricing/types";
 import { TenderDetail, TenderFileItem } from "../../../components/Tender/types";
 import { UserRoles } from "../../../generated/graphql";
 import { navbarHeight } from "../../../constants/styles";
-import { localStorageTokenKey } from "../../../contexts/Auth";
+import { localStorageTokenKey, useAuth } from "../../../contexts/Auth";
 import ChatDrawer from "../../../components/Chat/ChatDrawer";
 import TenderMobileLayout from "../../../components/Tender/TenderMobileLayout";
 
@@ -265,6 +265,8 @@ const TenderDetailPage = () => {
   const router = useRouter();
   const { id } = router.query;
   const tenderId = typeof id === "string" ? id : "";
+  const { state: authState } = useAuth();
+  const currentUserId = authState.user?._id;
 
   const [sheet, setSheet] = useState<TenderPricingSheet | null>(null);
   const [initialized, setInitialized] = useState(false);
@@ -673,7 +675,7 @@ const TenderDetailPage = () => {
                 {rightTab === "review" && (
                   <TenderReviewTab
                     tenderId={tenderId}
-                    currentUserId={undefined}
+                    currentUserId={currentUserId}
                   />
                 )}
               </Box>

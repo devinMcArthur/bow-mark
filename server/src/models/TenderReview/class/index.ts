@@ -37,9 +37,13 @@ export class TenderReviewClass extends TenderReviewSchema {
   ): Promise<TenderReviewDocument> {
     let review = await get.byTenderId(this, tenderId);
     if (!review) {
-      review = await create.document(this, tenderId);
-      await (review as TenderReviewDocument).save();
-      // Re-fetch to get populated fields
+      try {
+        const doc = await create.document(this, tenderId);
+        await (doc as TenderReviewDocument).save();
+      } catch (err: any) {
+        // Ignore duplicate key — concurrent create won
+        if (err?.code !== 11000) throw err;
+      }
       review = (await get.byTenderId(this, tenderId))!;
     }
     return review as TenderReviewDocument;
@@ -53,8 +57,16 @@ export class TenderReviewClass extends TenderReviewSchema {
     // Use lean find-or-create without population for mutation speed
     let review = await this.findOne({ tender: tenderId });
     if (!review) {
-      review = await create.document(this, tenderId);
-      await (review as TenderReviewDocument).save();
+      try {
+        const doc = await create.document(this, tenderId);
+        update.addAuditEvent(doc as TenderReviewDocument, event);
+        await (doc as TenderReviewDocument).save();
+        return;
+      } catch (err: any) {
+        // Duplicate key — concurrent create won, fall through to find + push
+        if (err?.code !== 11000) throw err;
+        review = await this.findOne({ tender: tenderId });
+      }
     }
     update.addAuditEvent(review as TenderReviewDocument, event);
     await (review as TenderReviewDocument).save();

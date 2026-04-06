@@ -19,6 +19,9 @@ export default class TenderReviewResolver {
     @Arg("tenderId", () => ID) tenderId: Id,
     @Arg("status") status: string
   ) {
+    const VALID: TenderReviewStatus[] = ["draft", "in_review", "approved"];
+    if (!VALID.includes(status as TenderReviewStatus))
+      throw new Error(`Invalid status "${status}". Must be one of: ${VALID.join(", ")}`);
     const review = await (TenderReview as any).findOrCreateByTenderId(tenderId.toString());
     review.setStatus(status as TenderReviewStatus);
     await review.save();
