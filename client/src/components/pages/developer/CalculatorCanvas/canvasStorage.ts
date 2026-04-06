@@ -539,12 +539,19 @@ export function useCanvasDocuments() {
 
   const createDocument = useCallback(async (): Promise<string> => {
     const doc = blankDocument();
-    setDocs((prev) => {
-      scheduleSave(doc);
-      return [...prev, doc];
+    // Save immediately (not debounced) so we get the real server ID back.
+    const result = await client.mutate({
+      mutation: SaveRateBuildupTemplateDocument,
+      variables: docToVariables(doc, idRemap.current),
     });
-    return doc.id;
-  }, [scheduleSave]);
+    const saved = result.data?.saveRateBuildupTemplate;
+    const realId = saved?._id ?? doc.id;
+    if (realId !== doc.id) {
+      idRemap.current.set(doc.id, realId);
+    }
+    setDocs((prev) => [...prev, doc]);
+    return realId;
+  }, [client]);
 
   const forkDocument = useCallback(
     async (sourceId: string): Promise<string | null> => {
@@ -555,13 +562,20 @@ export function useCanvasDocuments() {
         id: `new_${Date.now()}`,
         label: `${source.label} (copy)`,
       };
-      setDocs((prev) => {
-        scheduleSave(forked);
-        return [...prev, forked];
+      // Save immediately so we get the real server ID back.
+      const result = await client.mutate({
+        mutation: SaveRateBuildupTemplateDocument,
+        variables: docToVariables(forked, idRemap.current),
       });
-      return forked.id;
+      const saved = result.data?.saveRateBuildupTemplate;
+      const realId = saved?._id ?? forked.id;
+      if (realId !== forked.id) {
+        idRemap.current.set(forked.id, realId);
+      }
+      setDocs((prev) => [...prev, forked]);
+      return realId;
     },
-    [docs, scheduleSave]
+    [docs, client]
   );
 
   const deleteDocument = useCallback(
