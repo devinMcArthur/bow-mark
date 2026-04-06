@@ -354,14 +354,25 @@ export function fragmentToDoc(f: RateBuildupTemplateFullSnippetFragment): Canvas
     try { controllerDefs = JSON.parse(f.controllerDefs); } catch { /* ignore */ }
   }
 
+  // Deduplicate defs by ID — protects against duplicate entries that may have been
+  // saved when the canvas had a bug where content edits didn't visually reflect.
+  const dedup = <T extends { id: string }>(arr: T[]): T[] => {
+    const seen = new Set<string>();
+    return arr.filter((item) => {
+      if (seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+  };
+
   return {
     id: f._id,
     label: f.label,
     defaultUnit: f.defaultUnit ?? "unit",
-    parameterDefs: (f.parameterDefs ?? []) as CanvasParameterDef[],
-    tableDefs: (f.tableDefs ?? []) as CanvasTableDef[],
-    formulaSteps: (f.formulaSteps ?? []) as CanvasFormulaStep[],
-    breakdownDefs: (f.breakdownDefs ?? []) as CanvasBreakdownDef[],
+    parameterDefs: dedup((f.parameterDefs ?? []) as CanvasParameterDef[]),
+    tableDefs: dedup((f.tableDefs ?? []) as CanvasTableDef[]),
+    formulaSteps: dedup((f.formulaSteps ?? []) as CanvasFormulaStep[]),
+    breakdownDefs: dedup((f.breakdownDefs ?? []) as CanvasBreakdownDef[]),
     intermediateDefs: (f.intermediateDefs ?? []) as IntermediateDef[],
     specialPositions,
     groupDefs,
@@ -539,12 +550,19 @@ export function useCanvasDocuments() {
 
   const createDocument = useCallback(async (): Promise<string> => {
     const doc = blankDocument();
-    setDocs((prev) => {
-      scheduleSave(doc);
-      return [...prev, doc];
+    // Save immediately (not debounced) so we get the real server ID back.
+    const result = await client.mutate({
+      mutation: SaveRateBuildupTemplateDocument,
+      variables: docToVariables(doc, idRemap.current),
     });
-    return doc.id;
-  }, [scheduleSave]);
+    const saved = result.data?.saveRateBuildupTemplate;
+    const realId = saved?._id ?? doc.id;
+    if (realId !== doc.id) {
+      idRemap.current.set(doc.id, realId);
+    }
+    setDocs((prev) => [...prev, doc]);
+    return realId;
+  }, [client]);
 
   const forkDocument = useCallback(
     async (sourceId: string): Promise<string | null> => {
@@ -555,13 +573,20 @@ export function useCanvasDocuments() {
         id: `new_${Date.now()}`,
         label: `${source.label} (copy)`,
       };
-      setDocs((prev) => {
-        scheduleSave(forked);
-        return [...prev, forked];
+      // Save immediately so we get the real server ID back.
+      const result = await client.mutate({
+        mutation: SaveRateBuildupTemplateDocument,
+        variables: docToVariables(forked, idRemap.current),
       });
-      return forked.id;
+      const saved = result.data?.saveRateBuildupTemplate;
+      const realId = saved?._id ?? forked.id;
+      if (realId !== forked.id) {
+        idRemap.current.set(forked.id, realId);
+      }
+      setDocs((prev) => [...prev, forked]);
+      return realId;
     },
-    [docs, scheduleSave]
+    [docs, client]
   );
 
   const deleteDocument = useCallback(

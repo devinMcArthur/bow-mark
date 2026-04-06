@@ -73,9 +73,10 @@ interface MessageBubbleProps {
   rateMessage: (messageId: string, rating: "up" | "down" | null, reasons?: string[], comment?: string) => void;
   isLastAssistant?: boolean;
   onRegenerate?: () => void;
+  onDocRefClick?: (enrichedFileId: string, page?: number) => void;
 }
 
-const MessageBubble = React.memo(({ msg, onShowSources, rateMessage, isLastAssistant, onRegenerate }: MessageBubbleProps) => {
+const MessageBubble = React.memo(({ msg, onShowSources, rateMessage, isLastAssistant, onRegenerate, onDocRefClick }: MessageBubbleProps) => {
   if (msg.role === "user") {
     return (
       <Box
@@ -130,7 +131,7 @@ const MessageBubble = React.memo(({ msg, onShowSources, rateMessage, isLastAssis
           </HStack>
         ) : (
           <>
-            <MarkdownContent content={msg.content} />
+            <MarkdownContent content={msg.content} onDocRefClick={onDocRefClick} />
             {msg.isStreaming && (
               <Box
                 display="inline-block"
@@ -311,6 +312,7 @@ interface ChatPageProps {
   height?: string;                 // override container height, default: calc(100vh - navbarHeight)
   minRole?: UserRoles;             // minimum role required to access chat, default: ProjectManager
   onToolResult?: (toolName: string, result: string) => void;
+  onDocRefClick?: (enrichedFileId: string, page?: number) => void;
 }
 
 const ChatPage = ({
@@ -323,6 +325,7 @@ const ChatPage = ({
   height,
   minRole = UserRoles.ProjectManager,
   onToolResult,
+  onDocRefClick,
 }: ChatPageProps) => {
   const router = useRouter();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
@@ -1021,6 +1024,7 @@ const ChatPage = ({
                           rateMessage={rateMessage}
                           isLastAssistant={isLastAssistant}
                           onRegenerate={regenerateLastMessage}
+                          onDocRefClick={onDocRefClick}
                         />
                       </Box>
                     );

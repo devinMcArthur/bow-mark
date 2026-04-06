@@ -181,7 +181,7 @@ const ParamEdit: React.FC<{
 }> = ({ doc, nodeId, onUpdateDoc }) => {
   const param = doc.parameterDefs.find((p) => p.id === nodeId)!;
 
-  const saveField = (updates: { label?: string; suffix?: string | undefined; defaultValue?: number }) => {
+  const saveField = (updates: { label?: string; suffix?: string | undefined; defaultValue?: number; hint?: string | undefined }) => {
     // defaultValue is now stored directly on the ParameterDef
     onUpdateDoc({ ...doc, parameterDefs: doc.parameterDefs.map((p) => p.id === nodeId ? { ...p, ...updates } : p) });
   };
@@ -207,6 +207,8 @@ const ParamEdit: React.FC<{
         onBlur={(v) => saveField({ suffix: v || undefined })} />
       <EditField label="Default Value" value={String(param.defaultValue)}
         type="number" mono onBlur={(v) => saveField({ defaultValue: parseFloat(v) || 0 })} />
+      <EditField label="Hint" value={param.hint ?? ""} placeholder="Guidance for estimators"
+        onBlur={(v) => saveField({ hint: v || undefined })} />
     </>
   );
 };
@@ -585,6 +587,9 @@ const ControllerEdit: React.FC<{
           )}
         </Box>
       )}
+
+      <EditField label="Hint" value={ctrl.hint ?? ""} placeholder="Guidance for estimators"
+        onBlur={(v) => updateCtrl({ hint: v || undefined })} />
     </>
   );
 };
@@ -721,6 +726,11 @@ const TableLabelEdit: React.FC<{
       <EditField label="Label" value={tableDef.label} onBlur={saveLabel} />
       <EditField label="Row Label" value={tableDef.rowLabel} placeholder="e.g. Role, Equipment, Item"
         onBlur={saveRowLabel} />
+      <EditField label="Hint" value={tableDef.hint ?? ""} placeholder="Guidance for estimators"
+        onBlur={(v) => onUpdateDoc({
+          ...doc,
+          tableDefs: doc.tableDefs.map((t) => t.id === tId ? { ...t, hint: v || undefined } : t),
+        })} />
     </>
   );
 };
