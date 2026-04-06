@@ -1,5 +1,5 @@
 import { Field, Float, ID, InputType, Int } from "type-graphql";
-import { TenderPricingRowType, TenderWorkType } from "@typescript/tenderPricingSheet";
+import { TenderPricingRowType } from "@typescript/tenderPricingSheet";
 
 @InputType()
 export class TenderPricingRowCreateData {
@@ -39,17 +39,11 @@ export class TenderPricingRowUpdateData {
   @Field(() => Float, { nullable: true })
   public markupOverride?: number | null;
 
-  @Field({ nullable: true })
-  public calculatorInputsJson?: string;
-
   @Field(() => Float, { nullable: true })
   public unitPrice?: number | null;
 
   @Field({ nullable: true })
   public notes?: string;
-
-  @Field(() => TenderWorkType, { nullable: true })
-  public calculatorType?: TenderWorkType;
 
   @Field(() => String, { nullable: true })
   public rateBuildupSnapshot?: string | null;

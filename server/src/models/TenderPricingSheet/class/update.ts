@@ -43,11 +43,8 @@ const updateRow = (
   if (data.quantity !== undefined) row.quantity = data.quantity;
   if (data.unit !== undefined) row.unit = data.unit;
   if (data.markupOverride !== undefined) row.markupOverride = data.markupOverride;
-  if (data.calculatorInputsJson !== undefined) row.calculatorInputsJson = data.calculatorInputsJson;
   if (data.unitPrice !== undefined) row.unitPrice = data.unitPrice;
   if (data.notes !== undefined) row.notes = data.notes;
-  if (data.calculatorType !== undefined) row.calculatorType = data.calculatorType;
-  if (data.calculatorInputs !== undefined) row.calculatorInputs = data.calculatorInputs as any;
   if (data.rateBuildupSnapshot !== undefined) row.rateBuildupSnapshot = data.rateBuildupSnapshot ?? undefined;
   if (data.extraUnitPrice !== undefined) row.extraUnitPrice = data.extraUnitPrice;
   if (data.extraUnitPriceMemo !== undefined) row.extraUnitPriceMemo = data.extraUnitPriceMemo ?? undefined;
@@ -136,8 +133,6 @@ const duplicateRow = (
     markupOverride: src.markupOverride,
     unitPrice: src.unitPrice,
     notes: src.notes,
-    calculatorType: src.calculatorType,
-    calculatorInputsJson: src.calculatorInputsJson,
     rateBuildupSnapshot: src.rateBuildupSnapshot,
     extraUnitPrice: src.extraUnitPrice,
     extraUnitPriceMemo: src.extraUnitPriceMemo,

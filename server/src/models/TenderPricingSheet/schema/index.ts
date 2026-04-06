@@ -1,5 +1,5 @@
-import { TenderPricingRowType, TenderWorkType } from "@typescript/tenderPricingSheet";
-import { modelOptions, prop, Severity } from "@typegoose/typegoose";
+import { TenderPricingRowType } from "@typescript/tenderPricingSheet";
+import { prop } from "@typegoose/typegoose";
 import { Types } from "mongoose";
 import { Field, Float, ID, Int, ObjectType } from "type-graphql";
 
@@ -21,7 +21,6 @@ export class DocRefClass {
   public description?: string;
 }
 
-@modelOptions({ options: { allowMixed: Severity.ALLOW } })
 @ObjectType()
 export class TenderPricingRowClass {
   @Field(() => ID)
@@ -60,10 +59,6 @@ export class TenderPricingRowClass {
   @prop()
   public markupOverride?: number | null;
 
-  @Field({ nullable: true })
-  @prop({ trim: true })
-  public calculatorInputsJson?: string;
-
   @Field(() => Float, { nullable: true })
   @prop()
   public unitPrice?: number | null;
@@ -71,13 +66,6 @@ export class TenderPricingRowClass {
   @Field({ nullable: true })
   @prop({ trim: true })
   public notes?: string;
-
-  @Field(() => TenderWorkType, { nullable: true })
-  @prop({ enum: TenderWorkType })
-  public calculatorType?: TenderWorkType;
-
-  @prop({ type: () => Object })
-  public calculatorInputs?: Record<string, unknown>;
 
   @Field({ nullable: true })
   @prop({ trim: true })
