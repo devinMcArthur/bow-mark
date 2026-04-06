@@ -476,12 +476,10 @@ const CanvasFlow: React.FC<Props> = ({
         return buildNodes(mergedDoc, stepDebug, quantity, onQuantityChange, handleGroupResizeEnd);
       });
     }
-  // Intentional omissions from deps: `doc` (we only want to re-run on doc.id
-  // change, not on every content edit — content edits use the `prev` branch),
-  // `onQuantityChange` (stable callback ref, and including it would cause
-  // spurious rebuilds that reset selection).
+  // `onQuantityChange` omitted: stable callback ref, including it would cause
+  // spurious rebuilds that reset selection.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc.id, stepDebug, quantity, positionResetKey]);
+  }, [doc, stepDebug, quantity, positionResetKey]);
 
   // Groups are only draggable when selected — lets users pan over large groups without
   // accidentally moving them. Click to select, then drag.
@@ -846,7 +844,13 @@ const CanvasFlow: React.FC<Props> = ({
         }
         // Update relative positions for group members
         if (groupedIds.has(n.id) && newPositions[n.id]) {
-          return { ...n, position: { x: newPositions[n.id].x, y: newPositions[n.id].y } };
+          return {
+            ...n,
+            position: { x: newPositions[n.id].x, y: newPositions[n.id].y },
+            ...(n.type === "group" && groupSizes[n.id]
+              ? { style: { ...n.style, width: groupSizes[n.id].w, height: groupSizes[n.id].h } }
+              : {}),
+          };
         }
         return n;
       })
