@@ -50,8 +50,6 @@ const ROW_FIELDS = `
   unit
   unitPrice
   notes
-  calculatorType
-  calculatorInputsJson
   markupOverride
   rateBuildupSnapshot
   extraUnitPrice

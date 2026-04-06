@@ -55,8 +55,6 @@ const SHEET_QUERY = gql`
         unit
         unitPrice
         notes
-        calculatorType
-        calculatorInputsJson
         markupOverride
         rateBuildupSnapshot
         extraUnitPrice
@@ -139,8 +137,6 @@ const CREATE_SHEET = gql`
         unit
         unitPrice
         notes
-        calculatorType
-        calculatorInputsJson
         markupOverride
         rateBuildupSnapshot
         extraUnitPrice
