@@ -1,9 +1,10 @@
-import { TenderPricingSheet } from "@models";
+import { TenderPricingSheet, TenderReview } from "@models";
 import { TenderPricingSheetClass } from "../../../models/TenderPricingSheet/class";
 import { Id } from "@typescript/models";
 import {
   Arg,
   Authorized,
+  Ctx,
   Float,
   ID,
   Int,
@@ -16,6 +17,8 @@ import {
   TenderPricingRowDocRefAddData,
   TenderPricingRowUpdateData,
 } from "./mutations";
+import { IContext } from "@typescript/graphql";
+import { TRACKED_ROW_FIELDS } from "@typescript/tenderReview";
 
 @Resolver(() => TenderPricingSheetClass)
 export default class TenderPricingSheetResolver {
@@ -63,11 +66,24 @@ export default class TenderPricingSheetResolver {
   @Mutation(() => TenderPricingSheetClass)
   async tenderPricingRowCreate(
     @Arg("sheetId", () => ID) sheetId: Id,
-    @Arg("data") data: TenderPricingRowCreateData
+    @Arg("data") data: TenderPricingRowCreateData,
+    @Ctx() ctx: IContext
   ) {
     const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
     sheet!.addRow(data);
     await sheet!.save();
+
+    if (ctx.user) {
+      const newRow = sheet!.rows[sheet!.rows.length - 1];
+      await (TenderReview as any).addAuditEvent((sheet!.tender as any).toString(), {
+        rowId: newRow._id.toString(),
+        rowDescription: newRow.description ?? "",
+        action: "row_added",
+        changedFields: [],
+        changedBy: ctx.user._id.toString(),
+      });
+    }
+
     return sheet;
   }
 
@@ -76,11 +92,29 @@ export default class TenderPricingSheetResolver {
   async tenderPricingRowUpdate(
     @Arg("sheetId", () => ID) sheetId: Id,
     @Arg("rowId", () => ID) rowId: Id,
-    @Arg("data") data: TenderPricingRowUpdateData
+    @Arg("data") data: TenderPricingRowUpdateData,
+    @Ctx() ctx: IContext
   ) {
     const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
+    const row = sheet!.rows.find((r) => r._id.toString() === rowId.toString());
     sheet!.updateRow(rowId, data);
     await sheet!.save();
+
+    if (ctx.user) {
+      const changedFields = TRACKED_ROW_FIELDS.filter(
+        (f) => (data as any)[f] !== undefined
+      );
+      if (changedFields.length > 0) {
+        await (TenderReview as any).addAuditEvent((sheet!.tender as any).toString(), {
+          rowId: rowId.toString(),
+          rowDescription: row?.description ?? "",
+          action: "row_updated",
+          changedFields,
+          changedBy: ctx.user._id.toString(),
+        });
+      }
+    }
+
     return sheet;
   }
 
@@ -88,11 +122,24 @@ export default class TenderPricingSheetResolver {
   @Mutation(() => TenderPricingSheetClass)
   async tenderPricingRowDelete(
     @Arg("sheetId", () => ID) sheetId: Id,
-    @Arg("rowId", () => ID) rowId: Id
+    @Arg("rowId", () => ID) rowId: Id,
+    @Ctx() ctx: IContext
   ) {
     const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
+    const row = sheet!.rows.find((r) => r._id.toString() === rowId.toString());
     sheet!.deleteRow(rowId);
     await sheet!.save();
+
+    if (ctx.user) {
+      await (TenderReview as any).addAuditEvent((sheet!.tender as any).toString(), {
+        rowId: rowId.toString(),
+        rowDescription: row?.description ?? "",
+        action: "row_deleted",
+        changedFields: [],
+        changedBy: ctx.user._id.toString(),
+      });
+    }
+
     return sheet;
   }
 
