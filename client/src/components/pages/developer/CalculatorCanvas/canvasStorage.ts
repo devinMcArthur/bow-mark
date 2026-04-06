@@ -354,14 +354,25 @@ export function fragmentToDoc(f: RateBuildupTemplateFullSnippetFragment): Canvas
     try { controllerDefs = JSON.parse(f.controllerDefs); } catch { /* ignore */ }
   }
 
+  // Deduplicate defs by ID — protects against duplicate entries that may have been
+  // saved when the canvas had a bug where content edits didn't visually reflect.
+  const dedup = <T extends { id: string }>(arr: T[]): T[] => {
+    const seen = new Set<string>();
+    return arr.filter((item) => {
+      if (seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+  };
+
   return {
     id: f._id,
     label: f.label,
     defaultUnit: f.defaultUnit ?? "unit",
-    parameterDefs: (f.parameterDefs ?? []) as CanvasParameterDef[],
-    tableDefs: (f.tableDefs ?? []) as CanvasTableDef[],
-    formulaSteps: (f.formulaSteps ?? []) as CanvasFormulaStep[],
-    breakdownDefs: (f.breakdownDefs ?? []) as CanvasBreakdownDef[],
+    parameterDefs: dedup((f.parameterDefs ?? []) as CanvasParameterDef[]),
+    tableDefs: dedup((f.tableDefs ?? []) as CanvasTableDef[]),
+    formulaSteps: dedup((f.formulaSteps ?? []) as CanvasFormulaStep[]),
+    breakdownDefs: dedup((f.breakdownDefs ?? []) as CanvasBreakdownDef[]),
     intermediateDefs: (f.intermediateDefs ?? []) as IntermediateDef[],
     specialPositions,
     groupDefs,
