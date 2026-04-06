@@ -298,7 +298,10 @@ const TenderReviewTab: React.FC<TenderReviewTabProps> = ({ tenderId, currentUser
   const review = data?.tenderReview;
   const status: ReviewStatus = review?.status ?? "draft";
 
-  // Build sorted timeline
+  // Build sorted timeline, collapsing consecutive audit events on the same row
+  // by the same user within COLLAPSE_WINDOW_MS into a single entry.
+  const COLLAPSE_WINDOW_MS = 2000;
+
   const timeline: TimelineItem[] = React.useMemo(() => {
     if (!review) return [];
     const items: TimelineItem[] = [
@@ -313,7 +316,31 @@ const TenderReviewTab: React.FC<TenderReviewTabProps> = ({ tenderId, currentUser
         data: c,
       })),
     ];
-    return items.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    items.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+    // Collapse nearby audit events from the same user on the same row
+    const collapsed: TimelineItem[] = [];
+    for (const item of items) {
+      const prev = collapsed[collapsed.length - 1];
+      if (
+        item.kind === "audit" &&
+        prev?.kind === "audit" &&
+        prev.data.changedBy?._id === item.data.changedBy?._id &&
+        prev.data.rowDescription === item.data.rowDescription &&
+        prev.data.action === item.data.action &&
+        item.timestamp.getTime() - prev.timestamp.getTime() < COLLAPSE_WINDOW_MS
+      ) {
+        // Merge changedFields into the previous event
+        const mergedFields = [...new Set([...prev.data.changedFields, ...item.data.changedFields])];
+        collapsed[collapsed.length - 1] = {
+          ...prev,
+          data: { ...prev.data, changedFields: mergedFields },
+        };
+      } else {
+        collapsed.push(item);
+      }
+    }
+    return collapsed;
   }, [review]);
 
   useEffect(() => {
