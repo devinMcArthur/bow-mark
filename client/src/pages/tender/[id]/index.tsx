@@ -29,6 +29,7 @@ import { UserRoles } from "../../../generated/graphql";
 import { navbarHeight } from "../../../constants/styles";
 import { localStorageTokenKey } from "../../../contexts/Auth";
 import ChatDrawer from "../../../components/Chat/ChatDrawer";
+import DocumentViewerModal, { DocumentViewerFile } from "../../../components/Common/DocumentViewerModal";
 import TenderMobileLayout from "../../../components/Tender/TenderMobileLayout";
 
 // Lazy-load PdfViewer to avoid SSR issues with react-pdf
@@ -278,6 +279,7 @@ const TenderDetailPage = () => {
   const [panelWidthPx, setPanelWidthPx] = useState<number | null>(null);
   const [selectedFile, setSelectedFile] = useState<TenderFileItem | null>(null);
   const [selectedFilePage, setSelectedFilePage] = useState<number>(1);
+  const [docViewerFile, setDocViewerFile] = useState<DocumentViewerFile | null>(null);
   const isDraggingPanel = useRef(false);
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -420,6 +422,16 @@ const TenderDetailPage = () => {
     handleOpenFile(file, page);
   }, [tender?.files, handleOpenFile]);
 
+  const handleChatDocRefClick = useCallback((enrichedFileId: string, page?: number) => {
+    const file = tender?.files.find((f) => f._id === enrichedFileId);
+    setDocViewerFile({
+      enrichedFileId,
+      fileName: file?.file?.description ?? undefined,
+      mimetype: file?.file?.mimetype ?? undefined,
+      page,
+    });
+  }, [tender?.files]);
+
   const panelWidth =
     panelState === "fullscreen"
       ? "100%"
@@ -538,7 +550,7 @@ const TenderDetailPage = () => {
                 bottom={0}
                 w="5px"
                 cursor="col-resize"
-                zIndex={10}
+                zIndex={2}
                 _hover={{ bg: "blue.200" }}
                 transition="background 0.15s"
                 onMouseDown={(e) => {
@@ -709,6 +721,13 @@ const TenderDetailPage = () => {
               refetchTender();
             }
           }}
+          onDocRefClick={handleChatDocRefClick}
+        />
+
+        {/* ── Document viewer modal (for chat references) ─────────────── */}
+        <DocumentViewerModal
+          file={docViewerFile}
+          onClose={() => setDocViewerFile(null)}
         />
       </Flex>
       )}

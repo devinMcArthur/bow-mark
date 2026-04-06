@@ -20,6 +20,7 @@ interface ChatDrawerProps {
   suggestions?: string[];
   minRole?: UserRoles;
   onToolResult?: (toolName: string, result: string) => void;
+  onDocRefClick?: (enrichedFileId: string, page?: number) => void;
   initialConversationId?: string;
 }
 
@@ -33,6 +34,7 @@ const ChatDrawer = ({
   suggestions,
   minRole = UserRoles.User,
   onToolResult,
+  onDocRefClick,
   initialConversationId,
 }: ChatDrawerProps) => {
   const [isDesktop] = useMediaQuery("(min-width: 768px)");
@@ -117,6 +119,7 @@ const ChatDrawer = ({
             height="100%"
             minRole={minRole}
             onToolResult={onToolResult}
+            onDocRefClick={onDocRefClick}
             initialConversationId={initialConversationId}
           />
         </Box>

@@ -5,7 +5,12 @@ import remarkGfm from "remark-gfm";
 import { CopyableTable } from "./CopyableTable";
 import { localStorageTokenKey } from "../../contexts/Auth";
 
-const MarkdownContent = ({ content }: { content: string }) => (
+interface MarkdownContentProps {
+  content: string;
+  onDocRefClick?: (enrichedFileId: string, page?: number) => void;
+}
+
+const MarkdownContent = ({ content, onDocRefClick }: MarkdownContentProps) => (
   <ReactMarkdown
     remarkPlugins={[remarkGfm]}
     components={{
@@ -49,8 +54,29 @@ const MarkdownContent = ({ content }: { content: string }) => (
         <Box borderLeft="3px solid" borderColor="blue.300" pl={3} py={0.5} my={2} color="gray.600">{children}</Box>
       ),
       a: ({ href, children }) => {
-        // For enriched-file links, append the current JWT at render time so
-        // links don't expire when the token baked into an old conversation ages out.
+        // For enriched-file links, open in the document viewer modal if a handler is provided.
+        if (href?.includes("/api/enriched-files/") && onDocRefClick) {
+          const match = href.match(/\/api\/enriched-files\/([a-f0-9]+)/);
+          const pageMatch = href.match(/#page=(\d+)/);
+          if (match) {
+            const fileId = match[1];
+            const page = pageMatch ? parseInt(pageMatch[1], 10) : undefined;
+            return (
+              <Box
+                as="span"
+                color="blue.600"
+                textDecoration="underline"
+                cursor="pointer"
+                _hover={{ color: "blue.800" }}
+                onClick={(e: React.MouseEvent) => { e.preventDefault(); onDocRefClick(fileId, page); }}
+              >
+                {children}
+              </Box>
+            );
+          }
+        }
+        // For enriched-file links without a handler, append the current JWT at render time
+        // so links don't expire when the token baked into an old conversation ages out.
         let resolvedHref = href;
         if (href?.includes("/api/enriched-files/") && typeof window !== "undefined") {
           const token = localStorage.getItem(localStorageTokenKey);
