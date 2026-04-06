@@ -17,7 +17,7 @@ export class TenderAuditEventClass {
   @prop({ required: true, default: "" })
   public rowDescription!: string;
 
-  @Field()
+  @Field(() => String)
   @prop({ required: true })
   public action!: TenderAuditAction;
 
@@ -65,7 +65,7 @@ export class TenderReviewSchema {
   @prop({ required: true, unique: true })
   public tender!: Types.ObjectId;
 
-  @Field()
+  @Field(() => String)
   @prop({ required: true, default: "draft" })
   public status!: TenderReviewStatus;
 
