@@ -87,7 +87,7 @@ const MessageBubble = React.memo(({ msg, onShowSources, rateMessage, isLastAssis
         borderRadius="lg"
         borderBottomRightRadius="sm"
       >
-        <Text fontSize="sm" lineHeight="1.6">{msg.content}</Text>
+        <Text fontSize="sm" lineHeight="1.6" whiteSpace="pre-wrap">{msg.content}</Text>
       </Box>
     );
   }
