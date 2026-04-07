@@ -2,6 +2,11 @@ import React from "react";
 import { Box, Code, Text } from "@chakra-ui/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+// Convert single newlines to markdown hard breaks (two trailing spaces + newline)
+// so user-typed Shift+Enter line breaks render correctly.
+function preserveLineBreaks(text: string): string {
+  return text.replace(/(?<! {2})\n/g, "  \n");
+}
 import { CopyableTable } from "./CopyableTable";
 import { localStorageTokenKey } from "../../contexts/Auth";
 
@@ -102,7 +107,7 @@ const MarkdownContent = ({ content, onDocRefClick }: MarkdownContentProps) => (
       },
     }}
   >
-    {content}
+    {preserveLineBreaks(content)}
   </ReactMarkdown>
 );
 
