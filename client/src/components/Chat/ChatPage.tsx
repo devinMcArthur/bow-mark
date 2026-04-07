@@ -87,7 +87,9 @@ const MessageBubble = React.memo(({ msg, onShowSources, rateMessage, isLastAssis
         borderRadius="lg"
         borderBottomRightRadius="sm"
       >
-        <Text fontSize="sm" lineHeight="1.6" whiteSpace="pre-wrap">{msg.content}</Text>
+        <Box sx={{ "& p, & li, & code, & td, & th": { color: "white" }, "& a": { color: "blue.200" }, "& hr": { borderColor: "whiteAlpha.400" }, "& blockquote": { borderColor: "blue.200", color: "whiteAlpha.800" }, "& table": { borderColor: "whiteAlpha.300" }, "& thead": { bg: "whiteAlpha.100" }, "& code:not([class])": { bg: "whiteAlpha.200" }, "& pre code": { bg: "transparent" } }}>
+          <MarkdownContent content={msg.content} />
+        </Box>
       </Box>
     );
   }
