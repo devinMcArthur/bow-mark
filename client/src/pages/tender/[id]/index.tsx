@@ -60,6 +60,7 @@ const SHEET_QUERY = gql`
         rateBuildupSnapshot
         extraUnitPrice
         extraUnitPriceMemo
+        status
         docRefs {
           _id
           enrichedFileId
@@ -142,6 +143,7 @@ const CREATE_SHEET = gql`
         rateBuildupSnapshot
         extraUnitPrice
         extraUnitPriceMemo
+        status
       }
     }
   }

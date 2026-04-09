@@ -54,6 +54,7 @@ const ROW_FIELDS = `
   rateBuildupSnapshot
   extraUnitPrice
   extraUnitPriceMemo
+  status
   docRefs {
     _id
     enrichedFileId

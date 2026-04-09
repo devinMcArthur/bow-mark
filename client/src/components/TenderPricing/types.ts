@@ -27,6 +27,7 @@ export interface TenderPricingRow {
   extraUnitPrice?: number | null;
   extraUnitPriceMemo?: string | null;
   docRefs?: DocRef[] | null;
+  status?: string | null;
 }
 
 export interface TenderPricingSheet {
