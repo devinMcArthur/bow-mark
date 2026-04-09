@@ -500,6 +500,7 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, 
             <Thead>
               <Tr bg="gray.50">
                 <Th w="28px" px={1} />
+                <Th w="24px" px={1} />
                 <Th whiteSpace="nowrap" w="60px">#</Th>
                 <Th>Description</Th>
                 <Th isNumeric whiteSpace="nowrap" w="60px">Qty</Th>
