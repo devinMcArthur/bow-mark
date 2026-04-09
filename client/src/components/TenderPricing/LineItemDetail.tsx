@@ -608,49 +608,34 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
           </Box>
         )}
 
-        {/* Markup */}
-        <Grid templateColumns="1fr 1fr" gap={3} mb={3}>
-          <FormControl>
-            <FormLabel fontSize="xs" color="gray.400" fontWeight="medium" mb={1}>Markup Override</FormLabel>
-            <InputGroup size="sm">
-              <InputLeftAddon
-                bg={hasMarkupOverride ? "orange.50" : "gray.100"}
-                color={hasMarkupOverride ? "orange.600" : "gray.500"}
-                borderColor={hasMarkupOverride ? "orange.200" : "gray.200"}
-                fontSize="xs" px={2}
-              >
-                %
-              </InputLeftAddon>
-              <Input
-                value={markup}
-                onChange={(e) => setMarkup(e.target.value)}
-                onBlur={() => commitMarkup(markup)}
-                placeholder="default"
-                bg="gray.50"
-                borderColor={hasMarkupOverride ? "orange.200" : undefined}
-                _focus={{ bg: "white", borderColor: "orange.400", boxShadow: "0 0 0 1px #fb923c" }}
-              />
-            </InputGroup>
-          </FormControl>
-          <Box>
-            <Text fontSize="xs" color="gray.400" fontWeight="medium" mb={1}>Effective Markup</Text>
-            <Flex
-              align="center" h="32px" px={3}
+        {/* Markup — compact inline row */}
+        <Flex align="center" gap={3} mb={3} px={1}>
+          <Text fontSize="xs" color="gray.400" fontWeight="medium" whiteSpace="nowrap">Markup</Text>
+          <Text fontSize="sm" fontWeight="semibold" color={hasMarkupOverride ? "orange.700" : "gray.600"}>
+            {effectiveMarkup}%
+          </Text>
+          <Flex align="center" gap={1}>
+            <Text fontSize="xs" color="gray.400" whiteSpace="nowrap">Override:</Text>
+            <Input
+              size="xs"
+              w="52px"
+              value={markup}
+              onChange={(e) => setMarkup(e.target.value)}
+              onBlur={() => commitMarkup(markup)}
+              placeholder="—"
+              textAlign="center"
               bg={hasMarkupOverride ? "orange.50" : "gray.50"}
-              border="1px solid" borderColor={hasMarkupOverride ? "orange.200" : "gray.200"}
-              rounded="md"
-            >
-              <Text fontSize="sm" fontWeight="semibold" color={hasMarkupOverride ? "orange.700" : "gray.600"}>
-                {effectiveMarkup}%
-              </Text>
-              {hasMarkupOverride && (
-                <Text fontSize="xs" color="gray.400" ml={1.5}>
-                  base {defaultMarkupPct}%{previewRow.markupOverride! > 0 ? " +" : " "}{previewRow.markupOverride}%
-                </Text>
-              )}
-            </Flex>
-          </Box>
-        </Grid>
+              borderColor={hasMarkupOverride ? "orange.200" : "gray.200"}
+              _focus={{ bg: "white", borderColor: "orange.400", boxShadow: "0 0 0 1px #fb923c" }}
+            />
+            <Text fontSize="xs" color="gray.400">%</Text>
+          </Flex>
+          {hasMarkupOverride && (
+            <Text fontSize="10px" color="gray.400" whiteSpace="nowrap">
+              (base {defaultMarkupPct}%)
+            </Text>
+          )}
+        </Flex>
 
         {/* Notes */}
         <FormControl mb={4}>
