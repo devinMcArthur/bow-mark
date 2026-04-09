@@ -44,8 +44,9 @@ function getScheduleForRow(
   return null;
 }
 
-// Minimum flex so empty columns don't collapse entirely
-const MIN_FLEX = 0.5;
+// Empty columns shrink, non-empty columns share space equally
+const EMPTY_FLEX = 0.3;
+const ACTIVE_FLEX = 1;
 
 // ─── Card ────────────────────────────────────────────────────────────────────
 
@@ -241,7 +242,7 @@ const PricingBoard: React.FC<PricingBoardProps> = ({
               rows={columns[status]}
               allRows={sheet.rows}
               defaultMarkupPct={sheet.defaultMarkupPct}
-              flexValue={Math.max(count, MIN_FLEX)}
+              flexValue={count > 0 ? ACTIVE_FLEX : EMPTY_FLEX}
               onCardClick={setSelectedRow}
             />
           );
