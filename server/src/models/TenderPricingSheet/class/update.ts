@@ -48,6 +48,7 @@ const updateRow = (
   if (data.rateBuildupSnapshot !== undefined) row.rateBuildupSnapshot = data.rateBuildupSnapshot ?? undefined;
   if (data.extraUnitPrice !== undefined) row.extraUnitPrice = data.extraUnitPrice;
   if (data.extraUnitPriceMemo !== undefined) row.extraUnitPriceMemo = data.extraUnitPriceMemo ?? undefined;
+  if (data.status !== undefined) row.status = data.status;
 
   sheet.updatedAt = new Date();
   return sheet;
@@ -136,6 +137,7 @@ const duplicateRow = (
     rateBuildupSnapshot: src.rateBuildupSnapshot,
     extraUnitPrice: src.extraUnitPrice,
     extraUnitPriceMemo: src.extraUnitPriceMemo,
+    status: src.status,
     docRefs: ((src as any).docRefs ?? []).map((r: any) => ({ ...r, _id: new Types.ObjectId() })),
   };
 

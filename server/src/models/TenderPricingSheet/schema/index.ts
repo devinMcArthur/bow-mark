@@ -82,6 +82,10 @@ export class TenderPricingRowClass {
   @Field(() => [DocRefClass])
   @prop({ type: () => [DocRefClass], default: [] })
   public docRefs!: DocRefClass[];
+
+  @Field(() => String, { nullable: true })
+  @prop({ trim: true, default: "not_started" })
+  public status?: string;
 }
 
 @ObjectType()

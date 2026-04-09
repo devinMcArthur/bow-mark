@@ -38,4 +38,5 @@ export interface ITenderPricingRowUpdate {
   rateBuildupSnapshot?: string | null;
   extraUnitPrice?: number | null;
   extraUnitPriceMemo?: string | null;
+  status?: string;
 }

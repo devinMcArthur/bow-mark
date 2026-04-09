@@ -53,6 +53,9 @@ export class TenderPricingRowUpdateData {
 
   @Field(() => String, { nullable: true })
   public extraUnitPriceMemo?: string | null;
+
+  @Field(() => String, { nullable: true })
+  public status?: string;
 }
 
 @InputType()
