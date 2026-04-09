@@ -30,9 +30,9 @@ const PricingBoardDrawer: React.FC<PricingBoardDrawerProps> = ({
   return (
     <Drawer isOpen={!!row} onClose={onClose} placement="bottom" size="md">
       <DrawerOverlay bg="blackAlpha.300" />
-      <DrawerContent maxH="60vh" borderTopRadius="xl">
+      <DrawerContent maxH="60vh" borderTopRadius="xl" display="flex" flexDir="column">
         {row && (
-          <DrawerBody p={0} overflow="hidden">
+          <DrawerBody p={0} flex={1} display="flex" flexDir="column" overflow="hidden" minH={0}>
             <LineItemDetail
               row={row}
               defaultMarkupPct={sheet.defaultMarkupPct}

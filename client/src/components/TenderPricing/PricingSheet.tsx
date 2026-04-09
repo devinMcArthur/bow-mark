@@ -352,7 +352,7 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, 
   }, [isDetailOpen]);
 
   return (
-    <Box>
+    <Box flex={1} display="flex" flexDir="column" minH={0} h={viewMode === "board" ? "100%" : undefined}>
       {/* ── Toolbar ──────────────────────────────────────────────────────── */}
       <Flex align="center" justify="space-between" mb={4} wrap="wrap" gap={3}>
         <Flex align="center" gap={2}>

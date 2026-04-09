@@ -501,10 +501,13 @@ const TenderDetailPage = () => {
             <Box
               flex={1}
               minW={0}
-              overflowY="auto"
-              p={4}
+              overflowY={pricingViewMode === "board" ? "hidden" : "auto"}
+              overflow={pricingViewMode === "board" ? "hidden" : undefined}
+              p={pricingViewMode === "board" ? 0 : 4}
               borderRight={panelState === "open" ? "1px solid" : undefined}
               borderColor="gray.200"
+              display="flex"
+              flexDir="column"
             >
               {!initialized ? (
                 <Spinner />
