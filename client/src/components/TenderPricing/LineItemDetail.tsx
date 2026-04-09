@@ -396,42 +396,75 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
         />
       </Flex>
 
-      {/* ── Status bar ─────────────────────────────────────────────── */}
-      <Flex px={4} py={2} gap={2} borderBottom="1px solid" borderColor="gray.100" flexShrink={0}>
-        {LINE_ITEM_STATUSES.map((s) => {
-          const active = s === ((row.status as LineItemStatus) ?? "not_started");
-          return (
-            <Flex
-              key={s}
-              align="center"
-              gap={1.5}
-              px={3}
-              py={1}
-              borderRadius="full"
-              cursor="pointer"
-              border="1px solid"
-              borderColor={active ? STATUS_COLORS[s] : "gray.200"}
-              bg={active ? `${STATUS_COLORS[s]}18` : "transparent"}
-              _hover={{ borderColor: STATUS_COLORS[s] }}
-              transition="all 0.15s"
-              onClick={() => onUpdate(row._id, { status: s })}
-            >
-              <Box w="7px" h="7px" borderRadius="full" bg={STATUS_COLORS[s]} flexShrink={0} />
-              <Text fontSize="xs" fontWeight={active ? "semibold" : "normal"} color={active ? "gray.800" : "gray.500"} whiteSpace="nowrap">
-                {STATUS_LABELS[s]}
-              </Text>
-            </Flex>
-          );
-        })}
-      </Flex>
-
       {/* ── Form ────────────────────────────────────────────────────── */}
       <Box px={5} pb={5} overflowY="auto" flex={1} overscrollBehavior="contain">
 
         {/* ── Line item details ── */}
         <Box pt={4} mb={5}>
 
-        {/* ── PRICING SECTION (no-buildup only) ── */}
+        {/* ── DETAILS SECTION with status pills ── */}
+        <Flex align="center" justify="space-between" mb={2}>
+          <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wider">
+            Details
+          </Text>
+          <Flex gap={1.5} flexWrap="wrap">
+            {LINE_ITEM_STATUSES.map((s) => {
+              const active = s === ((row.status as LineItemStatus) ?? "not_started");
+              return (
+                <Flex
+                  key={s}
+                  align="center"
+                  gap={1}
+                  px={2}
+                  py={0.5}
+                  borderRadius="full"
+                  cursor="pointer"
+                  border="1px solid"
+                  borderColor={active ? STATUS_COLORS[s] : "gray.200"}
+                  bg={active ? `${STATUS_COLORS[s]}18` : "transparent"}
+                  _hover={{ borderColor: STATUS_COLORS[s] }}
+                  transition="all 0.15s"
+                  onClick={() => onUpdate(row._id, { status: s })}
+                >
+                  <Box w="6px" h="6px" borderRadius="full" bg={STATUS_COLORS[s]} flexShrink={0} />
+                  <Text fontSize="10px" fontWeight={active ? "semibold" : "normal"} color={active ? "gray.800" : "gray.500"} whiteSpace="nowrap">
+                    {STATUS_LABELS[s]}
+                  </Text>
+                </Flex>
+              );
+            })}
+          </Flex>
+        </Flex>
+
+        {/* Item # + Description */}
+        <Grid templateColumns="80px 1fr" gap={3} mb={3}>
+          <FormControl>
+            <FormLabel fontSize="xs" color="gray.400" fontWeight="medium" mb={1}>Item #</FormLabel>
+            <Input
+              size="sm"
+              value={itemNumber}
+              onChange={(e) => setItemNumber(e.target.value)}
+              onBlur={() => commitStr("itemNumber", itemNumber)}
+              placeholder="—"
+              bg="gray.50"
+              _focus={{ bg: "white", borderColor: "orange.400", boxShadow: "0 0 0 1px #fb923c" }}
+            />
+          </FormControl>
+          <FormControl>
+            <FormLabel fontSize="xs" color="gray.400" fontWeight="medium" mb={1}>Description</FormLabel>
+            <Input
+              size="sm"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              onBlur={() => commitStr("description", description)}
+              placeholder="Line item description"
+              bg="gray.50"
+              _focus={{ bg: "white", borderColor: "orange.400", boxShadow: "0 0 0 1px #fb923c" }}
+            />
+          </FormControl>
+        </Grid>
+
+        {/* ── PRICING SECTION (no-buildup only) — after details ── */}
         {!hasRateBuildup && (
           <Box
             bg="orange.50" border="1px solid" borderColor="orange.200"
@@ -499,39 +532,6 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
             </Grid>
           </Box>
         )}
-
-        {/* ── DETAILS SECTION ── */}
-        <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>
-          Details
-        </Text>
-
-        {/* Description + Item # */}
-        <Grid templateColumns="1fr 80px" gap={3} mb={3}>
-          <FormControl>
-            <FormLabel fontSize="xs" color="gray.400" fontWeight="medium" mb={1}>Description</FormLabel>
-            <Input
-              size="sm"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              onBlur={() => commitStr("description", description)}
-              placeholder="Line item description"
-              bg="gray.50"
-              _focus={{ bg: "white", borderColor: "orange.400", boxShadow: "0 0 0 1px #fb923c" }}
-            />
-          </FormControl>
-          <FormControl>
-            <FormLabel fontSize="xs" color="gray.400" fontWeight="medium" mb={1}>Item #</FormLabel>
-            <Input
-              size="sm"
-              value={itemNumber}
-              onChange={(e) => setItemNumber(e.target.value)}
-              onBlur={() => commitStr("itemNumber", itemNumber)}
-              placeholder="—"
-              bg="gray.50"
-              _focus={{ bg: "white", borderColor: "orange.400", boxShadow: "0 0 0 1px #fb923c" }}
-            />
-          </FormControl>
-        </Grid>
 
         {/* Qty + Unit — featured card when there IS a buildup */}
         {hasRateBuildup && (
