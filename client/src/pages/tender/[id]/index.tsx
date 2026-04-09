@@ -272,6 +272,7 @@ const TenderDetailPage = () => {
 
   const [sheet, setSheet] = useState<TenderPricingSheet | null>(null);
   const [initialized, setInitialized] = useState(false);
+  const [pricingViewMode, setPricingViewMode] = useState<"list" | "board">("list");
   const [rightTab, setRightTab] = useState<RightTab>("documents");
   const [panelState, setPanelState] = useState<PanelState>("open");
   const [chatOpen, setChatOpen] = useState(false);
@@ -516,6 +517,8 @@ const TenderDetailPage = () => {
                   activeDocFile={selectedFile?._id}
                   activeDocPage={selectedFilePage}
                   onDocRefClick={handleDocRefClick}
+                  viewMode={pricingViewMode}
+                  onViewModeChange={setPricingViewMode}
                 />
               ) : (
                 <Text color="gray.500">Unable to load pricing sheet.</Text>

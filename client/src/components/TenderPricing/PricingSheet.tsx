@@ -36,6 +36,7 @@ import { computeSheetTotal, formatCurrency } from "./compute";
 import { SortableRow } from "./PricingRow";
 import ScheduleList from "./ScheduleList";
 import LineItemDetail from "./LineItemDetail";
+import PricingBoard from "./PricingBoard";
 
 // ─── GQL Mutations ────────────────────────────────────────────────────────────
 
@@ -167,9 +168,11 @@ interface PricingSheetProps {
   activeDocFile?: string;
   activeDocPage?: number;
   onDocRefClick?: (enrichedFileId: string, page: number) => void;
+  viewMode?: "list" | "board";
+  onViewModeChange?: (mode: "list" | "board") => void;
 }
 
-const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, tenderFiles, activeDocFile, activeDocPage, onDocRefClick }) => {
+const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, tenderFiles, activeDocFile, activeDocPage, onDocRefClick, viewMode, onViewModeChange }) => {
   const [markupDraft, setMarkupDraft] = useState(String(sheet.defaultMarkupPct));
   const [editingMarkup, setEditingMarkup] = useState(false);
 
@@ -388,6 +391,24 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, 
         </Flex>
 
         <Flex align="center" gap={4}>
+          {onViewModeChange && (
+            <ButtonGroup size="xs" isAttached variant="outline" mr={2}>
+              <Button
+                onClick={() => onViewModeChange("list")}
+                colorScheme={viewMode !== "board" ? "blue" : "gray"}
+                variant={viewMode !== "board" ? "solid" : "outline"}
+              >
+                List
+              </Button>
+              <Button
+                onClick={() => onViewModeChange("board")}
+                colorScheme={viewMode === "board" ? "blue" : "gray"}
+                variant={viewMode === "board" ? "solid" : "outline"}
+              >
+                Board
+              </Button>
+            </ButtonGroup>
+          )}
           <Flex align="center" gap={2}>
             <Text fontSize="sm" color="gray.600" whiteSpace="nowrap">
               Default Markup:
@@ -455,6 +476,14 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, 
             Add a Schedule, Group, or Line Item to get started.
           </Text>
         </Box>
+      ) : viewMode === "board" ? (
+        <PricingBoard
+          sheet={sheet}
+          tenderId={tenderId}
+          onUpdate={onUpdate}
+          onUpdateRow={handleUpdateRow}
+          tenderFiles={tenderFiles}
+        />
       ) : isDetailOpen ? (
         /* ── Split pane: schedule list + detail panel ─────────────────── */
         <Flex
