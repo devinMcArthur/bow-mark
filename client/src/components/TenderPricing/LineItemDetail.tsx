@@ -833,21 +833,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
                 </Grid>
               </Box>
             </Box>
-          ) : (
-            <Flex align="center" justify="space-between" py={4}>
-              <Text fontSize="xs" color="gray.400">No rate buildup attached</Text>
-              <AttachTemplateButton
-                rowUnit={row.unit}
-                onAttach={(templateDoc) => {
-                  const snapshot = snapshotFromTemplate(templateDoc);
-                  onUpdate(row._id, {
-                    rateBuildupSnapshot: JSON.stringify(snapshot),
-                    unit: row.unit || templateDoc.defaultUnit || null,
-                  });
-                }}
-              />
-            </Flex>
-          )}
+          ) : null}
         </Box>
 
         {/* ── Spec References ── */}
