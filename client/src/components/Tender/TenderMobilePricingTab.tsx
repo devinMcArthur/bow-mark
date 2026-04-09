@@ -2,6 +2,8 @@
 import React, { useCallback, useRef, useState } from "react";
 import {
   Box,
+  Button,
+  ButtonGroup,
   Drawer,
   DrawerBody,
   DrawerContent,
@@ -19,6 +21,7 @@ import { FiChevronLeft, FiDownload } from "react-icons/fi";
 import dynamic from "next/dynamic";
 import ClientOnly from "../Common/ClientOnly";
 import LineItemDetail from "../TenderPricing/LineItemDetail";
+import PricingBoard from "../TenderPricing/PricingBoard";
 import { TenderPricingSheet, TenderPricingRow, TenderPricingRowType } from "../TenderPricing/types";
 import { TenderFileItem } from "./types";
 import { localStorageTokenKey } from "../../contexts/Auth";
@@ -174,6 +177,7 @@ const TenderMobilePricingTab: React.FC<TenderMobilePricingTabProps> = ({
   onSheetUpdate,
   tenderFiles,
 }) => {
+  const [viewMode, setViewMode] = useState<"list" | "board">("list");
   const [selectedRow, setSelectedRow] = useState<TenderPricingRow | null>(null);
   const [viewingFile, setViewingFile] = useState<{ fileId: string; fileName: string; page?: number } | null>(null);
   const [updateRow] = useMutation(UPDATE_ROW);
@@ -296,17 +300,49 @@ const TenderMobilePricingTab: React.FC<TenderMobilePricingTabProps> = ({
         </Text>
       </Flex>
 
-      {/* Row list */}
-      <Box flex={1} overflowY="auto">
-        {sheet.rows.map((row) => (
-          <RowItem
-            key={row._id}
-            row={row}
-            defaultMarkupPct={sheet.defaultMarkupPct}
-            onSelect={setSelectedRow}
+      {/* View toggle */}
+      <Flex px={3} py={2} flexShrink={0}>
+        <ButtonGroup size="xs" isAttached variant="outline">
+          <Button
+            onClick={() => setViewMode("list")}
+            colorScheme={viewMode === "list" ? "blue" : "gray"}
+            variant={viewMode === "list" ? "solid" : "outline"}
+          >
+            List
+          </Button>
+          <Button
+            onClick={() => setViewMode("board")}
+            colorScheme={viewMode === "board" ? "blue" : "gray"}
+            variant={viewMode === "board" ? "solid" : "outline"}
+          >
+            Board
+          </Button>
+        </ButtonGroup>
+      </Flex>
+
+      {/* Row list / board */}
+      {viewMode === "board" ? (
+        <Box flex={1} overflow="hidden">
+          <PricingBoard
+            sheet={sheet}
+            tenderId={tenderId}
+            onUpdate={onSheetUpdate}
+            onUpdateRow={handleUpdateRow}
+            tenderFiles={tenderFiles}
           />
-        ))}
-      </Box>
+        </Box>
+      ) : (
+        <Box flex={1} overflowY="auto">
+          {sheet.rows.map((row) => (
+            <RowItem
+              key={row._id}
+              row={row}
+              defaultMarkupPct={sheet.defaultMarkupPct}
+              onSelect={setSelectedRow}
+            />
+          ))}
+        </Box>
+      )}
 
       {/* Line item drawer */}
       <Drawer
