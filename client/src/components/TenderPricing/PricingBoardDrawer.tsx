@@ -2,7 +2,6 @@ import React from "react";
 import {
   Box,
   Drawer,
-  DrawerBody,
   DrawerContent,
   DrawerOverlay,
 } from "@chakra-ui/react";
@@ -28,11 +27,11 @@ const PricingBoardDrawer: React.FC<PricingBoardDrawerProps> = ({
   tenderFiles,
 }) => {
   return (
-    <Drawer isOpen={!!row} onClose={onClose} placement="bottom" size="md">
+    <Drawer isOpen={!!row} onClose={onClose} placement="bottom">
       <DrawerOverlay bg="blackAlpha.300" />
-      <DrawerContent maxH="60vh" borderTopRadius="xl" display="flex" flexDir="column">
+      <DrawerContent maxH="60vh" borderTopRadius="xl" overflow="hidden">
         {row && (
-          <DrawerBody p={0} flex={1} display="flex" flexDir="column" overflow="hidden" minH={0}>
+          <Box h="100%" overflow="hidden">
             <LineItemDetail
               row={row}
               defaultMarkupPct={sheet.defaultMarkupPct}
@@ -42,7 +41,7 @@ const PricingBoardDrawer: React.FC<PricingBoardDrawerProps> = ({
               onClose={onClose}
               tenderFiles={tenderFiles}
             />
-          </DrawerBody>
+          </Box>
         )}
       </DrawerContent>
     </Drawer>
