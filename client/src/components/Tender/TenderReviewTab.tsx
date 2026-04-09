@@ -17,6 +17,7 @@ import {
 } from "@chakra-ui/react";
 import { FiChevronDown, FiEdit2, FiTrash2 } from "react-icons/fi";
 import { gql, useQuery, useMutation } from "@apollo/client";
+import { STATUS_LABELS, LineItemStatus } from "../TenderPricing/statusConstants";
 
 // Inline relative time — no external dependency, follows project pattern
 const relativeTime = (dateStr: string): string => {
@@ -43,6 +44,7 @@ const TENDER_REVIEW_QUERY = gql`
         rowDescription
         action
         changedFields
+        statusTo
         changedBy {
           _id
           name
@@ -137,6 +139,7 @@ interface AuditEvent {
   rowDescription: string;
   action: "row_added" | "row_deleted" | "row_updated";
   changedFields: string[];
+  statusTo?: string | null;
   changedBy?: { _id: string; name: string } | null;
   changedAt: string;
 }
@@ -178,6 +181,20 @@ function buildActionLabel(event: AuditEvent): string {
   const actor = event.changedBy?.name ?? "Someone";
   if (event.action === "row_added") return `${actor} added row "${event.rowDescription}"`;
   if (event.action === "row_deleted") return `${actor} deleted row "${event.rowDescription}"`;
+
+  // Status-only change — descriptive label
+  if (event.statusTo && event.changedFields.length === 1 && event.changedFields[0] === "status") {
+    const label = STATUS_LABELS[event.statusTo as LineItemStatus] ?? event.statusTo;
+    return `${actor} moved "${event.rowDescription}" to ${label}`;
+  }
+
+  // Status change alongside other fields
+  if (event.statusTo) {
+    const label = STATUS_LABELS[event.statusTo as LineItemStatus] ?? event.statusTo;
+    const otherFields = event.changedFields.filter((f) => f !== "status").join(", ");
+    return `${actor} updated "${event.rowDescription}" — ${otherFields}, moved to ${label}`;
+  }
+
   const fields = event.changedFields.join(", ");
   return `${actor} updated "${event.rowDescription}" — ${fields}`;
 }
