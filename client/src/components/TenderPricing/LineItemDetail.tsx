@@ -24,6 +24,7 @@ import { useSystem } from "../../contexts/System";
 import { TenderPricingRow } from "./types";
 import { TenderFileItem } from "../Tender/types";
 import { computeRow, formatCurrency, formatMarkup } from "./compute";
+import { LineItemStatus, LINE_ITEM_STATUSES, STATUS_LABELS, STATUS_COLORS } from "./statusConstants";
 import type { RateEntry } from "./calculators/types";
 import { RateBuildupTemplatesDocument } from "../../generated/graphql";
 import {
@@ -393,6 +394,35 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
           onClick={onClose}
           flexShrink={0}
         />
+      </Flex>
+
+      {/* ── Status bar ─────────────────────────────────────────────── */}
+      <Flex px={4} py={2} gap={2} borderBottom="1px solid" borderColor="gray.100" flexShrink={0}>
+        {LINE_ITEM_STATUSES.map((s) => {
+          const active = s === ((row.status as LineItemStatus) ?? "not_started");
+          return (
+            <Flex
+              key={s}
+              align="center"
+              gap={1.5}
+              px={3}
+              py={1}
+              borderRadius="full"
+              cursor="pointer"
+              border="1px solid"
+              borderColor={active ? STATUS_COLORS[s] : "gray.200"}
+              bg={active ? `${STATUS_COLORS[s]}18` : "transparent"}
+              _hover={{ borderColor: STATUS_COLORS[s] }}
+              transition="all 0.15s"
+              onClick={() => onUpdate(row._id, { status: s })}
+            >
+              <Box w="7px" h="7px" borderRadius="full" bg={STATUS_COLORS[s]} flexShrink={0} />
+              <Text fontSize="xs" fontWeight={active ? "semibold" : "normal"} color={active ? "gray.800" : "gray.500"} whiteSpace="nowrap">
+                {STATUS_LABELS[s]}
+              </Text>
+            </Flex>
+          );
+        })}
       </Flex>
 
       {/* ── Form ────────────────────────────────────────────────────── */}
