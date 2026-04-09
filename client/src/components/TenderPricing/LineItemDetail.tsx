@@ -609,7 +609,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
         )}
 
         {/* Markup — compact inline row */}
-        <Flex align="center" gap={3} mb={3} px={1}>
+        <Flex align="center" gap={3} mb={3} px={1} justify="flex-end">
           <Text fontSize="xs" color="gray.400" fontWeight="medium" whiteSpace="nowrap">Markup</Text>
           <Text fontSize="sm" fontWeight="semibold" color={hasMarkupOverride ? "orange.700" : "gray.600"}>
             {effectiveMarkup}%
