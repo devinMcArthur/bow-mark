@@ -111,6 +111,7 @@ export default class TenderPricingSheetResolver {
           action: "row_updated",
           changedFields,
           changedBy: ctx.user._id.toString(),
+          ...(((data as any).status) ? { statusTo: (data as any).status } : {}),
         });
       }
     }

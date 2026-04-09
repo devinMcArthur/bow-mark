@@ -24,6 +24,7 @@ const addAuditEvent = (
     changedFields: event.changedFields,
     changedBy: new Types.ObjectId(event.changedBy),
     changedAt: new Date(),
+    ...(event.statusTo ? { statusTo: event.statusTo } : {}),
   });
   review.updatedAt = new Date();
   return review;

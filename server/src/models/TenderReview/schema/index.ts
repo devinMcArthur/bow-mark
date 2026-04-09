@@ -32,6 +32,10 @@ export class TenderAuditEventClass {
   @Field()
   @prop({ required: true })
   public changedAt!: Date;
+
+  @Field(() => String, { nullable: true })
+  @prop({ trim: true })
+  public statusTo?: string;
 }
 
 @ObjectType()

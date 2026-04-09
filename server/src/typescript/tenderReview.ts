@@ -13,6 +13,7 @@ export const TRACKED_ROW_FIELDS: string[] = [
   "description",
   "itemNumber",
   "notes",
+  "status",
 ];
 
 export interface ITenderAuditEventCreate {
@@ -21,4 +22,5 @@ export interface ITenderAuditEventCreate {
   action: TenderAuditAction;
   changedFields: string[];
   changedBy: string; // User _id as string
+  statusTo?: string;
 }
