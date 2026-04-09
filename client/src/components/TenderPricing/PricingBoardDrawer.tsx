@@ -34,26 +34,23 @@ const PricingBoardDrawer: React.FC<PricingBoardDrawerProps> = ({
 
   return (
     <Box
-      position="fixed"
-      right={0}
-      top={0}
-      bottom={0}
-      w="450px"
-      maxW="100vw"
+      borderTop="1px solid"
+      borderColor="gray.200"
       bg="white"
-      boxShadow="-4px 0 16px rgba(0,0,0,0.1)"
-      zIndex={20}
+      flexShrink={0}
+      maxH="50%"
       display="flex"
       flexDir="column"
+      overflow="hidden"
     >
       {/* Header with status */}
       <Flex
         px={4}
-        py={3}
+        py={2}
         align="center"
         justify="space-between"
         borderBottom="1px solid"
-        borderColor="gray.200"
+        borderColor="gray.100"
         flexShrink={0}
         gap={2}
       >
