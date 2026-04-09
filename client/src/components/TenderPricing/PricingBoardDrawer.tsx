@@ -14,7 +14,7 @@ import { TenderPricingRow, TenderPricingSheet } from "./types";
 import { TenderFileItem } from "../Tender/types";
 import LineItemDetail from "./LineItemDetail";
 import StatusDot from "./StatusDot";
-import { LineItemStatus, STATUS_LABELS } from "./statusConstants";
+import { LineItemStatus, LINE_ITEM_STATUSES, STATUS_LABELS, STATUS_COLORS } from "./statusConstants";
 
 interface PricingBoardDrawerProps {
   row: TenderPricingRow | null;
@@ -42,17 +42,40 @@ const PricingBoardDrawer: React.FC<PricingBoardDrawerProps> = ({
         {row && (
           <>
             <DrawerHeader px={4} py={3} borderBottom="1px solid" borderColor="gray.100">
-              <Flex align="center" justify="space-between" gap={2}>
-                <Flex align="center" gap={3} flex={1} minW={0}>
-                  <StatusDot status={status} onChange={(s) => onUpdateRow(row._id, { status: s })} />
-                  <Box flex={1} minW={0}>
-                    <Text fontSize="sm" fontWeight="semibold" noOfLines={1}>
-                      {row.itemNumber ? `${row.itemNumber} — ` : ""}{row.description || "Untitled"}
-                    </Text>
-                    <Text fontSize="xs" color="gray.500" fontWeight="normal">{STATUS_LABELS[status]}</Text>
-                  </Box>
-                </Flex>
+              <Flex align="center" justify="space-between" gap={2} mb={2}>
+                <Text fontSize="sm" fontWeight="semibold" noOfLines={1} flex={1} minW={0}>
+                  {row.itemNumber ? `${row.itemNumber} — ` : ""}{row.description || "Untitled"}
+                </Text>
                 <CloseButton size="sm" onClick={onClose} />
+              </Flex>
+              <Flex gap={2}>
+                {LINE_ITEM_STATUSES.map((s) => (
+                  <Flex
+                    key={s}
+                    align="center"
+                    gap={1.5}
+                    px={3}
+                    py={1.5}
+                    borderRadius="full"
+                    cursor="pointer"
+                    border="1px solid"
+                    borderColor={s === status ? STATUS_COLORS[s] : "gray.200"}
+                    bg={s === status ? `${STATUS_COLORS[s]}18` : "transparent"}
+                    _hover={{ borderColor: STATUS_COLORS[s] }}
+                    transition="all 0.15s"
+                    onClick={() => onUpdateRow(row._id, { status: s })}
+                  >
+                    <Box w="7px" h="7px" borderRadius="full" bg={STATUS_COLORS[s]} flexShrink={0} />
+                    <Text
+                      fontSize="xs"
+                      fontWeight={s === status ? "semibold" : "normal"}
+                      color={s === status ? "gray.800" : "gray.500"}
+                      whiteSpace="nowrap"
+                    >
+                      {STATUS_LABELS[s]}
+                    </Text>
+                  </Flex>
+                ))}
               </Flex>
             </DrawerHeader>
             <DrawerBody p={0} overflowY="auto">
