@@ -464,6 +464,34 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
           </FormControl>
         </Grid>
 
+        {/* ── Rate Buildup CTA (no-buildup only) ── */}
+        {!hasRateBuildup && (
+          <Box
+            bg="blue.50" border="1px dashed" borderColor="blue.200"
+            rounded="lg" p={4} mb={4} textAlign="center"
+          >
+            <Text fontSize="sm" fontWeight="medium" color="blue.700" mb={1}>
+              Use a Rate Buildup Template
+            </Text>
+            <Text fontSize="xs" color="blue.500" mb={3}>
+              Build your unit price from crew rates, equipment, materials, and production rates
+            </Text>
+            <AttachTemplateButton
+              rowUnit={row.unit}
+              onAttach={(templateDoc) => {
+                const snapshot = snapshotFromTemplate(templateDoc);
+                onUpdate(row._id, {
+                  rateBuildupSnapshot: JSON.stringify(snapshot),
+                  unit: row.unit || templateDoc.defaultUnit || null,
+                });
+              }}
+            />
+            <Text fontSize="10px" color="gray.400" mt={3}>
+              or enter a unit price manually below
+            </Text>
+          </Box>
+        )}
+
         {/* ── PRICING SECTION (no-buildup only) — after details ── */}
         {!hasRateBuildup && (
           <Box
