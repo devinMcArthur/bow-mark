@@ -44,12 +44,8 @@ function getScheduleForRow(
   return null;
 }
 
-const COLUMN_FLEX: Record<LineItemStatus, number> = {
-  not_started: 2,
-  in_progress: 1,
-  review: 1,
-  approved: 1,
-};
+// Minimum flex so empty columns don't collapse entirely
+const MIN_FLEX = 0.5;
 
 // ─── Card ────────────────────────────────────────────────────────────────────
 
@@ -101,11 +97,12 @@ const BoardColumn: React.FC<{
   rows: TenderPricingRow[];
   allRows: TenderPricingRow[];
   defaultMarkupPct: number;
+  flexValue: number;
   onCardClick: (row: TenderPricingRow) => void;
-}> = ({ status, rows, allRows, defaultMarkupPct, onCardClick }) => (
+}> = ({ status, rows, allRows, defaultMarkupPct, flexValue, onCardClick }) => (
   <Flex
     direction="column"
-    flex={COLUMN_FLEX[status]}
+    flex={flexValue}
     bg={STATUS_BG[status]}
     borderRadius="lg"
     overflow="hidden"
@@ -235,16 +232,20 @@ const PricingBoard: React.FC<PricingBoardProps> = ({
 
       {/* Columns */}
       <Flex flex={1} gap={3} p={3} overflow="hidden">
-        {LINE_ITEM_STATUSES.map((status) => (
-          <BoardColumn
-            key={status}
-            status={status}
-            rows={columns[status]}
-            allRows={sheet.rows}
-            defaultMarkupPct={sheet.defaultMarkupPct}
-            onCardClick={setSelectedRow}
-          />
-        ))}
+        {LINE_ITEM_STATUSES.map((status) => {
+          const count = columns[status].length;
+          return (
+            <BoardColumn
+              key={status}
+              status={status}
+              rows={columns[status]}
+              allRows={sheet.rows}
+              defaultMarkupPct={sheet.defaultMarkupPct}
+              flexValue={Math.max(count, MIN_FLEX)}
+              onCardClick={setSelectedRow}
+            />
+          );
+        })}
       </Flex>
 
       {/* Bottom drawer */}
