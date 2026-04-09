@@ -213,7 +213,7 @@ const PricingBoard: React.FC<PricingBoardProps> = ({
   }, [selectedRow, sheet.rows]);
 
   return (
-    <Flex direction="column" h="100%" overflow="hidden" position="relative">
+    <Flex direction="column" h="100%" overflow="hidden">
       {/* Filter bar */}
       {schedules.length > 0 && (
         <Flex px={4} py={2} flexShrink={0} borderBottom="1px solid" borderColor="gray.200">
