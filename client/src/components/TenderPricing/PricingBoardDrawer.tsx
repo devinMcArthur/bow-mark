@@ -29,19 +29,17 @@ const PricingBoardDrawer: React.FC<PricingBoardDrawerProps> = ({
   return (
     <Drawer isOpen={!!row} onClose={onClose} placement="bottom">
       <DrawerOverlay bg="blackAlpha.300" />
-      <DrawerContent maxH="60vh" borderTopRadius="xl" overflow="hidden">
+      <DrawerContent h="60vh" maxH="60vh" borderTopRadius="xl" overflow="hidden">
         {row && (
-          <Box h="100%" overflow="hidden">
-            <LineItemDetail
-              row={row}
-              defaultMarkupPct={sheet.defaultMarkupPct}
-              sheetId={sheet._id}
-              tenderId={tenderId}
-              onUpdate={onUpdateRow}
-              onClose={onClose}
-              tenderFiles={tenderFiles}
-            />
-          </Box>
+          <LineItemDetail
+            row={row}
+            defaultMarkupPct={sheet.defaultMarkupPct}
+            sheetId={sheet._id}
+            tenderId={tenderId}
+            onUpdate={onUpdateRow}
+            onClose={onClose}
+            tenderFiles={tenderFiles}
+          />
         )}
       </DrawerContent>
     </Drawer>
