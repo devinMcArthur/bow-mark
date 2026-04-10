@@ -20,6 +20,8 @@ import {
 import { IContext } from "@typescript/graphql";
 import { TRACKED_ROW_FIELDS } from "@typescript/tenderReview";
 
+const VALID_ROW_STATUSES = ["not_started", "in_progress", "review", "approved"] as const;
+
 @Resolver(() => TenderPricingSheetClass)
 export default class TenderPricingSheetResolver {
   @Authorized(["ADMIN", "PM"])
@@ -95,6 +97,14 @@ export default class TenderPricingSheetResolver {
     @Arg("data") data: TenderPricingRowUpdateData,
     @Ctx() ctx: IContext
   ) {
+    if (
+      (data as any).status !== undefined &&
+      !VALID_ROW_STATUSES.includes((data as any).status)
+    ) {
+      throw new Error(
+        `Invalid status "${(data as any).status}". Must be one of: ${VALID_ROW_STATUSES.join(", ")}`
+      );
+    }
     const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
     const row = sheet!.rows.find((r) => r._id.toString() === rowId.toString());
     sheet!.updateRow(rowId, data);

@@ -314,9 +314,10 @@ const TenderReviewTab: React.FC<TenderReviewTabProps> = ({ tenderId, currentUser
   const cancelRef = useRef<HTMLButtonElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Count line items not yet approved
+  // Count line items not yet approved. Returns null if sheet hasn't loaded yet
+  // so the approve warning dialog still fires (better safe than silently approving).
   const unapprovedCount = React.useMemo(() => {
-    if (!sheet) return 0;
+    if (!sheet) return null;
     return sheet.rows.filter(
       (r) => r.type === TenderPricingRowType.Item && r.status !== "approved"
     ).length;
@@ -425,7 +426,7 @@ const TenderReviewTab: React.FC<TenderReviewTabProps> = ({ tenderId, currentUser
               <MenuItem
                 key={s}
                 onClick={() => {
-                  if (s === "approved" && unapprovedCount > 0) {
+                  if (s === "approved" && (unapprovedCount === null || unapprovedCount > 0)) {
                     setPendingApproval(s);
                   } else {
                     setStatus({ variables: { tenderId, status: s } });
@@ -501,8 +502,12 @@ const TenderReviewTab: React.FC<TenderReviewTabProps> = ({ tenderId, currentUser
               Approve review with unapproved items?
             </AlertDialogHeader>
             <AlertDialogBody fontSize="sm">
-              {unapprovedCount} line item{unapprovedCount === 1 ? " is" : "s are"} not yet marked as approved.
-              You can still approve the review, but it&apos;s generally a good idea to approve all line items first.
+              {unapprovedCount === null ? (
+                <>The pricing sheet is still loading. You can still approve the review, but you may want to wait and verify all line items are approved first.</>
+              ) : (
+                <>{unapprovedCount} line item{unapprovedCount === 1 ? " is" : "s are"} not yet marked as approved.
+                You can still approve the review, but it&apos;s generally a good idea to approve all line items first.</>
+              )}
             </AlertDialogBody>
             <AlertDialogFooter>
               <Button ref={cancelRef} size="sm" onClick={() => setPendingApproval(null)}>
