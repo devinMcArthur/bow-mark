@@ -1,5 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
   Box,
   Badge,
   Button,
@@ -17,7 +23,8 @@ import {
 } from "@chakra-ui/react";
 import { FiChevronDown, FiEdit2, FiTrash2 } from "react-icons/fi";
 import { gql, useQuery, useMutation } from "@apollo/client";
-import { STATUS_LABELS, LineItemStatus } from "../TenderPricing/statusConstants";
+import { STATUS_LABELS as LINE_ITEM_STATUS_LABELS, LineItemStatus } from "../TenderPricing/statusConstants";
+import { TenderPricingSheet, TenderPricingRowType } from "../TenderPricing/types";
 
 // Inline relative time — no external dependency, follows project pattern
 const relativeTime = (dateStr: string): string => {
@@ -184,13 +191,13 @@ function buildActionLabel(event: AuditEvent): string {
 
   // Status-only change — descriptive label
   if (event.statusTo && event.changedFields.length === 1 && event.changedFields[0] === "status") {
-    const label = STATUS_LABELS[event.statusTo as LineItemStatus] ?? event.statusTo;
+    const label = LINE_ITEM_STATUS_LABELS[event.statusTo as LineItemStatus] ?? event.statusTo;
     return `${actor} moved "${event.rowDescription}" to ${label}`;
   }
 
   // Status change alongside other fields
   if (event.statusTo) {
-    const label = STATUS_LABELS[event.statusTo as LineItemStatus] ?? event.statusTo;
+    const label = LINE_ITEM_STATUS_LABELS[event.statusTo as LineItemStatus] ?? event.statusTo;
     const otherFields = event.changedFields.filter((f) => f !== "status").join(", ");
     return `${actor} updated "${event.rowDescription}" — ${otherFields}, moved to ${label}`;
   }
@@ -298,11 +305,22 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, currentUserId, tende
 interface TenderReviewTabProps {
   tenderId: string;
   currentUserId?: string;
+  sheet?: TenderPricingSheet | null;
 }
 
-const TenderReviewTab: React.FC<TenderReviewTabProps> = ({ tenderId, currentUserId }) => {
+const TenderReviewTab: React.FC<TenderReviewTabProps> = ({ tenderId, currentUserId, sheet }) => {
   const [commentText, setCommentText] = useState("");
+  const [pendingApproval, setPendingApproval] = useState<ReviewStatus | null>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Count line items not yet approved
+  const unapprovedCount = React.useMemo(() => {
+    if (!sheet) return 0;
+    return sheet.rows.filter(
+      (r) => r.type === TenderPricingRowType.Item && r.status !== "approved"
+    ).length;
+  }, [sheet]);
 
   const { data, loading } = useQuery(TENDER_REVIEW_QUERY, { variables: { tenderId } });
   const [setStatus] = useMutation(SET_STATUS, {
@@ -406,7 +424,13 @@ const TenderReviewTab: React.FC<TenderReviewTabProps> = ({ tenderId, currentUser
             {(["draft", "in_review", "approved"] as ReviewStatus[]).map((s) => (
               <MenuItem
                 key={s}
-                onClick={() => setStatus({ variables: { tenderId, status: s } })}
+                onClick={() => {
+                  if (s === "approved" && unapprovedCount > 0) {
+                    setPendingApproval(s);
+                  } else {
+                    setStatus({ variables: { tenderId, status: s } });
+                  }
+                }}
                 fontWeight={s === status ? "bold" : "normal"}
               >
                 {STATUS_LABELS[s]}
@@ -463,6 +487,44 @@ const TenderReviewTab: React.FC<TenderReviewTabProps> = ({ tenderId, currentUser
           </Button>
         </Flex>
       </Box>
+
+      {/* Approve confirmation dialog */}
+      <AlertDialog
+        isOpen={!!pendingApproval}
+        leastDestructiveRef={cancelRef}
+        onClose={() => setPendingApproval(null)}
+        isCentered
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="md" fontWeight="semibold">
+              Approve review with unapproved items?
+            </AlertDialogHeader>
+            <AlertDialogBody fontSize="sm">
+              {unapprovedCount} line item{unapprovedCount === 1 ? " is" : "s are"} not yet marked as approved.
+              You can still approve the review, but it&apos;s generally a good idea to approve all line items first.
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={cancelRef} size="sm" onClick={() => setPendingApproval(null)}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                colorScheme="green"
+                ml={3}
+                onClick={() => {
+                  if (pendingApproval) {
+                    setStatus({ variables: { tenderId, status: pendingApproval } });
+                  }
+                  setPendingApproval(null);
+                }}
+              >
+                Approve anyway
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Flex>
   );
 };

@@ -684,6 +684,7 @@ const TenderDetailPage = () => {
                   <TenderReviewTab
                     tenderId={tenderId}
                     currentUserId={currentUserId}
+                    sheet={sheet}
                   />
                 )}
               </Box>
