@@ -8,25 +8,27 @@ import {
   Spinner,
   Text,
 } from "@chakra-ui/react";
-import { FiChevronLeft, FiFileText, FiList, FiMessageSquare, FiAlignLeft } from "react-icons/fi";
+import { FiChevronLeft, FiClock, FiFileText, FiList, FiMessageSquare, FiAlignLeft } from "react-icons/fi";
 import { useRouter } from "next/router";
 import TenderMobilePricingTab from "./TenderMobilePricingTab";
 import TenderMobileDocumentsTab from "./TenderMobileDocumentsTab";
 import TenderSummaryTab from "./TenderSummaryTab";
 import TenderNotesTab from "./TenderNotesTab";
+import TenderMobileReviewTab from "./TenderMobileReviewTab";
 import { TenderDetail, tenderStatusColor } from "./types";
 import { TenderPricingSheet } from "../TenderPricing/types";
 import { navbarHeight } from "../../constants/styles";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type MobileTab = "pricing" | "documents" | "notes" | "summary";
+type MobileTab = "pricing" | "documents" | "notes" | "summary" | "review";
 
 const TABS: { key: MobileTab; label: string; icon: React.ReactElement }[] = [
   { key: "pricing", label: "Pricing", icon: <FiList size={18} /> },
   { key: "documents", label: "Documents", icon: <FiFileText size={18} /> },
   { key: "notes", label: "Notes", icon: <FiMessageSquare size={18} /> },
   { key: "summary", label: "Summary", icon: <FiAlignLeft size={18} /> },
+  { key: "review", label: "Review", icon: <FiClock size={18} /> },
 ];
 
 const TAB_BAR_HEIGHT = "56px";
@@ -120,6 +122,9 @@ const TenderMobileLayout: React.FC<TenderMobileLayoutProps> = ({
           <Box h="100%" overflowY="auto" px={4} py={3}>
             <TenderSummaryTab tender={tender} onUpdated={onRefetch} />
           </Box>
+        )}
+        {activeTab === "review" && (
+          <TenderMobileReviewTab tenderId={tenderId} />
         )}
       </Box>
 

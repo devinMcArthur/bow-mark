@@ -22,6 +22,7 @@ export * from "./System";
 export * from "./RateBuildupTemplate";
 export * from "./Tender";
 export * from "./TenderPricingSheet";
+export * from "./TenderReview";
 export * from "./User";
 export * from "./Vehicle";
 export * from "./VehicleIssue";
@@ -471,4 +472,18 @@ export type TenderPricingSheetModel = ReturnModelType<typeof TenderPricingSheetC
 
 export const TenderPricingSheet = getModelForClass(TenderPricingSheetClass, {
   schemaOptions: { collection: "tenderpricingsheets" },
+});
+
+/**
+ * ----- TenderReview -----
+ */
+
+import { TenderReviewClass } from "./TenderReview/class";
+
+export type TenderReviewDocument = DocumentType<TenderReviewClass>;
+
+export type TenderReviewModel = ReturnModelType<typeof TenderReviewClass>;
+
+export const TenderReview = getModelForClass(TenderReviewClass, {
+  schemaOptions: { collection: "tenderreviews" },
 });

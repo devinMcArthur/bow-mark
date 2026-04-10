@@ -15,6 +15,8 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TenderPricingRow, TenderPricingRowType } from "./types";
 import { computeRow, computeSubtotal, formatCurrency, formatMarkup } from "./compute";
+import StatusDot from "./StatusDot";
+import { LineItemStatus } from "./statusConstants";
 
 // ─── Inline editable cell ─────────────────────────────────────────────────────
 
@@ -276,6 +278,7 @@ export const SortableRow: React.FC<SortableRowProps> = ({
       defaultMarkupPct={defaultMarkupPct}
       isSelected={row._id === selectedRowId}
       sectionIndex={sectionIndex}
+      onUpdate={onUpdate}
       onDelete={onDelete}
       onSelect={onSelect}
       onDuplicate={onDuplicate}
@@ -369,6 +372,7 @@ const HeaderRow: React.FC<HeaderRowProps> = ({
       color={isSchedule ? "white" : "gray.800"}
     >
       <DragHandle {...dragHandleProps} />
+      <Td w="24px" px={1} />
       <Td px={1}>
         {isSchedule ? (
           <Text fontSize="xs" color="gray.300">
@@ -410,6 +414,7 @@ interface ItemRowProps {
   defaultMarkupPct: number;
   isSelected: boolean;
   sectionIndex: number;
+  onUpdate: (rowId: string, data: Record<string, unknown>) => void;
   onDelete: (rowId: string) => void;
   onSelect: (rowId: string) => void;
   onDuplicate: (rowId: string) => void;
@@ -423,6 +428,7 @@ const ItemRow: React.FC<ItemRowProps> = ({
   defaultMarkupPct,
   isSelected,
   sectionIndex,
+  onUpdate,
   onDelete,
   onSelect,
   onDuplicate,
@@ -447,6 +453,12 @@ const ItemRow: React.FC<ItemRowProps> = ({
       onClick={() => onSelect(row._id)}
     >
       <DragHandle {...(dragHandleProps as any)} />
+      <Td px={1} w="24px" onClick={(e) => e.stopPropagation()}>
+        <StatusDot
+          status={(row.status as LineItemStatus) ?? "not_started"}
+          onChange={(s) => onUpdate(row._id, { status: s })}
+        />
+      </Td>
       <Td px={2} whiteSpace="nowrap">
         <Text fontSize="sm" color={row.itemNumber ? "gray.800" : "gray.400"}>
           {row.itemNumber || "—"}
