@@ -23,11 +23,12 @@ import TenderOverview from "../../../components/Tender/TenderOverview";
 import TenderSummaryTab from "../../../components/Tender/TenderSummaryTab";
 import TenderNotesTab from "../../../components/Tender/TenderNotesTab";
 import TenderDocuments from "../../../components/Tender/TenderDocuments";
+import TenderReviewTab from "../../../components/Tender/TenderReviewTab";
 import { TenderPricingSheet } from "../../../components/TenderPricing/types";
 import { TenderDetail, TenderFileItem } from "../../../components/Tender/types";
 import { UserRoles } from "../../../generated/graphql";
 import { navbarHeight } from "../../../constants/styles";
-import { localStorageTokenKey } from "../../../contexts/Auth";
+import { localStorageTokenKey, useAuth } from "../../../contexts/Auth";
 import ChatDrawer from "../../../components/Chat/ChatDrawer";
 import DocumentViewerModal, { DocumentViewerFile } from "../../../components/Common/DocumentViewerModal";
 import TenderMobileLayout from "../../../components/Tender/TenderMobileLayout";
@@ -56,12 +57,11 @@ const SHEET_QUERY = gql`
         unit
         unitPrice
         notes
-        calculatorType
-        calculatorInputsJson
         markupOverride
         rateBuildupSnapshot
         extraUnitPrice
         extraUnitPriceMemo
+        status
         docRefs {
           _id
           enrichedFileId
@@ -140,12 +140,11 @@ const CREATE_SHEET = gql`
         unit
         unitPrice
         notes
-        calculatorType
-        calculatorInputsJson
         markupOverride
         rateBuildupSnapshot
         extraUnitPrice
         extraUnitPriceMemo
+        status
       }
     }
   }
@@ -162,7 +161,7 @@ const TENDER_SUGGESTIONS = [
 
 // ─── Panel tab types ──────────────────────────────────────────────────────────
 
-type RightTab = "job" | "documents" | "notes" | "summary";
+type RightTab = "job" | "documents" | "notes" | "summary" | "review";
 type PanelState = "open" | "hidden" | "fullscreen";
 
 // ─── File URL helper ──────────────────────────────────────────────────────────
@@ -269,9 +268,12 @@ const TenderDetailPage = () => {
   const router = useRouter();
   const { id } = router.query;
   const tenderId = typeof id === "string" ? id : "";
+  const { state: authState } = useAuth();
+  const currentUserId = authState.user?._id;
 
   const [sheet, setSheet] = useState<TenderPricingSheet | null>(null);
   const [initialized, setInitialized] = useState(false);
+  const [pricingViewMode, setPricingViewMode] = useState<"list" | "board">("list");
   const [rightTab, setRightTab] = useState<RightTab>("documents");
   const [panelState, setPanelState] = useState<PanelState>("open");
   const [chatOpen, setChatOpen] = useState(false);
@@ -452,6 +454,7 @@ const TenderDetailPage = () => {
       label: `Notes${tender && tender.notes.length > 0 ? ` (${tender.notes.length})` : ""}`,
     },
     { key: "summary", label: "Summary" },
+    { key: "review", label: "Review" },
   ];
 
   return (
@@ -510,10 +513,13 @@ const TenderDetailPage = () => {
             <Box
               flex={1}
               minW={0}
-              overflowY="auto"
-              p={4}
+              overflowY={pricingViewMode === "board" ? "hidden" : "auto"}
+              overflow={pricingViewMode === "board" ? "hidden" : undefined}
+              p={pricingViewMode === "board" ? 0 : 4}
               borderRight={panelState === "open" ? "1px solid" : undefined}
               borderColor="gray.200"
+              display="flex"
+              flexDir="column"
             >
               {!initialized ? (
                 <Spinner />
@@ -526,6 +532,8 @@ const TenderDetailPage = () => {
                   activeDocFile={selectedFile?._id}
                   activeDocPage={selectedFilePage}
                   onDocRefClick={handleDocRefClick}
+                  viewMode={pricingViewMode}
+                  onViewModeChange={setPricingViewMode}
                 />
               ) : (
                 <Text color="gray.500">Unable to load pricing sheet.</Text>
@@ -682,6 +690,14 @@ const TenderDetailPage = () => {
                   <Flex h="100%" align="center" justify="center">
                     <Spinner />
                   </Flex>
+                )}
+
+                {rightTab === "review" && (
+                  <TenderReviewTab
+                    tenderId={tenderId}
+                    currentUserId={currentUserId}
+                    sheet={sheet}
+                  />
                 )}
               </Box>
             </Flex>

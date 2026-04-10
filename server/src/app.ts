@@ -66,6 +66,7 @@ import SystemResolver from "@graphql/resolvers/system";
 import RateBuildupTemplateResolver from "@graphql/resolvers/rateBuildupTemplate";
 import TenderResolver from "@graphql/resolvers/tender";
 import TenderPricingSheetResolver from "@graphql/resolvers/tenderPricingSheet";
+import TenderReviewResolver from "@graphql/resolvers/tenderReview";
 import PublicDocumentResolver from "@graphql/resolvers/publicDocument";
 import TruckingReportResolver from "@graphql/resolvers/truckingReport";
 import UserResolver from "@graphql/resolvers/user";
@@ -133,6 +134,7 @@ const createApp = async () => {
       RateBuildupTemplateResolver,
       TenderResolver,
       TenderPricingSheetResolver,
+      TenderReviewResolver,
       PublicDocumentResolver,
       TruckingReportResolver,
       UserResolver,

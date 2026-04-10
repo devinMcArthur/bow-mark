@@ -8,42 +8,6 @@ export enum TenderPricingRowType {
 }
 registerEnumType(TenderPricingRowType, { name: "TenderPricingRowType" });
 
-export enum TenderWorkType {
-  Paving = "Paving",
-  Toplift = "Toplift",
-  Gravel = "Gravel",
-  SubgradePrep = "SubgradePrep",
-  CommonExcavation = "CommonExcavation",
-  Concrete = "Concrete",
-}
-registerEnumType(TenderWorkType, { name: "TenderWorkType" });
-
-export interface ITenderCrewEntry {
-  role: string;
-  quantity: number;
-  ratePerHour: number;
-}
-
-export interface ITenderEquipEntry {
-  name: string;
-  quantity: number;
-  ratePerHour: number;
-}
-
-export interface ITenderCalculatorInputs {
-  productionRate?: number;
-  crew?: ITenderCrewEntry[];
-  equipment?: ITenderEquipEntry[];
-  depth_mm?: number;
-  density?: number;
-  materialCostPerUnit?: number;
-  truckingMethod?: "perTonne" | "perHour";
-  truckingRatePerTonne?: number;
-  numTrucks?: number;
-  truckingRatePerHour?: number;
-  [key: string]: unknown;
-}
-
 export interface IDocRef {
   enrichedFileId: string | Types.ObjectId;
   page: number;
@@ -69,12 +33,10 @@ export interface ITenderPricingRowUpdate {
   quantity?: number;
   unit?: string;
   markupOverride?: number | null;
-  calculatorInputsJson?: string;
   unitPrice?: number | null;
   notes?: string;
-  calculatorType?: TenderWorkType;
-  calculatorInputs?: ITenderCalculatorInputs;
   rateBuildupSnapshot?: string | null;
   extraUnitPrice?: number | null;
   extraUnitPriceMemo?: string | null;
+  status?: string;
 }

@@ -24,6 +24,7 @@ import { useSystem } from "../../contexts/System";
 import { TenderPricingRow } from "./types";
 import { TenderFileItem } from "../Tender/types";
 import { computeRow, formatCurrency, formatMarkup } from "./compute";
+import { LineItemStatus, LINE_ITEM_STATUSES, STATUS_LABELS, STATUS_COLORS } from "./statusConstants";
 import type { RateEntry } from "./calculators/types";
 import { RateBuildupTemplatesDocument } from "../../generated/graphql";
 import {
@@ -401,7 +402,97 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
         {/* ── Line item details ── */}
         <Box pt={4} mb={5}>
 
-        {/* ── PRICING SECTION (no-buildup only) ── */}
+        {/* ── DETAILS SECTION with status pills ── */}
+        <Flex align="center" justify="space-between" mb={2}>
+          <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wider">
+            Details
+          </Text>
+          <Flex gap={1.5} flexWrap="wrap">
+            {LINE_ITEM_STATUSES.map((s) => {
+              const active = s === ((row.status as LineItemStatus) ?? "not_started");
+              return (
+                <Flex
+                  key={s}
+                  align="center"
+                  gap={1}
+                  px={2}
+                  py={0.5}
+                  borderRadius="full"
+                  cursor="pointer"
+                  border="1px solid"
+                  borderColor={active ? STATUS_COLORS[s] : "gray.200"}
+                  bg={active ? `${STATUS_COLORS[s]}18` : "transparent"}
+                  _hover={{ borderColor: STATUS_COLORS[s] }}
+                  transition="all 0.15s"
+                  onClick={() => onUpdate(row._id, { status: s })}
+                >
+                  <Box w="6px" h="6px" borderRadius="full" bg={STATUS_COLORS[s]} flexShrink={0} />
+                  <Text fontSize="10px" fontWeight={active ? "semibold" : "normal"} color={active ? "gray.800" : "gray.500"} whiteSpace="nowrap">
+                    {STATUS_LABELS[s]}
+                  </Text>
+                </Flex>
+              );
+            })}
+          </Flex>
+        </Flex>
+
+        {/* Item # + Description */}
+        <Grid templateColumns="80px 1fr" gap={3} mb={3}>
+          <FormControl>
+            <FormLabel fontSize="xs" color="gray.400" fontWeight="medium" mb={1}>Item #</FormLabel>
+            <Input
+              size="sm"
+              value={itemNumber}
+              onChange={(e) => setItemNumber(e.target.value)}
+              onBlur={() => commitStr("itemNumber", itemNumber)}
+              placeholder="—"
+              bg="gray.50"
+              _focus={{ bg: "white", borderColor: "orange.400", boxShadow: "0 0 0 1px #fb923c" }}
+            />
+          </FormControl>
+          <FormControl>
+            <FormLabel fontSize="xs" color="gray.400" fontWeight="medium" mb={1}>Description</FormLabel>
+            <Input
+              size="sm"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              onBlur={() => commitStr("description", description)}
+              placeholder="Line item description"
+              bg="gray.50"
+              _focus={{ bg: "white", borderColor: "orange.400", boxShadow: "0 0 0 1px #fb923c" }}
+            />
+          </FormControl>
+        </Grid>
+
+        {/* ── Rate Buildup CTA (no-buildup only) ── */}
+        {!hasRateBuildup && (
+          <Box
+            bg="blue.50" border="1px dashed" borderColor="blue.200"
+            rounded="lg" p={4} mb={4} textAlign="center"
+          >
+            <Text fontSize="sm" fontWeight="medium" color="blue.700" mb={1}>
+              Use a Rate Buildup Template
+            </Text>
+            <Text fontSize="xs" color="blue.500" mb={3}>
+              Build your unit price from crew rates, equipment, materials, and production rates
+            </Text>
+            <AttachTemplateButton
+              rowUnit={row.unit}
+              onAttach={(templateDoc) => {
+                const snapshot = snapshotFromTemplate(templateDoc);
+                onUpdate(row._id, {
+                  rateBuildupSnapshot: JSON.stringify(snapshot),
+                  unit: row.unit || templateDoc.defaultUnit || null,
+                });
+              }}
+            />
+            <Text fontSize="10px" color="gray.400" mt={3}>
+              or enter a unit price manually below
+            </Text>
+          </Box>
+        )}
+
+        {/* ── PRICING SECTION (no-buildup only) — after details ── */}
         {!hasRateBuildup && (
           <Box
             bg="orange.50" border="1px solid" borderColor="orange.200"
@@ -470,39 +561,6 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
           </Box>
         )}
 
-        {/* ── DETAILS SECTION ── */}
-        <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>
-          Details
-        </Text>
-
-        {/* Description + Item # */}
-        <Grid templateColumns="1fr 80px" gap={3} mb={3}>
-          <FormControl>
-            <FormLabel fontSize="xs" color="gray.400" fontWeight="medium" mb={1}>Description</FormLabel>
-            <Input
-              size="sm"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              onBlur={() => commitStr("description", description)}
-              placeholder="Line item description"
-              bg="gray.50"
-              _focus={{ bg: "white", borderColor: "orange.400", boxShadow: "0 0 0 1px #fb923c" }}
-            />
-          </FormControl>
-          <FormControl>
-            <FormLabel fontSize="xs" color="gray.400" fontWeight="medium" mb={1}>Item #</FormLabel>
-            <Input
-              size="sm"
-              value={itemNumber}
-              onChange={(e) => setItemNumber(e.target.value)}
-              onBlur={() => commitStr("itemNumber", itemNumber)}
-              placeholder="—"
-              bg="gray.50"
-              _focus={{ bg: "white", borderColor: "orange.400", boxShadow: "0 0 0 1px #fb923c" }}
-            />
-          </FormControl>
-        </Grid>
-
         {/* Qty + Unit — featured card when there IS a buildup */}
         {hasRateBuildup && (
           <Box bg="gray.50" border="1px solid" borderColor="gray.200" rounded="lg" p={3} mb={4}>
@@ -550,49 +608,34 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
           </Box>
         )}
 
-        {/* Markup */}
-        <Grid templateColumns="1fr 1fr" gap={3} mb={3}>
-          <FormControl>
-            <FormLabel fontSize="xs" color="gray.400" fontWeight="medium" mb={1}>Markup Override</FormLabel>
-            <InputGroup size="sm">
-              <InputLeftAddon
-                bg={hasMarkupOverride ? "orange.50" : "gray.100"}
-                color={hasMarkupOverride ? "orange.600" : "gray.500"}
-                borderColor={hasMarkupOverride ? "orange.200" : "gray.200"}
-                fontSize="xs" px={2}
-              >
-                %
-              </InputLeftAddon>
-              <Input
-                value={markup}
-                onChange={(e) => setMarkup(e.target.value)}
-                onBlur={() => commitMarkup(markup)}
-                placeholder="default"
-                bg="gray.50"
-                borderColor={hasMarkupOverride ? "orange.200" : undefined}
-                _focus={{ bg: "white", borderColor: "orange.400", boxShadow: "0 0 0 1px #fb923c" }}
-              />
-            </InputGroup>
-          </FormControl>
-          <Box>
-            <Text fontSize="xs" color="gray.400" fontWeight="medium" mb={1}>Effective Markup</Text>
-            <Flex
-              align="center" h="32px" px={3}
+        {/* Markup — compact inline row */}
+        <Flex align="center" gap={3} mb={3} px={1} justify="flex-end">
+          {hasMarkupOverride && (
+            <Text fontSize="10px" color="gray.400" whiteSpace="nowrap">
+              (base {defaultMarkupPct}%)
+            </Text>
+          )}
+          <Text fontSize="xs" color="gray.400" fontWeight="medium" whiteSpace="nowrap">Markup</Text>
+          <Text fontSize="sm" fontWeight="semibold" color={hasMarkupOverride ? "orange.700" : "gray.600"}>
+            {effectiveMarkup}%
+          </Text>
+          <Flex align="center" gap={1}>
+            <Text fontSize="xs" color="gray.400" whiteSpace="nowrap">Override:</Text>
+            <Input
+              size="xs"
+              w="52px"
+              value={markup}
+              onChange={(e) => setMarkup(e.target.value)}
+              onBlur={() => commitMarkup(markup)}
+              placeholder="—"
+              textAlign="center"
               bg={hasMarkupOverride ? "orange.50" : "gray.50"}
-              border="1px solid" borderColor={hasMarkupOverride ? "orange.200" : "gray.200"}
-              rounded="md"
-            >
-              <Text fontSize="sm" fontWeight="semibold" color={hasMarkupOverride ? "orange.700" : "gray.600"}>
-                {effectiveMarkup}%
-              </Text>
-              {hasMarkupOverride && (
-                <Text fontSize="xs" color="gray.400" ml={1.5}>
-                  base {defaultMarkupPct}%{previewRow.markupOverride! > 0 ? " +" : " "}{previewRow.markupOverride}%
-                </Text>
-              )}
-            </Flex>
-          </Box>
-        </Grid>
+              borderColor={hasMarkupOverride ? "orange.200" : "gray.200"}
+              _focus={{ bg: "white", borderColor: "orange.400", boxShadow: "0 0 0 1px #fb923c" }}
+            />
+            <Text fontSize="xs" color="gray.400">%</Text>
+          </Flex>
+        </Flex>
 
         {/* Notes */}
         <FormControl mb={4}>
@@ -790,21 +833,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
                 </Grid>
               </Box>
             </Box>
-          ) : (
-            <Flex align="center" justify="space-between" py={4}>
-              <Text fontSize="xs" color="gray.400">No rate buildup attached</Text>
-              <AttachTemplateButton
-                rowUnit={row.unit}
-                onAttach={(templateDoc) => {
-                  const snapshot = snapshotFromTemplate(templateDoc);
-                  onUpdate(row._id, {
-                    rateBuildupSnapshot: JSON.stringify(snapshot),
-                    unit: row.unit || templateDoc.defaultUnit || null,
-                  });
-                }}
-              />
-            </Flex>
-          )}
+          ) : null}
         </Box>
 
         {/* ── Spec References ── */}

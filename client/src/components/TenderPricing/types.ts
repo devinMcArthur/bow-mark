@@ -23,12 +23,11 @@ export interface TenderPricingRow {
   markupOverride?: number | null;
   unitPrice?: number | null;
   notes?: string | null;
-  calculatorType?: string | null;
-  calculatorInputsJson?: string | null;
   rateBuildupSnapshot?: string | null;
   extraUnitPrice?: number | null;
   extraUnitPriceMemo?: string | null;
   docRefs?: DocRef[] | null;
+  status?: string | null;
 }
 
 export interface TenderPricingSheet {

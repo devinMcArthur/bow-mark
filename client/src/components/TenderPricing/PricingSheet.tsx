@@ -36,6 +36,7 @@ import { computeSheetTotal, formatCurrency } from "./compute";
 import { SortableRow } from "./PricingRow";
 import ScheduleList from "./ScheduleList";
 import LineItemDetail from "./LineItemDetail";
+import PricingBoard from "./PricingBoard";
 
 // ─── GQL Mutations ────────────────────────────────────────────────────────────
 
@@ -50,12 +51,11 @@ const ROW_FIELDS = `
   unit
   unitPrice
   notes
-  calculatorType
-  calculatorInputsJson
   markupOverride
   rateBuildupSnapshot
   extraUnitPrice
   extraUnitPriceMemo
+  status
   docRefs {
     _id
     enrichedFileId
@@ -168,9 +168,11 @@ interface PricingSheetProps {
   activeDocFile?: string;
   activeDocPage?: number;
   onDocRefClick?: (enrichedFileId: string, page: number) => void;
+  viewMode?: "list" | "board";
+  onViewModeChange?: (mode: "list" | "board") => void;
 }
 
-const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, tenderFiles, activeDocFile, activeDocPage, onDocRefClick }) => {
+const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, tenderFiles, activeDocFile, activeDocPage, onDocRefClick, viewMode, onViewModeChange }) => {
   const [markupDraft, setMarkupDraft] = useState(String(sheet.defaultMarkupPct));
   const [editingMarkup, setEditingMarkup] = useState(false);
 
@@ -350,7 +352,7 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, 
   }, [isDetailOpen]);
 
   return (
-    <Box>
+    <Box flex={1} display="flex" flexDir="column" minH={0} h={viewMode === "board" ? "100%" : undefined}>
       {/* ── Toolbar ──────────────────────────────────────────────────────── */}
       <Flex align="center" justify="space-between" mb={4} wrap="wrap" gap={3}>
         <Flex align="center" gap={2}>
@@ -389,6 +391,24 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, 
         </Flex>
 
         <Flex align="center" gap={4}>
+          {onViewModeChange && (
+            <ButtonGroup size="xs" isAttached variant="outline" mr={2}>
+              <Button
+                onClick={() => onViewModeChange("list")}
+                colorScheme={viewMode !== "board" ? "blue" : "gray"}
+                variant={viewMode !== "board" ? "solid" : "outline"}
+              >
+                List
+              </Button>
+              <Button
+                onClick={() => onViewModeChange("board")}
+                colorScheme={viewMode === "board" ? "blue" : "gray"}
+                variant={viewMode === "board" ? "solid" : "outline"}
+              >
+                Board
+              </Button>
+            </ButtonGroup>
+          )}
           <Flex align="center" gap={2}>
             <Text fontSize="sm" color="gray.600" whiteSpace="nowrap">
               Default Markup:
@@ -456,6 +476,14 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, 
             Add a Schedule, Group, or Line Item to get started.
           </Text>
         </Box>
+      ) : viewMode === "board" ? (
+        <PricingBoard
+          sheet={sheet}
+          tenderId={tenderId}
+          onUpdate={onUpdate}
+          onUpdateRow={handleUpdateRow}
+          tenderFiles={tenderFiles}
+        />
       ) : isDetailOpen ? (
         /* ── Split pane: schedule list + detail panel ─────────────────── */
         <Flex
@@ -501,6 +529,7 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, 
             <Thead>
               <Tr bg="gray.50">
                 <Th w="28px" px={1} />
+                <Th w="24px" px={1} />
                 <Th whiteSpace="nowrap" w="60px">#</Th>
                 <Th>Description</Th>
                 <Th isNumeric whiteSpace="nowrap" w="60px">Qty</Th>
