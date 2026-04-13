@@ -1,0 +1,433 @@
+// client/src/components/pages/developer/CalculatorCanvas/__tests__/snapshotEvaluator.test.ts
+import { describe, it, expect } from "vitest";
+import {
+  evaluateSnapshot,
+  computeSnapshotUnitPrice,
+  snapshotFromTemplate,
+  RateBuildupSnapshot,
+} from "../snapshotEvaluator";
+import type { CanvasDocument } from "../canvasTypes";
+import { RateBuildupOutputKind } from "../../../../../generated/graphql";
+
+const pos = { x: 0, y: 0 };
+const specialPositions = { quantity: pos, unitPrice: pos };
+
+function doc(overrides: Partial<CanvasDocument> = {}): CanvasDocument {
+  return {
+    id: "tmpl_1",
+    label: "Test Template",
+    defaultUnit: "m2",
+    parameterDefs: [],
+    tableDefs: [],
+    formulaSteps: [],
+    breakdownDefs: [],
+    outputDefs: [],
+    specialPositions,
+    groupDefs: [],
+    controllerDefs: [],
+    ...overrides,
+  };
+}
+
+function snap(
+  template: CanvasDocument,
+  overrides: Partial<RateBuildupSnapshot> = {}
+): RateBuildupSnapshot {
+  return { ...snapshotFromTemplate(template), ...overrides };
+}
+
+// ─── Basic evaluation ─────────────────────────────────────────────────────────
+
+describe("evaluateSnapshot — basic evaluation", () => {
+  it("computes unitPrice from a simple formula (quantity * rate)", () => {
+    const template = doc({
+      parameterDefs: [{ id: "rate", label: "Rate", defaultValue: 20, position: pos }],
+      formulaSteps: [{ id: "cost", formula: "quantity * rate", position: pos }],
+      breakdownDefs: [
+        {
+          id: "bd1",
+          label: "Total",
+          items: [{ stepId: "cost", label: "Cost" }],
+          position: pos,
+        },
+      ],
+    });
+    const s = snap(template);
+    const { unitPrice } = evaluateSnapshot(s, 5);
+    // quantity=5, rate=20 → cost=100
+    expect(unitPrice).toBe(100);
+  });
+
+  it("uses overridden param values from the snapshot (not template defaults)", () => {
+    const template = doc({
+      parameterDefs: [{ id: "rate", label: "Rate", defaultValue: 100, position: pos }],
+      formulaSteps: [{ id: "cost", formula: "quantity * rate", position: pos }],
+      breakdownDefs: [
+        {
+          id: "bd1",
+          label: "Total",
+          items: [{ stepId: "cost", label: "Cost" }],
+          position: pos,
+        },
+      ],
+    });
+    // Override rate to 30 (not the default 100)
+    const s = snap(template, { params: { rate: 30 } });
+    const { unitPrice } = evaluateSnapshot(s, 4);
+    // quantity=4, rate=30 → cost=120
+    expect(unitPrice).toBe(120);
+  });
+
+  it("rounds unitPrice to 4 decimal places", () => {
+    const template = doc({
+      parameterDefs: [{ id: "rate", label: "Rate", defaultValue: 3, position: pos }],
+      formulaSteps: [{ id: "cost", formula: "quantity * rate", position: pos }],
+      breakdownDefs: [
+        {
+          id: "bd1",
+          label: "Total",
+          items: [{ stepId: "cost", label: "Cost" }],
+          position: pos,
+        },
+      ],
+    });
+    const s = snap(template);
+    // quantity=1, rate=3 → cost = 3; use 1/3 rate for rounding test
+    const s2 = snap(template, { params: { rate: 1 / 3 } });
+    const { unitPrice } = evaluateSnapshot(s2, 1);
+    // 1/3 ≈ 0.3333333... → rounded to 4dp = 0.3333
+    expect(unitPrice).toBe(parseFloat((1 / 3).toFixed(4)));
+    expect(String(unitPrice).split(".")[1]?.length ?? 0).toBeLessThanOrEqual(4);
+  });
+});
+
+// ─── Unit variants ────────────────────────────────────────────────────────────
+
+describe("evaluateSnapshot — unit variants", () => {
+  it("applies conversion formula when unit matches a variant (m3 → m2 via quantity / depth_m)", () => {
+    // Template native unit is m2; a m3 variant converts via quantity / depth_m
+    const groupId = "grp_m3";
+    const template = doc({
+      parameterDefs: [
+        { id: "depth_m", label: "Depth (m)", defaultValue: 0.1, position: pos },
+        { id: "rate", label: "Rate", defaultValue: 50, position: pos },
+      ],
+      formulaSteps: [{ id: "cost", formula: "quantity * rate", position: pos }],
+      breakdownDefs: [
+        {
+          id: "bd1",
+          label: "Total",
+          items: [{ stepId: "cost", label: "Cost" }],
+          position: pos,
+        },
+      ],
+      groupDefs: [
+        { id: groupId, label: "m3 group", memberIds: [], position: pos },
+      ],
+      unitVariants: [
+        {
+          unit: "m3",
+          activatesGroupId: groupId,
+          conversionFormula: "quantity / depth_m",
+        },
+      ],
+    });
+    const s = snap(template);
+    // rawQuantity=2 m3, depth_m=0.1 → converted quantity = 2 / 0.1 = 20 m2
+    // cost = 20 * 50 = 1000
+    const { unitPrice } = evaluateSnapshot(s, 2, "m3");
+    expect(unitPrice).toBe(1000);
+  });
+
+  it("uses raw quantity when unit has no matching variant", () => {
+    const template = doc({
+      parameterDefs: [{ id: "rate", label: "Rate", defaultValue: 10, position: pos }],
+      formulaSteps: [{ id: "cost", formula: "quantity * rate", position: pos }],
+      breakdownDefs: [
+        {
+          id: "bd1",
+          label: "Total",
+          items: [{ stepId: "cost", label: "Cost" }],
+          position: pos,
+        },
+      ],
+      unitVariants: [
+        {
+          unit: "m3",
+          activatesGroupId: "grp_m3",
+          conversionFormula: "quantity / 0.1",
+        },
+      ],
+    });
+    const s = snap(template);
+    // unit="m2" has no variant → raw quantity 7 is used directly
+    const { unitPrice } = evaluateSnapshot(s, 7, "m2");
+    expect(unitPrice).toBe(70);
+  });
+
+  it("falls back to raw quantity when conversion formula is invalid (returns null)", () => {
+    const groupId = "grp_m3";
+    const template = doc({
+      parameterDefs: [{ id: "rate", label: "Rate", defaultValue: 5, position: pos }],
+      formulaSteps: [{ id: "cost", formula: "quantity * rate", position: pos }],
+      breakdownDefs: [
+        {
+          id: "bd1",
+          label: "Total",
+          items: [{ stepId: "cost", label: "Cost" }],
+          position: pos,
+        },
+      ],
+      groupDefs: [
+        { id: groupId, label: "m3 group", memberIds: [], position: pos },
+      ],
+      unitVariants: [
+        {
+          unit: "m3",
+          activatesGroupId: groupId,
+          conversionFormula: "((( broken formula !!!",
+        },
+      ],
+    });
+    const s = snap(template);
+    // Invalid formula → null → fall back to rawQuantity=3
+    // cost = 3 * 5 = 15
+    const { unitPrice } = evaluateSnapshot(s, 3, "m3");
+    expect(unitPrice).toBe(15);
+  });
+
+  it("falls back to raw quantity when conversion formula returns non-positive value", () => {
+    const groupId = "grp_m3";
+    const template = doc({
+      parameterDefs: [
+        { id: "rate", label: "Rate", defaultValue: 5, position: pos },
+      ],
+      formulaSteps: [{ id: "cost", formula: "quantity * rate", position: pos }],
+      breakdownDefs: [
+        {
+          id: "bd1",
+          label: "Total",
+          items: [{ stepId: "cost", label: "Cost" }],
+          position: pos,
+        },
+      ],
+      groupDefs: [
+        { id: groupId, label: "m3 group", memberIds: [], position: pos },
+      ],
+      unitVariants: [
+        {
+          unit: "m3",
+          activatesGroupId: groupId,
+          conversionFormula: "quantity - 10", // rawQuantity=3 → 3 - 10 = -7 (non-positive)
+        },
+      ],
+    });
+    const s = snap(template);
+    // -7 is non-positive → fall back to rawQuantity=3; cost = 3 * 5 = 15
+    const { unitPrice } = evaluateSnapshot(s, 3, "m3");
+    expect(unitPrice).toBe(15);
+  });
+});
+
+// ─── Controllers ──────────────────────────────────────────────────────────────
+
+describe("evaluateSnapshot — controllers", () => {
+  it("converts boolean controller true to 1 in formula context", () => {
+    const template = doc({
+      parameterDefs: [{ id: "rate", label: "Rate", defaultValue: 100, position: pos }],
+      formulaSteps: [{ id: "cost", formula: "quantity * rate * toggle_ctrl", position: pos }],
+      breakdownDefs: [
+        {
+          id: "bd1",
+          label: "Total",
+          items: [{ stepId: "cost", label: "Cost" }],
+          position: pos,
+        },
+      ],
+      controllerDefs: [
+        {
+          id: "toggle_ctrl",
+          label: "Enable extra",
+          type: "toggle",
+          defaultValue: false,
+          position: pos,
+        },
+      ],
+    });
+    // Override controller to true → 1 in formula
+    const s = snap(template, { controllers: { toggle_ctrl: true } });
+    // cost = 2 * 100 * 1 = 200
+    const { unitPrice } = evaluateSnapshot(s, 2);
+    expect(unitPrice).toBe(200);
+  });
+
+  it("converts boolean controller false to 0 in formula context", () => {
+    const template = doc({
+      parameterDefs: [{ id: "rate", label: "Rate", defaultValue: 100, position: pos }],
+      formulaSteps: [{ id: "cost", formula: "quantity * rate * toggle_ctrl", position: pos }],
+      breakdownDefs: [
+        {
+          id: "bd1",
+          label: "Total",
+          items: [{ stepId: "cost", label: "Cost" }],
+          position: pos,
+        },
+      ],
+      controllerDefs: [
+        {
+          id: "toggle_ctrl",
+          label: "Enable extra",
+          type: "toggle",
+          defaultValue: true,
+          position: pos,
+        },
+      ],
+    });
+    // Override controller to false → 0 in formula
+    const s = snap(template, { controllers: { toggle_ctrl: false } });
+    // cost = 2 * 100 * 0 = 0
+    const { unitPrice } = evaluateSnapshot(s, 2);
+    expect(unitPrice).toBe(0);
+  });
+
+  it("passes numeric controller values through directly", () => {
+    const template = doc({
+      parameterDefs: [{ id: "rate", label: "Rate", defaultValue: 50, position: pos }],
+      formulaSteps: [{ id: "cost", formula: "quantity * rate * markup", position: pos }],
+      breakdownDefs: [
+        {
+          id: "bd1",
+          label: "Total",
+          items: [{ stepId: "cost", label: "Cost" }],
+          position: pos,
+        },
+      ],
+      controllerDefs: [
+        {
+          id: "markup",
+          label: "Markup",
+          type: "percentage",
+          defaultValue: 1,
+          position: pos,
+        },
+      ],
+    });
+    // Numeric controller: 1.15 (15% markup)
+    const s = snap(template, { controllers: { markup: 1.15 } });
+    // cost = 2 * 50 * 1.15 = 115
+    const { unitPrice } = evaluateSnapshot(s, 2);
+    expect(unitPrice).toBeCloseTo(115);
+  });
+});
+
+// ─── Output resolution ────────────────────────────────────────────────────────
+
+describe("evaluateSnapshot — output resolution", () => {
+  it("resolves Material output with estimator pick overriding template default", () => {
+    const template = doc({
+      parameterDefs: [{ id: "rate", label: "Rate", defaultValue: 10, position: pos }],
+      formulaSteps: [{ id: "asphalt_t", formula: "quantity * 2.4", position: pos }],
+      breakdownDefs: [],
+      outputDefs: [
+        {
+          id: "out_asphalt",
+          kind: RateBuildupOutputKind.Material,
+          sourceStepId: "asphalt_t",
+          unit: "t",
+          label: "Asphalt",
+          defaultMaterialId: "mat_default",
+          position: pos,
+        },
+      ],
+    });
+    // Estimator picks a different material
+    const s = snap(template, {
+      outputs: { out_asphalt: { materialId: "mat_estimator_pick" } },
+    });
+    const { outputs } = evaluateSnapshot(s, 5);
+    expect(outputs).toHaveLength(1);
+    expect(outputs[0].materialId).toBe("mat_estimator_pick");
+    expect(outputs[0].kind).toBe(RateBuildupOutputKind.Material);
+    expect(outputs[0].unit).toBe("t");
+  });
+
+  it("resolves CrewHours output with template default when no estimator pick", () => {
+    const template = doc({
+      formulaSteps: [{ id: "crew_hrs", formula: "quantity * 0.5", position: pos }],
+      breakdownDefs: [],
+      outputDefs: [
+        {
+          id: "out_crew",
+          kind: RateBuildupOutputKind.CrewHours,
+          sourceStepId: "crew_hrs",
+          unit: "hr",
+          label: "Operator",
+          defaultCrewKindId: "crewkind_default",
+          position: pos,
+        },
+      ],
+    });
+    const s = snap(template);
+    // No estimator pick — should fall back to template defaultCrewKindId
+    const { outputs } = evaluateSnapshot(s, 4);
+    expect(outputs).toHaveLength(1);
+    expect(outputs[0].crewKindId).toBe("crewkind_default");
+    expect(outputs[0].kind).toBe(RateBuildupOutputKind.CrewHours);
+    expect(outputs[0].unit).toBe("hr");
+  });
+
+  it("output totalValue equals perUnitValue (formula produces row total, NOT multiplied by quantity again)", () => {
+    // The formula step already receives `quantity` in context, so its value
+    // IS the total. We must NOT multiply by quantity a second time.
+    const template = doc({
+      formulaSteps: [
+        // This formula computes the total tons for the whole row (not per-unit)
+        { id: "asphalt_total_t", formula: "quantity * 2.4", position: pos },
+      ],
+      breakdownDefs: [],
+      outputDefs: [
+        {
+          id: "out_asphalt",
+          kind: RateBuildupOutputKind.Material,
+          sourceStepId: "asphalt_total_t",
+          unit: "t",
+          label: "Asphalt",
+          position: pos,
+        },
+      ],
+    });
+    const s = snap(template);
+    const quantity = 10;
+    const { outputs } = evaluateSnapshot(s, quantity);
+    // Formula: 10 * 2.4 = 24 total tons (already a row total)
+    // perUnitValue and totalValue must both be 24 — not 24 * 10 = 240
+    expect(outputs[0].perUnitValue).toBe(24);
+    expect(outputs[0].totalValue).toBe(24);
+    expect(outputs[0].totalValue).toBe(outputs[0].perUnitValue);
+  });
+});
+
+// ─── computeSnapshotUnitPrice ─────────────────────────────────────────────────
+
+describe("computeSnapshotUnitPrice", () => {
+  it("returns only the unitPrice (convenience wrapper)", () => {
+    const template = doc({
+      parameterDefs: [{ id: "rate", label: "Rate", defaultValue: 15, position: pos }],
+      formulaSteps: [{ id: "cost", formula: "quantity * rate", position: pos }],
+      breakdownDefs: [
+        {
+          id: "bd1",
+          label: "Total",
+          items: [{ stepId: "cost", label: "Cost" }],
+          position: pos,
+        },
+      ],
+    });
+    const s = snap(template);
+    const unitPrice = computeSnapshotUnitPrice(s, 3);
+    // quantity=3, rate=15 → 45
+    expect(unitPrice).toBe(45);
+    // Should match evaluateSnapshot result exactly
+    expect(unitPrice).toBe(evaluateSnapshot(s, 3).unitPrice);
+  });
+});
