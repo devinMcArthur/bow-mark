@@ -46,6 +46,10 @@ spec:
     metadata:
       labels:
         app: rabbitmq
+      annotations:
+        # ci-deploy.sh replaces this with sha256 of the ConfigMap content so
+        # kubectl apply triggers a rolling restart when rabbitmq.conf changes.
+        checksum/config: "${RABBITMQ_CONFIG_CHECKSUM}"
     spec:
       nodeSelector:
         doks.digitalocean.com/node-pool: default-pool
