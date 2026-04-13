@@ -910,3 +910,133 @@ describe("evaluateSnapshot — quantity-dependent unit price", () => {
     expect(evaluateSnapshot(s, 1000).unitPrice).toBeCloseTo(19.2);
   });
 });
+
+// ─── Regression: controllers referenced in formulas ─────────────────────────
+//
+// Prod bug (caught via kubectl logs on 2026-04-13): when a template defines
+// controllers and references them in formula steps (e.g., `base * waste_pct`
+// or `base + labour_toggle * 100`), but the saved snapshot's `controllers`
+// object is empty (user never touched the inputs), `evaluateSnapshot` used
+// to build `controllerNumeric` from `Object.entries(snapshot.controllers)`
+// — which skipped every defined controller. Formulas then failed to resolve
+// the controller variable and safeEval returned 0 for the whole step.
+// Meanwhile RateBuildupInputs' live preview built its context from
+// `doc.controllerDefs`, so the displayed unit price was correct while the
+// persisted one was silently wrong — visible only after reload.
+//
+// The fix: iterate `doc.controllerDefs` and seed defaults for unset keys.
+// These tests guarantee the two code paths agree on the same inputs.
+
+describe("evaluateSnapshot — formulas referencing controllers with empty snapshot.controllers", () => {
+  function templateWithControllerInFormula() {
+    return doc({
+      parameterDefs: [
+        { id: "base_rate", label: "Base", defaultValue: 100, position: pos },
+      ],
+      controllerDefs: [
+        { id: "waste_pct", label: "Waste %", type: "percentage", defaultValue: 0.1, position: pos },
+        { id: "hazard_on", label: "Hazard", type: "toggle", defaultValue: true, position: pos },
+      ],
+      formulaSteps: [
+        // Formula references BOTH controllers by id — this is the scenario
+        // where the old evaluator collapsed to 0 when snapshot.controllers was empty.
+        { id: "total", formula: "base_rate * (1 + waste_pct) + hazard_on * 50", position: pos },
+      ],
+      breakdownDefs: [
+        {
+          id: "bd1",
+          label: "Total",
+          items: [{ stepId: "total", label: "Total" }],
+          position: pos,
+        },
+      ],
+    });
+  }
+
+  it("uses controllerDef defaults when snapshot.controllers is empty", () => {
+    const template = templateWithControllerInFormula();
+    // Explicitly empty snapshot.controllers — the user never edited them.
+    const s = snap(template, { controllers: {} });
+
+    // Expected: base_rate=100, waste_pct default 0.1, hazard_on default true→1
+    // total = 100 * (1 + 0.1) + 1 * 50 = 110 + 50 = 160
+    expect(evaluateSnapshot(s, 1).unitPrice).toBeCloseTo(160, 2);
+  });
+
+  it("uses controllerDef defaults for percentage controller with no defaultValue", () => {
+    // A percentage controller with NO defaultValue on the def should seed 0.
+    const template = doc({
+      controllerDefs: [
+        { id: "markup_pct", label: "Markup %", type: "percentage", position: pos },
+      ],
+      formulaSteps: [
+        { id: "total", formula: "100 + markup_pct * 100", position: pos },
+      ],
+      breakdownDefs: [
+        {
+          id: "bd1",
+          label: "T",
+          items: [{ stepId: "total", label: "T" }],
+          position: pos,
+        },
+      ],
+    });
+    const s = snap(template, { controllers: {} });
+    // markup_pct = 0 (no default) → total = 100 + 0 = 100
+    expect(evaluateSnapshot(s, 1).unitPrice).toBeCloseTo(100, 2);
+  });
+
+  it("uses controllerDef false default for toggle with no defaultValue", () => {
+    const template = doc({
+      controllerDefs: [
+        { id: "extra_fee", label: "Extra", type: "toggle", position: pos },
+      ],
+      formulaSteps: [
+        { id: "total", formula: "100 + extra_fee * 25", position: pos },
+      ],
+      breakdownDefs: [
+        {
+          id: "bd1",
+          label: "T",
+          items: [{ stepId: "total", label: "T" }],
+          position: pos,
+        },
+      ],
+    });
+    const s = snap(template, { controllers: {} });
+    // extra_fee defaultValue undefined → 0 → total = 100
+    expect(evaluateSnapshot(s, 1).unitPrice).toBeCloseTo(100, 2);
+  });
+
+  it("snapshot.controllers values override controllerDef defaults", () => {
+    const template = templateWithControllerInFormula();
+    // Explicit values in snapshot — should win over def defaults.
+    const s = snap(template, {
+      controllers: { waste_pct: 0.25, hazard_on: false },
+    });
+    // total = 100 * (1 + 0.25) + 0 * 50 = 125
+    expect(evaluateSnapshot(s, 1).unitPrice).toBeCloseTo(125, 2);
+  });
+
+  it("does not crash when formula references a controller absent from the def list", () => {
+    // Defensive: formula mentions `ghost_ctrl` which doesn't exist. safeEval
+    // still collapses to 0 for that step, but the evaluator must not throw.
+    const template = doc({
+      controllerDefs: [],
+      formulaSteps: [
+        { id: "total", formula: "100 + ghost_ctrl * 5", position: pos },
+      ],
+      breakdownDefs: [
+        {
+          id: "bd1",
+          label: "T",
+          items: [{ stepId: "total", label: "T" }],
+          position: pos,
+        },
+      ],
+    });
+    const s = snap(template, { controllers: {} });
+    // total safeEval → throws on undefined var → returns 0
+    expect(evaluateSnapshot(s, 1).unitPrice).toBe(0);
+  });
+});

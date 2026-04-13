@@ -268,12 +268,31 @@ export function evaluateSnapshot(
     if (converted !== null && converted > 0) quantity = converted;
   }
 
+  // Build controller numeric context from the template's controllerDefs, not
+  // from snapshot.controllers alone. Any defined percentage/toggle controller
+  // must be present in the formula evaluation ctx even when the snapshot has
+  // no explicit value, otherwise formula steps that reference the controller
+  // id by name throw "undefined variable" inside expr-eval and safeEval
+  // collapses the whole formula to 0. RateBuildupInputs' live preview uses
+  // the same controllerDefs-based approach; the two must agree.
   const controllerNumeric: Record<string, number> = {};
-  for (const [k, v] of Object.entries(snapshot.controllers ?? {})) {
-    if (typeof v === "number") controllerNumeric[k] = v;
-    else if (typeof v === "boolean") controllerNumeric[k] = v ? 1 : 0;
+  const snapControllers = snapshot.controllers ?? {};
+  for (const c of doc.controllerDefs ?? []) {
+    const v = snapControllers[c.id];
+    if (typeof v === "number") {
+      controllerNumeric[c.id] = v;
+    } else if (typeof v === "boolean") {
+      controllerNumeric[c.id] = v ? 1 : 0;
+    } else if (c.type === "percentage") {
+      controllerNumeric[c.id] =
+        typeof c.defaultValue === "number" ? c.defaultValue : 0;
+    } else if (c.type === "toggle") {
+      controllerNumeric[c.id] = c.defaultValue ? 1 : 0;
+    }
+    // selector controllers aren't numeric — skip (their activation is
+    // evaluated separately via isGroupActive).
   }
-  const inactiveNodeIds = computeInactiveNodeIds(doc, snapshot.controllers ?? {}, unit);
+  const inactiveNodeIds = computeInactiveNodeIds(doc, snapControllers, unit);
   const result = evaluateTemplate(
     doc,
     { params: snapshot.params, tables: snapshot.tables },
