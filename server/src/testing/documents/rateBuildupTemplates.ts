@@ -32,6 +32,10 @@ const createRateBuildupTemplates = async (): Promise<SeededRateBuildupTemplates>
       { id: "depth_m", label: "Depth (m)", defaultValue: 0.05, position: pos },
       { id: "price_per_t", label: "$/t", defaultValue: 120, position: pos },
       { id: "labour_lump", label: "Labour Lump $", defaultValue: 5000, position: pos },
+      // Lives inside g_waste so the group has at least one user input and
+      // therefore renders in the RateBuildupInputs panel. Also makes the
+      // waste rate editable so tests can verify the formula picks it up.
+      { id: "waste_rate", label: "Waste $/unit", defaultValue: 1.5, position: pos },
     ],
     tableDefs: [],
     formulaSteps: [
@@ -50,7 +54,7 @@ const createRateBuildupTemplates = async (): Promise<SeededRateBuildupTemplates>
       {
         id: "waste_per_unit",
         label: "Waste per unit",
-        formula: "1.5",
+        formula: "waste_rate",
         position: pos,
       },
       {
@@ -127,7 +131,7 @@ const createRateBuildupTemplates = async (): Promise<SeededRateBuildupTemplates>
       {
         id: "g_waste",
         label: "Waste group",
-        memberIds: ["waste_per_unit"],
+        memberIds: ["waste_rate", "waste_per_unit"],
         activation: { controllerId: "waste_toggle", condition: "=== 1" },
         position: pos,
       },

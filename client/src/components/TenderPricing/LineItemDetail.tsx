@@ -810,7 +810,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
                       <Text fontSize="9px" fontWeight="medium" color="orange.400" textTransform="uppercase" letterSpacing="wide">
                         Unit Price
                       </Text>
-                      <Text fontSize="xs" fontWeight="bold" color="orange.700">
+                      <Text data-testid="buildup-unit-price" fontSize="xs" fontWeight="bold" color="orange.700">
                         ${((snapResult?.unitPrice ?? row.unitPrice ?? 0) + (row.extraUnitPrice ?? 0)).toFixed(2)}
                       </Text>
                     </Box>

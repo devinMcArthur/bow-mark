@@ -47,12 +47,13 @@ const createTenderPricing = async (): Promise<SeededTenderPricing> => {
       { id: "depth_m", label: "Depth (m)", defaultValue: 0.05, position: pos },
       { id: "price_per_t", label: "$/t", defaultValue: 120, position: pos },
       { id: "labour_lump", label: "Labour Lump $", defaultValue: 5000, position: pos },
+      { id: "waste_rate", label: "Waste $/unit", defaultValue: 1.5, position: pos },
     ],
     tableDefs: [],
     formulaSteps: [
       { id: "mat_per_unit", label: "Material per unit", formula: "depth_m * 2.4 * price_per_t", position: pos },
       { id: "lab_per_unit", label: "Labour per unit", formula: "labour_lump / quantity", position: pos },
-      { id: "waste_per_unit", label: "Waste per unit", formula: "1.5", position: pos },
+      { id: "waste_per_unit", label: "Waste per unit", formula: "waste_rate", position: pos },
       { id: "mat_tons_total", label: "Material tons (row total)", formula: "quantity * depth_m * 2.4", position: pos },
       { id: "crew_hours_total", label: "Crew hours (row total)", formula: "quantity * 0.02", position: pos },
     ],
@@ -96,7 +97,7 @@ const createTenderPricing = async (): Promise<SeededTenderPricing> => {
       {
         id: "g_waste",
         label: "Waste group",
-        memberIds: ["waste_per_unit"],
+        memberIds: ["waste_rate", "waste_per_unit"],
         activation: { controllerId: "waste_toggle", condition: "=== 1" },
         position: pos,
       },
@@ -112,7 +113,7 @@ const createTenderPricing = async (): Promise<SeededTenderPricing> => {
       unitPrice: { x: 700, y: 200 },
     },
     // Snapshot-specific fields
-    params: { depth_m: 0.05, price_per_t: 120, labour_lump: 5000 },
+    params: { depth_m: 0.05, price_per_t: 120, labour_lump: 5000, waste_rate: 1.5 },
     tables: {},
     controllers: { waste_toggle: false },
     outputs: {
