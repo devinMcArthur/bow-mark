@@ -824,3 +824,89 @@ describe("evaluateSnapshot — unit variant × controller interaction", () => {
     expect(evaluateSnapshot(s, 5).unitPrice).toBe(5);
   });
 });
+
+// ─── Fixed-cost-per-unit through full snapshot path ─────────────────────────
+//
+// Production templates commonly have labour/setup costs that are fixed across
+// a row, expressed as `lump_sum / quantity` in the formula. As quantity grows,
+// per-unit price drops. These tests drive that pattern through evaluateSnapshot
+// (not just evaluateTemplate) so we verify the full snapshot → evaluator path.
+
+describe("evaluateSnapshot — quantity-dependent unit price", () => {
+  function fixedCostTemplate() {
+    return doc({
+      parameterDefs: [
+        { id: "depth_m", label: "Depth", defaultValue: 0.05, position: pos },
+        { id: "density", label: "Density", defaultValue: 2.4, position: pos },
+        { id: "price_per_t", label: "$/t", defaultValue: 120, position: pos },
+        { id: "crew_hours", label: "Crew Hours", defaultValue: 40, position: pos },
+        { id: "crew_rate", label: "Crew $/hr", defaultValue: 80, position: pos },
+      ],
+      formulaSteps: [
+        // Variable per-unit: depth * density * $/t  (no quantity)
+        { id: "mat_per_unit", formula: "depth_m * density * price_per_t", position: pos },
+        // Fixed per-unit: (hours * rate) / quantity
+        { id: "lab_per_unit", formula: "(crew_hours * crew_rate) / quantity", position: pos },
+      ],
+      breakdownDefs: [
+        {
+          id: "bd_mat",
+          label: "Material",
+          items: [{ stepId: "mat_per_unit", label: "Material" }],
+          position: pos,
+        },
+        {
+          id: "bd_lab",
+          label: "Labour",
+          items: [{ stepId: "lab_per_unit", label: "Labour" }],
+          position: pos,
+        },
+      ],
+    });
+  }
+
+  it("small quantity: fixed labour dominates unit price", () => {
+    const s = snap(fixedCostTemplate());
+    // material 14.4/unit + labour (40*80)/100 = 32/unit → 46.4
+    expect(evaluateSnapshot(s, 100).unitPrice).toBeCloseTo(46.4);
+  });
+
+  it("medium quantity: fixed labour share drops", () => {
+    const s = snap(fixedCostTemplate());
+    // 14.4 + 3200/1000 = 14.4 + 3.2 = 17.6
+    expect(evaluateSnapshot(s, 1000).unitPrice).toBeCloseTo(17.6);
+  });
+
+  it("large quantity: per-unit approaches variable cost only", () => {
+    const s = snap(fixedCostTemplate());
+    // 14.4 + 3200/10000 = 14.4 + 0.32 = 14.72
+    expect(evaluateSnapshot(s, 10000).unitPrice).toBeCloseTo(14.72);
+  });
+
+  it("doubling quantity halves the fixed-cost portion but keeps variable constant", () => {
+    const s = snap(fixedCostTemplate());
+    // Variable: 14.4 constant
+    // Fixed at 500: 3200/500 = 6.4 → total 20.8
+    // Fixed at 1000: 3200/1000 = 3.2 → total 17.6
+    // Delta = 20.8 - 17.6 = 3.2 (exactly half of 6.4)
+    const small = evaluateSnapshot(s, 500).unitPrice;
+    const big = evaluateSnapshot(s, 1000).unitPrice;
+    expect(small - big).toBeCloseTo(3.2);
+  });
+
+  it("estimator overrides labour lump via snapshot params, price reflects it", () => {
+    // Real-world: estimator edits crew_hours from 40 to 60 for a harder site.
+    // Fixed portion grows proportionally.
+    const s = snap(fixedCostTemplate(), {
+      params: {
+        depth_m: 0.05,
+        density: 2.4,
+        price_per_t: 120,
+        crew_hours: 60, // bumped from 40
+        crew_rate: 80,
+      },
+    });
+    // labour lump = 60*80 = 4800. At qty 1000: 4.8/unit. Total: 14.4 + 4.8 = 19.2
+    expect(evaluateSnapshot(s, 1000).unitPrice).toBeCloseTo(19.2);
+  });
+});

@@ -431,3 +431,110 @@ describe("evaluateTemplate — edge cases", () => {
     expect(result.unitPrice).toBe(0);
   });
 });
+
+// ─── Per-unit convention: fixed cost / quantity ──────────────────────────────
+//
+// Real templates feed per-unit values into the breakdown. If a cost is fixed
+// across the whole row (setup, equipment hauling, lump-sum labour), the
+// author divides by quantity to get the per-unit share. This describes a
+// template where the unit price DECREASES as quantity increases, which is
+// exactly how fixed/amortised costs behave in production templates.
+describe("evaluateTemplate — fixed cost / quantity convention", () => {
+  it("pure fixed cost per unit shrinks as quantity grows", () => {
+    // $1000 fixed setup spread across the row
+    const template = tmpl({
+      formulaSteps: [{ id: "setup_per_unit", formula: "1000 / quantity" }],
+      breakdownDefs: [
+        {
+          id: "bd1",
+          label: "Setup",
+          items: [{ stepId: "setup_per_unit", label: "Setup / unit" }],
+        },
+      ],
+    });
+
+    expect(evaluateTemplate(template, undefined, 100).unitPrice).toBe(10);
+    expect(evaluateTemplate(template, undefined, 1000).unitPrice).toBe(1);
+    expect(evaluateTemplate(template, undefined, 2000).unitPrice).toBe(0.5);
+  });
+
+  it("mixed variable + fixed: variable stays constant, fixed shrinks", () => {
+    // Realistic paving: variable cost per unit (depth × density × $/t) is
+    // independent of quantity. Fixed labour lump-sum is spread across the row.
+    const template = tmpl({
+      parameterDefs: [
+        { id: "depth_m", label: "Depth", defaultValue: 0.05 },
+        { id: "density", label: "Density", defaultValue: 2.4 },
+        { id: "price_per_t", label: "$/t", defaultValue: 120 },
+        { id: "labour_lump", label: "Labour Lump $", defaultValue: 5000 },
+      ],
+      formulaSteps: [
+        // Per-unit material cost: depth * density * price. No quantity.
+        { id: "mat_per_unit", formula: "depth_m * density * price_per_t" },
+        // Per-unit labour share: lump / quantity
+        { id: "lab_per_unit", formula: "labour_lump / quantity" },
+      ],
+      breakdownDefs: [
+        {
+          id: "bd_mat",
+          label: "Material",
+          items: [{ stepId: "mat_per_unit", label: "Material" }],
+        },
+        {
+          id: "bd_lab",
+          label: "Labour",
+          items: [{ stepId: "lab_per_unit", label: "Labour" }],
+        },
+      ],
+    });
+
+    // Variable: 0.05 * 2.4 * 120 = 14.4 per unit, constant
+    // Fixed: 5000 / quantity
+    const qty100 = evaluateTemplate(template, undefined, 100);
+    expect(qty100.unitPrice).toBeCloseTo(14.4 + 50); // 5000/100 = 50 → 64.4
+    expect(qty100.breakdown.find((b) => b.id === "bd_mat")!.value).toBeCloseTo(14.4);
+    expect(qty100.breakdown.find((b) => b.id === "bd_lab")!.value).toBeCloseTo(50);
+
+    const qty1000 = evaluateTemplate(template, undefined, 1000);
+    expect(qty1000.unitPrice).toBeCloseTo(14.4 + 5); // 5000/1000 = 5 → 19.4
+    expect(qty1000.breakdown.find((b) => b.id === "bd_mat")!.value).toBeCloseTo(14.4);
+    expect(qty1000.breakdown.find((b) => b.id === "bd_lab")!.value).toBeCloseTo(5);
+
+    // As quantity 10×'s, the fixed portion drops 10× while variable stays
+    const qty10000 = evaluateTemplate(template, undefined, 10000);
+    expect(qty10000.unitPrice).toBeCloseTo(14.4 + 0.5); // 14.9
+
+    // Sanity: variable share is identical regardless of quantity
+    expect(qty100.breakdown.find((b) => b.id === "bd_mat")!.value).toBe(
+      qty10000.breakdown.find((b) => b.id === "bd_mat")!.value
+    );
+  });
+
+  it("crew hours amortised across quantity: labour-style fixed cost", () => {
+    // A 40-hour crew day costed at $80/hr = $3200, spread across the row's
+    // quantity. This mirrors the real "labour cost per unit decreases as
+    // quantity increases" pattern used in production templates.
+    const template = tmpl({
+      parameterDefs: [
+        { id: "crew_hours", label: "Crew Hours", defaultValue: 40 },
+        { id: "crew_rate", label: "Crew $/hr", defaultValue: 80 },
+      ],
+      formulaSteps: [
+        // Per-unit labour = (hours * rate) / quantity
+        { id: "labour_per_unit", formula: "(crew_hours * crew_rate) / quantity" },
+      ],
+      breakdownDefs: [
+        {
+          id: "bd1",
+          label: "Labour",
+          items: [{ stepId: "labour_per_unit", label: "Labour" }],
+        },
+      ],
+    });
+
+    // $3200 total labour. Small job (qty 100) = $32/unit. Big job (qty 3200) = $1/unit.
+    expect(evaluateTemplate(template, undefined, 100).unitPrice).toBe(32);
+    expect(evaluateTemplate(template, undefined, 800).unitPrice).toBe(4);
+    expect(evaluateTemplate(template, undefined, 3200).unitPrice).toBe(1);
+  });
+});
