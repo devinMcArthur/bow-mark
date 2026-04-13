@@ -13,10 +13,12 @@ import {
   CanvasTableDef,
   CanvasFormulaStep,
   CanvasBreakdownDef,
-  IntermediateDef,
+  OutputDef,
   SpecialNodePositions,
   RateEntry,
+  EvaluatedOutput,
 } from "../../../../components/TenderPricing/calculators/types";
+import { RateBuildupOutputKind } from "../../../../generated/graphql";
 import { evaluateTemplate, evaluateExpression } from "../../../../components/TenderPricing/calculators/evaluate";
 
 // ─── CanvasDocument ───────────────────────────────────────────────────────────
@@ -87,7 +89,7 @@ export interface CanvasDocument {
   tableDefs: CanvasTableDef[];
   formulaSteps: CanvasFormulaStep[];
   breakdownDefs: CanvasBreakdownDef[];
-  intermediateDefs: IntermediateDef[];
+  outputDefs: OutputDef[];
   specialPositions: SpecialNodePositions; // positions for quantity/unitPrice synthetic nodes
   groupDefs: GroupDef[];
   controllerDefs: ControllerDef[];
@@ -95,6 +97,7 @@ export interface CanvasDocument {
   updatedAt?: string;
   // REMOVED: defaultInputs (defaultValue now on ParameterDef; defaultRows now on CanvasTableDef)
   // REMOVED: nodePositions (position now on each canvas def)
+  // REMOVED: intermediateDefs (replaced by outputDefs — prototype-era scaffolding)
 }
 
 /**
@@ -207,12 +210,33 @@ export function computeInactiveNodeIds(
  * `paramNotes` holds estimator context notes keyed by param ID.
  * `sourceTemplateId` is the server _id of the template this was forked from.
  */
+/**
+ * Resolved per-row output, ready to be saved to TenderPricingRow.rateBuildupOutputs.
+ * Combines the template's structural def (unit, kind) + the estimator's pick +
+ * the computed per-unit and scaled total values. Exactly one of `materialId`
+ * / `crewKindId` is populated depending on `kind`.
+ */
+export interface PricingRowOutput {
+  kind: RateBuildupOutputKind;
+  materialId?: string;
+  crewKindId?: string;
+  unit: string;
+  perUnitValue: number;
+  totalValue: number;
+}
+
 export interface RateBuildupSnapshot extends CanvasDocument {
   sourceTemplateId: string;
   params: Record<string, number>;
   tables: Record<string, RateEntry[]>;
   controllers: Record<string, number | boolean | string[]>;
   paramNotes?: Record<string, string>;
+  /**
+   * Estimator's per-output selections, keyed by OutputDef.id. At evaluation
+   * time these override the template's defaults. Exactly one of `materialId`
+   * / `crewKindId` is used per entry, matching the output's `kind`.
+   */
+  outputs?: Record<string, { materialId?: string; crewKindId?: string }>;
 }
 
 /**
@@ -242,12 +266,22 @@ export function snapshotFromTemplate(template: CanvasDocument): RateBuildupSnaps
       controllers[c.id] = c.defaultSelected ?? [];
   }
 
+  // Seed output selections from each OutputDef's default, picking the right
+  // field based on the output's kind.
+  const outputs: Record<string, { materialId?: string; crewKindId?: string }> = {};
+  for (const o of template.outputDefs ?? []) {
+    outputs[o.id] = o.kind === "CrewHours"
+      ? { crewKindId: o.defaultCrewKindId }
+      : { materialId: o.defaultMaterialId };
+  }
+
   return {
     ...template,
     sourceTemplateId: template.id,
     params,
     tables,
     controllers,
+    outputs,
   };
 }
 
@@ -256,8 +290,22 @@ export function snapshotFromTemplate(template: CanvasDocument): RateBuildupSnaps
  * Strips the snapshot-specific fields, returning the pure canvas structure.
  */
 export function snapshotToCanvasDoc(snapshot: RateBuildupSnapshot): CanvasDocument {
-  const { sourceTemplateId: _sid, params: _p, tables: _t, controllers: _c, paramNotes: _pn, ...rest } = snapshot;
-  return rest;
+  const {
+    sourceTemplateId: _sid,
+    params: _p,
+    tables: _t,
+    controllers: _c,
+    paramNotes: _pn,
+    outputs: _o,
+    ...rest
+  } = snapshot;
+  // Normalize fields that may be absent on snapshots saved before a schema
+  // bump. outputDefs was added later — older snapshots won't have it and
+  // every downstream reader assumes it's an array.
+  return {
+    ...rest,
+    outputDefs: rest.outputDefs ?? [],
+  };
 }
 
 /**
@@ -275,24 +323,27 @@ export function canvasDocToSnapshot(
     tables: existing.tables,
     controllers: existing.controllers,
     paramNotes: existing.paramNotes,
+    outputs: existing.outputs,
   };
 }
 
 /**
- * Compute the unit price for a snapshot at the given quantity.
+ * Evaluate a snapshot against a quantity, returning both the unit price and the
+ * resolved Output node values. All save paths should call this and persist
+ * BOTH values atomically — outputs are derived from the same ctx as unitPrice,
+ * so they must stay in sync.
  *
- * This is the single authoritative function for deriving unitPrice from a
- * RateBuildupSnapshot. All save paths must call this — never inline the
- * evaluateTemplate boilerplate directly, as formulas may reference `quantity`
- * (e.g. `mobilization / quantity + laborRate`) and the result changes with it.
- *
- * Returns the unit price rounded to 4 decimal places (0 if computation fails).
+ * Returns `{ unitPrice, outputs }`:
+ * - `unitPrice` rounded to 4 decimals (0 on failure)
+ * - `outputs[]` with per-unit and scaled totalValue (quantity × perUnitValue),
+ *   with `materialId` resolved from snapshot.outputs (estimator pick) falling
+ *   back to OutputDef.defaultMaterialId
  */
-export function computeSnapshotUnitPrice(
+export function evaluateSnapshot(
   snapshot: RateBuildupSnapshot,
   rawQuantity: number,
-  unit?: string   // canonical code of the line item's unit
-): number {
+  unit?: string
+): { unitPrice: number; outputs: PricingRowOutput[] } {
   const doc = snapshotToCanvasDoc(snapshot);
 
   // Resolve active unit variant and normalize quantity via conversion formula
@@ -318,7 +369,57 @@ export function computeSnapshotUnitPrice(
     controllerNumeric,
     inactiveNodeIds
   );
-  return parseFloat(result.unitPrice.toFixed(4));
+
+  // Resolve each evaluated output: the estimator's snapshot selection overrides
+  // the template's default. The field we read depends on the output's kind.
+  //
+  // IMPORTANT: the formula step's value is already the TOTAL for this row,
+  // not a per-unit value. Formulas receive `quantity` directly in the context,
+  // so template authors write expressions like `area * depth * 2.4` that
+  // produce the full line-item total. We do NOT multiply by quantity again.
+  //
+  // perUnitValue is kept in the data shape for backwards-compat but mirrors
+  // totalValue until we formally remove it.
+  const outputs: PricingRowOutput[] = (result.outputs ?? []).map((o: EvaluatedOutput) => {
+    const total = parseFloat(o.perUnitValue.toFixed(6));
+    const pick = snapshot.outputs?.[o.id];
+    if (o.kind === "CrewHours") {
+      const crewKindId = pick?.crewKindId ?? o.defaultCrewKindId;
+      return {
+        kind: RateBuildupOutputKind.CrewHours,
+        crewKindId,
+        unit: "hr",
+        perUnitValue: total,
+        totalValue: total,
+      };
+    }
+    const materialId = pick?.materialId ?? o.defaultMaterialId;
+    return {
+      kind: RateBuildupOutputKind.Material,
+      materialId,
+      unit: o.unit,
+      perUnitValue: total,
+      totalValue: total,
+    };
+  });
+
+  return {
+    unitPrice: parseFloat(result.unitPrice.toFixed(4)),
+    outputs,
+  };
+}
+
+/**
+ * Back-compat wrapper for callers that only need the unit price. Prefer
+ * `evaluateSnapshot` in save paths so the row's `rateBuildupOutputs` stay in
+ * sync with the unit price.
+ */
+export function computeSnapshotUnitPrice(
+  snapshot: RateBuildupSnapshot,
+  rawQuantity: number,
+  unit?: string
+): number {
+  return evaluateSnapshot(snapshot, rawQuantity, unit).unitPrice;
 }
 
 // ─── Serialise / deserialise ──────────────────────────────────────────────────
@@ -375,7 +476,7 @@ export function fragmentToDoc(f: RateBuildupTemplateFullSnippetFragment): Canvas
     tableDefs: dedup((f.tableDefs ?? []) as CanvasTableDef[]),
     formulaSteps: dedup((f.formulaSteps ?? []) as CanvasFormulaStep[]),
     breakdownDefs: dedup((f.breakdownDefs ?? []) as CanvasBreakdownDef[]),
-    intermediateDefs: (f.intermediateDefs ?? []) as IntermediateDef[],
+    outputDefs: dedup(((f.outputDefs ?? []) as OutputDef[])),
     specialPositions,
     groupDefs,
     controllerDefs,
@@ -411,7 +512,7 @@ function docToVariables(
       tableDefs: omitTypename(doc.tableDefs),
       formulaSteps: omitTypename(doc.formulaSteps),
       breakdownDefs: omitTypename(doc.breakdownDefs),
-      intermediateDefs: omitTypename(doc.intermediateDefs),
+      outputDefs: omitTypename(doc.outputDefs),
       specialPositions: JSON.stringify(doc.specialPositions),
       groupDefs: omitTypename(doc.groupDefs),
       controllerDefs: omitTypename(doc.controllerDefs).map((c) => ({
@@ -438,7 +539,7 @@ function blankDocument(): CanvasDocument {
     tableDefs: [],
     formulaSteps: [],
     breakdownDefs: [],
-    intermediateDefs: [],
+    outputDefs: [],
     specialPositions: {
       quantity: { x: 100, y: 200 },
       unitPrice: { x: 700, y: 200 },

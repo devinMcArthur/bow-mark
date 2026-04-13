@@ -73,6 +73,10 @@ export default class TenderPricingSheetResolver {
   ) {
     const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
     sheet!.addRow(data);
+    // Auto-assign itemNumber to ONLY the new row, preserving any hand-typed
+    // numbers on existing rows. The standalone tenderPricingSheetAutoNumber
+    // mutation is still available for explicit full-sheet renumber.
+    sheet!.autoNumberLastRow();
     await sheet!.save();
 
     if (ctx.user) {

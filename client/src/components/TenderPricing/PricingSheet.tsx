@@ -53,6 +53,14 @@ const ROW_FIELDS = `
   notes
   markupOverride
   rateBuildupSnapshot
+  rateBuildupOutputs {
+    kind
+    materialId
+    crewKindId
+    unit
+    perUnitValue
+    totalValue
+  }
   extraUnitPrice
   extraUnitPriceMemo
   status
@@ -189,6 +197,16 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, 
     else url.searchParams.delete("row");
     window.history.replaceState(null, "", url.pathname + url.search);
   }, []);
+
+  // Escape closes the detail panel.
+  useEffect(() => {
+    if (!selectedRowId) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedRowId(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selectedRowId, setSelectedRowId]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -352,7 +370,7 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, 
   }, [isDetailOpen]);
 
   return (
-    <Box flex={1} display="flex" flexDir="column" minH={0} h={viewMode === "board" ? "100%" : undefined}>
+    <Box flex={1} display="flex" flexDir="column" minH={0} h="100%">
       {/* ── Toolbar ──────────────────────────────────────────────────────── */}
       <Flex align="center" justify="space-between" mb={4} wrap="wrap" gap={3}>
         <Flex align="center" gap={2}>
@@ -491,8 +509,8 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, 
           borderColor="gray.200"
           rounded="lg"
           overflow="hidden"
-          h="calc(100vh - 240px)"
-          minH="500px"
+          flex={1}
+          minH={0}
         >
           {/* Left: schedule list (20%) */}
           <Box w="20%" minW="180px" flexShrink={0}>
@@ -524,7 +542,7 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, 
         </Flex>
       ) : (
         /* ── Full-width table ─────────────────────────────────────────── */
-        <Box>
+        <Box flex={1} minH={0} overflowY="auto">
           <Table size="sm" variant="simple" w="100%">
             <Thead>
               <Tr bg="gray.50">

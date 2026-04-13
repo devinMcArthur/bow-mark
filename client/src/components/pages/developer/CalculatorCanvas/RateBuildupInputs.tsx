@@ -1,6 +1,6 @@
 // client/src/components/pages/developer/CalculatorCanvas/RateBuildupInputs.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Box, Flex, Grid, Input, Popover, PopoverBody, PopoverContent, PopoverTrigger, Text, Textarea } from "@chakra-ui/react";
+import { Box, Flex, Grid, Input, Popover, PopoverBody, PopoverContent, PopoverTrigger, Select, Text, Textarea } from "@chakra-ui/react";
 import { FiChevronDown, FiChevronRight, FiMessageSquare, FiPlus } from "react-icons/fi";
 import katex from "katex";
 import { CanvasDocument, GroupDef, ControllerDef, isGroupActive, computeInactiveNodeIds } from "./canvasStorage";
@@ -8,6 +8,8 @@ import { RateEntry } from "../../../../components/TenderPricing/calculators/type
 import { evaluateTemplate, debugEvaluateTemplate, evaluateExpression } from "../../../../components/TenderPricing/calculators/evaluate";
 import { RateRow } from "../../../../components/TenderPricing/calculatorShared";
 import { formulaToLatex } from "./formulaToLatex";
+import { unitLabel } from "../../../../constants/units";
+import { useMaterialsCardQuery, useCrewKindsQuery } from "../../../../generated/graphql";
 
 // ─── Public interface ─────────────────────────────────────────────────────────
 
@@ -24,6 +26,17 @@ export interface RateBuildupInputsProps {
   onControllerChange: (id: string, value: number | boolean | string[]) => void;
   paramNotes?: Record<string, string>;
   onParamNoteChange?: (paramId: string, note: string) => void;
+  /** Estimator's per-Output-node selections, keyed by outputDef.id. */
+  outputs?: Record<string, { materialId?: string; crewKindId?: string }>;
+  /**
+   * Fires when the estimator picks a material or crew kind for an Output node.
+   * The picked value replaces the full selection object, so callers can pass
+   * `{ materialId }` or `{ crewKindId }` depending on the output's kind.
+   */
+  onOutputChange?: (
+    outputId: string,
+    selection: { materialId?: string; crewKindId?: string }
+  ) => void;
   /** Number of columns for top-level groups. Defaults to 1. Use 2 when there is ample horizontal space. */
   columns?: 1 | 2;
   /** Fires whenever the evaluated result changes. Use this to display unit price outside the scroll area. */
@@ -669,12 +682,237 @@ const FormulaOutputRow: React.FC<{
   );
 };
 
+// ─── Demand outputs (estimator material pickers) ──────────────────────────────
+
+/**
+ * Compact read-only formula display shown under each Demand row. Lets the
+ * estimator see *how* the demand is being computed. Rendered as KaTeX on a
+ * single line; the numeric value lives on the parent Demand row header, so
+ * we don't repeat it here.
+ */
+const DemandFormulaRow: React.FC<{
+  stepLabel: string;
+  formula: string;
+  variableLabelMap: Record<string, string>;
+}> = ({ stepLabel, formula, variableLabelMap }) => {
+  const katexHtml = useMemo(() => {
+    if (!formula) return "";
+    try {
+      return katex.renderToString(formulaToLatex(formula, variableLabelMap), katexOpts);
+    } catch { return ""; }
+  }, [formula, variableLabelMap]);
+
+  return (
+    <Flex
+      mt={1.5} ml={1} pl={2} py={0.5} pr={1}
+      borderLeft="2px solid" borderColor="purple.200"
+      align="baseline"
+      gap={2}
+    >
+      {katexHtml ? (
+        <Box
+          flex={1}
+          minW={0}
+          overflow="hidden"
+          sx={{ ".katex": { fontSize: "11px", color: "#6b7280" } }}
+          dangerouslySetInnerHTML={{ __html: katexHtml }}
+        />
+      ) : (
+        <Text fontSize="11px" fontFamily="mono" color="gray.500" flex={1} noOfLines={1}>
+          {formula || stepLabel}
+        </Text>
+      )}
+    </Flex>
+  );
+};
+
+const DemandOutputsSection: React.FC<{
+  doc: CanvasDocument;
+  formulaOutputMap: Record<string, { label: string; value: number; formula: string }>;
+  inactiveNodeIds: Set<string>;
+  quantity: number;
+  outputs?: Record<string, { materialId?: string; crewKindId?: string }>;
+  onOutputChange?: (
+    outputId: string,
+    selection: { materialId?: string; crewKindId?: string }
+  ) => void;
+  variableLabelMap: Record<string, string>;
+}> = ({ doc, formulaOutputMap, inactiveNodeIds, quantity, outputs, onOutputChange, variableLabelMap }) => {
+  const { data: materialsData } = useMaterialsCardQuery();
+  const materials = useMemo(() => materialsData?.materials ?? [], [materialsData]);
+  const materialById = useMemo(() => {
+    const m = new Map<string, { _id: string; name: string }>();
+    for (const mat of materials) m.set(mat._id, mat);
+    return m;
+  }, [materials]);
+
+  const { data: crewKindsData } = useCrewKindsQuery();
+  const crewKinds = useMemo(() => crewKindsData?.crewKinds ?? [], [crewKindsData]);
+  const crewKindById = useMemo(() => {
+    const m = new Map<string, { _id: string; name: string }>();
+    for (const c of crewKinds) m.set(c._id, c);
+    return m;
+  }, [crewKinds]);
+
+  // Hide Output nodes whose source formula step is inactive (disabled by a
+  // controller-gated group). They contribute 0 demand and would just be noise.
+  const visibleOutputs = useMemo(
+    () => doc.outputDefs.filter((o) => !inactiveNodeIds.has(o.sourceStepId)),
+    [doc.outputDefs, inactiveNodeIds]
+  );
+
+  if (visibleOutputs.length === 0) return null;
+
+  return (
+    <Box mt={4} mb={2} border="1px solid" borderColor="purple.100" rounded="lg" bg="purple.50/30">
+      <Box px={3} py={2} borderBottom="1px solid" borderColor="purple.100">
+        <Text fontSize="xs" fontWeight="semibold" color="purple.600" textTransform="uppercase" letterSpacing="wider">
+          Demand
+        </Text>
+      </Box>
+      <Box px={3} py={2}>
+        {visibleOutputs.map((out) => {
+          const sourceStep = formulaOutputMap[out.sourceStepId];
+          // The formula step's value is already the row total — formulas
+          // receive `quantity` in their evaluation context and use it
+          // directly, so the raw step value IS the full line-item demand.
+          const total = sourceStep?.value ?? 0;
+          const isCrew = out.kind === "CrewHours";
+          const displayUnit = isCrew ? "hr" : out.unit;
+
+          // Build kind-specific picker props: options, selected id, display label,
+          // placeholder, and the onChange that shapes the outgoing selection.
+          let options: { _id: string; name: string }[];
+          let selectedId: string | undefined;
+          let missingFromCatalog = false;
+          let placeholder: string;
+          let noun: string;
+
+          if (isCrew) {
+            noun = "crew kind";
+            const allowed = out.allowedCrewKindIds ?? [];
+            const filtered = allowed.length > 0
+              ? crewKinds.filter((c) => allowed.includes(c._id))
+              : crewKinds;
+            const seen = new Set<string>();
+            options = filtered.filter((c) => {
+              if (seen.has(c._id)) return false;
+              seen.add(c._id);
+              return true;
+            });
+            selectedId = outputs?.[out.id]?.crewKindId ?? out.defaultCrewKindId;
+            missingFromCatalog = !!selectedId && !crewKindById.has(selectedId);
+            placeholder = allowed.length > 0 ? "— pick crew kind —" : "— any crew kind —";
+          } else {
+            noun = "material";
+            const allowed = out.allowedMaterialIds ?? [];
+            const filtered = allowed.length > 0
+              ? materials.filter((m) => allowed.includes(m._id))
+              : materials;
+            const seen = new Set<string>();
+            options = filtered.filter((m) => {
+              if (seen.has(m._id)) return false;
+              seen.add(m._id);
+              return true;
+            });
+            selectedId = outputs?.[out.id]?.materialId ?? out.defaultMaterialId;
+            missingFromCatalog = !!selectedId && !materialById.has(selectedId);
+            placeholder = allowed.length > 0 ? "— pick material —" : "— any material —";
+          }
+
+          const handleChange = (newId: string) => {
+            const value = newId || undefined;
+            if (isCrew) onOutputChange?.(out.id, { crewKindId: value });
+            else onOutputChange?.(out.id, { materialId: value });
+          };
+
+          // Lock the dropdown when there's only one possible choice AND the
+          // template has set that single choice as the default — there's
+          // nothing for the estimator to actually change. In that case we
+          // collapse the Select entirely and show the name inline.
+          const singleOptionLocked = options.length === 1 && (isCrew
+            ? out.defaultCrewKindId === options[0]._id
+            : out.defaultMaterialId === options[0]._id);
+
+          const selectedName = selectedId
+            ? options.find((o) => o._id === selectedId)?.name
+            : undefined;
+
+          return (
+            <Box
+              key={out.id}
+              py={2}
+              borderBottom="1px solid"
+              borderColor="purple.50"
+              _last={{ borderBottom: "none", pb: 0 }}
+              _first={{ pt: 0 }}
+            >
+              {/* Header row: label · (inline locked name) ─────── total unit */}
+              <Flex align="baseline" justify="space-between" gap={3}>
+                <Flex align="baseline" gap={2} flex={1} minW={0}>
+                  <Text fontSize="xs" fontWeight="semibold" color="gray.700" flexShrink={0}>
+                    {out.label ?? out.id}
+                  </Text>
+                  {singleOptionLocked && selectedName && (
+                    <Text fontSize="xs" color="gray.500" noOfLines={1}>
+                      · {selectedName}
+                    </Text>
+                  )}
+                </Flex>
+                <Text fontSize="sm" fontWeight="700" color="gray.800" fontFamily="mono" flexShrink={0}>
+                  {total.toFixed(2)}
+                  <Text as="span" fontSize="10px" color="gray.400" ml={1}>
+                    {unitLabel(displayUnit)}
+                  </Text>
+                </Text>
+              </Flex>
+
+              {/* Interactive picker — only rendered when the estimator
+                  actually has a choice to make. */}
+              {!singleOptionLocked && (
+                <Box mt={1.5}>
+                  <Select
+                    size="xs"
+                    value={selectedId ?? ""}
+                    onChange={(e) => handleChange(e.target.value)}
+                    placeholder={placeholder}
+                    isDisabled={!onOutputChange}
+                  >
+                    {options.map((opt) => (
+                      <option key={opt._id} value={opt._id}>{opt.name}</option>
+                    ))}
+                  </Select>
+                  {missingFromCatalog && (
+                    <Text fontSize="10px" color="orange.500" mt={1}>
+                      Selected {noun} no longer in catalog
+                    </Text>
+                  )}
+                </Box>
+              )}
+
+              {/* Source formula — shows the estimator how this demand is computed */}
+              {sourceStep && (
+                <DemandFormulaRow
+                  stepLabel={sourceStep.label}
+                  formula={sourceStep.formula}
+                  variableLabelMap={variableLabelMap}
+                />
+              )}
+            </Box>
+          );
+        })}
+      </Box>
+    </Box>
+  );
+};
+
 // ─── RateBuildupInputs ────────────────────────────────────────────────────────
 
 const RateBuildupInputs: React.FC<RateBuildupInputsProps> = ({
   doc, params, tables, controllers, quantity,
   onParamChange, onUpdateRow, onAddRow, onRemoveRow, onControllerChange,
-  paramNotes, onParamNoteChange, columns = 1, onResult, unit,
+  paramNotes, onParamNoteChange, outputs, onOutputChange,
+  columns = 1, onResult, unit,
 }) => {
   const inputs = useMemo(() => ({ params, tables }), [params, tables]);
 
@@ -858,6 +1096,19 @@ const RateBuildupInputs: React.FC<RateBuildupInputsProps> = ({
           formulaOutputs={formulaOutputMap}
           variableLabelMap={variableLabelMap} variableValueMap={variableValueMap} />
       ))}
+
+      {/* Demand outputs — estimator picks the material for each active Output node */}
+      {doc.outputDefs.length > 0 && (
+        <DemandOutputsSection
+          doc={doc}
+          formulaOutputMap={formulaOutputMap}
+          inactiveNodeIds={inactiveNodeIds}
+          quantity={normalizedQuantity}
+          outputs={outputs}
+          onOutputChange={onOutputChange}
+          variableLabelMap={variableLabelMap}
+        />
+      )}
 
       {/* Ungrouped formula outputs */}
       {ungroupedFormulaOutputs.length > 0 && (

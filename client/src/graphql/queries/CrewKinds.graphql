@@ -1,0 +1,5 @@
+query CrewKinds($options: ListOptionData) {
+  crewKinds(options: $options) {
+    ...CrewKindCardSnippet
+  }
+}

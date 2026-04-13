@@ -180,9 +180,9 @@ const TemplateTestPanel: React.FC<TemplateTestPanelProps> = ({
         ))}
         <BreakdownCell label="Unit Price" value={result.unitPrice} highlight />
       </Grid>
-      {result.intermediates.length > 0 && (
+      {result.outputs.length > 0 && (
         <Text fontSize="xs" color="gray.400">
-          {result.intermediates.map((i) => `${i.label}: ${i.value.toFixed(4)} ${i.unit}`).join(" · ")}
+          {result.outputs.map((o) => `${o.label ?? o.id}: ${o.perUnitValue.toFixed(4)} ${o.unit}`).join(" · ")}
         </Text>
       )}
 

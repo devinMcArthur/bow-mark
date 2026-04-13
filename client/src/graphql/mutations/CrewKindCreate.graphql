@@ -1,0 +1,5 @@
+mutation CrewKindCreate($data: CrewKindCreateData!) {
+  crewKindCreate(data: $data) {
+    ...CrewKindCardSnippet
+  }
+}

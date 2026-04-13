@@ -8,6 +8,17 @@ export enum TenderPricingRowType {
 }
 registerEnumType(TenderPricingRowType, { name: "TenderPricingRowType" });
 
+/**
+ * Discriminator for RateBuildupOutputDef (template) and RateBuildupOutputClass
+ * (pricing row cached demand). Controls which ref field is populated and how
+ * the Demand rollup groups values.
+ */
+export enum RateBuildupOutputKind {
+  Material = "Material",
+  CrewHours = "CrewHours",
+}
+registerEnumType(RateBuildupOutputKind, { name: "RateBuildupOutputKind" });
+
 export interface IDocRef {
   enrichedFileId: string | Types.ObjectId;
   page: number;
@@ -26,6 +37,15 @@ export interface ITenderPricingRowCreate {
   sortOrder: number;
 }
 
+export interface IRateBuildupOutput {
+  kind: RateBuildupOutputKind;
+  materialId?: string;
+  crewKindId?: string;
+  unit: string;
+  perUnitValue: number;
+  totalValue: number;
+}
+
 export interface ITenderPricingRowUpdate {
   itemNumber?: string;
   description?: string;
@@ -36,6 +56,7 @@ export interface ITenderPricingRowUpdate {
   unitPrice?: number | null;
   notes?: string;
   rateBuildupSnapshot?: string | null;
+  rateBuildupOutputs?: IRateBuildupOutput[] | null;
   extraUnitPrice?: number | null;
   extraUnitPriceMemo?: string | null;
   status?: string;

@@ -1,7 +1,44 @@
-import { TenderPricingRowType } from "@typescript/tenderPricingSheet";
-import { prop } from "@typegoose/typegoose";
+import { TenderPricingRowType, RateBuildupOutputKind } from "@typescript/tenderPricingSheet";
+import { prop, Ref } from "@typegoose/typegoose";
+import { MaterialClass, CrewKindClass } from "@models";
 import { Types } from "mongoose";
 import { Field, Float, ID, Int, ObjectType } from "type-graphql";
+
+// ─── Rate buildup output (per-row, captured at snapshot evaluation) ───────────
+// Each element represents one resolved Output node from the row's rate buildup.
+// `perUnitValue` is the formula step's computed value for one unit of the row's
+// quantity; `totalValue` is scaled by the row's quantity and cached for easy
+// cross-tender aggregation (e.g. "total A Mix Asphalt across all won tenders"
+// or "total Base Crew hours by month").
+
+@ObjectType()
+export class RateBuildupOutputClass {
+  @Field(() => RateBuildupOutputKind)
+  @prop({ required: true, enum: RateBuildupOutputKind })
+  public kind!: RateBuildupOutputKind;
+
+  /** Populated when kind === "material". */
+  @Field(() => ID, { nullable: true })
+  @prop({ ref: () => MaterialClass, type: () => Types.ObjectId })
+  public materialId?: Ref<MaterialClass>;
+
+  /** Populated when kind === "crewHours". */
+  @Field(() => ID, { nullable: true })
+  @prop({ ref: () => CrewKindClass, type: () => Types.ObjectId })
+  public crewKindId?: Ref<CrewKindClass>;
+
+  @Field()
+  @prop({ required: true })
+  public unit!: string;
+
+  @Field(() => Float)
+  @prop({ required: true })
+  public perUnitValue!: number;
+
+  @Field(() => Float)
+  @prop({ required: true })
+  public totalValue!: number;
+}
 
 @ObjectType()
 export class DocRefClass {
@@ -34,13 +71,17 @@ export class TenderPricingRowClass {
   @prop({ required: true, default: 0 })
   public sortOrder!: number;
 
-  @Field()
+  // itemNumber and description are free-text user labels. They're nullable at
+  // the GraphQL level so historical rows with missing fields load cleanly —
+  // mongoose `default: ""` only applies at document *creation* time, not when
+  // loading an older sub-doc that was persisted before the field existed.
+  @Field({ nullable: true })
   @prop({ trim: true, default: "" })
-  public itemNumber!: string;
+  public itemNumber?: string;
 
-  @Field()
+  @Field({ nullable: true })
   @prop({ trim: true, default: "" })
-  public description!: string;
+  public description?: string;
 
   @Field(() => Int)
   @prop({ required: true, default: 0 })
@@ -70,6 +111,10 @@ export class TenderPricingRowClass {
   @Field({ nullable: true })
   @prop({ trim: true })
   public rateBuildupSnapshot?: string;
+
+  @Field(() => [RateBuildupOutputClass], { nullable: true })
+  @prop({ type: () => [RateBuildupOutputClass], default: undefined })
+  public rateBuildupOutputs?: RateBuildupOutputClass[];
 
   @Field(() => Float, { nullable: true })
   @prop()

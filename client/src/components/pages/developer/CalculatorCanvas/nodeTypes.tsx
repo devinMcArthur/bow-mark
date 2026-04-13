@@ -288,7 +288,8 @@ export const BreakdownNode: React.FC<NodeProps> = ({ data, selected }) => (
   </div>
 );
 
-export const OutputNode: React.FC<NodeProps> = ({ data, selected }) => (
+/** The synthetic unit-price node sitting at the terminus of the breakdown chain. */
+export const UnitPriceNode: React.FC<NodeProps> = ({ data, selected }) => (
   <div style={{
     ...baseStyle,
     background: "#1e40af",
@@ -306,6 +307,72 @@ export const OutputNode: React.FC<NodeProps> = ({ data, selected }) => (
     </div>
   </div>
 );
+
+/**
+ * Output node (aka "Demand" in UI) — surfaces a per-unit secondary quantity
+ * from a formula step. Template author picks kind (material or crewHours) +
+ * an optional whitelist; estimator picks the specific material/crew kind in
+ * RateBuildupInputs at bid time. Later aggregated across tenders for rollups
+ * like "total A Mix Asphalt across won tenders" or "total Base Crew hours".
+ *
+ * `data` shape (wired by CanvasFlow):
+ *   label?: string
+ *   kind: "Material" | "CrewHours"
+ *   unit: string              // canonical code (material) or "hr" (crewHours)
+ *   value: number             // per-unit computed from source formula
+ *   whitelistCount?: number   // N > 0 = constrained, 0 = any allowed
+ *
+ * Material outputs render in purple; crew hours in teal.
+ */
+export const DemandOutputNode: React.FC<NodeProps> = ({ data, selected }) => {
+  const isCrew = data.kind === "CrewHours";
+  const subjectNoun = isCrew ? "crew kind" : "material";
+  const subjectLine = data.whitelistCount && data.whitelistCount > 0
+    ? `${data.whitelistCount} ${subjectNoun}${data.whitelistCount === 1 ? "" : "s"} allowed`
+    : `any ${subjectNoun}`;
+
+  // Color palette: purple for material, teal for crew — reuse Chakra colors
+  // the estimator UI uses, so the canvas feels unified with RateBuildupInputs.
+  const palette = isCrew
+    ? {
+        bg: "#134e4a",
+        border: "#0d9488",
+        borderSelected: "#5eead4",
+        glow: "#0d948840",
+        badge: "#5eead4",
+        slug: "#5eead4",
+        value: "#ccfbf1",
+      }
+    : {
+        bg: "#3a1f4d",
+        border: "#c084fc",
+        borderSelected: "#f0abfc",
+        glow: "#c084fc40",
+        badge: "#f0abfc",
+        slug: "#d8b4fe",
+        value: "#f3e8ff",
+      };
+
+  return (
+    <div style={{
+      ...baseStyle,
+      background: palette.bg,
+      border: `1.5px solid ${selected ? palette.borderSelected : palette.border}`,
+      borderTop: `3px solid ${palette.border}`,
+      minWidth: 180,
+      boxShadow: selected ? `0 0 0 2px ${palette.glow}, 0 4px 12px #00000060` : "0 2px 8px #00000050",
+    }}>
+      <Handle type="target" position={Position.Left} isConnectable={false}
+        style={{ background: palette.border, border: `2px solid ${palette.bg}`, width: 10, height: 10 }} />
+      <TypeBadge label={isCrew ? "crew" : "demand"} color={palette.badge} />
+      <div style={labelStyle}>{data.label ?? (isCrew ? "Crew Hours" : "Demand")}</div>
+      <div style={{ ...slugStyle, color: palette.slug }}>{subjectLine}</div>
+      <div style={{ ...valueStyle, color: palette.value }}>
+        {typeof data.value === "number" ? data.value.toFixed(4) : "—"} {unitLabel(data.unit ?? "")}
+      </div>
+    </div>
+  );
+};
 
 export const GroupNode: React.FC<NodeProps> = ({ data, selected }) => (
   <div
@@ -355,7 +422,8 @@ export const nodeTypes = {
   quantity: QuantityNode,
   formula: FormulaNode,
   breakdown: BreakdownNode,
-  priceOutput: OutputNode,
+  priceOutput: UnitPriceNode,
+  output: DemandOutputNode,
   group: GroupNode,
   controller: ControllerNode,
 };

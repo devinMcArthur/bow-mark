@@ -1,5 +1,28 @@
 import { Field, Float, ID, InputType, Int } from "type-graphql";
-import { TenderPricingRowType } from "@typescript/tenderPricingSheet";
+import { TenderPricingRowType, RateBuildupOutputKind } from "@typescript/tenderPricingSheet";
+
+@InputType()
+export class RateBuildupOutputInput {
+  @Field(() => RateBuildupOutputKind)
+  public kind!: RateBuildupOutputKind;
+
+  /** Populated when kind === "material" */
+  @Field(() => ID, { nullable: true })
+  public materialId?: string;
+
+  /** Populated when kind === "crewHours" */
+  @Field(() => ID, { nullable: true })
+  public crewKindId?: string;
+
+  @Field()
+  public unit!: string;
+
+  @Field(() => Float)
+  public perUnitValue!: number;
+
+  @Field(() => Float)
+  public totalValue!: number;
+}
 
 @InputType()
 export class TenderPricingRowCreateData {
@@ -47,6 +70,15 @@ export class TenderPricingRowUpdateData {
 
   @Field(() => String, { nullable: true })
   public rateBuildupSnapshot?: string | null;
+
+  /**
+   * Per-row rate buildup outputs captured at snapshot evaluation time.
+   * Each entry = one resolved Output node (material + unit + per-unit value,
+   * already scaled into totalValue by quantity). Used by per-tender and
+   * cross-tender demand rollups.
+   */
+  @Field(() => [RateBuildupOutputInput], { nullable: true })
+  public rateBuildupOutputs?: RateBuildupOutputInput[] | null;
 
   @Field(() => Float, { nullable: true })
   public extraUnitPrice?: number | null;

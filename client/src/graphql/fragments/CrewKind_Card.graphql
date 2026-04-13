@@ -1,0 +1,5 @@
+fragment CrewKindCardSnippet on CrewKindClass {
+  _id
+  name
+  description
+}
