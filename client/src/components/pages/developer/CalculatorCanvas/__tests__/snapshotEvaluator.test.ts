@@ -620,3 +620,121 @@ describe("snapshotToCanvasDoc", () => {
     expect(back.outputDefs).toEqual([]);
   });
 });
+
+// ─── Multi-output mixed kinds ────────────────────────────────────────────────
+
+describe("evaluateSnapshot — multi-output templates", () => {
+  it("resolves three outputs of mixed kinds simultaneously", () => {
+    const template = doc({
+      parameterDefs: [
+        { id: "depth_m", label: "Depth", defaultValue: 0.05, position: pos },
+      ],
+      formulaSteps: [
+        // Asphalt tons: quantity * depth * density
+        { id: "tons", formula: "quantity * depth_m * 2.4", position: pos },
+        // Operator hours: 1 hr per 100 m2
+        { id: "opHours", formula: "quantity / 100", position: pos },
+        // Labourer hours: 2x operator
+        { id: "labHours", formula: "opHours * 2", position: pos },
+        // Unit cost from tons at $120/t plus crew
+        { id: "cost", formula: "tons * 120 + opHours * 80 + labHours * 50", position: pos },
+      ],
+      breakdownDefs: [
+        { id: "bd1", label: "Total", items: [{ stepId: "cost", label: "Cost" }], position: pos },
+      ],
+      outputDefs: [
+        {
+          id: "mat_asphalt",
+          kind: RateBuildupOutputKind.Material,
+          sourceStepId: "tons",
+          unit: "t",
+          defaultMaterialId: "mat_asphalt_id",
+          position: pos,
+        },
+        {
+          id: "crew_operator",
+          kind: RateBuildupOutputKind.CrewHours,
+          sourceStepId: "opHours",
+          unit: "hr",
+          defaultCrewKindId: "ck_operator",
+          position: pos,
+        },
+        {
+          id: "crew_labour",
+          kind: RateBuildupOutputKind.CrewHours,
+          sourceStepId: "labHours",
+          unit: "hr",
+          defaultCrewKindId: "ck_labour",
+          position: pos,
+        },
+      ],
+    });
+    const s = snap(template);
+
+    const { unitPrice, outputs } = evaluateSnapshot(s, 1000);
+    // tons = 1000 * 0.05 * 2.4 = 120
+    // opHours = 10
+    // labHours = 20
+    // cost = 120*120 + 10*80 + 20*50 = 14400 + 800 + 1000 = 16200
+    expect(unitPrice).toBe(16200);
+
+    expect(outputs).toHaveLength(3);
+
+    const asphalt = outputs.find((o) => o.materialId === "mat_asphalt_id");
+    expect(asphalt).toBeDefined();
+    expect(asphalt!.kind).toBe(RateBuildupOutputKind.Material);
+    expect(asphalt!.unit).toBe("t");
+    expect(asphalt!.totalValue).toBe(120);
+
+    const operator = outputs.find((o) => o.crewKindId === "ck_operator");
+    expect(operator).toBeDefined();
+    expect(operator!.kind).toBe(RateBuildupOutputKind.CrewHours);
+    expect(operator!.unit).toBe("hr");
+    expect(operator!.totalValue).toBe(10);
+
+    const labour = outputs.find((o) => o.crewKindId === "ck_labour");
+    expect(labour).toBeDefined();
+    expect(labour!.totalValue).toBe(20);
+  });
+
+  it("overrides each output independently via snapshot.outputs", () => {
+    const template = doc({
+      formulaSteps: [
+        { id: "tons", formula: "quantity * 0.1", position: pos },
+        { id: "hours", formula: "quantity * 0.05", position: pos },
+      ],
+      outputDefs: [
+        {
+          id: "mat",
+          kind: RateBuildupOutputKind.Material,
+          sourceStepId: "tons",
+          unit: "t",
+          defaultMaterialId: "mat_default",
+          position: pos,
+        },
+        {
+          id: "crew",
+          kind: RateBuildupOutputKind.CrewHours,
+          sourceStepId: "hours",
+          unit: "hr",
+          defaultCrewKindId: "ck_default",
+          position: pos,
+        },
+      ],
+    });
+    const s = snap(template, {
+      outputs: {
+        mat: { materialId: "mat_picked" },
+        crew: { crewKindId: "ck_picked" },
+      },
+    });
+
+    const { outputs } = evaluateSnapshot(s, 100);
+    expect(outputs.find((o) => o.kind === RateBuildupOutputKind.Material)!.materialId).toBe(
+      "mat_picked"
+    );
+    expect(outputs.find((o) => o.kind === RateBuildupOutputKind.CrewHours)!.crewKindId).toBe(
+      "ck_picked"
+    );
+  });
+});
