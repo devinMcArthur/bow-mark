@@ -59,7 +59,7 @@ export default class TenderPricingSheetResolver {
     @Arg("defaultMarkupPct", () => Float) defaultMarkupPct: number
   ) {
     const sheet = await TenderPricingSheet.getById(id, { throwError: true });
-    sheet!.updateDefaultMarkup(defaultMarkupPct);
+    await sheet!.updateDefaultMarkup(defaultMarkupPct);
     await sheet!.save();
     return sheet;
   }
@@ -72,11 +72,11 @@ export default class TenderPricingSheetResolver {
     @Ctx() ctx: IContext
   ) {
     const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
-    sheet!.addRow(data);
+    await sheet!.addRow(data);
     // Auto-assign itemNumber to ONLY the new row, preserving any hand-typed
     // numbers on existing rows. The standalone tenderPricingSheetAutoNumber
     // mutation is still available for explicit full-sheet renumber.
-    sheet!.autoNumberLastRow();
+    await sheet!.autoNumberLastRow();
     await sheet!.save();
 
     if (ctx.user) {
@@ -111,7 +111,7 @@ export default class TenderPricingSheetResolver {
     }
     const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
     const row = sheet!.rows.find((r) => r._id.toString() === rowId.toString());
-    sheet!.updateRow(rowId, data);
+    await sheet!.updateRow(rowId, data);
     await sheet!.save();
 
     if (ctx.user) {
@@ -142,7 +142,7 @@ export default class TenderPricingSheetResolver {
   ) {
     const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
     const row = sheet!.rows.find((r) => r._id.toString() === rowId.toString());
-    sheet!.deleteRow(rowId);
+    await sheet!.deleteRow(rowId);
     await sheet!.save();
 
     if (ctx.user) {
@@ -165,7 +165,7 @@ export default class TenderPricingSheetResolver {
     @Arg("rowIds", () => [ID]) rowIds: string[]
   ) {
     const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
-    sheet!.reorderRows(rowIds);
+    await sheet!.reorderRows(rowIds);
     await sheet!.save();
     return sheet;
   }
@@ -177,7 +177,7 @@ export default class TenderPricingSheetResolver {
     @Arg("rowId", () => ID) rowId: Id
   ) {
     const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
-    sheet!.duplicateRow(rowId);
+    await sheet!.duplicateRow(rowId);
     await sheet!.save();
     return sheet;
   }
@@ -188,7 +188,7 @@ export default class TenderPricingSheetResolver {
     @Arg("sheetId", () => ID) sheetId: Id
   ) {
     const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
-    sheet!.autoNumber();
+    await sheet!.autoNumber();
     await sheet!.save();
     return sheet;
   }
@@ -201,7 +201,7 @@ export default class TenderPricingSheetResolver {
     @Arg("data") data: TenderPricingRowDocRefAddData
   ) {
     const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
-    sheet!.addDocRef(rowId, data);
+    await sheet!.addDocRef(rowId, data);
     await sheet!.save();
     return sheet;
   }
@@ -214,7 +214,7 @@ export default class TenderPricingSheetResolver {
     @Arg("docRefId", () => ID) docRefId: Id
   ) {
     const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
-    sheet!.removeDocRef(rowId, docRefId);
+    await sheet!.removeDocRef(rowId, docRefId);
     await sheet!.save();
     return sheet;
   }
@@ -228,7 +228,7 @@ export default class TenderPricingSheetResolver {
     @Arg("description", () => String, { nullable: true }) description: string | null
   ) {
     const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
-    sheet!.updateDocRef(rowId, docRefId, description);
+    await sheet!.updateDocRef(rowId, docRefId, description);
     await sheet!.save();
     return sheet;
   }

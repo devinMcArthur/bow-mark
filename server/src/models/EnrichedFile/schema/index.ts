@@ -63,6 +63,18 @@ export class EnrichedFileSchema {
   @prop({ trim: true })
   public summaryError?: string;
 
+  // Set when status transitions to "processing". Used by watchdog to
+  // detect handlers that have exceeded their processing window.
+  @Field({ nullable: true })
+  @prop({ required: false })
+  public processingStartedAt?: Date;
+
+  // Incremented each time the handler runs (successfully or otherwise).
+  // Used by watchdog to cap retry attempts on persistently failing files.
+  @Field({ nullable: true })
+  @prop({ required: false, default: 0 })
+  public summaryAttempts?: number;
+
   @Field()
   @prop({ required: true, default: Date.now })
   public createdAt!: Date;

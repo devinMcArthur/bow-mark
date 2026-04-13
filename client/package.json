@@ -7,6 +7,8 @@
     "lint": "next lint",
     "codegen": "graphql-codegen --config codegen.yml",
     "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:ct": "playwright test --config playwright-ct.config.ts",
     "test:ct:ui": "playwright test --config playwright-ct.config.ts --ui",
     "test:e2e": "playwright test --config playwright.e2e.config.ts",
@@ -92,7 +94,8 @@
     "eslint-config-prettier": "^8.5.0",
     "graphql-codegen-apollo-next-ssr": "^1.7.1",
     "prettier": "^2.6.2",
-    "vite": "^5.4.21"
+    "vite": "^5.4.21",
+    "vitest": "^4.1.4"
   },
   "resolutions": {
     "@types/react": "17.0.47",

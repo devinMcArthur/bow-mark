@@ -5,6 +5,14 @@ set -e pipefail
 # (GitHub Actions: ${{ github.sha }} passed as env var COMMIT_SHA1)
 export COMMIT_SHA1
 
+# Compute checksum of the rabbitmq ConfigMap data so kubectl apply triggers
+# a rolling restart of the rabbit pod whenever config content changes.
+# Hashes the `data:` section up to the first `---` so formatting changes to
+# the StatefulSet spec don't force unnecessary restarts.
+RABBITMQ_CONFIG_CHECKSUM="$(awk '/^data:/,/^---/' ./k8s/rabbitmq-statefulset.yaml | sha256sum | cut -d' ' -f1)"
+export RABBITMQ_CONFIG_CHECKSUM
+echo "[ci-deploy] rabbitmq config checksum: $RABBITMQ_CONFIG_CHECKSUM"
+
 # since the only way for envsubst to work on files is using input/output redirection,
 #  it's not possible to do in-place substitution, so we need to save the output to another file
 #  and overwrite the original with that one.
@@ -45,6 +53,11 @@ mv ./k8s/mcp-server-deployment.yaml.out ./k8s/mcp-server-deployment.yaml
 
 envsubst '$COMMIT_SHA1' <./k8s/mcp-server-concrete-deployment.yaml >./k8s/mcp-server-concrete-deployment.yaml.out
 mv ./k8s/mcp-server-concrete-deployment.yaml.out ./k8s/mcp-server-concrete-deployment.yaml
+
+# rabbitmq statefulset — substitute checksum/config annotation so ConfigMap
+# changes trigger a rolling restart of the rabbit pod.
+envsubst '$RABBITMQ_CONFIG_CHECKSUM' <./k8s/rabbitmq-statefulset.yaml >./k8s/rabbitmq-statefulset.yaml.out
+mv ./k8s/rabbitmq-statefulset.yaml.out ./k8s/rabbitmq-statefulset.yaml
 
 # Auth to DO and mint a short-lived kubeconfig
 ./doctl auth init -t "$DO_API_TOKEN"

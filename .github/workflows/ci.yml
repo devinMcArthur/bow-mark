@@ -58,6 +58,10 @@ jobs:
         run: npm ci
         working-directory: client
 
+      - name: Run unit tests (Vitest)
+        run: npm run test
+        working-directory: client
+
       - name: Install Playwright browser
         run: npx playwright install chromium --with-deps
         working-directory: client
