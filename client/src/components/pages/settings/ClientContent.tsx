@@ -5,38 +5,72 @@ import { UserRoles } from "../../../generated/graphql";
 import { useAuth } from "../../../contexts/Auth";
 import hasPermission from "../../../utils/hasPermission";
 import CompanySettings from "./views/Companies";
+import CrewKindSettings from "./views/CrewKinds";
 import MaterialSettings from "./views/Materials";
 import ProfileSettings from "./views/Profile";
 import PublicDocumentsSettings from "./views/PublicDocuments";
 import SystemSettings from "./views/System";
 import UserSettings from "./views/Users";
 
-const TAB_NAMES = ["profile", "system", "materials", "companies", "users", "publicdocuments"] as const;
-type TabName = typeof TAB_NAMES[number];
-const PM_TABS: TabName[] = ["system", "materials", "companies", "users", "publicdocuments"];
+// Tab definitions — each entry has a key (for URL params), label, component,
+// and a minimum role. The visible tabs list is computed from the user's role,
+// so Chakra's tab index always matches the rendered <Tab>/<TabPanel> order.
+interface TabDef {
+  key: string;
+  label: string;
+  component: React.FC;
+  minRole: UserRoles;
+}
+
+const ALL_TABS: TabDef[] = [
+  { key: "profile", label: "Profile", component: ProfileSettings, minRole: UserRoles.User },
+  { key: "system", label: "System", component: SystemSettings, minRole: UserRoles.ProjectManager },
+  { key: "materials", label: "Materials", component: MaterialSettings, minRole: UserRoles.ProjectManager },
+  { key: "companies", label: "Companies", component: CompanySettings, minRole: UserRoles.ProjectManager },
+  { key: "crewkinds", label: "Crew Kinds", component: CrewKindSettings, minRole: UserRoles.Admin },
+  { key: "users", label: "Users", component: UserSettings, minRole: UserRoles.ProjectManager },
+  { key: "publicdocuments", label: "Public Documents", component: PublicDocumentsSettings, minRole: UserRoles.ProjectManager },
+];
 
 const SettingsClientContent = () => {
   const router = useRouter();
   const { state: { user } } = useAuth();
-  const isPM = hasPermission(user?.role, UserRoles.ProjectManager);
+
+  // Build the visible tabs from the user's role. This avoids the tab-index
+  // mismatch that happens with conditional {show && <Tab>} rendering, where
+  // the static key array disagrees with the rendered element count.
+  const visibleTabs = React.useMemo(
+    () => ALL_TABS.filter((t) => hasPermission(user?.role, t.minRole)),
+    [user?.role]
+  );
+
+  const resolveIndex = React.useCallback(
+    (key: string | null) => {
+      if (!key) return 0;
+      const idx = visibleTabs.findIndex((t) => t.key === key);
+      return idx >= 0 ? idx : 0;
+    },
+    [visibleTabs]
+  );
 
   const [tabIndex, setTabIndex] = React.useState(() => {
     if (typeof window === "undefined") return 0;
     const tab = new URLSearchParams(window.location.search).get("tab");
-    if (!tab || !TAB_NAMES.includes(tab as TabName)) return 0;
-    return TAB_NAMES.indexOf(tab as TabName);
+    return resolveIndex(tab);
   });
 
-  // Once user is resolved, fall back to Profile if they lack PM access
+  // Re-resolve when the user loads (role may go from undefined → real).
   React.useEffect(() => {
     if (user === undefined) return;
-    if (!isPM && PM_TABS.includes(TAB_NAMES[tabIndex])) setTabIndex(0);
-  }, [user, isPM, tabIndex]);
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    setTabIndex(resolveIndex(tab));
+  }, [user, resolveIndex]);
 
   const handleTabChange = (index: number) => {
     setTabIndex(index);
+    const key = visibleTabs[index]?.key ?? "profile";
     router.replace(
-      { pathname: router.pathname, query: { tab: TAB_NAMES[index] } },
+      { pathname: router.pathname, query: { tab: key } },
       undefined,
       { shallow: true }
     );
@@ -45,22 +79,16 @@ const SettingsClientContent = () => {
   return (
     <Tabs isFitted mt={2} index={tabIndex} onChange={handleTabChange}>
       <TabList>
-        <Tab>Profile</Tab>
-        {isPM && <Tab>System</Tab>}
-        {isPM && <Tab>Materials</Tab>}
-        {isPM && <Tab>Companies</Tab>}
-        {isPM && <Tab>Users</Tab>}
-        {isPM && <Tab>Public Documents</Tab>}
+        {visibleTabs.map((t) => (
+          <Tab key={t.key}>{t.label}</Tab>
+        ))}
       </TabList>
       <TabPanels>
-        <TabPanel>
-          <ProfileSettings />
-        </TabPanel>
-        {isPM && <TabPanel><SystemSettings /></TabPanel>}
-        {isPM && <TabPanel><MaterialSettings /></TabPanel>}
-        {isPM && <TabPanel><CompanySettings /></TabPanel>}
-        {isPM && <TabPanel><UserSettings /></TabPanel>}
-        {isPM && <TabPanel><PublicDocumentsSettings /></TabPanel>}
+        {visibleTabs.map((t) => (
+          <TabPanel key={t.key}>
+            <t.component />
+          </TabPanel>
+        ))}
       </TabPanels>
     </Tabs>
   );

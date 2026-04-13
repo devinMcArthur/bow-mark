@@ -13,7 +13,7 @@ import {
   RateBuildupSnapshot,
   snapshotToCanvasDoc,
   canvasDocToSnapshot,
-  computeSnapshotUnitPrice,
+  evaluateSnapshot,
 } from "../../../../../components/pages/developer/CalculatorCanvas/canvasStorage";
 import type { RateEntry } from "../../../../../components/TenderPricing/calculators/types";
 import { navbarHeight } from "../../../../../constants/styles";
@@ -93,7 +93,8 @@ const TenderRowCanvasPage: React.FC = () => {
     if (!raw) return;
     try {
       const parsed: RateBuildupSnapshot = JSON.parse(raw);
-      setSnapshot(parsed);
+      // Default outputDefs for snapshots saved before the field existed.
+      setSnapshot({ ...parsed, outputDefs: parsed.outputDefs ?? [] });
     } catch {
       console.error("[TenderRowCanvasPage] Failed to parse snapshot JSON");
     }
@@ -109,7 +110,11 @@ const TenderRowCanvasPage: React.FC = () => {
       if (!sheetId || !rowId) return;
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
-        const freshUP = computeSnapshotUnitPrice(updatedSnapshot, rowQuantityRef.current, urlUnit);
+        const { unitPrice: freshUP, outputs: freshOutputs } = evaluateSnapshot(
+          updatedSnapshot,
+          rowQuantityRef.current,
+          urlUnit
+        );
         try {
           await updateRow({
             variables: {
@@ -118,6 +123,7 @@ const TenderRowCanvasPage: React.FC = () => {
               data: {
                 rateBuildupSnapshot: JSON.stringify(updatedSnapshot),
                 unitPrice: freshUP || null,
+                rateBuildupOutputs: freshOutputs,
               },
             },
           });
@@ -169,6 +175,20 @@ const TenderRowCanvasPage: React.FC = () => {
     [snapshot, scheduleSave]
   );
 
+  // Called when the estimator picks a material or crew kind for an Output node.
+  const handleOutputChange = useCallback(
+    (outputId: string, selection: { materialId?: string; crewKindId?: string }) => {
+      if (!snapshot) return;
+      const updatedSnapshot: RateBuildupSnapshot = {
+        ...snapshot,
+        outputs: { ...(snapshot.outputs ?? {}), [outputId]: selection },
+      };
+      setSnapshot(updatedSnapshot);
+      scheduleSave(updatedSnapshot);
+    },
+    [snapshot, scheduleSave]
+  );
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   if (!user || !hasPermission(user.role, UserRoles.ProjectManager)) return null;
@@ -206,6 +226,8 @@ const TenderRowCanvasPage: React.FC = () => {
         onInputsChange={handleInputsChange}
         paramNotes={snapshot.paramNotes}
         onParamNoteChange={handleParamNoteChange}
+        outputs={snapshot.outputs}
+        onOutputChange={handleOutputChange}
         initialQuantity={rowQuantity}
         renderToolbar={({ onUndo, onRedo, canUndo, canRedo }) => (
           <Flex

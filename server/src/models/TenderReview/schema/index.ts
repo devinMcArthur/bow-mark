@@ -13,8 +13,12 @@ export class TenderAuditEventClass {
   @prop({ required: true })
   public rowId!: Types.ObjectId;
 
+  // Not marked required because mongoose treats "" as a missing value under
+  // `required: true`, and rows can legitimately be created with an empty
+  // description (the user fills it in after). Audit entries for descriptionless
+  // rows simply store an empty string — it's metadata, not a hard constraint.
   @Field()
-  @prop({ required: true, default: "" })
+  @prop({ default: "" })
   public rowDescription!: string;
 
   @Field(() => String)

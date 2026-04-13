@@ -7,8 +7,10 @@ import {
   CanvasParameterDef,
   CanvasTableDef,
   CanvasBreakdownDef,
+  OutputDef,
   RateEntry,
 } from "../../../../components/TenderPricing/calculators/types";
+import { RateBuildupOutputKind } from "../../../../generated/graphql";
 
 // ─── Clipboard ────────────────────────────────────────────────────────────────
 
@@ -38,6 +40,8 @@ export function getNodePosition(id: string, doc: CanvasDocument): Position {
   if (s) return s.position;
   const b = doc.breakdownDefs.find((b) => b.id === id);
   if (b) return b.position;
+  const o = doc.outputDefs.find((o) => o.id === id);
+  if (o) return o.position;
   const c = doc.controllerDefs.find((c) => c.id === id);
   if (c) return c.position;
   const g = doc.groupDefs.find((g) => g.id === id);
@@ -74,6 +78,9 @@ export function setNodePosition(
   if (doc.breakdownDefs.some((b) => b.id === id)) {
     return { ...doc, breakdownDefs: doc.breakdownDefs.map((b) => b.id === id ? { ...b, position: newPos } : b) };
   }
+  if (doc.outputDefs.some((o) => o.id === id)) {
+    return { ...doc, outputDefs: doc.outputDefs.map((o) => o.id === id ? { ...o, position: newPos } : o) };
+  }
   if (doc.controllerDefs.some((c) => c.id === id)) {
     return { ...doc, controllerDefs: doc.controllerDefs.map((c) => c.id === id ? { ...c, position: newPos } : c) };
   }
@@ -98,6 +105,7 @@ export function buildPositionMapFromDoc(
   for (const t of doc.tableDefs) positions[`${t.id}RatePerHr`] = t.position;
   for (const s of doc.formulaSteps) positions[s.id] = s.position;
   for (const b of doc.breakdownDefs) positions[b.id] = b.position;
+  for (const o of doc.outputDefs) positions[o.id] = o.position;
   for (const c of doc.controllerDefs) positions[c.id] = c.position;
   for (const g of doc.groupDefs) positions[g.id] = g.position;
   return positions;
@@ -200,6 +208,7 @@ export function pasteNodes(
     ...doc.tableDefs.map((t) => `${t.id}RatePerHr`),
     ...doc.formulaSteps.map((s) => s.id),
     ...doc.breakdownDefs.map((b) => b.id),
+    ...doc.outputDefs.map((o) => o.id),
     "quantity",
     "unitPrice",
   ]);
@@ -320,6 +329,7 @@ export function deleteNodes(nodeIds: string[], doc: CanvasDocument): CanvasDocum
       (t) => !toDelete.has(t.id) && !toDelete.has(`${t.id}RatePerHr`)
     ),
     breakdownDefs: workingDoc.breakdownDefs.filter((b) => !toDelete.has(b.id)),
+    outputDefs: workingDoc.outputDefs.filter((o) => !toDelete.has(o.id)),
   };
 }
 
@@ -373,6 +383,14 @@ export function renameNodeId(
     })),
   }));
 
+  // Output nodes store `sourceStepId` — rewrite when its source step is renamed.
+  // Also rewrite the output's own id if it's what we're renaming.
+  const newOutputDefs = doc.outputDefs.map((o) => ({
+    ...o,
+    id: o.id === oldId ? newId : o.id,
+    sourceStepId: o.sourceStepId === oldId ? newId : o.sourceStepId,
+  }));
+
   const newControllerDefs = (doc.controllerDefs ?? []).map((c) =>
     c.id === oldId ? { ...c, id: newId } : c
   );
@@ -391,6 +409,7 @@ export function renameNodeId(
     parameterDefs: newParams,
     tableDefs: newTables,
     breakdownDefs: newBreakdowns,
+    outputDefs: newOutputDefs,
     controllerDefs: newControllerDefs,
     groupDefs: newGroupDefs,
   };
@@ -485,6 +504,7 @@ export function createGroup(
     ...doc.tableDefs.map((t) => t.id),
     ...doc.tableDefs.map((t) => `${t.id}RatePerHr`),
     ...doc.breakdownDefs.map((b) => b.id),
+    ...doc.outputDefs.map((o) => o.id),
     "quantity",
     "unitPrice",
   ]);
@@ -520,6 +540,7 @@ export function createController(
     ...doc.tableDefs.map((t) => t.id),
     ...doc.tableDefs.map((t) => `${t.id}RatePerHr`),
     ...doc.breakdownDefs.map((b) => b.id),
+    ...doc.outputDefs.map((o) => o.id),
     "quantity", "unitPrice",
   ]);
   const takenLabels = new Set(doc.controllerDefs.map((c) => c.label));
@@ -621,7 +642,7 @@ export function nextSlugId(slug: string, taken: Set<string>): string {
 }
 
 export function createNode(
-  type: "formula" | "param" | "table" | "breakdown",
+  type: "formula" | "param" | "table" | "breakdown" | "output",
   doc: CanvasDocument,
   position: { x: number; y: number }
 ): { doc: CanvasDocument; newId: string } {
@@ -631,6 +652,7 @@ export function createNode(
     ...doc.tableDefs.map((t) => t.id),
     ...doc.tableDefs.map((t) => `${t.id}RatePerHr`),
     ...doc.breakdownDefs.map((b) => b.id),
+    ...doc.outputDefs.map((o) => o.id),
     "quantity",
     "unitPrice",
   ]);
@@ -682,6 +704,23 @@ export function createNode(
       return {
         newId: id,
         doc: { ...doc, breakdownDefs: [...doc.breakdownDefs, newBreakdown] },
+      };
+    }
+    case "output": {
+      const takenLabels = new Set(doc.outputDefs.map((o) => o.label ?? o.id));
+      const label = nextLabel("Output", takenLabels);
+      const id = nextSlugId(`out_${slugify(label)}`, takenIds);
+      const newOutput: OutputDef = {
+        id,
+        kind: RateBuildupOutputKind.Material,
+        sourceStepId: "",
+        unit: "t",
+        label,
+        position: { x: position.x, y: position.y },
+      };
+      return {
+        newId: id,
+        doc: { ...doc, outputDefs: [...doc.outputDefs, newOutput] },
       };
     }
   }

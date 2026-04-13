@@ -19,6 +19,7 @@ import Breadcrumbs from "../../../components/Common/Breadcrumbs";
 import ClientOnly from "../../../components/Common/ClientOnly";
 import PricingSheet from "../../../components/TenderPricing/PricingSheet";
 import PricingSummary from "../../../components/TenderPricing/PricingSummary";
+import TenderDemandTab from "../../../components/TenderPricing/TenderDemandTab";
 import TenderOverview from "../../../components/Tender/TenderOverview";
 import TenderSummaryTab from "../../../components/Tender/TenderSummaryTab";
 import TenderNotesTab from "../../../components/Tender/TenderNotesTab";
@@ -59,6 +60,14 @@ const SHEET_QUERY = gql`
         notes
         markupOverride
         rateBuildupSnapshot
+        rateBuildupOutputs {
+          kind
+          materialId
+          crewKindId
+          unit
+          perUnitValue
+          totalValue
+        }
         extraUnitPrice
         extraUnitPriceMemo
         status
@@ -142,6 +151,14 @@ const CREATE_SHEET = gql`
         notes
         markupOverride
         rateBuildupSnapshot
+        rateBuildupOutputs {
+          kind
+          materialId
+          crewKindId
+          unit
+          perUnitValue
+          totalValue
+        }
         extraUnitPrice
         extraUnitPriceMemo
         status
@@ -161,7 +178,7 @@ const TENDER_SUGGESTIONS = [
 
 // ─── Panel tab types ──────────────────────────────────────────────────────────
 
-type RightTab = "job" | "documents" | "notes" | "summary" | "review";
+type RightTab = "job" | "documents" | "notes" | "summary" | "demand" | "review";
 type PanelState = "open" | "hidden" | "fullscreen";
 
 // ─── File URL helper ──────────────────────────────────────────────────────────
@@ -454,6 +471,7 @@ const TenderDetailPage = () => {
       label: `Notes${tender && tender.notes.length > 0 ? ` (${tender.notes.length})` : ""}`,
     },
     { key: "summary", label: "Summary" },
+    { key: "demand", label: "Demand" },
     { key: "review", label: "Review" },
   ];
 
@@ -513,9 +531,8 @@ const TenderDetailPage = () => {
             <Box
               flex={1}
               minW={0}
-              overflowY={pricingViewMode === "board" ? "hidden" : "auto"}
-              overflow={pricingViewMode === "board" ? "hidden" : undefined}
-              p={pricingViewMode === "board" ? 0 : 4}
+              overflow="hidden"
+              p={4}
               borderRight={panelState === "open" ? "1px solid" : undefined}
               borderColor="gray.200"
               display="flex"
@@ -687,6 +704,16 @@ const TenderDetailPage = () => {
                   <PricingSummary sheet={sheet} />
                 )}
                 {rightTab === "summary" && !sheet && (
+                  <Flex h="100%" align="center" justify="center">
+                    <Spinner />
+                  </Flex>
+                )}
+
+                {/* ── Demand tab ───────────────────────────────────────────── */}
+                {rightTab === "demand" && sheet && (
+                  <TenderDemandTab sheet={sheet} />
+                )}
+                {rightTab === "demand" && !sheet && (
                   <Flex h="100%" align="center" justify="center">
                     <Spinner />
                   </Flex>

@@ -34,6 +34,7 @@ import {
   snapshotFromTemplate,
   snapshotToCanvasDoc,
   computeSnapshotUnitPrice,
+  evaluateSnapshot,
 } from "../pages/developer/CalculatorCanvas/canvasStorage";
 import RateBuildupInputs from "../pages/developer/CalculatorCanvas/RateBuildupInputs";
 import { TemplateCard } from "../../pages/pricing";
@@ -196,11 +197,16 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
 
   const hasRateBuildup = !!row.rateBuildupSnapshot;
 
-  // Parse snapshot for inline RateBuildupInputs
+  // Parse snapshot for inline RateBuildupInputs.
+  // Snapshots saved before outputDefs existed won't have the field — default
+  // it here so downstream code (RateBuildupInputs, CanvasFlow, etc.) can
+  // assume it's always an array.
   const parsedSnapshot = useMemo<RateBuildupSnapshot | null>(() => {
     if (!row.rateBuildupSnapshot) return null;
-    try { return JSON.parse(row.rateBuildupSnapshot) as RateBuildupSnapshot; }
-    catch { return null; }
+    try {
+      const raw = JSON.parse(row.rateBuildupSnapshot) as RateBuildupSnapshot;
+      return { ...raw, outputDefs: raw.outputDefs ?? [] };
+    } catch { return null; }
   }, [row.rateBuildupSnapshot]);
 
   const snapshotLabel = parsedSnapshot?.label ?? (hasRateBuildup ? "Buildup" : null);
@@ -218,6 +224,9 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
   const [snapParamNotes, setSnapParamNotes] = useState<Record<string, string>>(
     () => parsedSnapshot?.paramNotes ?? {}
   );
+  const [snapOutputs, setSnapOutputs] = useState<Record<string, { materialId?: string; crewKindId?: string }>>(
+    () => parsedSnapshot?.outputs ?? {}
+  );
   const [snapResult, setSnapResult] = useState<{ unitPrice: number; breakdown: { id: string; label: string; value: number }[] } | null>(null);
   const [buildupExpanded, setBuildupExpanded] = useState(true);
   const [extraUnitPrice, setExtraUnitPrice] = useState(row.extraUnitPrice != null ? String(row.extraUnitPrice) : "");
@@ -228,6 +237,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
     setSnapTables(parsedSnapshot?.tables ?? {});
     setSnapControllers(parsedSnapshot?.controllers ?? {});
     setSnapParamNotes(parsedSnapshot?.paramNotes ?? {});
+    setSnapOutputs(parsedSnapshot?.outputs ?? {});
     setSnapResult(null);
     setBuildupExpanded(true);
     setExtraUnitPrice(row.extraUnitPrice != null ? String(row.extraUnitPrice) : "");
@@ -264,6 +274,8 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
   snapControllersRef.current = snapControllers;
   const snapParamNotesRef = useRef(snapParamNotes);
   snapParamNotesRef.current = snapParamNotes;
+  const snapOutputsRef = useRef(snapOutputs);
+  snapOutputsRef.current = snapOutputs;
   const snapshotRef = useRef(parsedSnapshot);
   snapshotRef.current = parsedSnapshot;
 
@@ -273,17 +285,33 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
     params: Record<string, number>,
     tables: Record<string, RateEntry[]>,
     controllers: Record<string, number | boolean | string[]>,
-    paramNotes: Record<string, string>
+    paramNotes: Record<string, string>,
+    outputs: Record<string, { materialId?: string; crewKindId?: string }>
   ) => {
     const base = snapshotRef.current;
     if (!base) return;
-    const updatedSnapshot: RateBuildupSnapshot = { ...base, params, tables, controllers, paramNotes };
-    const freshUP = computeSnapshotUnitPrice(updatedSnapshot, parseFloat(quantityRef.current) || 1, row.unit ?? undefined);
+    const updatedSnapshot: RateBuildupSnapshot = {
+      ...base,
+      params,
+      tables,
+      controllers,
+      paramNotes,
+      outputs,
+    };
+    // evaluateSnapshot returns both the unit price and the resolved per-row
+    // output list (materialId + unit + perUnitValue + totalValue) in one pass,
+    // so the row's rateBuildupOutputs stay in lockstep with the unit price.
+    const { unitPrice: freshUP, outputs: freshOutputs } = evaluateSnapshot(
+      updatedSnapshot,
+      parseFloat(quantityRef.current) || 1,
+      row.unit ?? undefined
+    );
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       onUpdate(row._id, {
         rateBuildupSnapshot: JSON.stringify(updatedSnapshot),
         unitPrice: freshUP || null,
+        rateBuildupOutputs: freshOutputs,
       });
     }, 500);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -292,7 +320,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
   const onSnapParamChange = useCallback((id: string, v: number) => {
     const next = { ...snapParamsRef.current, [id]: v };
     setSnapParams(next);
-    scheduleSave(next, snapTablesRef.current, snapControllersRef.current, snapParamNotesRef.current);
+    scheduleSave(next, snapTablesRef.current, snapControllersRef.current, snapParamNotesRef.current, snapOutputsRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scheduleSave]);
 
@@ -302,7 +330,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
       [tableId]: (snapTablesRef.current[tableId] ?? []).map((r) => r.id === rowId ? { ...r, [field]: value } : r),
     };
     setSnapTables(next);
-    scheduleSave(snapParamsRef.current, next, snapControllersRef.current, snapParamNotesRef.current);
+    scheduleSave(snapParamsRef.current, next, snapControllersRef.current, snapParamNotesRef.current, snapOutputsRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scheduleSave]);
 
@@ -312,7 +340,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
       [tableId]: [...(snapTablesRef.current[tableId] ?? []), { id: uuidv4(), name: "", qty: 1, ratePerHour: 0 }],
     };
     setSnapTables(next);
-    scheduleSave(snapParamsRef.current, next, snapControllersRef.current, snapParamNotesRef.current);
+    scheduleSave(snapParamsRef.current, next, snapControllersRef.current, snapParamNotesRef.current, snapOutputsRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scheduleSave]);
 
@@ -322,21 +350,31 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
       [tableId]: (snapTablesRef.current[tableId] ?? []).filter((r) => r.id !== rowId),
     };
     setSnapTables(next);
-    scheduleSave(snapParamsRef.current, next, snapControllersRef.current, snapParamNotesRef.current);
+    scheduleSave(snapParamsRef.current, next, snapControllersRef.current, snapParamNotesRef.current, snapOutputsRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scheduleSave]);
 
   const onSnapControllerChange = useCallback((id: string, v: number | boolean | string[]) => {
     const next = { ...snapControllersRef.current, [id]: v };
     setSnapControllers(next);
-    scheduleSave(snapParamsRef.current, snapTablesRef.current, next, snapParamNotesRef.current);
+    scheduleSave(snapParamsRef.current, snapTablesRef.current, next, snapParamNotesRef.current, snapOutputsRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scheduleSave]);
 
   const onSnapParamNoteChange = useCallback((paramId: string, note: string) => {
     const next = { ...snapParamNotesRef.current, [paramId]: note };
     setSnapParamNotes(next);
-    scheduleSave(snapParamsRef.current, snapTablesRef.current, snapControllersRef.current, next);
+    scheduleSave(snapParamsRef.current, snapTablesRef.current, snapControllersRef.current, next, snapOutputsRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scheduleSave]);
+
+  const onSnapOutputChange = useCallback((
+    outputId: string,
+    selection: { materialId?: string; crewKindId?: string }
+  ) => {
+    const next = { ...snapOutputsRef.current, [outputId]: selection };
+    setSnapOutputs(next);
+    scheduleSave(snapParamsRef.current, snapTablesRef.current, snapControllersRef.current, snapParamNotesRef.current, next);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scheduleSave]);
 
@@ -480,9 +518,19 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
               rowUnit={row.unit}
               onAttach={(templateDoc) => {
                 const snapshot = snapshotFromTemplate(templateDoc);
+                // Capture outputs at attach time using the seeded snapshot
+                // (templates may have defaultMaterialId, so demands can be
+                // non-empty from the first render).
+                const { unitPrice, outputs } = evaluateSnapshot(
+                  snapshot,
+                  row.quantity ?? 1,
+                  row.unit ?? templateDoc.defaultUnit ?? undefined
+                );
                 onUpdate(row._id, {
                   rateBuildupSnapshot: JSON.stringify(snapshot),
                   unit: row.unit || templateDoc.defaultUnit || null,
+                  unitPrice: unitPrice || null,
+                  rateBuildupOutputs: outputs,
                 });
               }}
             />
@@ -576,7 +624,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
                   onChange={(e) => setQuantity(e.target.value)}
                   onBlur={() => {
                     commitNum("quantity", quantity);
-                    scheduleSave(snapParamsRef.current, snapTablesRef.current, snapControllersRef.current, snapParamNotesRef.current);
+                    scheduleSave(snapParamsRef.current, snapTablesRef.current, snapControllersRef.current, snapParamNotesRef.current, snapOutputsRef.current);
                   }}
                   placeholder="—"
                   bg="white"
@@ -731,7 +779,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
                       icon={<FiSlash size={12} />}
                       size="xs" variant="ghost"
                       color="gray.400" _hover={{ color: "red.500", bg: "red.50" }}
-                      onClick={() => onUpdate(row._id, { rateBuildupSnapshot: null, unitPrice: null })}
+                      onClick={() => onUpdate(row._id, { rateBuildupSnapshot: null, unitPrice: null, rateBuildupOutputs: null })}
                     />
                   </Flex>
                 </Flex>
@@ -786,6 +834,8 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
                     onControllerChange={onSnapControllerChange}
                     paramNotes={snapParamNotes}
                     onParamNoteChange={onSnapParamNoteChange}
+                    outputs={snapOutputs}
+                    onOutputChange={onSnapOutputChange}
                     columns={2}
                     onResult={setSnapResult}
                     unit={row.unit ?? undefined}

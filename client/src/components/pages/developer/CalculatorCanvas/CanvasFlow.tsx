@@ -149,6 +149,23 @@ function buildNodes(
     data: { value: unitPrice },
   });
 
+  // Output (demand) nodes — read their per-unit value from the linked formula step.
+  for (const out of doc.outputDefs) {
+    const value = debugMap[out.sourceStepId]?.value ?? 0;
+    const whitelistCount = out.kind === "CrewHours"
+      ? (out.allowedCrewKindIds?.length ?? 0)
+      : (out.allowedMaterialIds?.length ?? 0);
+    nodes.push(makeNode(out.id, "output", {
+      label: out.label,
+      kind: out.kind,
+      unit: out.kind === "CrewHours" ? "hr" : out.unit,
+      value,
+      whitelistCount,
+      // Specific material/crew name is resolved in the estimator UI (RateBuildupInputs);
+      // during template authoring we don't have a name to show.
+    }, out.position));
+  }
+
   return nodes;
 }
 
@@ -204,7 +221,7 @@ interface ContextMenuProps {
   onCopy: (ids: string[]) => void;
   onPaste: (position: { x: number; y: number }) => void;
   onDelete: (ids: string[]) => void;
-  onCreate: (type: "formula" | "param" | "table" | "breakdown" | "group" | "controller:percentage" | "controller:toggle" | "controller:selector", pos: { x: number; y: number }) => void;
+  onCreate: (type: "formula" | "param" | "table" | "breakdown" | "output" | "group" | "controller:percentage" | "controller:toggle" | "controller:selector", pos: { x: number; y: number }) => void;
   onDismiss: () => void;
 }
 
@@ -218,7 +235,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
 
   const addItems = (
     <>
-      {(["formula", "param", "table", "breakdown", "group"] as const).map((type) => (
+      {(["formula", "param", "table", "breakdown", "output", "group"] as const).map((type) => (
         <div
           key={type}
           style={MENU_ITEM}
@@ -235,6 +252,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
             type === "param" ? "Parameter" :
             type === "table" ? "Rate Table" :
             type === "breakdown" ? "Summary" :
+            type === "output" ? "Demand Output" :
             "Group"
           }
         </div>
@@ -389,7 +407,7 @@ interface Props {
   onCopy: (nodeIds: string[]) => void;
   onPaste: (position: { x: number; y: number }) => void;
   onDeleteNodes: (nodeIds: string[]) => void;
-  onCreateNode: (type: "formula" | "param" | "table" | "breakdown" | "group" | "controller:percentage" | "controller:toggle" | "controller:selector", position: { x: number; y: number }) => void;
+  onCreateNode: (type: "formula" | "param" | "table" | "breakdown" | "output" | "group" | "controller:percentage" | "controller:toggle" | "controller:selector", position: { x: number; y: number }) => void;
   positionResetKey: number;
 }
 

@@ -29,6 +29,13 @@ interface Props {
   paramNotes?: Record<string, string>;
   /** Fires when a param note changes. */
   onParamNoteChange?: (paramId: string, note: string) => void;
+  /** Estimator's per-Output-node selections. Only present in tender row context. */
+  outputs?: Record<string, { materialId?: string; crewKindId?: string }>;
+  /** Fires when the estimator picks a material or crew kind for an Output node. */
+  onOutputChange?: (
+    outputId: string,
+    selection: { materialId?: string; crewKindId?: string }
+  ) => void;
   /** Canonical unit code from the line item (e.g. "m3"). Passed to RateBuildupInputs for variant activation. */
   unit?: string;
   /** Controlled test unit — owned by parent (CalculatorCanvas) so canvas nodes stay in sync. */
@@ -68,7 +75,8 @@ function initControllers(
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const LiveTestPanel: React.FC<Props> = ({
-  doc, onCollapse, initialQuantity, initialInputs, onInputsChange, paramNotes, onParamNoteChange, unit, testUnit, onTestUnitChange,
+  doc, onCollapse, initialQuantity, initialInputs, onInputsChange, paramNotes, onParamNoteChange,
+  outputs, onOutputChange, unit, testUnit, onTestUnitChange,
 }) => {
   const [quantity, setQuantity] = useState(initialQuantity ?? 100);
   const [unitPrice, setUnitPrice] = useState<number | null>(null);
@@ -212,6 +220,8 @@ const LiveTestPanel: React.FC<Props> = ({
           onControllerChange={onControllerChange}
           paramNotes={paramNotes}
           onParamNoteChange={onParamNoteChange}
+          outputs={outputs}
+          onOutputChange={onOutputChange}
           onResult={(r) => setUnitPrice(r.unitPrice)}
           unit={unit ?? testUnit}
         />

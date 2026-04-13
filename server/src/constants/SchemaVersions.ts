@@ -1,6 +1,7 @@
 export default {
   Company: 1,
   Crew: 1,
+  CrewKind: 1,
   DailyReport: 1,
   Employee: 1,
   EmployeeWork: 2,
@@ -17,7 +18,7 @@ export default {
   MaterialShipment: 3,
   OperatorDailyReport: 2,
   Production: 1,
-  RateBuildupTemplate: 2,
+  RateBuildupTemplate: 3,
   ReportNote: 1,
   Signup: 1,
   System: 2,

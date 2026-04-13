@@ -106,6 +106,10 @@ import { getApolloClient , ApolloClientContext} from '../withApollo';
 
 
 
+
+
+
+
 export async function getServerPageArchivedEmployees
     (options: Omit<Apollo.QueryOptions<Types.ArchivedEmployeesQueryVariables>, 'query'>, ctx: ApolloClientContext ){
         const apolloClient = getApolloClient(ctx);
@@ -315,6 +319,41 @@ export const ssrCompanyFull = {
       getServerPage: getServerPageCompanyFull,
       withPage: withPageCompanyFull,
       usePage: useCompanyFull,
+    }
+export async function getServerPageCrewKinds
+    (options: Omit<Apollo.QueryOptions<Types.CrewKindsQueryVariables>, 'query'>, ctx: ApolloClientContext ){
+        const apolloClient = getApolloClient(ctx);
+        
+        const data = await apolloClient.query<Types.CrewKindsQuery>({ ...options, query: Operations.CrewKindsDocument });
+        
+        const apolloState = apolloClient.cache.extract();
+
+        return {
+            props: {
+                apolloState: apolloState,
+                data: data?.data,
+                error: data?.error ?? data?.errors ?? null,
+            },
+        };
+      }
+export const useCrewKinds = (
+  optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.CrewKindsQuery, Types.CrewKindsQueryVariables>) => {
+  const router = useRouter();
+  const options = optionsFunc ? optionsFunc(router) : {};
+  return useQuery(Operations.CrewKindsDocument, options);
+};
+export type PageCrewKindsComp = React.FC<{data?: Types.CrewKindsQuery, error?: Apollo.ApolloError}>;
+export const withPageCrewKinds = (optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.CrewKindsQuery, Types.CrewKindsQueryVariables>) => (WrappedComponent:PageCrewKindsComp) : NextPage  => (props) => {
+                const router = useRouter()
+                const options = optionsFunc ? optionsFunc(router) : {};
+                const {data, error } = useQuery(Operations.CrewKindsDocument, options)    
+                return <WrappedComponent {...props} data={data} error={error} /> ;
+                   
+            }; 
+export const ssrCrewKinds = {
+      getServerPage: getServerPageCrewKinds,
+      withPage: withPageCrewKinds,
+      usePage: useCrewKinds,
     }
 export async function getServerPageCrewLocations
     (options: Omit<Apollo.QueryOptions<Types.CrewLocationsQueryVariables>, 'query'>, ctx: ApolloClientContext ){

@@ -1,5 +1,6 @@
 import { RateBuildupTemplate, RateBuildupTemplateDocument } from "@models";
 import SchemaVersions from "@constants/SchemaVersions";
+import { RateBuildupOutputKind } from "@typescript/tenderPricingSheet";
 import { Field, Float, ID, InputType } from "type-graphql";
 
 // ─── Position ─────────────────────────────────────────────────────────────────
@@ -107,10 +108,26 @@ export class RateBuildupBreakdownDefInput {
 }
 
 @InputType()
-export class RateBuildupIntermediateDefInput {
-  @Field() public label!: string;
-  @Field() public stepId!: string;
+export class RateBuildupOutputDefInput {
+  @Field() public id!: string;
+  @Field(() => RateBuildupOutputKind) public kind!: RateBuildupOutputKind;
+  /** Formula step whose computed per-unit value this output exposes */
+  @Field() public sourceStepId!: string;
+  /** Canonical unit code — ignored when kind === "crewHours" (implicit "hr") */
   @Field() public unit!: string;
+  @Field({ nullable: true }) public label?: string;
+
+  /** Whitelist of Material IDs (kind=material); empty/absent = any */
+  @Field(() => [ID], { nullable: true }) public allowedMaterialIds?: string[];
+  /** Default material (kind=material); must be in whitelist if one is set */
+  @Field(() => ID, { nullable: true }) public defaultMaterialId?: string;
+
+  /** Whitelist of CrewKind IDs (kind=crewHours); empty/absent = any */
+  @Field(() => [ID], { nullable: true }) public allowedCrewKindIds?: string[];
+  /** Default crew kind (kind=crewHours); must be in whitelist if one is set */
+  @Field(() => ID, { nullable: true }) public defaultCrewKindId?: string;
+
+  @Field(() => RateBuildupPositionInput) public position!: RateBuildupPositionInput;
 }
 
 // ─── Unit variant ─────────────────────────────────────────────────────────────
@@ -134,7 +151,7 @@ export class SaveRateBuildupTemplateData {
   @Field(() => [RateBuildupTableDefInput]) public tableDefs!: RateBuildupTableDefInput[];
   @Field(() => [RateBuildupFormulaStepInput]) public formulaSteps!: RateBuildupFormulaStepInput[];
   @Field(() => [RateBuildupBreakdownDefInput]) public breakdownDefs!: RateBuildupBreakdownDefInput[];
-  @Field(() => [RateBuildupIntermediateDefInput]) public intermediateDefs!: RateBuildupIntermediateDefInput[];
+  @Field(() => [RateBuildupOutputDefInput]) public outputDefs!: RateBuildupOutputDefInput[];
   @Field(() => [RateBuildupControllerDefInput]) public controllerDefs!: RateBuildupControllerDefInput[];
   @Field(() => [RateBuildupGroupDefInput]) public groupDefs!: RateBuildupGroupDefInput[];
   @Field(() => [RateBuildupUnitVariantInput], { nullable: true }) public unitVariants?: RateBuildupUnitVariantInput[];
@@ -153,6 +170,32 @@ const save = async (
   });
   if (duplicate) throw new Error(`A rate buildup template named "${data.label}" already exists`);
 
+  // Validate output def invariants: default must be within the whitelist when
+  // both are set. Applied independently per kind (material / crewHours).
+  // Empty/absent whitelist means "anything allowed".
+  for (const out of data.outputDefs ?? []) {
+    if (
+      out.defaultMaterialId &&
+      out.allowedMaterialIds &&
+      out.allowedMaterialIds.length > 0 &&
+      !out.allowedMaterialIds.includes(out.defaultMaterialId)
+    ) {
+      throw new Error(
+        `Output "${out.label ?? out.id}" default material is not in its allowed list`
+      );
+    }
+    if (
+      out.defaultCrewKindId &&
+      out.allowedCrewKindIds &&
+      out.allowedCrewKindIds.length > 0 &&
+      !out.allowedCrewKindIds.includes(out.defaultCrewKindId)
+    ) {
+      throw new Error(
+        `Output "${out.label ?? out.id}" default crew kind is not in its allowed list`
+      );
+    }
+  }
+
   if (data.id) {
     const existing = await RateBuildupTemplate.getById(data.id);
     if (!existing) throw new Error(`RateBuildupTemplate ${data.id} not found`);
@@ -163,7 +206,7 @@ const save = async (
       tableDefs: data.tableDefs,
       formulaSteps: data.formulaSteps,
       breakdownDefs: data.breakdownDefs,
-      intermediateDefs: data.intermediateDefs,
+      outputDefs: data.outputDefs,
       controllerDefs: data.controllerDefs,
       groupDefs: data.groupDefs,
       unitVariants: data.unitVariants ?? [],
@@ -180,7 +223,7 @@ const save = async (
       tableDefs: data.tableDefs,
       formulaSteps: data.formulaSteps,
       breakdownDefs: data.breakdownDefs,
-      intermediateDefs: data.intermediateDefs,
+      outputDefs: data.outputDefs,
       controllerDefs: data.controllerDefs,
       groupDefs: data.groupDefs,
       unitVariants: data.unitVariants ?? [],

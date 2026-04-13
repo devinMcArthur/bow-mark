@@ -1,0 +1,5 @@
+mutation CrewKindUpdate($id: ID!, $data: CrewKindUpdateData!) {
+  crewKindUpdate(id: $id, data: $data) {
+    ...CrewKindCardSnippet
+  }
+}

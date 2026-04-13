@@ -5,9 +5,8 @@ import {
   TableDef,
   FormulaStep,
   BreakdownDef,
-  IntermediateDef,
+  OutputDef,
   RateEntry,
-  CalculatorTemplate,
   CalculatorInputs,
   CalculatorResult,
 } from "./types";
@@ -23,7 +22,7 @@ export interface EvaluatableTemplate {
   tableDefs: (TableDef & { defaultRows?: RateEntry[] })[];
   formulaSteps: FormulaStep[];
   breakdownDefs: BreakdownDef[];
-  intermediateDefs: IntermediateDef[];
+  outputDefs?: OutputDef[];
 }
 
 export interface StepDebugInfo {
@@ -120,14 +119,25 @@ export function evaluateTemplate(
     value: (b.items ?? []).reduce((s, item) => s + (ctx[item.stepId] ?? 0), 0),
   }));
 
+  // Output nodes: read each output's source formula step from the context.
+  // Preserve BOTH default id fields — the caller resolves the one that
+  // matches the output's kind (material or crewHours).
+  const outputs = (template.outputDefs ?? []).map((o) => ({
+    id: o.id,
+    kind: o.kind,
+    label: o.label,
+    // crewHours outputs are always in hours; unit field on the def may be
+    // empty or stale for those, so normalise here.
+    unit: o.kind === "CrewHours" ? "hr" : o.unit,
+    perUnitValue: ctx[o.sourceStepId] ?? 0,
+    defaultMaterialId: o.defaultMaterialId,
+    defaultCrewKindId: o.defaultCrewKindId,
+  }));
+
   return {
     unitPrice: breakdown.reduce((s, b) => s + b.value, 0),
     breakdown,
-    intermediates: template.intermediateDefs.map((i) => ({
-      label: i.label,
-      value: ctx[i.stepId] ?? 0,
-      unit: i.unit,
-    })),
+    outputs,
   };
 }
 
