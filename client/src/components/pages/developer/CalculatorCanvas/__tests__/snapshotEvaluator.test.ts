@@ -4,6 +4,7 @@ import {
   evaluateSnapshot,
   computeSnapshotUnitPrice,
   snapshotFromTemplate,
+  snapshotToCanvasDoc,
   RateBuildupSnapshot,
 } from "../snapshotEvaluator";
 import type { CanvasDocument } from "../canvasTypes";
@@ -429,5 +430,193 @@ describe("computeSnapshotUnitPrice", () => {
     expect(unitPrice).toBe(45);
     // Should match evaluateSnapshot result exactly
     expect(unitPrice).toBe(evaluateSnapshot(s, 3).unitPrice);
+  });
+});
+
+// ─── snapshotFromTemplate ────────────────────────────────────────────────────
+
+describe("snapshotFromTemplate", () => {
+  it("seeds params from parameterDef defaultValue", () => {
+    const template = doc({
+      parameterDefs: [
+        { id: "rate", label: "Rate", defaultValue: 120, position: pos },
+        { id: "depth", label: "Depth", defaultValue: 0.05, position: pos },
+      ],
+    });
+    const s = snapshotFromTemplate(template);
+    expect(s.params.rate).toBe(120);
+    expect(s.params.depth).toBe(0.05);
+  });
+
+  it("seeds tables from tableDef defaultRows", () => {
+    const template = doc({
+      tableDefs: [
+        {
+          id: "crew",
+          label: "Crew",
+          rowLabel: "Role",
+          defaultRows: [
+            { id: "r1", name: "Operator", qty: 1, ratePerHour: 80 },
+            { id: "r2", name: "Labour", qty: 2, ratePerHour: 50 },
+          ],
+          position: pos,
+        },
+      ],
+    });
+    const s = snapshotFromTemplate(template);
+    expect(s.tables.crew).toHaveLength(2);
+    expect(s.tables.crew[0].ratePerHour).toBe(80);
+  });
+
+  it("defaults tableDef without defaultRows to empty array", () => {
+    const template = doc({
+      tableDefs: [
+        { id: "t1", label: "T", rowLabel: "R", defaultRows: undefined as any, position: pos },
+      ],
+    });
+    const s = snapshotFromTemplate(template);
+    expect(s.tables.t1).toEqual([]);
+  });
+
+  it("seeds percentage controller with numeric default", () => {
+    const template = doc({
+      controllerDefs: [
+        { id: "waste", label: "Waste", type: "percentage", defaultValue: 0.1, position: pos },
+      ],
+    });
+    const s = snapshotFromTemplate(template);
+    expect(s.controllers.waste).toBe(0.1);
+  });
+
+  it("seeds percentage controller with 0 when default missing", () => {
+    const template = doc({
+      controllerDefs: [
+        { id: "waste", label: "Waste", type: "percentage", position: pos },
+      ],
+    });
+    const s = snapshotFromTemplate(template);
+    expect(s.controllers.waste).toBe(0);
+  });
+
+  it("seeds toggle controller with boolean default", () => {
+    const template = doc({
+      controllerDefs: [
+        { id: "sealcoat", label: "Sealcoat", type: "toggle", defaultValue: true, position: pos },
+      ],
+    });
+    const s = snapshotFromTemplate(template);
+    expect(s.controllers.sealcoat).toBe(true);
+  });
+
+  it("seeds toggle controller with false when default missing", () => {
+    const template = doc({
+      controllerDefs: [
+        { id: "sealcoat", label: "Sealcoat", type: "toggle", position: pos },
+      ],
+    });
+    const s = snapshotFromTemplate(template);
+    expect(s.controllers.sealcoat).toBe(false);
+  });
+
+  it("seeds selector controller with defaultSelected", () => {
+    const template = doc({
+      controllerDefs: [
+        {
+          id: "mix",
+          label: "Mix",
+          type: "selector",
+          options: [
+            { id: "opt_a", label: "A" },
+            { id: "opt_b", label: "B" },
+          ],
+          defaultSelected: ["opt_a"],
+          position: pos,
+        },
+      ],
+    });
+    const s = snapshotFromTemplate(template);
+    expect(s.controllers.mix).toEqual(["opt_a"]);
+  });
+
+  it("seeds selector controller with empty array when defaultSelected missing", () => {
+    const template = doc({
+      controllerDefs: [
+        { id: "mix", label: "Mix", type: "selector", position: pos },
+      ],
+    });
+    const s = snapshotFromTemplate(template);
+    expect(s.controllers.mix).toEqual([]);
+  });
+
+  it("seeds Material output selection from defaultMaterialId", () => {
+    const template = doc({
+      outputDefs: [
+        {
+          id: "out1",
+          kind: RateBuildupOutputKind.Material,
+          sourceStepId: "step1",
+          unit: "t",
+          defaultMaterialId: "mat_default",
+          position: pos,
+        },
+      ],
+    });
+    const s = snapshotFromTemplate(template);
+    expect(s.outputs!.out1).toEqual({ materialId: "mat_default" });
+  });
+
+  it("seeds CrewHours output selection from defaultCrewKindId", () => {
+    const template = doc({
+      outputDefs: [
+        {
+          id: "out1",
+          kind: RateBuildupOutputKind.CrewHours,
+          sourceStepId: "step1",
+          unit: "hr",
+          defaultCrewKindId: "ck_base",
+          position: pos,
+        },
+      ],
+    });
+    const s = snapshotFromTemplate(template);
+    expect(s.outputs!.out1).toEqual({ crewKindId: "ck_base" });
+  });
+
+  it("sourceTemplateId matches template id", () => {
+    const template = doc({ id: "tmpl_xyz" });
+    const s = snapshotFromTemplate(template);
+    expect(s.sourceTemplateId).toBe("tmpl_xyz");
+  });
+});
+
+// ─── snapshotToCanvasDoc ─────────────────────────────────────────────────────
+
+describe("snapshotToCanvasDoc", () => {
+  it("strips snapshot-specific fields and returns the canvas shape", () => {
+    const template = doc({
+      parameterDefs: [{ id: "rate", label: "Rate", defaultValue: 20, position: pos }],
+    });
+    const s = snapshotFromTemplate(template);
+    s.paramNotes = { rate: "confirmed with estimator" };
+
+    const back = snapshotToCanvasDoc(s);
+    expect(back.parameterDefs).toEqual(template.parameterDefs);
+    expect((back as any).params).toBeUndefined();
+    expect((back as any).tables).toBeUndefined();
+    expect((back as any).controllers).toBeUndefined();
+    expect((back as any).paramNotes).toBeUndefined();
+    expect((back as any).outputs).toBeUndefined();
+    expect((back as any).sourceTemplateId).toBeUndefined();
+  });
+
+  it("legacy fallback: provides empty outputDefs when snapshot has none", () => {
+    // Older snapshots saved before outputDefs were introduced. Simulate by
+    // building a snapshot then deleting outputDefs to match stored shape.
+    const template = doc();
+    const s = snapshotFromTemplate(template);
+    delete (s as any).outputDefs;
+
+    const back = snapshotToCanvasDoc(s);
+    expect(back.outputDefs).toEqual([]);
   });
 });
