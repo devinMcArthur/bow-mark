@@ -34,10 +34,17 @@ fragment RateBuildupTemplateFullSnippet on RateBuildupTemplateClass {
     }
     position { x y w h }
   }
-  intermediateDefs {
-    label
-    stepId
+  outputDefs {
+    id
+    kind
+    sourceStepId
     unit
+    label
+    allowedMaterialIds
+    defaultMaterialId
+    allowedCrewKindIds
+    defaultCrewKindId
+    position { x y w h }
   }
   controllerDefs {
     id

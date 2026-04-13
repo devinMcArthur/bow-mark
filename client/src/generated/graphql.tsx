@@ -99,6 +99,26 @@ export type CrewHoursDetail = {
   totalManHours: Scalars['Float'];
 };
 
+export type CrewKindClass = {
+  __typename?: 'CrewKindClass';
+  _id: Scalars['ID'];
+  archivedAt?: Maybe<Scalars['DateTime']>;
+  createdAt: Scalars['DateTime'];
+  description?: Maybe<Scalars['String']>;
+  name: Scalars['String'];
+  schemaVersion: Scalars['Float'];
+};
+
+export type CrewKindCreateData = {
+  description?: InputMaybe<Scalars['String']>;
+  name: Scalars['String'];
+};
+
+export type CrewKindUpdateData = {
+  description?: InputMaybe<Scalars['String']>;
+  name?: InputMaybe<Scalars['String']>;
+};
+
 export type CrewLocationClass = {
   __typename?: 'CrewLocationClass';
   crew: CrewClass;
@@ -382,7 +402,7 @@ export type DocRefClass = {
   __typename?: 'DocRefClass';
   _id: Scalars['ID'];
   description?: Maybe<Scalars['String']>;
-  enrichedFileId: Scalars['String'];
+  enrichedFileId: Scalars['ID'];
   page: Scalars['Int'];
 };
 
@@ -1175,6 +1195,11 @@ export type Mutation = {
   crewAddVehicle: CrewClass;
   crewArchive: CrewClass;
   crewCreate: CrewClass;
+  crewKindArchive: CrewKindClass;
+  crewKindCreate: CrewKindClass;
+  crewKindRemove: Scalars['Boolean'];
+  crewKindUnarchive: CrewKindClass;
+  crewKindUpdate: CrewKindClass;
   crewRemoveEmployee: CrewClass;
   crewRemoveVehicle: CrewClass;
   crewUpdate: CrewClass;
@@ -1273,6 +1298,10 @@ export type Mutation = {
   tenderRemove: Scalars['Boolean'];
   tenderRemoveFile: TenderClass;
   tenderRetrySummary: TenderClass;
+  tenderReviewAddComment: TenderReviewClass;
+  tenderReviewDeleteComment: TenderReviewClass;
+  tenderReviewEditComment: TenderReviewClass;
+  tenderReviewSetStatus: TenderReviewClass;
   tenderUpdate: TenderClass;
   userDelete: Scalars['String'];
   userPasswordReset: Scalars['Boolean'];
@@ -1324,6 +1353,32 @@ export type MutationCrewArchiveArgs = {
 
 export type MutationCrewCreateArgs = {
   data: CrewCreateData;
+};
+
+
+export type MutationCrewKindArchiveArgs = {
+  id: Scalars['ID'];
+};
+
+
+export type MutationCrewKindCreateArgs = {
+  data: CrewKindCreateData;
+};
+
+
+export type MutationCrewKindRemoveArgs = {
+  id: Scalars['ID'];
+};
+
+
+export type MutationCrewKindUnarchiveArgs = {
+  id: Scalars['ID'];
+};
+
+
+export type MutationCrewKindUpdateArgs = {
+  data: CrewKindUpdateData;
+  id: Scalars['ID'];
 };
 
 
@@ -1881,6 +1936,31 @@ export type MutationTenderRetrySummaryArgs = {
 };
 
 
+export type MutationTenderReviewAddCommentArgs = {
+  content: Scalars['String'];
+  tenderId: Scalars['ID'];
+};
+
+
+export type MutationTenderReviewDeleteCommentArgs = {
+  commentId: Scalars['ID'];
+  tenderId: Scalars['ID'];
+};
+
+
+export type MutationTenderReviewEditCommentArgs = {
+  commentId: Scalars['ID'];
+  content: Scalars['String'];
+  tenderId: Scalars['ID'];
+};
+
+
+export type MutationTenderReviewSetStatusArgs = {
+  status: Scalars['String'];
+  tenderId: Scalars['ID'];
+};
+
+
 export type MutationTenderUpdateArgs = {
   data: TenderUpdateData;
   id: Scalars['ID'];
@@ -2160,6 +2240,8 @@ export type Query = {
   company: CompanyClass;
   companySearch: Array<CompanyClass>;
   crew: CrewClass;
+  crewKind?: Maybe<CrewKindClass>;
+  crewKinds: Array<CrewKindClass>;
   crewList: Array<CrewClass>;
   crewLocations: Array<CrewLocationClass>;
   crewLocationsExcel: Scalars['String'];
@@ -2208,6 +2290,7 @@ export type Query = {
   tender?: Maybe<TenderClass>;
   tenderPricingRowSnapshot?: Maybe<Scalars['String']>;
   tenderPricingSheet?: Maybe<TenderPricingSheetClass>;
+  tenderReview: TenderReviewClass;
   tenders: Array<TenderClass>;
   user?: Maybe<UserClass>;
   users: Array<UserClass>;
@@ -2248,6 +2331,16 @@ export type QueryCompanySearchArgs = {
 
 export type QueryCrewArgs = {
   id: Scalars['String'];
+};
+
+
+export type QueryCrewKindArgs = {
+  id: Scalars['ID'];
+};
+
+
+export type QueryCrewKindsArgs = {
+  options?: InputMaybe<ListOptionData>;
 };
 
 
@@ -2469,6 +2562,11 @@ export type QueryTenderPricingSheetArgs = {
 };
 
 
+export type QueryTenderReviewArgs = {
+  tenderId: Scalars['ID'];
+};
+
+
 export type QueryUserArgs = {
   query: UserQuery;
 };
@@ -2627,18 +2725,56 @@ export type RateBuildupGroupDefInput = {
   position: RateBuildupPositionInput;
 };
 
-export type RateBuildupIntermediateDef = {
-  __typename?: 'RateBuildupIntermediateDef';
-  label: Scalars['String'];
-  stepId: Scalars['String'];
+export type RateBuildupOutputClass = {
+  __typename?: 'RateBuildupOutputClass';
+  crewKindId?: Maybe<Scalars['ID']>;
+  kind: RateBuildupOutputKind;
+  materialId?: Maybe<Scalars['ID']>;
+  perUnitValue: Scalars['Float'];
+  totalValue: Scalars['Float'];
   unit: Scalars['String'];
 };
 
-export type RateBuildupIntermediateDefInput = {
-  label: Scalars['String'];
-  stepId: Scalars['String'];
+export type RateBuildupOutputDef = {
+  __typename?: 'RateBuildupOutputDef';
+  allowedCrewKindIds?: Maybe<Array<Scalars['ID']>>;
+  allowedMaterialIds?: Maybe<Array<Scalars['ID']>>;
+  defaultCrewKindId?: Maybe<Scalars['ID']>;
+  defaultMaterialId?: Maybe<Scalars['ID']>;
+  id: Scalars['String'];
+  kind: RateBuildupOutputKind;
+  label?: Maybe<Scalars['String']>;
+  position: RateBuildupPosition;
+  sourceStepId: Scalars['String'];
   unit: Scalars['String'];
 };
+
+export type RateBuildupOutputDefInput = {
+  allowedCrewKindIds?: InputMaybe<Array<Scalars['ID']>>;
+  allowedMaterialIds?: InputMaybe<Array<Scalars['ID']>>;
+  defaultCrewKindId?: InputMaybe<Scalars['ID']>;
+  defaultMaterialId?: InputMaybe<Scalars['ID']>;
+  id: Scalars['String'];
+  kind: RateBuildupOutputKind;
+  label?: InputMaybe<Scalars['String']>;
+  position: RateBuildupPositionInput;
+  sourceStepId: Scalars['String'];
+  unit: Scalars['String'];
+};
+
+export type RateBuildupOutputInput = {
+  crewKindId?: InputMaybe<Scalars['ID']>;
+  kind: RateBuildupOutputKind;
+  materialId?: InputMaybe<Scalars['ID']>;
+  perUnitValue: Scalars['Float'];
+  totalValue: Scalars['Float'];
+  unit: Scalars['String'];
+};
+
+export enum RateBuildupOutputKind {
+  CrewHours = 'CrewHours',
+  Material = 'Material'
+}
 
 export type RateBuildupParameterDef = {
   __typename?: 'RateBuildupParameterDef';
@@ -2719,8 +2855,8 @@ export type RateBuildupTemplateClass = {
   defaultUnit?: Maybe<Scalars['String']>;
   formulaSteps: Array<RateBuildupFormulaStep>;
   groupDefs: Array<RateBuildupGroupDef>;
-  intermediateDefs: Array<RateBuildupIntermediateDef>;
   label: Scalars['String'];
+  outputDefs: Array<RateBuildupOutputDef>;
   parameterDefs: Array<RateBuildupParameterDef>;
   schemaVersion: Scalars['Float'];
   specialPositions?: Maybe<Scalars['String']>;
@@ -2827,8 +2963,8 @@ export type SaveRateBuildupTemplateData = {
   formulaSteps: Array<RateBuildupFormulaStepInput>;
   groupDefs: Array<RateBuildupGroupDefInput>;
   id?: InputMaybe<Scalars['ID']>;
-  intermediateDefs: Array<RateBuildupIntermediateDefInput>;
   label: Scalars['String'];
+  outputDefs: Array<RateBuildupOutputDefInput>;
   parameterDefs: Array<RateBuildupParameterDefInput>;
   specialPositions?: InputMaybe<Scalars['String']>;
   tableDefs: Array<RateBuildupTableDefInput>;
@@ -2908,6 +3044,18 @@ export type TenderAddFileData = {
   fileId: Scalars['String'];
 };
 
+export type TenderAuditEventClass = {
+  __typename?: 'TenderAuditEventClass';
+  _id: Scalars['ID'];
+  action: Scalars['String'];
+  changedAt: Scalars['DateTime'];
+  changedBy?: Maybe<UserClass>;
+  changedFields: Array<Scalars['String']>;
+  rowDescription: Scalars['String'];
+  rowId: Scalars['ID'];
+  statusTo?: Maybe<Scalars['String']>;
+};
+
 export type TenderClass = {
   __typename?: 'TenderClass';
   _id: Scalars['ID'];
@@ -2951,19 +3099,19 @@ export type TenderNoteClass = {
 export type TenderPricingRowClass = {
   __typename?: 'TenderPricingRowClass';
   _id: Scalars['ID'];
-  calculatorInputsJson?: Maybe<Scalars['String']>;
-  calculatorType?: Maybe<TenderWorkType>;
-  description: Scalars['String'];
+  description?: Maybe<Scalars['String']>;
   docRefs: Array<DocRefClass>;
   extraUnitPrice?: Maybe<Scalars['Float']>;
   extraUnitPriceMemo?: Maybe<Scalars['String']>;
   indentLevel: Scalars['Int'];
-  itemNumber: Scalars['String'];
+  itemNumber?: Maybe<Scalars['String']>;
   markupOverride?: Maybe<Scalars['Float']>;
   notes?: Maybe<Scalars['String']>;
   quantity?: Maybe<Scalars['Float']>;
+  rateBuildupOutputs?: Maybe<Array<RateBuildupOutputClass>>;
   rateBuildupSnapshot?: Maybe<Scalars['String']>;
   sortOrder: Scalars['Float'];
+  status?: Maybe<Scalars['String']>;
   type: TenderPricingRowType;
   unit?: Maybe<Scalars['String']>;
   unitPrice?: Maybe<Scalars['Float']>;
@@ -2979,7 +3127,7 @@ export type TenderPricingRowCreateData = {
 
 export type TenderPricingRowDocRefAddData = {
   description?: InputMaybe<Scalars['String']>;
-  enrichedFileId: Scalars['String'];
+  enrichedFileId: Scalars['ID'];
   page: Scalars['Int'];
 };
 
@@ -2990,8 +3138,6 @@ export enum TenderPricingRowType {
 }
 
 export type TenderPricingRowUpdateData = {
-  calculatorInputsJson?: InputMaybe<Scalars['String']>;
-  calculatorType?: InputMaybe<TenderWorkType>;
   description?: InputMaybe<Scalars['String']>;
   extraUnitPrice?: InputMaybe<Scalars['Float']>;
   extraUnitPriceMemo?: InputMaybe<Scalars['String']>;
@@ -3000,7 +3146,9 @@ export type TenderPricingRowUpdateData = {
   markupOverride?: InputMaybe<Scalars['Float']>;
   notes?: InputMaybe<Scalars['String']>;
   quantity?: InputMaybe<Scalars['Float']>;
+  rateBuildupOutputs?: InputMaybe<Array<RateBuildupOutputInput>>;
   rateBuildupSnapshot?: InputMaybe<Scalars['String']>;
+  status?: InputMaybe<Scalars['String']>;
   unit?: InputMaybe<Scalars['String']>;
   unitPrice?: InputMaybe<Scalars['Float']>;
 };
@@ -3011,7 +3159,27 @@ export type TenderPricingSheetClass = {
   createdAt: Scalars['DateTime'];
   defaultMarkupPct: Scalars['Float'];
   rows: Array<TenderPricingRowClass>;
+  schemaVersion: Scalars['Float'];
   updatedAt: Scalars['DateTime'];
+};
+
+export type TenderReviewClass = {
+  __typename?: 'TenderReviewClass';
+  _id: Scalars['ID'];
+  auditLog: Array<TenderAuditEventClass>;
+  comments: Array<TenderReviewCommentClass>;
+  createdAt: Scalars['DateTime'];
+  status: Scalars['String'];
+  updatedAt: Scalars['DateTime'];
+};
+
+export type TenderReviewCommentClass = {
+  __typename?: 'TenderReviewCommentClass';
+  _id: Scalars['ID'];
+  author?: Maybe<UserClass>;
+  content: Scalars['String'];
+  createdAt: Scalars['DateTime'];
+  editedAt?: Maybe<Scalars['DateTime']>;
 };
 
 export type TenderUpdateData = {
@@ -3020,15 +3188,6 @@ export type TenderUpdateData = {
   name?: InputMaybe<Scalars['String']>;
   status?: InputMaybe<Scalars['String']>;
 };
-
-export enum TenderWorkType {
-  CommonExcavation = 'CommonExcavation',
-  Concrete = 'Concrete',
-  Gravel = 'Gravel',
-  Paving = 'Paving',
-  SubgradePrep = 'SubgradePrep',
-  Toplift = 'Toplift'
-}
 
 export type TruckingRateClass = {
   __typename?: 'TruckingRateClass';
@@ -3287,6 +3446,8 @@ export type CompanyCardSnippetFragment = { __typename?: 'CompanyClass', _id: str
 
 export type CompanyFullSnippetFragment = { __typename?: 'CompanyClass', materialReportYears: Array<number>, invoiceReportYears: Array<number>, _id: string, name: string };
 
+export type CrewKindCardSnippetFragment = { __typename?: 'CrewKindClass', _id: string, name: string, description?: string | null };
+
 export type CrewLocationSnippetFragment = { __typename?: 'CrewLocationClass', crew: { __typename?: 'CrewClass', _id: string, name: string }, days: Array<{ __typename?: 'CrewLocationDayClass', date: any, items: Array<{ __typename?: 'CrewLocationDayItemClass', jobsiteName: string, dailyReportId: string }> }> };
 
 export type CrewCardSnippetFragment = { __typename?: 'CrewClass', _id: string, name: string, type: CrewTypes };
@@ -3435,7 +3596,7 @@ export type PublicDocumentSnippetFragment = { __typename?: 'PublicDocumentClass'
 
 export type RateSnippetFragment = { __typename?: 'RateClass', date: any, rate: number };
 
-export type RateBuildupTemplateFullSnippetFragment = { __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, specialPositions?: string | null, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null }, defaultRows: Array<{ __typename?: 'RateBuildupRateEntry', id: string, name: string, qty: number, ratePerHour: number }> }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }>, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }>, controllerDefs: Array<{ __typename?: 'RateBuildupControllerDef', id: string, label: string, type: string, defaultValue?: number | null, defaultSelected?: Array<string> | null, hint?: string | null, options?: Array<{ __typename?: 'RateBuildupControllerOption', id: string, label: string }> | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, groupDefs: Array<{ __typename?: 'RateBuildupGroupDef', id: string, label: string, parentGroupId?: string | null, memberIds: Array<string>, activation?: { __typename?: 'RateBuildupGroupActivation', controllerId: string, condition?: string | null, optionId?: string | null } | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, unitVariants?: Array<{ __typename?: 'RateBuildupUnitVariant', unit: string, activatesGroupId: string, conversionFormula?: string | null }> | null };
+export type RateBuildupTemplateFullSnippetFragment = { __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, specialPositions?: string | null, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null }, defaultRows: Array<{ __typename?: 'RateBuildupRateEntry', id: string, name: string, qty: number, ratePerHour: number }> }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }>, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, outputDefs: Array<{ __typename?: 'RateBuildupOutputDef', id: string, kind: RateBuildupOutputKind, sourceStepId: string, unit: string, label?: string | null, allowedMaterialIds?: Array<string> | null, defaultMaterialId?: string | null, allowedCrewKindIds?: Array<string> | null, defaultCrewKindId?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, controllerDefs: Array<{ __typename?: 'RateBuildupControllerDef', id: string, label: string, type: string, defaultValue?: number | null, defaultSelected?: Array<string> | null, hint?: string | null, options?: Array<{ __typename?: 'RateBuildupControllerOption', id: string, label: string }> | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, groupDefs: Array<{ __typename?: 'RateBuildupGroupDef', id: string, label: string, parentGroupId?: string | null, memberIds: Array<string>, activation?: { __typename?: 'RateBuildupGroupActivation', controllerId: string, condition?: string | null, optionId?: string | null } | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, unitVariants?: Array<{ __typename?: 'RateBuildupUnitVariant', unit: string, activatesGroupId: string, conversionFormula?: string | null }> | null };
 
 export type ReportIssueSnippetFragment = { __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, costModel?: JobsiteMaterialCostModel | null, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, scenarios?: Array<{ __typename?: 'RateScenarioClass', _id: string, label: string, delivered: boolean, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }> | null } | null };
 
@@ -3518,6 +3679,35 @@ export type CrewCreateMutationVariables = Exact<{
 
 
 export type CrewCreateMutation = { __typename?: 'Mutation', crewCreate: { __typename?: 'CrewClass', _id: string, name: string, type: CrewTypes, employees: Array<{ __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }>, vehicles: Array<{ __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }>, dailyReports: Array<{ __typename?: 'DailyReportClass', _id: string }> } };
+
+export type CrewKindArchiveMutationVariables = Exact<{
+  id: Scalars['ID'];
+}>;
+
+
+export type CrewKindArchiveMutation = { __typename?: 'Mutation', crewKindArchive: { __typename?: 'CrewKindClass', _id: string } };
+
+export type CrewKindCreateMutationVariables = Exact<{
+  data: CrewKindCreateData;
+}>;
+
+
+export type CrewKindCreateMutation = { __typename?: 'Mutation', crewKindCreate: { __typename?: 'CrewKindClass', _id: string, name: string, description?: string | null } };
+
+export type CrewKindUnarchiveMutationVariables = Exact<{
+  id: Scalars['ID'];
+}>;
+
+
+export type CrewKindUnarchiveMutation = { __typename?: 'Mutation', crewKindUnarchive: { __typename?: 'CrewKindClass', _id: string, name: string, description?: string | null } };
+
+export type CrewKindUpdateMutationVariables = Exact<{
+  id: Scalars['ID'];
+  data: CrewKindUpdateData;
+}>;
+
+
+export type CrewKindUpdateMutation = { __typename?: 'Mutation', crewKindUpdate: { __typename?: 'CrewKindClass', _id: string, name: string, description?: string | null } };
 
 export type CrewRemoveEmployeeMutationVariables = Exact<{
   crewId: Scalars['String'];
@@ -4009,7 +4199,7 @@ export type SaveRateBuildupTemplateMutationVariables = Exact<{
 }>;
 
 
-export type SaveRateBuildupTemplateMutation = { __typename?: 'Mutation', saveRateBuildupTemplate: { __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, specialPositions?: string | null, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null }, defaultRows: Array<{ __typename?: 'RateBuildupRateEntry', id: string, name: string, qty: number, ratePerHour: number }> }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }>, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }>, controllerDefs: Array<{ __typename?: 'RateBuildupControllerDef', id: string, label: string, type: string, defaultValue?: number | null, defaultSelected?: Array<string> | null, hint?: string | null, options?: Array<{ __typename?: 'RateBuildupControllerOption', id: string, label: string }> | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, groupDefs: Array<{ __typename?: 'RateBuildupGroupDef', id: string, label: string, parentGroupId?: string | null, memberIds: Array<string>, activation?: { __typename?: 'RateBuildupGroupActivation', controllerId: string, condition?: string | null, optionId?: string | null } | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, unitVariants?: Array<{ __typename?: 'RateBuildupUnitVariant', unit: string, activatesGroupId: string, conversionFormula?: string | null }> | null } };
+export type SaveRateBuildupTemplateMutation = { __typename?: 'Mutation', saveRateBuildupTemplate: { __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, specialPositions?: string | null, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null }, defaultRows: Array<{ __typename?: 'RateBuildupRateEntry', id: string, name: string, qty: number, ratePerHour: number }> }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }>, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, outputDefs: Array<{ __typename?: 'RateBuildupOutputDef', id: string, kind: RateBuildupOutputKind, sourceStepId: string, unit: string, label?: string | null, allowedMaterialIds?: Array<string> | null, defaultMaterialId?: string | null, allowedCrewKindIds?: Array<string> | null, defaultCrewKindId?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, controllerDefs: Array<{ __typename?: 'RateBuildupControllerDef', id: string, label: string, type: string, defaultValue?: number | null, defaultSelected?: Array<string> | null, hint?: string | null, options?: Array<{ __typename?: 'RateBuildupControllerOption', id: string, label: string }> | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, groupDefs: Array<{ __typename?: 'RateBuildupGroupDef', id: string, label: string, parentGroupId?: string | null, memberIds: Array<string>, activation?: { __typename?: 'RateBuildupGroupActivation', controllerId: string, condition?: string | null, optionId?: string | null } | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, unitVariants?: Array<{ __typename?: 'RateBuildupUnitVariant', unit: string, activatesGroupId: string, conversionFormula?: string | null }> | null } };
 
 export type SignupMutationVariables = Exact<{
   signupId: Scalars['String'];
@@ -4267,6 +4457,13 @@ export type CompanyFullQueryVariables = Exact<{
 
 
 export type CompanyFullQuery = { __typename?: 'Query', company: { __typename?: 'CompanyClass', materialReportYears: Array<number>, invoiceReportYears: Array<number>, _id: string, name: string } };
+
+export type CrewKindsQueryVariables = Exact<{
+  options?: InputMaybe<ListOptionData>;
+}>;
+
+
+export type CrewKindsQuery = { __typename?: 'Query', crewKinds: Array<{ __typename?: 'CrewKindClass', _id: string, name: string, description?: string | null }> };
 
 export type CrewLocationsQueryVariables = Exact<{
   startTime?: InputMaybe<Scalars['DateTime']>;
@@ -4689,7 +4886,7 @@ export type PublicDocumentsQuery = { __typename?: 'Query', publicDocuments: Arra
 export type RateBuildupTemplatesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type RateBuildupTemplatesQuery = { __typename?: 'Query', rateBuildupTemplates: Array<{ __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, specialPositions?: string | null, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null }, defaultRows: Array<{ __typename?: 'RateBuildupRateEntry', id: string, name: string, qty: number, ratePerHour: number }> }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }>, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, intermediateDefs: Array<{ __typename?: 'RateBuildupIntermediateDef', label: string, stepId: string, unit: string }>, controllerDefs: Array<{ __typename?: 'RateBuildupControllerDef', id: string, label: string, type: string, defaultValue?: number | null, defaultSelected?: Array<string> | null, hint?: string | null, options?: Array<{ __typename?: 'RateBuildupControllerOption', id: string, label: string }> | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, groupDefs: Array<{ __typename?: 'RateBuildupGroupDef', id: string, label: string, parentGroupId?: string | null, memberIds: Array<string>, activation?: { __typename?: 'RateBuildupGroupActivation', controllerId: string, condition?: string | null, optionId?: string | null } | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, unitVariants?: Array<{ __typename?: 'RateBuildupUnitVariant', unit: string, activatesGroupId: string, conversionFormula?: string | null }> | null }> };
+export type RateBuildupTemplatesQuery = { __typename?: 'Query', rateBuildupTemplates: Array<{ __typename?: 'RateBuildupTemplateClass', _id: string, label: string, defaultUnit?: string | null, specialPositions?: string | null, schemaVersion: number, createdAt: any, updatedAt: any, parameterDefs: Array<{ __typename?: 'RateBuildupParameterDef', id: string, label: string, prefix?: string | null, suffix?: string | null, defaultValue: number, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, tableDefs: Array<{ __typename?: 'RateBuildupTableDef', id: string, label: string, rowLabel: string, hint?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null }, defaultRows: Array<{ __typename?: 'RateBuildupRateEntry', id: string, name: string, qty: number, ratePerHour: number }> }>, formulaSteps: Array<{ __typename?: 'RateBuildupFormulaStep', id: string, label?: string | null, formula: string, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, breakdownDefs: Array<{ __typename?: 'RateBuildupBreakdownDef', id: string, label: string, items: Array<{ __typename?: 'RateBuildupBreakdownItem', stepId: string, label: string }>, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, outputDefs: Array<{ __typename?: 'RateBuildupOutputDef', id: string, kind: RateBuildupOutputKind, sourceStepId: string, unit: string, label?: string | null, allowedMaterialIds?: Array<string> | null, defaultMaterialId?: string | null, allowedCrewKindIds?: Array<string> | null, defaultCrewKindId?: string | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, controllerDefs: Array<{ __typename?: 'RateBuildupControllerDef', id: string, label: string, type: string, defaultValue?: number | null, defaultSelected?: Array<string> | null, hint?: string | null, options?: Array<{ __typename?: 'RateBuildupControllerOption', id: string, label: string }> | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, groupDefs: Array<{ __typename?: 'RateBuildupGroupDef', id: string, label: string, parentGroupId?: string | null, memberIds: Array<string>, activation?: { __typename?: 'RateBuildupGroupActivation', controllerId: string, condition?: string | null, optionId?: string | null } | null, position: { __typename?: 'RateBuildupPosition', x: number, y: number, w?: number | null, h?: number | null } }>, unitVariants?: Array<{ __typename?: 'RateBuildupUnitVariant', unit: string, activatesGroupId: string, conversionFormula?: string | null }> | null }> };
 
 export type SearchQueryVariables = Exact<{
   searchString: Scalars['String'];
@@ -4829,6 +5026,13 @@ export const CompanyFullSnippetFragmentDoc = gql`
   invoiceReportYears
 }
     ${CompanyCardSnippetFragmentDoc}`;
+export const CrewKindCardSnippetFragmentDoc = gql`
+    fragment CrewKindCardSnippet on CrewKindClass {
+  _id
+  name
+  description
+}
+    `;
 export const CrewLocationSnippetFragmentDoc = gql`
     fragment CrewLocationSnippet on CrewLocationClass {
   crew {
@@ -6062,10 +6266,22 @@ export const RateBuildupTemplateFullSnippetFragmentDoc = gql`
       h
     }
   }
-  intermediateDefs {
-    label
-    stepId
+  outputDefs {
+    id
+    kind
+    sourceStepId
     unit
+    label
+    allowedMaterialIds
+    defaultMaterialId
+    allowedCrewKindIds
+    defaultCrewKindId
+    position {
+      x
+      y
+      w
+      h
+    }
   }
   controllerDefs {
     id
@@ -6474,6 +6690,139 @@ export function useCrewCreateMutation(baseOptions?: Apollo.MutationHookOptions<C
 export type CrewCreateMutationHookResult = ReturnType<typeof useCrewCreateMutation>;
 export type CrewCreateMutationResult = Apollo.MutationResult<CrewCreateMutation>;
 export type CrewCreateMutationOptions = Apollo.BaseMutationOptions<CrewCreateMutation, CrewCreateMutationVariables>;
+export const CrewKindArchiveDocument = gql`
+    mutation CrewKindArchive($id: ID!) {
+  crewKindArchive(id: $id) {
+    _id
+  }
+}
+    `;
+export type CrewKindArchiveMutationFn = Apollo.MutationFunction<CrewKindArchiveMutation, CrewKindArchiveMutationVariables>;
+
+/**
+ * __useCrewKindArchiveMutation__
+ *
+ * To run a mutation, you first call `useCrewKindArchiveMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCrewKindArchiveMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [crewKindArchiveMutation, { data, loading, error }] = useCrewKindArchiveMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useCrewKindArchiveMutation(baseOptions?: Apollo.MutationHookOptions<CrewKindArchiveMutation, CrewKindArchiveMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CrewKindArchiveMutation, CrewKindArchiveMutationVariables>(CrewKindArchiveDocument, options);
+      }
+export type CrewKindArchiveMutationHookResult = ReturnType<typeof useCrewKindArchiveMutation>;
+export type CrewKindArchiveMutationResult = Apollo.MutationResult<CrewKindArchiveMutation>;
+export type CrewKindArchiveMutationOptions = Apollo.BaseMutationOptions<CrewKindArchiveMutation, CrewKindArchiveMutationVariables>;
+export const CrewKindCreateDocument = gql`
+    mutation CrewKindCreate($data: CrewKindCreateData!) {
+  crewKindCreate(data: $data) {
+    ...CrewKindCardSnippet
+  }
+}
+    ${CrewKindCardSnippetFragmentDoc}`;
+export type CrewKindCreateMutationFn = Apollo.MutationFunction<CrewKindCreateMutation, CrewKindCreateMutationVariables>;
+
+/**
+ * __useCrewKindCreateMutation__
+ *
+ * To run a mutation, you first call `useCrewKindCreateMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCrewKindCreateMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [crewKindCreateMutation, { data, loading, error }] = useCrewKindCreateMutation({
+ *   variables: {
+ *      data: // value for 'data'
+ *   },
+ * });
+ */
+export function useCrewKindCreateMutation(baseOptions?: Apollo.MutationHookOptions<CrewKindCreateMutation, CrewKindCreateMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CrewKindCreateMutation, CrewKindCreateMutationVariables>(CrewKindCreateDocument, options);
+      }
+export type CrewKindCreateMutationHookResult = ReturnType<typeof useCrewKindCreateMutation>;
+export type CrewKindCreateMutationResult = Apollo.MutationResult<CrewKindCreateMutation>;
+export type CrewKindCreateMutationOptions = Apollo.BaseMutationOptions<CrewKindCreateMutation, CrewKindCreateMutationVariables>;
+export const CrewKindUnarchiveDocument = gql`
+    mutation CrewKindUnarchive($id: ID!) {
+  crewKindUnarchive(id: $id) {
+    ...CrewKindCardSnippet
+  }
+}
+    ${CrewKindCardSnippetFragmentDoc}`;
+export type CrewKindUnarchiveMutationFn = Apollo.MutationFunction<CrewKindUnarchiveMutation, CrewKindUnarchiveMutationVariables>;
+
+/**
+ * __useCrewKindUnarchiveMutation__
+ *
+ * To run a mutation, you first call `useCrewKindUnarchiveMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCrewKindUnarchiveMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [crewKindUnarchiveMutation, { data, loading, error }] = useCrewKindUnarchiveMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useCrewKindUnarchiveMutation(baseOptions?: Apollo.MutationHookOptions<CrewKindUnarchiveMutation, CrewKindUnarchiveMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CrewKindUnarchiveMutation, CrewKindUnarchiveMutationVariables>(CrewKindUnarchiveDocument, options);
+      }
+export type CrewKindUnarchiveMutationHookResult = ReturnType<typeof useCrewKindUnarchiveMutation>;
+export type CrewKindUnarchiveMutationResult = Apollo.MutationResult<CrewKindUnarchiveMutation>;
+export type CrewKindUnarchiveMutationOptions = Apollo.BaseMutationOptions<CrewKindUnarchiveMutation, CrewKindUnarchiveMutationVariables>;
+export const CrewKindUpdateDocument = gql`
+    mutation CrewKindUpdate($id: ID!, $data: CrewKindUpdateData!) {
+  crewKindUpdate(id: $id, data: $data) {
+    ...CrewKindCardSnippet
+  }
+}
+    ${CrewKindCardSnippetFragmentDoc}`;
+export type CrewKindUpdateMutationFn = Apollo.MutationFunction<CrewKindUpdateMutation, CrewKindUpdateMutationVariables>;
+
+/**
+ * __useCrewKindUpdateMutation__
+ *
+ * To run a mutation, you first call `useCrewKindUpdateMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCrewKindUpdateMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [crewKindUpdateMutation, { data, loading, error }] = useCrewKindUpdateMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      data: // value for 'data'
+ *   },
+ * });
+ */
+export function useCrewKindUpdateMutation(baseOptions?: Apollo.MutationHookOptions<CrewKindUpdateMutation, CrewKindUpdateMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CrewKindUpdateMutation, CrewKindUpdateMutationVariables>(CrewKindUpdateDocument, options);
+      }
+export type CrewKindUpdateMutationHookResult = ReturnType<typeof useCrewKindUpdateMutation>;
+export type CrewKindUpdateMutationResult = Apollo.MutationResult<CrewKindUpdateMutation>;
+export type CrewKindUpdateMutationOptions = Apollo.BaseMutationOptions<CrewKindUpdateMutation, CrewKindUpdateMutationVariables>;
 export const CrewRemoveEmployeeDocument = gql`
     mutation CrewRemoveEmployee($crewId: String!, $employeeId: String!) {
   crewRemoveEmployee(crewId: $crewId, employeeId: $employeeId) {
@@ -9819,6 +10168,41 @@ export function useCompanyFullLazyQuery(baseOptions?: Apollo.LazyQueryHookOption
 export type CompanyFullQueryHookResult = ReturnType<typeof useCompanyFullQuery>;
 export type CompanyFullLazyQueryHookResult = ReturnType<typeof useCompanyFullLazyQuery>;
 export type CompanyFullQueryResult = Apollo.QueryResult<CompanyFullQuery, CompanyFullQueryVariables>;
+export const CrewKindsDocument = gql`
+    query CrewKinds($options: ListOptionData) {
+  crewKinds(options: $options) {
+    ...CrewKindCardSnippet
+  }
+}
+    ${CrewKindCardSnippetFragmentDoc}`;
+
+/**
+ * __useCrewKindsQuery__
+ *
+ * To run a query within a React component, call `useCrewKindsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useCrewKindsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useCrewKindsQuery({
+ *   variables: {
+ *      options: // value for 'options'
+ *   },
+ * });
+ */
+export function useCrewKindsQuery(baseOptions?: Apollo.QueryHookOptions<CrewKindsQuery, CrewKindsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<CrewKindsQuery, CrewKindsQueryVariables>(CrewKindsDocument, options);
+      }
+export function useCrewKindsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<CrewKindsQuery, CrewKindsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<CrewKindsQuery, CrewKindsQueryVariables>(CrewKindsDocument, options);
+        }
+export type CrewKindsQueryHookResult = ReturnType<typeof useCrewKindsQuery>;
+export type CrewKindsLazyQueryHookResult = ReturnType<typeof useCrewKindsLazyQuery>;
+export type CrewKindsQueryResult = Apollo.QueryResult<CrewKindsQuery, CrewKindsQueryVariables>;
 export const CrewLocationsDocument = gql`
     query CrewLocations($startTime: DateTime, $endTime: DateTime) {
   crewLocations(startTime: $startTime, endTime: $endTime) {

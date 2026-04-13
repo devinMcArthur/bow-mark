@@ -34,6 +34,13 @@ interface Props {
   paramNotes?: Record<string, string>;
   /** Fires when a param note changes. */
   onParamNoteChange?: (paramId: string, note: string) => void;
+  /** Estimator's per-Output-node selections (tender row context). */
+  outputs?: Record<string, { materialId?: string; crewKindId?: string }>;
+  /** Fires when the estimator picks a material or crew kind for an Output node. */
+  onOutputChange?: (
+    outputId: string,
+    selection: { materialId?: string; crewKindId?: string }
+  ) => void;
   /** Initial quantity for the LiveTest panel. Defaults to 100. */
   initialQuantity?: number;
   /**
@@ -58,6 +65,8 @@ const CalculatorCanvas: React.FC<Props> = ({
   onInputsChange,
   paramNotes,
   onParamNoteChange,
+  outputs,
+  onOutputChange,
   initialQuantity,
   renderToolbar,
   unit,
@@ -223,7 +232,7 @@ const CalculatorCanvas: React.FC<Props> = ({
     return next;
   })();
 
-  const edges: Edge[] = useMemo(() => parseEdges(doc as unknown as CalculatorTemplate), [doc]);
+  const edges: Edge[] = useMemo(() => parseEdges(doc), [doc]);
 
   // ─── Doc-level saves ────────────────────────────────────────────────────────
 
@@ -258,7 +267,7 @@ const CalculatorCanvas: React.FC<Props> = ({
   }, [doc, handleSave, selectedNodeId]);
 
   const handleCreateNode = useCallback(
-    (type: "formula" | "param" | "table" | "breakdown" | "group" | "controller:percentage" | "controller:toggle" | "controller:selector", position: { x: number; y: number }) => {
+    (type: "formula" | "param" | "table" | "breakdown" | "output" | "group" | "controller:percentage" | "controller:toggle" | "controller:selector", position: { x: number; y: number }) => {
       if (type === "group") {
         const { doc: newDoc, newId } = createGroup(doc, position);
         handleSave(newDoc);
@@ -271,7 +280,7 @@ const CalculatorCanvas: React.FC<Props> = ({
         setSelectedNodeId(newId);
         setPositionResetKey((k) => k + 1);
       } else {
-        const { doc: updatedDoc, newId } = createNode(type as "table" | "formula" | "param" | "breakdown", doc, position);
+        const { doc: updatedDoc, newId } = createNode(type as "table" | "formula" | "param" | "breakdown" | "output", doc, position);
         handleSave(updatedDoc);
         setSelectedNodeId(newId);
         setPositionResetKey((k) => k + 1);
@@ -359,6 +368,8 @@ const CalculatorCanvas: React.FC<Props> = ({
                 onInputsChange={onInputsChange}
                 paramNotes={paramNotes}
                 onParamNoteChange={onParamNoteChange}
+                outputs={outputs}
+                onOutputChange={onOutputChange}
                 unit={unit}
                 testUnit={testUnit}
                 onTestUnitChange={setTestUnit}

@@ -17,6 +17,8 @@ import { slugify, renameNodeId, nextSlugId } from "./canvasOps";
 import { formulaToLatex } from "./formulaToLatex";
 import katex from "katex";
 import { StepDebugInfo } from "../../../../components/TenderPricing/calculators/evaluate";
+import MaterialSearch from "../../../Search/MaterialSearch";
+import { useMaterialsCardQuery, useCrewKindsQuery, RateBuildupOutputKind } from "../../../../generated/graphql";
 
 interface Props {
   template: CanvasDocument;
@@ -26,26 +28,27 @@ interface Props {
   onUpdateDoc: (doc: CanvasDocument, newSelectedId?: string) => void;
 }
 
-type NodeKind = "param" | "table" | "quantity" | "formula" | "breakdown" | "output" | "group" | "controller" | "unknown";
+type NodeKind = "param" | "table" | "quantity" | "formula" | "breakdown" | "unitPrice" | "output" | "group" | "controller" | "unknown";
 
 const KIND_COLORS: Record<NodeKind, string> = {
   param: "blue", table: "green", quantity: "yellow",
-  formula: "purple", breakdown: "teal", output: "cyan",
+  formula: "purple", breakdown: "teal", unitPrice: "cyan", output: "pink",
   group: "purple", controller: "teal", unknown: "gray",
 };
 const KIND_LABELS: Record<NodeKind, string> = {
   param: "Parameter", table: "Table Aggregate", quantity: "Quantity (test input)",
-  formula: "Formula Step", breakdown: "Summary", output: "Unit Price Output",
+  formula: "Formula Step", breakdown: "Summary", unitPrice: "Unit Price Output", output: "Demand Output",
   group: "Group", controller: "Controller", unknown: "Unknown",
 };
 
 function detectKind(nodeId: string, template: CanvasDocument): NodeKind {
   if (nodeId === "quantity") return "quantity";
-  if (nodeId === "unitPrice") return "output";
+  if (nodeId === "unitPrice") return "unitPrice";
   if (template.parameterDefs.some((p) => p.id === nodeId)) return "param";
   if (template.tableDefs.some((t) => `${t.id}RatePerHr` === nodeId)) return "table";
   if (template.formulaSteps.some((s) => s.id === nodeId)) return "formula";
   if (template.breakdownDefs.some((b) => b.id === nodeId)) return "breakdown";
+  if (template.outputDefs.some((o) => o.id === nodeId)) return "output";
   if (template.groupDefs.some((g) => g.id === nodeId)) return "group";
   if ((template.controllerDefs ?? []).some((c) => c.id === nodeId)) return "controller";
   return "unknown";
@@ -400,6 +403,319 @@ const BreakdownEdit: React.FC<{
           + Add Item
         </Button>
       </Box>
+    </>
+  );
+};
+
+// ─── Output (Demand) edit ─────────────────────────────────────────────────────
+
+const OutputEdit: React.FC<{
+  doc: CanvasDocument;
+  nodeId: string;
+  onUpdateDoc: (doc: CanvasDocument, newSelectedId?: string) => void;
+}> = ({ doc, nodeId, onUpdateDoc }) => {
+  const out = doc.outputDefs.find((o) => o.id === nodeId)!;
+  const isCrew = out.kind === "CrewHours";
+
+  const { data: materialsData } = useMaterialsCardQuery();
+  const materials = useMemo(() => materialsData?.materials ?? [], [materialsData]);
+  const { data: crewKindsData } = useCrewKindsQuery();
+  const crewKinds = useMemo(() => crewKindsData?.crewKinds ?? [], [crewKindsData]);
+
+  const allowedMaterials = out.allowedMaterialIds ?? [];
+  const allowedCrewKinds = out.allowedCrewKindIds ?? [];
+  const materialName = (id: string | undefined) => (id ? materials.find((m) => m._id === id)?.name ?? id : "");
+  const crewKindName = (id: string | undefined) => (id ? crewKinds.find((c) => c._id === id)?.name ?? id : "");
+
+  const patch = (updates: Partial<typeof out>) => {
+    onUpdateDoc({
+      ...doc,
+      outputDefs: doc.outputDefs.map((o) => (o.id === nodeId ? { ...o, ...updates } : o)),
+    });
+  };
+
+  /**
+   * Switching kind clears the other kind's fields to avoid stale data. We
+   * keep sourceStepId + label + position since those apply regardless of kind.
+   */
+  const changeKind = (newKind: RateBuildupOutputKind) => {
+    if (newKind === out.kind) return;
+    if (newKind === RateBuildupOutputKind.CrewHours) {
+      patch({
+        kind: RateBuildupOutputKind.CrewHours,
+        unit: "hr",
+        allowedMaterialIds: undefined,
+        defaultMaterialId: undefined,
+      });
+    } else {
+      patch({
+        kind: RateBuildupOutputKind.Material,
+        unit: out.unit || "t",
+        allowedCrewKindIds: undefined,
+        defaultCrewKindId: undefined,
+      });
+    }
+  };
+
+  const saveLabel = (newLabel: string) => {
+    const labeled: CanvasDocument = {
+      ...doc,
+      outputDefs: doc.outputDefs.map((o) => (o.id === nodeId ? { ...o, label: newLabel } : o)),
+    };
+    const newSlug = nextSlugId(
+      `out_${slugify(newLabel)}`,
+      new Set([
+        ...doc.outputDefs.filter((o) => o.id !== nodeId).map((o) => o.id),
+        ...doc.formulaSteps.map((s) => s.id),
+        ...doc.parameterDefs.map((p) => p.id),
+        ...doc.tableDefs.map((t) => t.id),
+        ...doc.tableDefs.map((t) => `${t.id}RatePerHr`),
+        ...doc.breakdownDefs.map((b) => b.id),
+        "quantity",
+        "unitPrice",
+      ])
+    );
+    if (newSlug !== nodeId) {
+      onUpdateDoc(renameNodeId(nodeId, newSlug, labeled), newSlug);
+    } else {
+      onUpdateDoc(labeled);
+    }
+  };
+
+  // ── Material whitelist handlers ────────────────────────────────────────────
+  const addMaterialToWhitelist = (materialId: string) => {
+    if (allowedMaterials.includes(materialId)) return;
+    patch({ allowedMaterialIds: [...allowedMaterials, materialId] });
+  };
+
+  const removeMaterialFromWhitelist = (materialId: string) => {
+    const list = allowedMaterials.filter((id) => id !== materialId);
+    const defaultStillValid = out.defaultMaterialId && list.includes(out.defaultMaterialId);
+    patch({
+      allowedMaterialIds: list.length > 0 ? list : undefined,
+      ...(defaultStillValid ? {} : { defaultMaterialId: undefined }),
+    });
+  };
+
+  const materialCandidates = useMemo(() => {
+    const base = allowedMaterials.length > 0
+      ? materials.filter((m) => allowedMaterials.includes(m._id))
+      : materials;
+    const seen = new Set<string>();
+    return base.filter((m) => {
+      if (seen.has(m._id)) return false;
+      seen.add(m._id);
+      return true;
+    });
+  }, [allowedMaterials, materials]);
+
+  // ── CrewKind whitelist handlers ────────────────────────────────────────────
+  const toggleCrewKindInWhitelist = (crewKindId: string) => {
+    const has = allowedCrewKinds.includes(crewKindId);
+    if (has) {
+      const list = allowedCrewKinds.filter((id) => id !== crewKindId);
+      const defaultStillValid = out.defaultCrewKindId && list.includes(out.defaultCrewKindId);
+      patch({
+        allowedCrewKindIds: list.length > 0 ? list : undefined,
+        ...(defaultStillValid ? {} : { defaultCrewKindId: undefined }),
+      });
+    } else {
+      patch({ allowedCrewKindIds: [...allowedCrewKinds, crewKindId] });
+    }
+  };
+
+  const crewKindCandidates = useMemo(() => {
+    const base = allowedCrewKinds.length > 0
+      ? crewKinds.filter((c) => allowedCrewKinds.includes(c._id))
+      : crewKinds;
+    const seen = new Set<string>();
+    return base.filter((c) => {
+      if (seen.has(c._id)) return false;
+      seen.add(c._id);
+      return true;
+    });
+  }, [allowedCrewKinds, crewKinds]);
+
+  return (
+    <>
+      <EditField label="Label" value={out.label ?? ""} placeholder={isCrew ? "Operator" : "Asphalt"} onBlur={saveLabel} />
+
+      {/* Kind discriminator — switches between material and crew hours */}
+      <Box mb={3}>
+        <Text fontSize="10px" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide" mb={1}>
+          Kind
+        </Text>
+        <Select
+          size="sm"
+          value={out.kind}
+          onChange={(e) => changeKind(e.target.value as RateBuildupOutputKind)}
+        >
+          <option value="Material">Material</option>
+          <option value="CrewHours">Crew Hours</option>
+        </Select>
+      </Box>
+
+      {/* Source step picker */}
+      <Box mb={3}>
+        <Text fontSize="10px" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide" mb={1}>
+          Source Formula Step
+        </Text>
+        <Select
+          size="sm"
+          value={out.sourceStepId}
+          onChange={(e) => patch({ sourceStepId: e.target.value })}
+          placeholder="— pick formula —"
+        >
+          {doc.formulaSteps.map((s) => (
+            <option key={s.id} value={s.id}>{s.label ?? s.id}</option>
+          ))}
+        </Select>
+      </Box>
+
+      {/* Unit dropdown — hidden for crewHours (implicitly "hr") */}
+      {!isCrew && (
+        <Box mb={3}>
+          <Text fontSize="10px" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide" mb={1}>
+            Unit
+          </Text>
+          <Select size="sm" value={out.unit} onChange={(e) => patch({ unit: e.target.value })}>
+            {CANONICAL_UNITS.map((u) => (
+              <option key={u.code} value={u.code}>{u.label} ({u.code})</option>
+            ))}
+          </Select>
+        </Box>
+      )}
+
+      {/* ── MATERIAL kind: whitelist + default ─────────────────────────────── */}
+      {!isCrew && (
+        <>
+          <Box mb={3}>
+            <Text fontSize="10px" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide" mb={1}>
+              Allowed Materials
+            </Text>
+            <Text fontSize="10px" color="gray.500" mb={2}>
+              Leave empty to allow any material. Otherwise, the estimator can only pick from this list.
+            </Text>
+            {(out.allowedMaterialIds ?? []).length > 0 && (
+              <Flex wrap="wrap" gap={1} mb={2}>
+                {(out.allowedMaterialIds ?? []).map((id) => (
+                  <Badge
+                    key={id}
+                    colorScheme="pink"
+                    variant="subtle"
+                    cursor="pointer"
+                    px={2}
+                    py={1}
+                    onClick={() => removeMaterialFromWhitelist(id)}
+                    title="Click to remove"
+                  >
+                    {materialName(id)} ✕
+                  </Badge>
+                ))}
+              </Flex>
+            )}
+            <MaterialSearch
+              materialSelected={(m) => addMaterialToWhitelist(m._id)}
+              key={(out.allowedMaterialIds ?? []).length}
+            />
+          </Box>
+
+          <Box mb={3}>
+            <Text fontSize="10px" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide" mb={1}>
+              Default Material (optional)
+            </Text>
+            <Select
+              size="sm"
+              value={out.defaultMaterialId ?? ""}
+              onChange={(e) => patch({ defaultMaterialId: e.target.value || undefined })}
+              placeholder="— none —"
+            >
+              {materialCandidates.map((m) => (
+                <option key={m._id} value={m._id}>{m.name}</option>
+              ))}
+            </Select>
+            {allowedMaterials.length > 0 && materialCandidates.length === 0 && (
+              <Text fontSize="10px" color="gray.500" mt={1}>
+                Loading materials…
+              </Text>
+            )}
+          </Box>
+        </>
+      )}
+
+      {/* ── CREW HOURS kind: whitelist + default ───────────────────────────── */}
+      {isCrew && (
+        <>
+          <Box mb={3}>
+            <Text fontSize="10px" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide" mb={1}>
+              Allowed Crew Kinds
+            </Text>
+            <Text fontSize="10px" color="gray.500" mb={2}>
+              Leave empty to allow any crew kind. Otherwise, the estimator can only pick from this list.
+            </Text>
+            {(out.allowedCrewKindIds ?? []).length > 0 && (
+              <Flex wrap="wrap" gap={1} mb={2}>
+                {(out.allowedCrewKindIds ?? []).map((id) => (
+                  <Badge
+                    key={id}
+                    colorScheme="teal"
+                    variant="subtle"
+                    cursor="pointer"
+                    px={2}
+                    py={1}
+                    onClick={() => toggleCrewKindInWhitelist(id)}
+                    title="Click to remove"
+                  >
+                    {crewKindName(id)} ✕
+                  </Badge>
+                ))}
+              </Flex>
+            )}
+            {/*
+              Simple picker: render all crew kinds NOT already in the whitelist.
+              Unlike materials (40+ items needing search), crew kinds are typically
+              fewer than 10, so a plain Select is plenty.
+            */}
+            {crewKinds.filter((c) => !allowedCrewKinds.includes(c._id)).length > 0 && (
+              <Select
+                size="sm"
+                value=""
+                placeholder="+ Add crew kind"
+                onChange={(e) => {
+                  if (e.target.value) toggleCrewKindInWhitelist(e.target.value);
+                }}
+              >
+                {crewKinds
+                  .filter((c) => !allowedCrewKinds.includes(c._id))
+                  .map((c) => (
+                    <option key={c._id} value={c._id}>{c.name}</option>
+                  ))}
+              </Select>
+            )}
+            {crewKinds.length === 0 && (
+              <Text fontSize="10px" color="orange.500" mt={1}>
+                No crew kinds defined yet — add them in Settings → Crew Kinds.
+              </Text>
+            )}
+          </Box>
+
+          <Box mb={3}>
+            <Text fontSize="10px" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide" mb={1}>
+              Default Crew Kind (optional)
+            </Text>
+            <Select
+              size="sm"
+              value={out.defaultCrewKindId ?? ""}
+              onChange={(e) => patch({ defaultCrewKindId: e.target.value || undefined })}
+              placeholder="— none —"
+            >
+              {crewKindCandidates.map((c) => (
+                <option key={c._id} value={c._id}>{c.name}</option>
+              ))}
+            </Select>
+          </Box>
+        </>
+      )}
     </>
   );
 };
@@ -897,8 +1213,11 @@ const InspectPanel: React.FC<Props> = ({
           <UnitVariantsEditor doc={template} onUpdateDoc={onUpdateDoc} />
         </Box>
       )}
-      {kind === "output" && (
+      {kind === "unitPrice" && (
         <Text fontSize="xs" color="gray.400" mb={4}>Derived from all summary nodes. Read-only.</Text>
+      )}
+      {kind === "output" && (
+        <OutputEdit doc={template} nodeId={selectedNodeId} onUpdateDoc={onUpdateDoc} />
       )}
       {kind === "group" && (
         <GroupEdit doc={template} nodeId={selectedNodeId} onUpdateDoc={onUpdateDoc} />

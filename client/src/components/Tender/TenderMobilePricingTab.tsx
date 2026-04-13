@@ -57,6 +57,14 @@ const ROW_FIELDS = `
   notes
   markupOverride
   rateBuildupSnapshot
+  rateBuildupOutputs {
+    kind
+    materialId
+    crewKindId
+    unit
+    perUnitValue
+    totalValue
+  }
   extraUnitPrice
   extraUnitPriceMemo
   status

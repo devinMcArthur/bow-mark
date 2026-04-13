@@ -16,7 +16,6 @@ import {
   TableDef,
   FormulaStep,
   BreakdownDef,
-  IntermediateDef,
 } from "../../../../components/TenderPricing/calculators/types";
 
 interface TemplateEditorProps {
@@ -132,21 +131,6 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ template, onChange }) =
   const removeBreakdown = (i: number) =>
     patch({ breakdownDefs: template.breakdownDefs.filter((_, idx) => idx !== i) });
 
-  // ── Intermediates ─────────────────────────────────────────────────────────
-
-  const updateIntermediate = (i: number, field: keyof IntermediateDef, value: string) => {
-    const updated = template.intermediateDefs.map((im, idx) =>
-      idx === i ? { ...im, [field]: value } : im
-    );
-    patch({ intermediateDefs: updated });
-  };
-
-  const addIntermediate = () =>
-    patch({ intermediateDefs: [...template.intermediateDefs, { label: "", stepId: "", unit: "" }] });
-
-  const removeIntermediate = (i: number) =>
-    patch({ intermediateDefs: template.intermediateDefs.filter((_, idx) => idx !== i) });
-
   return (
     <Box h="100%" overflowY="auto" p={4}>
       {/* Basic info */}
@@ -261,26 +245,6 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({ template, onChange }) =
         Add breakdown category
       </Button>
 
-      {/* Intermediates */}
-      <SectionLabel>Intermediates (footnotes)</SectionLabel>
-      {template.intermediateDefs.map((im, i) => (
-        <FieldRow
-          key={i}
-          fields={[
-            { label: "label", value: im.label, placeholder: "Total tonnes" },
-            { label: "stepId", value: im.stepId, placeholder: "totalTonnes", mono: true },
-            { label: "unit", value: im.unit, placeholder: "t" },
-          ]}
-          onChange={(fi, v) => {
-            const fields: (keyof IntermediateDef)[] = ["label", "stepId", "unit"];
-            updateIntermediate(i, fields[fi], v);
-          }}
-          onDelete={() => removeIntermediate(i)}
-        />
-      ))}
-      <Button size="xs" variant="ghost" leftIcon={<FiPlus />} color="gray.500" onClick={addIntermediate}>
-        Add intermediate
-      </Button>
     </Box>
   );
 };

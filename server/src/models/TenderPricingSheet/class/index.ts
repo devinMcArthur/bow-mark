@@ -83,6 +83,10 @@ export class TenderPricingSheetClass extends TenderPricingSheetSchema {
     return update.autoNumber(this);
   }
 
+  public async autoNumberLastRow(this: TenderPricingSheetDocument) {
+    return update.autoNumberLastRow(this);
+  }
+
   public async addDocRef(
     this: TenderPricingSheetDocument,
     rowId: Id,

@@ -1,6 +1,7 @@
 export * from "./EnrichedFile";
 export * from "./Company";
 export * from "./Crew";
+export * from "./CrewKind";
 export * from "./DailyReport";
 export * from "./Employee";
 export * from "./EmployeeWork";
@@ -74,6 +75,20 @@ export type CrewModel = ReturnModelType<typeof CrewClass>;
 
 export const Crew = getModelForClass(CrewClass, {
   schemaOptions: { collection: "crews" },
+});
+
+/**
+ * ----- CrewKind -----
+ */
+
+import { CrewKindClass } from "./CrewKind/class";
+
+export type CrewKindDocument = DocumentType<CrewKindClass>;
+
+export type CrewKindModel = ReturnModelType<typeof CrewKindClass>;
+
+export const CrewKind = getModelForClass(CrewKindClass, {
+  schemaOptions: { collection: "crewkinds" },
 });
 
 /**

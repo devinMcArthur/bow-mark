@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Flex,
@@ -146,7 +146,7 @@ const BoardColumn: React.FC<{
             key={row._id}
             row={row}
             defaultMarkupPct={defaultMarkupPct}
-            scheduleName={sched?.description}
+            scheduleName={sched?.description ?? undefined}
             onClick={() => onCardClick(row)}
           />
         );
@@ -209,6 +209,16 @@ const PricingBoard: React.FC<PricingBoardProps> = ({
     if (!selectedRow) return null;
     return sheet.rows.find((r) => r._id === selectedRow._id) ?? null;
   }, [selectedRow, sheet.rows]);
+
+  // Escape closes the detail drawer.
+  useEffect(() => {
+    if (!selectedRow) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedRow(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selectedRow]);
 
   return (
     <Flex direction="column" h="100%" overflow="hidden">

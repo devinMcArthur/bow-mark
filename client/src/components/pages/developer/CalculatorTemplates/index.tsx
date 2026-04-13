@@ -18,7 +18,7 @@ const EMPTY_TEMPLATE: CalculatorTemplate = {
   tableDefs: [],
   formulaSteps: [],
   breakdownDefs: [],
-  intermediateDefs: [],
+  outputDefs: [],
   defaultInputs: { params: {}, tables: {} },
 };
 

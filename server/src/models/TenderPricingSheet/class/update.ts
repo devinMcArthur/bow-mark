@@ -1,9 +1,11 @@
 import { Types } from "mongoose";
-import { TenderPricingSheetDocument } from "@models";
+import type { TenderPricingSheetDocument } from "@models";
 import {
   IDocRef,
+  IRateBuildupOutput,
   ITenderPricingRowCreate,
   ITenderPricingRowUpdate,
+  RateBuildupOutputKind,
   TenderPricingRowType,
 } from "@typescript/tenderPricingSheet";
 import { Id } from "@typescript/models";
@@ -46,6 +48,24 @@ const updateRow = (
   if (data.unitPrice !== undefined) row.unitPrice = data.unitPrice;
   if (data.notes !== undefined) row.notes = data.notes;
   if (data.rateBuildupSnapshot !== undefined) row.rateBuildupSnapshot = data.rateBuildupSnapshot ?? undefined;
+  if (data.rateBuildupOutputs !== undefined) {
+    // null from "remove buildup" → clear the array. undefined → no-op.
+    // Each output is validated for kind↔field consistency.
+    const incoming = data.rateBuildupOutputs;
+    if (incoming === null) {
+      row.rateBuildupOutputs = [] as any;
+    } else {
+      for (const out of incoming) {
+        if (out.kind === RateBuildupOutputKind.Material && out.crewKindId) {
+          throw new Error("rateBuildupOutput kind 'Material' cannot have crewKindId");
+        }
+        if (out.kind === RateBuildupOutputKind.CrewHours && out.materialId) {
+          throw new Error("rateBuildupOutput kind 'CrewHours' cannot have materialId");
+        }
+      }
+      row.rateBuildupOutputs = incoming as any;
+    }
+  }
   if (data.extraUnitPrice !== undefined) row.extraUnitPrice = data.extraUnitPrice;
   if (data.extraUnitPriceMemo !== undefined) row.extraUnitPriceMemo = data.extraUnitPriceMemo ?? undefined;
   if (data.status !== undefined) row.status = data.status;
@@ -135,6 +155,10 @@ const duplicateRow = (
     unitPrice: src.unitPrice,
     notes: src.notes,
     rateBuildupSnapshot: src.rateBuildupSnapshot,
+    rateBuildupOutputs: ((src.rateBuildupOutputs as IRateBuildupOutput[] | undefined) ?? []).filter(
+      (out: IRateBuildupOutput) =>
+        Object.values(RateBuildupOutputKind).includes(out.kind)
+    ),
     extraUnitPrice: src.extraUnitPrice,
     extraUnitPriceMemo: src.extraUnitPriceMemo,
     status: src.status,
@@ -178,6 +202,30 @@ const autoNumber = (
   return sheet;
 };
 
+/**
+ * Assign an itemNumber to ONLY the last row in the sheet (typically the row
+ * that was just appended by addRow), without touching any existing row
+ * numbers. This preserves any hand-typed numbers on prior rows.
+ *
+ * Implementation: snapshot existing numbers, run full autoNumber to compute
+ * the new row's correct position-based number, then restore prior numbers.
+ * Reusing the full algorithm avoids duplicating the Schedule/Group/Item
+ * hierarchy logic.
+ */
+const autoNumberLastRow = (
+  sheet: TenderPricingSheetDocument
+): TenderPricingSheetDocument => {
+  if (sheet.rows.length === 0) return sheet;
+
+  const priorNumbers = sheet.rows.map((r) => r.itemNumber ?? "");
+  autoNumber(sheet);
+  for (let i = 0; i < sheet.rows.length - 1; i++) {
+    sheet.rows[i].itemNumber = priorNumbers[i];
+  }
+  sheet.updatedAt = new Date();
+  return sheet;
+};
+
 const deleteRow = (
   sheet: TenderPricingSheetDocument,
   rowId: Id
@@ -206,4 +254,4 @@ const reorderRows = (
   return sheet;
 };
 
-export default { defaultMarkup, addRow, updateRow, deleteRow, reorderRows, duplicateRow, autoNumber, addDocRef, removeDocRef, updateDocRef };
+export default { defaultMarkup, addRow, updateRow, deleteRow, reorderRows, duplicateRow, autoNumber, autoNumberLastRow, addDocRef, removeDocRef, updateDocRef };

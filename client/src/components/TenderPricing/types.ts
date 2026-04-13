@@ -11,12 +11,23 @@ export enum TenderPricingRowType {
   Item = "Item",
 }
 
+export interface RateBuildupOutput {
+  kind: string;
+  materialId?: string | null;
+  crewKindId?: string | null;
+  unit: string;
+  perUnitValue: number;
+  /** Row total — formula steps receive quantity in context and produce
+   *  totals directly. Mirrors perUnitValue (kept for back-compat). */
+  totalValue: number;
+}
+
 export interface TenderPricingRow {
   _id: string;
   type: TenderPricingRowType;
   sortOrder: number;
-  itemNumber: string;
-  description: string;
+  itemNumber?: string | null;
+  description?: string | null;
   indentLevel: number;
   quantity?: number | null;
   unit?: string | null;
@@ -24,6 +35,7 @@ export interface TenderPricingRow {
   unitPrice?: number | null;
   notes?: string | null;
   rateBuildupSnapshot?: string | null;
+  rateBuildupOutputs?: RateBuildupOutput[] | null;
   extraUnitPrice?: number | null;
   extraUnitPriceMemo?: string | null;
   docRefs?: DocRef[] | null;

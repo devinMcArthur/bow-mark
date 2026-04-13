@@ -1,0 +1,5 @@
+mutation CrewKindUnarchive($id: ID!) {
+  crewKindUnarchive(id: $id) {
+    ...CrewKindCardSnippet
+  }
+}
