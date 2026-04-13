@@ -13,7 +13,7 @@ export default defineConfig({
       // React. Pure evaluator tests don't need any of that — redirect to a
       // minimal stub that exports only the enums.
       {
-        find: /generated\/graphql$/,
+        find: /^(\.+\/)*generated\/graphql$/,
         replacement: path.resolve(__dirname, "src/testing/generatedGraphqlStub.ts"),
       },
     ],
