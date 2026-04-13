@@ -26,6 +26,13 @@ import createSignups, { SeededSignups } from "./documents/signups";
 import createUsers, { SeededUsers } from "./documents/users";
 import createVehicles, { SeededVehicles } from "./documents/vehicles";
 import createVehicleWork, { SeededVehicleWork } from "./documents/vehicleWork";
+import createCrewKinds, { SeededCrewKinds } from "./documents/crewKinds";
+import createRateBuildupTemplates, {
+  SeededRateBuildupTemplates,
+} from "./documents/rateBuildupTemplates";
+import createTenderPricing, {
+  SeededTenderPricing,
+} from "./documents/tenderPricing";
 
 export interface SeededDatabase {
   companies: SeededCompanies;
@@ -45,6 +52,9 @@ export interface SeededDatabase {
   users: SeededUsers;
   vehicles: SeededVehicles;
   vehicleWork: SeededVehicleWork;
+  crewKinds: SeededCrewKinds;
+  rateBuildupTemplates: SeededRateBuildupTemplates;
+  tenderPricing: SeededTenderPricing;
 }
 
 const seedDatabase = async () => {
@@ -76,6 +86,11 @@ const seedDatabase = async () => {
   const vehicles = await createVehicles();
   const vehicleWork = await createVehicleWork();
 
+  // Tender pricing E2E fixtures — depend on materials and users seeded above.
+  const crewKinds = await createCrewKinds();
+  const rateBuildupTemplates = await createRateBuildupTemplates();
+  const tenderPricing = await createTenderPricing();
+
   console.log("seeded");
 
   return {
@@ -96,6 +111,9 @@ const seedDatabase = async () => {
     users,
     vehicles,
     vehicleWork,
+    crewKinds,
+    rateBuildupTemplates,
+    tenderPricing,
   };
 };
 

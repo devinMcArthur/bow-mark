@@ -262,6 +262,26 @@ const _ids = {
       _id: Types.ObjectId("6241fc1132d9ce63e6fbf376"),
     },
   },
+  crewKinds: {
+    e2e_operator: {
+      _id: Types.ObjectId("629a49205f76f65244785b01"),
+    },
+    e2e_labour: {
+      _id: Types.ObjectId("629a49205f76f65244785b02"),
+    },
+  },
+  rateBuildupTemplates: {
+    e2e_paving: {
+      _id: Types.ObjectId("629a49205f76f65244785c01"),
+    },
+  },
+  tenders: {
+    e2e_pricing: {
+      _id: Types.ObjectId("629a49205f76f65244785d01"),
+      sheetId: Types.ObjectId("629a49205f76f65244785d02"),
+      rowId: Types.ObjectId("629a49205f76f65244785d03"),
+    },
+  },
 };
 
 export default _ids;
