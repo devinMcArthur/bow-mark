@@ -2,6 +2,7 @@ import { RateBuildupOutputKind } from "../../../../generated/graphql";
 import {
   RateEntry,
   EvaluatedOutput,
+  CalculatorResult,
 } from "../../../../components/TenderPricing/calculators/types";
 import {
   evaluateTemplate,
@@ -240,6 +241,92 @@ export function canvasDocToSnapshot(
 }
 
 /**
+ * Core evaluator shared by both the save path (evaluateSnapshot) and the live
+ * preview path (RateBuildupInputs). Takes the decomposed pieces of a snapshot
+ * rather than a RateBuildupSnapshot so that RateBuildupInputs — which holds
+ * the pieces in local React state and has no snapshot to pass — can call it
+ * without round-tripping through a snapshot object.
+ *
+ * Centralising this logic is deliberate: the two code paths used to duplicate
+ * the quantity normalization, controller-context construction, and inactive
+ * node computation. A prior divergence (empty `snapshot.controllers` combined
+ * with a formula that referenced a controller id) caused the saved unit price
+ * to silently differ from the displayed one — exactly the class of bug that
+ * a single shared helper makes impossible by construction.
+ *
+ * Returns the CalculatorResult plus the intermediate values the preview path
+ * needs for its debug panel and output rendering.
+ */
+export function evaluateCanvasDoc(
+  doc: CanvasDocument,
+  params: Record<string, number>,
+  tables: Record<string, RateEntry[]>,
+  controllers: Record<string, number | boolean | string[]>,
+  rawQuantity: number,
+  unit?: string
+): {
+  result: CalculatorResult;
+  normalizedQuantity: number;
+  controllerNumeric: Record<string, number>;
+  inactiveNodeIds: Set<string>;
+} {
+  // 1. Normalize quantity via unit variant conversion formula (if any).
+  //    Uses params[p.id] falling back to each param's defaultValue, matching
+  //    the formula evaluation context defaults.
+  let normalizedQuantity = rawQuantity;
+  const variant = unit
+    ? (doc.unitVariants ?? []).find((v) => v.unit === unit)
+    : undefined;
+  if (variant?.conversionFormula) {
+    const ctx: Record<string, number> = { quantity: rawQuantity };
+    for (const p of doc.parameterDefs) {
+      ctx[p.id] = params[p.id] ?? p.defaultValue;
+    }
+    const converted = evaluateExpression(variant.conversionFormula, ctx);
+    if (converted !== null && converted > 0) normalizedQuantity = converted;
+  }
+
+  // 2. Build controller numeric context from the template's controllerDefs.
+  //    Every defined percentage/toggle controller gets a numeric entry, even
+  //    when the caller's `controllers` map has no value for it — otherwise
+  //    formula steps that reference the controller id by name crash inside
+  //    expr-eval and safeEval collapses the whole step to 0. Unset entries
+  //    fall back to the def's own defaultValue (not a hardcoded 0), matching
+  //    how isGroupActive treats missing controllers.
+  const controllerNumeric: Record<string, number> = {};
+  for (const c of doc.controllerDefs ?? []) {
+    const v = controllers[c.id];
+    if (typeof v === "number") {
+      controllerNumeric[c.id] = v;
+    } else if (typeof v === "boolean") {
+      controllerNumeric[c.id] = v ? 1 : 0;
+    } else if (c.type === "percentage") {
+      controllerNumeric[c.id] =
+        typeof c.defaultValue === "number" ? c.defaultValue : 0;
+    } else if (c.type === "toggle") {
+      controllerNumeric[c.id] = c.defaultValue ? 1 : 0;
+    }
+    // selector controllers aren't numeric — skip. Their activation is
+    // evaluated separately via isGroupActive.
+  }
+
+  // 3. Which nodes are inactive (inside groups whose activation evaluates
+  //    to false, or on the wrong branch of a unit variant).
+  const inactiveNodeIds = computeInactiveNodeIds(doc, controllers, unit);
+
+  // 4. Evaluate the full template.
+  const result = evaluateTemplate(
+    doc,
+    { params, tables },
+    normalizedQuantity,
+    controllerNumeric,
+    inactiveNodeIds
+  );
+
+  return { result, normalizedQuantity, controllerNumeric, inactiveNodeIds };
+}
+
+/**
  * Evaluate a snapshot against a quantity, returning both the unit price and the
  * resolved Output node values. All save paths should call this and persist
  * BOTH values atomically — outputs are derived from the same ctx as unitPrice,
@@ -257,48 +344,13 @@ export function evaluateSnapshot(
   unit?: string
 ): { unitPrice: number; outputs: PricingRowOutput[] } {
   const doc = snapshotToCanvasDoc(snapshot);
-
-  // Resolve active unit variant and normalize quantity via conversion formula
-  const variant = unit ? (doc.unitVariants ?? []).find((v) => v.unit === unit) : undefined;
-  let quantity = rawQuantity;
-  if (variant?.conversionFormula) {
-    const ctx: Record<string, number> = { quantity: rawQuantity };
-    for (const p of doc.parameterDefs) ctx[p.id] = snapshot.params[p.id] ?? p.defaultValue;
-    const converted = evaluateExpression(variant.conversionFormula, ctx);
-    if (converted !== null && converted > 0) quantity = converted;
-  }
-
-  // Build controller numeric context from the template's controllerDefs, not
-  // from snapshot.controllers alone. Any defined percentage/toggle controller
-  // must be present in the formula evaluation ctx even when the snapshot has
-  // no explicit value, otherwise formula steps that reference the controller
-  // id by name throw "undefined variable" inside expr-eval and safeEval
-  // collapses the whole formula to 0. RateBuildupInputs' live preview uses
-  // the same controllerDefs-based approach; the two must agree.
-  const controllerNumeric: Record<string, number> = {};
-  const snapControllers = snapshot.controllers ?? {};
-  for (const c of doc.controllerDefs ?? []) {
-    const v = snapControllers[c.id];
-    if (typeof v === "number") {
-      controllerNumeric[c.id] = v;
-    } else if (typeof v === "boolean") {
-      controllerNumeric[c.id] = v ? 1 : 0;
-    } else if (c.type === "percentage") {
-      controllerNumeric[c.id] =
-        typeof c.defaultValue === "number" ? c.defaultValue : 0;
-    } else if (c.type === "toggle") {
-      controllerNumeric[c.id] = c.defaultValue ? 1 : 0;
-    }
-    // selector controllers aren't numeric — skip (their activation is
-    // evaluated separately via isGroupActive).
-  }
-  const inactiveNodeIds = computeInactiveNodeIds(doc, snapControllers, unit);
-  const result = evaluateTemplate(
+  const { result } = evaluateCanvasDoc(
     doc,
-    { params: snapshot.params, tables: snapshot.tables },
-    quantity,
-    controllerNumeric,
-    inactiveNodeIds
+    snapshot.params,
+    snapshot.tables,
+    snapshot.controllers ?? {},
+    rawQuantity,
+    unit
   );
 
   // Resolve each evaluated output: the estimator's snapshot selection overrides
