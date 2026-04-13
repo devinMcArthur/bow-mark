@@ -8,6 +8,11 @@ data:
   # official Docker image.
   load_definitions.conf: |
     load_definitions = /etc/rabbitmq/definitions/definitions.json
+  # Consumer ack timeout raised from default 30 min to 4 hr to accommodate
+  # long-running enriched file summarization (large spec books, 500+ pages,
+  # with per-page indexing via Claude API).
+  consumer_timeout.conf: |
+    consumer_timeout = 14400000
   # Declares both vhosts and grants the bowmark user full permissions on each.
   # RABBITMQ_DEFAULT_VHOST handles the paving vhost creation; this file adds
   # bowmark-concrete so it exists automatically even after a PVC rebuild.
@@ -74,6 +79,9 @@ spec:
             - name: rabbitmq-config
               mountPath: /etc/rabbitmq/conf.d/load_definitions.conf
               subPath: load_definitions.conf
+            - name: rabbitmq-config
+              mountPath: /etc/rabbitmq/conf.d/consumer_timeout.conf
+              subPath: consumer_timeout.conf
             - name: rabbitmq-config
               mountPath: /etc/rabbitmq/definitions/definitions.json
               subPath: definitions.json

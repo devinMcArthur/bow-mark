@@ -27,7 +27,11 @@ export const enrichedFileSummaryHandler = {
     console.log(`[EnrichedFileSummary] Processing file ${fileId} (enrichedFile ${enrichedFileId}, attempt ${attempt})`);
 
     await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
-      $set: { summaryStatus: "processing" },
+      $set: {
+        summaryStatus: "processing",
+        processingStartedAt: new Date(),
+      },
+      $inc: { summaryAttempts: 1 },
     });
 
     try {
@@ -140,6 +144,7 @@ export const enrichedFileSummaryHandler = {
 
       await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
         $set: { summaryStatus: "ready" },
+        $unset: { processingStartedAt: "", summaryError: "" },
       });
 
       // Trigger tender summary regeneration if this file belongs to a tender
@@ -174,10 +179,18 @@ export const enrichedFileSummaryHandler = {
         );
         await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
           $set: { summaryStatus: "pending" },
-          $unset: { summaryError: "" },
+          $unset: { processingStartedAt: "", summaryError: "" },
         });
         await new Promise((resolve) => setTimeout(resolve, delayMs));
-        await publishEnrichedFileCreated(enrichedFileId, fileId, attempt + 1);
+        const published = await publishEnrichedFileCreated(enrichedFileId, fileId, attempt + 1);
+        if (!published) {
+          // Broker unavailable — throw so current message is nack'd and redelivered
+          // by broker, or caught by the watchdog on its next pass.
+          throw new Error(
+            `Failed to republish after rate limit for file ${fileId}. ` +
+            `Watchdog will recover on next pass.`
+          );
+        }
         return;
       }
 
@@ -185,6 +198,7 @@ export const enrichedFileSummaryHandler = {
       const summaryError = error instanceof Error ? error.message : String(error);
       await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
         $set: { summaryStatus: "failed", summaryError },
+        $unset: { processingStartedAt: "" },
       });
       throw error;
     }
