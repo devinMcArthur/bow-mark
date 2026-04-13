@@ -427,6 +427,7 @@ const GroupSection: React.FC<GroupSectionProps> = ({
         {/* Activation toggle — inline in header */}
         {activationCtrl?.type === "toggle" && (
           <Box
+            data-testid={`group-toggle-${group.id}`}
             onClick={(e) => {
               e.stopPropagation();
               onControllerChange(activationCtrl.id, !(controllers[activationCtrl.id] as boolean));

@@ -18,36 +18,140 @@
  *     m2 + waste on                   : 14.40 + 50.00 + 1.50  = $65.90
  *     m2 + depth 0.08 + waste off     : 23.04 + 50.00 + 0     = $73.04
  *     m3 + waste off (conv qty=2000)  : 14.40 +  2.50 + 0     = $16.90
+ *
+ * State reset strategy: we snapshot the seeded row's full rateBuildupSnapshot
+ * + rateBuildupOutputs once in beforeAll, then replay them via a direct
+ * GraphQL mutation before each test. This is ~1s per test vs ~25s for a full
+ * reseed, and guarantees pristine snapshot state even if a prior test mutated
+ * params, controllers, or output selections inside the JSON blob.
  */
-import { expect, test, type Page, type Locator } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Page, type Locator } from "@playwright/test";
 
 const TENDER_ID = "629a49205f76f65244785d01";
 const SHEET_ID = "629a49205f76f65244785d02";
 const ROW_ID = "629a49205f76f65244785d03";
+const GRAPHQL_URL = "http://localhost:4001/graphql";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── State reset — login + seeded row cache ───────────────────────────────────
+
+let authToken: string;
+let seedSnapshotJson: string;
+let seedOutputs: any[];
+let seedUnit: string;
+let seedQuantity: number;
+let seedUnitPrice: number;
+
+async function gqlLogin(request: APIRequestContext): Promise<string> {
+  const res = await request.post(GRAPHQL_URL, {
+    data: {
+      query: `
+        mutation Login($data: LoginData!) {
+          login(data: $data)
+        }
+      `,
+      variables: {
+        data: { email: "admin@bowmark.ca", password: "password", rememberMe: true },
+      },
+    },
+  });
+  const body = await res.json();
+  if (!body.data?.login) throw new Error(`Login failed: ${JSON.stringify(body)}`);
+  return body.data.login as string;
+}
+
+/**
+ * Query the seeded row and stash its snapshot + outputs for later reset.
+ * Runs once before all tests, after globalSetup has finished seeding.
+ */
+async function captureSeedRowState(request: APIRequestContext) {
+  const res = await request.post(GRAPHQL_URL, {
+    headers: { Authorization: authToken },
+    data: {
+      query: `
+        query ($tenderId: ID!) {
+          tenderPricingSheet(tenderId: $tenderId) {
+            _id
+            rows {
+              _id
+              quantity
+              unit
+              unitPrice
+              rateBuildupSnapshot
+              rateBuildupOutputs {
+                kind
+                materialId
+                crewKindId
+                unit
+                perUnitValue
+                totalValue
+              }
+            }
+          }
+        }
+      `,
+      variables: { tenderId: TENDER_ID },
+    },
+  });
+  const body = await res.json();
+  if (body.errors) throw new Error(`Seed capture failed: ${JSON.stringify(body.errors)}`);
+  const row = body.data.tenderPricingSheet.rows.find((r: any) => r._id === ROW_ID);
+  if (!row) throw new Error(`Seeded row ${ROW_ID} not found`);
+  seedSnapshotJson = row.rateBuildupSnapshot;
+  seedOutputs = (row.rateBuildupOutputs ?? []).map((o: any) => {
+    // Strip Apollo's __typename before sending back as mutation input
+    const { __typename, ...rest } = o;
+    return rest;
+  });
+  seedUnit = row.unit;
+  seedQuantity = row.quantity;
+  seedUnitPrice = row.unitPrice;
+}
+
+/**
+ * Replay the seeded row state — scalar fields, snapshot blob, and outputs —
+ * via the same mutation the client uses. Runs in beforeEach to guarantee
+ * each test starts from a pristine state.
+ */
+async function resetRowState(request: APIRequestContext) {
+  const res = await request.post(GRAPHQL_URL, {
+    headers: { Authorization: authToken },
+    data: {
+      query: `
+        mutation Reset($sheetId: ID!, $rowId: ID!, $data: TenderPricingRowUpdateData!) {
+          tenderPricingRowUpdate(sheetId: $sheetId, rowId: $rowId, data: $data) { _id }
+        }
+      `,
+      variables: {
+        sheetId: SHEET_ID,
+        rowId: ROW_ID,
+        data: {
+          quantity: seedQuantity,
+          unit: seedUnit,
+          unitPrice: seedUnitPrice,
+          rateBuildupSnapshot: seedSnapshotJson,
+          rateBuildupOutputs: seedOutputs,
+        },
+      },
+    },
+  });
+  const body = await res.json();
+  if (body.errors) throw new Error(`Reset failed: ${JSON.stringify(body.errors)}`);
+}
+
+// ── UI helpers ───────────────────────────────────────────────────────────────
 
 async function goTender(page: Page) {
   await page.goto(`/tender/${TENDER_ID}`);
-  // Wait for the pricing row (description "E2E Paving Row") to render. This
-  // guards against navigating before the Apollo query resolves.
   await expect(
     page.getByText("E2E Paving Row", { exact: true }).first()
   ).toBeVisible({ timeout: 15_000 });
 }
 
 async function openDetail(page: Page) {
-  // Clicking the row description in the pricing table opens LineItemDetail.
   await page.getByText("E2E Paving Row", { exact: true }).first().click();
-  // The buildup unit price testid only mounts when a row is selected.
   await expect(page.getByTestId("buildup-unit-price")).toBeVisible({ timeout: 10_000 });
 }
 
-/**
- * Expand the Rate Buildup section if it's currently collapsed. The section
- * mounts even when collapsed (so the evaluator keeps firing), but the input
- * fields are display:none until expanded.
- */
 async function expandBuildup(page: Page) {
   const expandLabel = page.getByText(/^expand$/i).first();
   if (await expandLabel.isVisible().catch(() => false)) {
@@ -55,7 +159,6 @@ async function expandBuildup(page: Page) {
   }
 }
 
-/** Parse "$NN.NN" into a number. */
 function parsePrice(text: string): number {
   return parseFloat(text.replace(/[^0-9.]/g, ""));
 }
@@ -70,11 +173,6 @@ async function readRowUnitPrice(page: Page): Promise<number> {
   return parsePrice(txt);
 }
 
-/**
- * Locate a parameter input by its visible label (e.g. "Depth (m)"). The
- * ParamRow renders <Text>{label}</Text> then <Input type="number"> inside
- * the same container, so we anchor on the label and walk to the next input.
- */
 function paramInput(page: Page, labelSubstring: string): Locator {
   return page
     .getByText(labelSubstring, { exact: false })
@@ -83,55 +181,46 @@ function paramInput(page: Page, labelSubstring: string): Locator {
 }
 
 /**
- * Reset the row back to baseline via a direct GraphQL mutation. Called from
- * afterEach so each test starts from a known state without re-seeding.
+ * Returns a promise that resolves on the next tenderPricingRowUpdate response
+ * from the GraphQL endpoint. MUST be started BEFORE the action that triggers
+ * the save — otherwise a fast mutation can complete before the listener
+ * attaches and the wait will time out.
+ *
+ * Usage:
+ *   const waiter = pendingRowSave(page);
+ *   await doSomethingThatTriggersSave();
+ *   await waiter;
  */
-async function resetRow(page: Page) {
-  await page.evaluate(
-    async ({ sheetId, rowId }) => {
-      // Reset both the quantity/unit/unitPrice AND re-send the default snapshot
-      // via the tenderPricingRowUpdate mutation. We don't touch rateBuildupSnapshot
-      // here since the UI will recompute from whatever is stored next time the
-      // detail opens; the unitPrice + unit + quantity fields are sufficient to
-      // restore the visual baseline.
-      const mutation = `
-        mutation ResetRow($sheetId: ID!, $rowId: ID!, $data: TenderPricingRowUpdateData!) {
-          tenderPricingRowUpdate(sheetId: $sheetId, rowId: $rowId, data: $data) { _id }
-        }
-      `;
-      await fetch("/graphql", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          query: mutation,
-          variables: {
-            sheetId,
-            rowId,
-            data: { quantity: 100, unit: "m2", unitPrice: 64.4 },
-          },
-        }),
-      });
-    },
-    { sheetId: SHEET_ID, rowId: ROW_ID }
+function pendingRowSave(page: Page) {
+  return page.waitForResponse(
+    (res) =>
+      res.url().includes("/graphql") &&
+      res.request().method() === "POST" &&
+      res.request().postData()?.includes("tenderPricingRowUpdate") === true,
+    { timeout: 8_000 }
   );
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
+test.describe.configure({ mode: "serial" });
+
 test.describe("Tender pricing — golden path wire", () => {
-  test.afterEach(async ({ page }) => {
-    await resetRow(page);
+  test.beforeAll(async ({ request }) => {
+    authToken = await gqlLogin(request);
+    await captureSeedRowState(request);
+  });
+
+  test.beforeEach(async ({ request }) => {
+    await resetRowState(request);
   });
 
   test("initial load shows seeded unit price $64.40 in row + detail", async ({ page }) => {
     await goTender(page);
 
-    // Full-width table is rendered when no row is selected.
     const rowPrice = await readRowUnitPrice(page);
     expect(rowPrice).toBeCloseTo(64.4, 2);
 
-    // Open detail → price mirrors in the buildup summary.
     await openDetail(page);
     const detailPrice = await readDetailUnitPrice(page);
     expect(detailPrice).toBeCloseTo(64.4, 2);
@@ -142,26 +231,114 @@ test.describe("Tender pricing — golden path wire", () => {
     await openDetail(page);
     await expandBuildup(page);
 
-    // Change depth 0.05 → 0.08
     const input = paramInput(page, "Depth");
+    const savePending = pendingRowSave(page);
     await input.fill("0.08");
     await input.blur();
 
-    // Wait for debounced save (500ms client-side + mutation roundtrip)
+    // Wait for the debounced save (500ms) to reach the server, then verify
+    // the DOM reflects the new value.
+    await savePending;
     await expect(async () => {
-      const price = await readDetailUnitPrice(page);
-      // 0.08 * 2.4 * 120 + 5000/100 = 23.04 + 50 = 73.04
-      expect(price).toBeCloseTo(73.04, 1);
-    }).toPass({ timeout: 6_000 });
+      expect(await readDetailUnitPrice(page)).toBeCloseTo(73.04, 1);
+    }).toPass({ timeout: 4_000 });
 
-    // Reload — the detail pane persists its selected row across reloads via
-    // URL/state, so the buildup unit price testid remounts and must show the
-    // saved value after hydrating from the DB.
     await page.reload();
     await expect(page.getByTestId("buildup-unit-price")).toBeVisible({ timeout: 15_000 });
     await expect(async () => {
-      const reloaded = await readDetailUnitPrice(page);
-      expect(reloaded).toBeCloseTo(73.04, 1);
+      expect(await readDetailUnitPrice(page)).toBeCloseTo(73.04, 1);
     }).toPass({ timeout: 5_000 });
+  });
+
+  test("switching unit variant m2 → m3 recomputes via conversion formula", async ({ page }) => {
+    await goTender(page);
+    await openDetail(page);
+
+    // The Unit <select> lives in the Quantity card inside LineItemDetail.
+    // Changing unit fires onUpdate immediately (no debounce), so we set up
+    // the listener first.
+    const unitSelect = page.getByRole("combobox").filter({ hasText: "m²" }).first();
+    const savePending = pendingRowSave(page);
+    await unitSelect.selectOption("m3");
+    await savePending;
+
+    // raw qty 100 → converted 100/0.05 = 2000
+    // mat_per_unit = 0.05*2.4*120 = 14.40
+    // lab_per_unit = 5000/2000    =  2.50
+    // total = 16.90
+    await expect(async () => {
+      expect(await readDetailUnitPrice(page)).toBeCloseTo(16.9, 1);
+    }).toPass({ timeout: 4_000 });
+
+    await page.reload();
+    await expect(page.getByTestId("buildup-unit-price")).toBeVisible({ timeout: 15_000 });
+    await expect(async () => {
+      expect(await readDetailUnitPrice(page)).toBeCloseTo(16.9, 1);
+    }).toPass({ timeout: 5_000 });
+  });
+
+  test("toggling waste group adds fixed per-unit cost", async ({ page }) => {
+    await goTender(page);
+    await openDetail(page);
+    await expandBuildup(page);
+
+    await expect(async () => {
+      expect(await readDetailUnitPrice(page)).toBeCloseTo(64.4, 2);
+    }).toPass({ timeout: 3_000 });
+
+    // The toggle switch lives in the Waste group card header. It has a
+    // stable testid so we don't depend on the click coordinates inside the
+    // small Chakra pill.
+    const savePending = pendingRowSave(page);
+    await page.getByTestId("group-toggle-g_waste").click();
+    await savePending;
+
+    // 64.40 + 1.50 = 65.90
+    await expect(async () => {
+      expect(await readDetailUnitPrice(page)).toBeCloseTo(65.9, 2);
+    }).toPass({ timeout: 4_000 });
+
+    await page.reload();
+    await expect(page.getByTestId("buildup-unit-price")).toBeVisible({ timeout: 15_000 });
+    await expect(async () => {
+      expect(await readDetailUnitPrice(page)).toBeCloseTo(65.9, 2);
+    }).toPass({ timeout: 5_000 });
+  });
+
+  test("changing output material selection persists through reload", async ({ page }) => {
+    await goTender(page);
+    await openDetail(page);
+    await expandBuildup(page);
+
+    // Material picker lives in the Demand section. Anchor on the "Asphalt"
+    // OutputDef label then the nearest combobox below it.
+    const picker = page
+      .getByText("Asphalt", { exact: true })
+      .first()
+      .locator("xpath=following::select[1]");
+
+    const initialValue = await picker.inputValue();
+    await expect(
+      picker.locator(`option[value="${initialValue}"]`)
+    ).toHaveText("Material 1");
+
+    const savePending = pendingRowSave(page);
+    await picker.selectOption({ label: "Second Material" });
+    const newValue = await picker.inputValue();
+    expect(newValue).not.toBe(initialValue);
+
+    // Wait for debounced save to reach the server.
+    await savePending;
+
+    // Reload — picker should rehydrate with the saved selection
+    await page.reload();
+    await expect(page.getByTestId("buildup-unit-price")).toBeVisible({ timeout: 15_000 });
+    await expandBuildup(page);
+
+    const pickerAfter = page
+      .getByText("Asphalt", { exact: true })
+      .first()
+      .locator("xpath=following::select[1]");
+    await expect(pickerAfter).toHaveValue(newValue);
   });
 });
