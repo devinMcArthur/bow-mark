@@ -738,3 +738,89 @@ describe("evaluateSnapshot — multi-output templates", () => {
     );
   });
 });
+
+// ─── Unit variant × controller interaction ──────────────────────────────────
+
+describe("evaluateSnapshot — unit variant × controller interaction", () => {
+  // Template with BOTH a unit variant group AND an independent controller group.
+  // Scenarios: variant m2 OR m3, and controller waste toggle on/off.
+  // Must correctly combine: only the matching variant group active AND the
+  // waste group active iff controller value matches activation condition.
+  function makeTemplate() {
+    return doc({
+      parameterDefs: [
+        { id: "depth_m", label: "Depth", defaultValue: 0.05, position: pos },
+      ],
+      controllerDefs: [
+        { id: "waste", label: "Waste", type: "toggle", defaultValue: false, position: pos },
+      ],
+      formulaSteps: [
+        // m2 base: quantity * 10
+        { id: "baseM2", formula: "quantity * 10", position: pos },
+        // m3 base: quantity * 1000 (area conversion built into variant formula)
+        { id: "baseM3", formula: "quantity * 1000", position: pos },
+        // Waste add-on: quantity * 1 (active only when waste toggle on)
+        { id: "wasteCost", formula: "quantity * 1", position: pos },
+      ],
+      breakdownDefs: [
+        {
+          id: "bd1",
+          label: "T",
+          items: [
+            { stepId: "baseM2", label: "Base m2" },
+            { stepId: "baseM3", label: "Base m3" },
+            { stepId: "wasteCost", label: "Waste" },
+          ],
+          position: pos,
+        },
+      ],
+      unitVariants: [
+        { unit: "m2", activatesGroupId: "g_m2" },
+        { unit: "m3", activatesGroupId: "g_m3", conversionFormula: "quantity / depth_m" },
+      ],
+      groupDefs: [
+        { id: "g_m2", label: "m2 branch", memberIds: ["baseM2"], position: pos },
+        { id: "g_m3", label: "m3 branch", memberIds: ["baseM3"], position: pos },
+        {
+          id: "g_waste",
+          label: "Waste",
+          memberIds: ["wasteCost"],
+          activation: { controllerId: "waste", condition: "=== 1" },
+          position: pos,
+        },
+      ],
+    });
+  }
+
+  it("m2 variant + waste off: only baseM2 active", () => {
+    const s = snap(makeTemplate(), { controllers: { waste: false } });
+    // quantity 5 m2 → baseM2 = 50; baseM3 inactive = 0; wasteCost inactive = 0
+    expect(evaluateSnapshot(s, 5, "m2").unitPrice).toBe(50);
+  });
+
+  it("m2 variant + waste on: baseM2 + wasteCost", () => {
+    const s = snap(makeTemplate(), { controllers: { waste: true } });
+    // quantity 5 m2 → baseM2 = 50 + wasteCost = 5 → 55
+    expect(evaluateSnapshot(s, 5, "m2").unitPrice).toBe(55);
+  });
+
+  it("m3 variant + waste off: only baseM3 active, conversion applies", () => {
+    const s = snap(makeTemplate(), { controllers: { waste: false } });
+    // raw 5 m3, depth 0.05 → converted quantity 100
+    // baseM3 = 100 * 1000 = 100000; baseM2 inactive; wasteCost inactive
+    expect(evaluateSnapshot(s, 5, "m3").unitPrice).toBe(100000);
+  });
+
+  it("m3 variant + waste on: baseM3 + wasteCost, conversion applies to both", () => {
+    const s = snap(makeTemplate(), { controllers: { waste: true } });
+    // converted quantity 100 → baseM3 100000 + wasteCost 100 → 100100
+    expect(evaluateSnapshot(s, 5, "m3").unitPrice).toBe(100100);
+  });
+
+  it("no unit specified: all variant groups inactive, controller group still honored", () => {
+    const s = snap(makeTemplate(), { controllers: { waste: true } });
+    // No unit → both m2 and m3 variant groups inactive. Only wasteCost active.
+    // quantity 5 → wasteCost = 5
+    expect(evaluateSnapshot(s, 5).unitPrice).toBe(5);
+  });
+});
