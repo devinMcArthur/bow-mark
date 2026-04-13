@@ -7,7 +7,6 @@ import seedDatabase, { SeededDatabase } from "@testing/seedDatabase";
 import createApp from "../../app";
 import vitestLogin from "@testing/vitestLogin";
 import { Tender, TenderPricingSheet } from "@models";
-import { RateBuildupOutputKind } from "@typescript/tenderPricingSheet";
 import { Server } from "http";
 
 let documents: SeededDatabase, app: Server;
@@ -143,45 +142,58 @@ describe("TenderPricingSheet Resolver", () => {
   });
 
   describe("Row update — kind/field validation", () => {
-    // The updateRow class method is async, so validation throws are surfaced
-    // as rejected promises. We test the model layer directly to confirm
-    // the validation logic fires correctly.
     test("should reject Material output with crewKindId", async () => {
-      const sheet = await TenderPricingSheet.findById(sheetId);
-      expect(sheet).toBeTruthy();
-
-      await expect(
-        sheet!.updateRow(rowId, {
-          rateBuildupOutputs: [
-            {
-              kind: RateBuildupOutputKind.Material,
-              crewKindId: new mongoose.Types.ObjectId().toString(),
-              unit: "t",
-              perUnitValue: 10,
-              totalValue: 10,
+      const res = await request(app)
+        .post("/graphql")
+        .set("Authorization", adminToken)
+        .send({
+          query: rowUpdate,
+          variables: {
+            sheetId,
+            rowId,
+            data: {
+              rateBuildupOutputs: [
+                {
+                  kind: "Material",
+                  crewKindId: new mongoose.Types.ObjectId().toString(),
+                  unit: "t",
+                  perUnitValue: 10,
+                  totalValue: 10,
+                },
+              ],
             },
-          ],
-        })
-      ).rejects.toThrow(/Material.*cannot have crewKindId/);
+          },
+        });
+
+      expect(res.body.errors).toBeDefined();
+      expect(res.body.errors[0].message).toMatch(/Material.*cannot have crewKindId/);
     });
 
     test("should reject CrewHours output with materialId", async () => {
-      const sheet = await TenderPricingSheet.findById(sheetId);
-      expect(sheet).toBeTruthy();
-
-      await expect(
-        sheet!.updateRow(rowId, {
-          rateBuildupOutputs: [
-            {
-              kind: RateBuildupOutputKind.CrewHours,
-              materialId: new mongoose.Types.ObjectId().toString(),
-              unit: "hr",
-              perUnitValue: 5,
-              totalValue: 5,
+      const res = await request(app)
+        .post("/graphql")
+        .set("Authorization", adminToken)
+        .send({
+          query: rowUpdate,
+          variables: {
+            sheetId,
+            rowId,
+            data: {
+              rateBuildupOutputs: [
+                {
+                  kind: "CrewHours",
+                  materialId: new mongoose.Types.ObjectId().toString(),
+                  unit: "hr",
+                  perUnitValue: 5,
+                  totalValue: 5,
+                },
+              ],
             },
-          ],
-        })
-      ).rejects.toThrow(/CrewHours.*cannot have materialId/);
+          },
+        });
+
+      expect(res.body.errors).toBeDefined();
+      expect(res.body.errors[0].message).toMatch(/CrewHours.*cannot have materialId/);
     });
 
     test("should clear outputs when null is sent", async () => {

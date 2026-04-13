@@ -111,7 +111,7 @@ export default class TenderPricingSheetResolver {
     }
     const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
     const row = sheet!.rows.find((r) => r._id.toString() === rowId.toString());
-    sheet!.updateRow(rowId, data);
+    await sheet!.updateRow(rowId, data);
     await sheet!.save();
 
     if (ctx.user) {
