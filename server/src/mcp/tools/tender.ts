@@ -22,6 +22,8 @@ export function makeSessionState(): TenderToolsSessionState {
 const MAX_READABLE_PDF_BYTES = 3 * 1024 * 1024;
 const PDF_PAGE_LIMIT = 90;
 
+// System.getSystem() populates specFiles.file — required by read_document for the file._id lookup.
+// Do not replace with a plain System.findOne() without preserving that population.
 async function loadTenderFiles(tenderId: string): Promise<any[]> {
   const [tender, sys] = await Promise.all([
     TenderModel.findById(tenderId)
