@@ -120,7 +120,7 @@ export function register(
         rows: z
           .array(
             z.object({
-              type: z.enum(["schedule", "group", "item"]),
+              type: z.enum(["Schedule", "Group", "Item"]),
               itemNumber: z.string().optional(),
               description: z.string().min(1),
               indentLevel: z.number().int().min(0).max(3).default(0),
@@ -166,7 +166,7 @@ export function register(
       // Validate every row first
       const errors: string[] = [];
       rows.forEach((r, i) => {
-        if (r.type !== "item" && (r.quantity != null || r.unit != null)) {
+        if (r.type !== "Item" && (r.quantity != null || r.unit != null)) {
           errors.push(`row[${i}]: quantity/unit only allowed on items, not ${r.type}`);
         }
         for (const ref of r.docRefs ?? []) {
@@ -200,8 +200,8 @@ export function register(
           itemNumber: r.itemNumber ?? "",
           description: r.description,
           indentLevel: r.indentLevel,
-          ...(r.type === "item" && r.quantity != null ? { quantity: r.quantity } : {}),
-          ...(r.type === "item" && r.unit != null ? { unit: r.unit } : {}),
+          ...(r.type === "Item" && r.quantity != null ? { quantity: r.quantity } : {}),
+          ...(r.type === "Item" && r.unit != null ? { unit: r.unit } : {}),
           ...(r.notes != null ? { notes: r.notes } : {}),
           docRefs: (r.docRefs ?? []).map((d) => ({
             _id: new mongoose.Types.ObjectId(),
@@ -297,7 +297,7 @@ export function register(
           );
         }
         if (
-          row.type !== "item" &&
+          row.type !== "Item" &&
           (u.quantity !== undefined || u.unit !== undefined)
         ) {
           errors.push(
