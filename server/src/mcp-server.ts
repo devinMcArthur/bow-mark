@@ -69,6 +69,10 @@ app.post("/mcp", async (req, res) => {
     return;
   }
   const role = (user.role ?? UserRoles.User) as UserRoles;
+  if (role < UserRoles.User) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
 
   // ── Optional tender binding ─────────────────────────────────────────────
   const tenderIdHeader = req.headers["x-tender-id"];
