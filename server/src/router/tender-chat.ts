@@ -3,9 +3,8 @@ import mongoose from "mongoose";
 import Anthropic from "@anthropic-ai/sdk";
 import { Tender, User, System } from "@models";
 import { isDocument } from "@typegoose/typegoose";
-import { streamConversation } from "../lib/streamConversation";
-import { READ_DOCUMENT_TOOL, LIST_DOCUMENT_PAGES_TOOL, makeReadDocumentExecutor } from "../lib/readDocumentExecutor";
-import { SAVE_TENDER_NOTE_TOOL, DELETE_TENDER_NOTE_TOOL, makeTenderNoteExecutor } from "../lib/tenderNoteTools";
+import { streamConversation, ToolExecutionResult } from "../lib/streamConversation";
+import { connectMcp } from "../lib/mcpClient";
 import { buildFileIndex } from "../lib/buildFileIndex";
 import { requireAuth } from "../lib/authMiddleware";
 import { UserRoles } from "../typescript/user";
@@ -170,28 +169,52 @@ ${decompositionBlock}
 
 **Scope.** Answer only from the tender documents, reference specs, and job notes provided. If the answer is not in the documents, say so clearly rather than drawing on general knowledge.`;
 
-  // ── Stream ─────────────────────────────────────────────────────────────────
-  const noteExecutor = makeTenderNoteExecutor(tenderId, req.userId, conversationId);
-  const docExecutor = makeReadDocumentExecutor([...tenderFiles, ...specFiles]);
-
-  await streamConversation({
+  // ── Connect to MCP server (auth + tender + conversation bound via headers) ─
+  const conn = await connectMcp(
+    "tender-chat",
+    "[tender-chat]",
     res,
-    userId: req.userId,
-    conversationId,
-    tenderId,
-    messages,
-    systemPrompt,
-    tools: [LIST_DOCUMENT_PAGES_TOOL, READ_DOCUMENT_TOOL, SAVE_TENDER_NOTE_TOOL, DELETE_TENDER_NOTE_TOOL],
-    toolChoice: { type: "auto", disable_parallel_tool_use: true },
-    maxTokens: 8192,
-    executeTool: async (name, input) => {
-      if (name === SAVE_TENDER_NOTE_TOOL.name || name === DELETE_TENDER_NOTE_TOOL.name) {
-        return noteExecutor(name, input);
-      }
-      return docExecutor(name, input);
-    },
-    logPrefix: "[tender-chat]",
-  });
+    { authToken: req.token, tenderId, conversationId },
+  );
+  if (!conn) return; // connectMcp already wrote the 503
+
+  try {
+    await streamConversation({
+      res,
+      userId: req.userId,
+      conversationId,
+      tenderId,
+      messages,
+      systemPrompt,
+      tools: conn.tools,
+      toolChoice: { type: "auto", disable_parallel_tool_use: true },
+      maxTokens: 8192,
+      executeTool: async (name, input): Promise<ToolExecutionResult> => {
+        const result = await conn.client.callTool({
+          name,
+          arguments: input as Record<string, unknown>,
+        });
+        // MCP returns content as an array of blocks. streamConversation
+        // expects { content, summary }: pass the raw blocks through, derive
+        // a short summary from the first text block (if any) for logging.
+        const blocks = (result.content ?? []) as Array<{
+          type: string;
+          text?: string;
+        }>;
+        const firstText = blocks.find((b) => b.type === "text")?.text ?? "";
+        const summary = firstText.length > 200
+          ? firstText.slice(0, 200) + "…"
+          : firstText || `${name} completed`;
+        return {
+          content: blocks as any,
+          summary,
+        };
+      },
+      logPrefix: "[tender-chat]",
+    });
+  } finally {
+    await conn.client.close().catch(() => undefined);
+  }
 });
 
 export default router;
