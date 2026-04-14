@@ -2,10 +2,13 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import mongoose from "mongoose";
-import { Tender } from "@models";
+import { Tender as TenderModel, System } from "@models";
 import { UserRoles } from "@typescript/user";
 import { scheduleTenderSummary } from "../../lib/generateTenderSummary";
 import { requireTenderContext } from "../context";
+import Anthropic from "@anthropic-ai/sdk";
+import { PDFDocument } from "pdf-lib";
+import { getFile } from "@utils/fileStorage";
 
 export interface TenderToolsSessionState {
   pdfPagesLoaded: number;
@@ -14,6 +17,23 @@ export interface TenderToolsSessionState {
 
 export function makeSessionState(): TenderToolsSessionState {
   return { pdfPagesLoaded: 0, loadedRangeKeys: new Set() };
+}
+
+const MAX_READABLE_PDF_BYTES = 3 * 1024 * 1024;
+const PDF_PAGE_LIMIT = 90;
+
+async function loadTenderFiles(tenderId: string): Promise<any[]> {
+  const [tender, sys] = await Promise.all([
+    TenderModel.findById(tenderId)
+      .populate({ path: "files", populate: { path: "file" } })
+      .lean(),
+    System.getSystem(),
+  ]);
+  if (!tender) throw new Error(`Tender ${tenderId} not found`);
+  return [
+    ...(((tender as any).files ?? []) as any[]),
+    ...(((sys?.specFiles ?? []) as any[])),
+  ];
 }
 
 function requirePmRole(): void {
@@ -29,7 +49,7 @@ function ok(text: string) {
 
 export function register(
   server: McpServer,
-  _sessionState: TenderToolsSessionState,
+  sessionState: TenderToolsSessionState,
 ): void {
   // ── save_tender_note ──────────────────────────────────────────────────────
   server.registerTool(
@@ -48,7 +68,7 @@ export function register(
       requirePmRole();
       const ctx = requireTenderContext();
 
-      await (Tender as any).findByIdAndUpdate(ctx.tenderId, {
+      await (TenderModel as any).findByIdAndUpdate(ctx.tenderId, {
         $push: {
           notes: {
             _id: new mongoose.Types.ObjectId(),
@@ -80,7 +100,7 @@ export function register(
       requirePmRole();
       const { tenderId } = requireTenderContext();
 
-      const result = await (Tender as any).updateOne(
+      const result = await (TenderModel as any).updateOne(
         { _id: tenderId },
         { $pull: { notes: { _id: new mongoose.Types.ObjectId(noteId) } } },
       );
@@ -91,6 +111,209 @@ export function register(
 
       scheduleTenderSummary(tenderId);
       return ok("Note deleted.");
+    },
+  );
+
+  // ── list_document_pages ───────────────────────────────────────────────────
+  server.registerTool(
+    "list_document_pages",
+    {
+      description:
+        "Returns a page-by-page index for a specific document — one line per page with a brief description of its content. Use this BEFORE read_document to identify exactly which pages contain the information you need. Much cheaper than loading the full document.",
+      inputSchema: {
+        file_object_id: z
+          .string()
+          .describe("The _id of the file object from the document list"),
+      },
+    },
+    async ({ file_object_id }) => {
+      const { tenderId } = requireTenderContext();
+      const allFiles = await loadTenderFiles(tenderId);
+      const fileObj = allFiles.find((f: any) => f._id.toString() === file_object_id);
+      if (!fileObj) throw new Error(`File ${file_object_id} not found`);
+
+      const docLabel =
+        (fileObj.summary as any)?.documentType || fileObj.documentType || "Document";
+      const pageIndex = fileObj.pageIndex as
+        | Array<{ page: number; summary: string }>
+        | undefined;
+
+      if (!pageIndex || pageIndex.length === 0) {
+        return ok(
+          `No page index is available for "${docLabel}" yet. Use read_document to load pages directly.`,
+        );
+      }
+
+      const lines = pageIndex.map((e) => `p.${e.page}: ${e.summary}`).join("\n");
+      return ok(
+        `Page index for "${docLabel}" (${pageIndex.length} pages total):\n\n${lines}`,
+      );
+    },
+  );
+
+  // ── read_document ────────────────────────────────────────────────────────
+  server.registerTool(
+    "read_document",
+    {
+      description:
+        "Load the contents of one specific document. For large documents (spec books, etc.) only a page range is loaded at a time — the response will tell you the total page count so you can request other sections if needed. IMPORTANT: Call this tool for ONE document at a time only — never request multiple documents in the same response.",
+      inputSchema: {
+        file_object_id: z
+          .string()
+          .describe("The _id of the file object from the document list"),
+        start_page: z
+          .number()
+          .optional()
+          .describe(
+            "First page to read (1-indexed, inclusive). Omit to start from the beginning.",
+          ),
+        end_page: z
+          .number()
+          .optional()
+          .describe(
+            "Last page to read (1-indexed, inclusive). Omit to read as far as the size limit allows.",
+          ),
+      },
+    },
+    async ({ file_object_id, start_page, end_page }) => {
+      const { tenderId } = requireTenderContext();
+      const allFiles = await loadTenderFiles(tenderId);
+
+      const fileObj = allFiles.find((f: any) => f._id.toString() === file_object_id);
+      if (!fileObj) throw new Error(`File ${file_object_id} not found`);
+      if (!fileObj.file) throw new Error(`File reference missing for ${file_object_id}`);
+
+      const fileId =
+        typeof fileObj.file === "object" && (fileObj.file as any)._id
+          ? (fileObj.file as any)._id.toString()
+          : (fileObj.file as any).toString();
+
+      const docLabel =
+        (fileObj.summary as any)?.documentType || fileObj.documentType || "Document";
+
+      // Per-session dedup
+      const rangeKey = `${fileId}:${start_page ?? 0}:${end_page ?? "end"}`;
+      if (sessionState.loadedRangeKeys.has(rangeKey)) {
+        throw new Error(
+          `Document "${docLabel}" (same page range) is already loaded in this conversation turn.`,
+        );
+      }
+
+      // Pre-flight page budget check
+      const docPageCount = fileObj.pageCount ?? 0;
+      const requestedPages =
+        end_page && start_page ? end_page - start_page + 1 : docPageCount;
+      const estimatedPages = Math.min(
+        requestedPages || docPageCount,
+        docPageCount || requestedPages,
+      );
+      if (
+        estimatedPages > 0 &&
+        sessionState.pdfPagesLoaded + estimatedPages > PDF_PAGE_LIMIT
+      ) {
+        throw new Error(
+          `Cannot load "${docLabel}" — this turn has already used ${sessionState.pdfPagesLoaded} of the ${PDF_PAGE_LIMIT}-page limit. Please answer based on what has already been loaded, or let the user know they should ask about one document at a time.`,
+        );
+      }
+
+      const s3Object = await getFile(fileId);
+      if (!s3Object?.Body) throw new Error("File body empty");
+
+      const buffer = s3Object.Body as Buffer;
+      const contentType = s3Object.ContentType || "application/pdf";
+
+      const isSpreadsheet =
+        contentType.includes("spreadsheet") ||
+        contentType.includes("excel") ||
+        contentType.includes("ms-excel");
+
+      let content: Anthropic.ToolResultBlockParam["content"];
+
+      if (isSpreadsheet) {
+        const xlsx = await import("xlsx");
+        const workbook = xlsx.read(buffer, { type: "buffer" });
+        const text = workbook.SheetNames.map((name) => {
+          const ws = workbook.Sheets[name];
+          return `Sheet: ${name}\n${xlsx.utils.sheet_to_csv(ws)}`;
+        }).join("\n\n");
+        content = `Document: ${docLabel}\n\n${text}`;
+        if (docPageCount > 0) sessionState.pdfPagesLoaded += docPageCount;
+        sessionState.loadedRangeKeys.add(rangeKey);
+      } else if (contentType.startsWith("image/")) {
+        const base64 = buffer.toString("base64");
+        content = [
+          { type: "text" as const, text: `Document: ${docLabel}` },
+          {
+            type: "image" as const,
+            source: {
+              type: "base64" as const,
+              media_type: contentType as
+                | "image/jpeg"
+                | "image/png"
+                | "image/webp"
+                | "image/gif",
+              data: base64,
+            },
+          },
+        ];
+        if (docPageCount > 0) sessionState.pdfPagesLoaded += docPageCount;
+        sessionState.loadedRangeKeys.add(rangeKey);
+      } else {
+        // PDF — extract only the requested page range, bisecting if too large
+        const pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+        const totalPages = pdfDoc.getPageCount();
+
+        let startIdx = start_page ? Math.max(0, start_page - 1) : 0;
+        let endIdx = end_page ? Math.min(end_page, totalPages) : totalPages;
+
+        let pdfChunk: Buffer;
+        while (true) {
+          const indices = Array.from(
+            { length: endIdx - startIdx },
+            (_, i) => startIdx + i,
+          );
+          const chunkDoc = await PDFDocument.create();
+          const pages = await chunkDoc.copyPages(pdfDoc, indices);
+          for (const page of pages) chunkDoc.addPage(page);
+          pdfChunk = Buffer.from(await chunkDoc.save());
+          if (pdfChunk.length <= MAX_READABLE_PDF_BYTES || endIdx - startIdx <= 1)
+            break;
+          endIdx = startIdx + Math.floor((endIdx - startIdx) / 2);
+        }
+
+        const pagesRead = endIdx - startIdx;
+
+        if (sessionState.pdfPagesLoaded + pagesRead > PDF_PAGE_LIMIT) {
+          throw new Error(
+            `Cannot load "${docLabel}" (${pagesRead} pages) — this turn has already used ${sessionState.pdfPagesLoaded} of the ${PDF_PAGE_LIMIT}-page limit.`,
+          );
+        }
+
+        const pageNote =
+          totalPages > pagesRead
+            ? `Pages ${startIdx + 1}–${endIdx} of ${totalPages} total. Use start_page/end_page to read other sections.`
+            : `All ${totalPages} pages.`;
+
+        content = [
+          {
+            type: "text" as const,
+            text: `Document: ${docLabel}\n${pageNote}\nWhen citing this document use the filename: "${docLabel}"`,
+          },
+          {
+            type: "document" as any,
+            source: {
+              type: "base64" as const,
+              media_type: "application/pdf" as const,
+              data: pdfChunk.toString("base64"),
+            },
+          },
+        ];
+
+        if (docPageCount > 0) sessionState.pdfPagesLoaded += pagesRead;
+        sessionState.loadedRangeKeys.add(rangeKey);
+      }
+
+      return { content: content as any };
     },
   );
 }
