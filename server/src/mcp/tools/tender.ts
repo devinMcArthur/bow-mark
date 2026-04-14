@@ -2,7 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import mongoose from "mongoose";
-import { Tender as TenderModel, System } from "@models";
+import { Tender as TenderModel, System, TenderPricingSheet } from "@models";
 import { UserRoles } from "@typescript/user";
 import { scheduleTenderSummary } from "../../lib/generateTenderSummary";
 import { requireTenderContext } from "../context";
@@ -53,6 +53,63 @@ export function register(
   server: McpServer,
   sessionState: TenderToolsSessionState,
 ): void {
+  // ── get_tender_pricing_rows ──────────────────────────────────────────────
+  server.registerTool(
+    "get_tender_pricing_rows",
+    {
+      description:
+        "Read the full pricing schedule for the active tender — every schedule, group, and item with quantity, unit, status, notes, doc references, and pricing fields (unitPrice, markup, rate buildup outputs). Call this whenever you need to know the current state of the schedule of quantities before suggesting edits.",
+      inputSchema: {},
+    },
+    async () => {
+      const { tenderId } = requireTenderContext();
+      const sheet = await TenderPricingSheet.getByTenderId(tenderId);
+      if (!sheet) {
+        return ok(JSON.stringify({ rows: [], totalRows: 0, defaultMarkupPct: null }));
+      }
+
+      const rows = sheet.rows.map((r: any) => ({
+        rowId: r._id.toString(),
+        type: r.type,
+        sortOrder: r.sortOrder,
+        itemNumber: r.itemNumber ?? "",
+        description: r.description ?? "",
+        indentLevel: r.indentLevel,
+        status: r.status ?? "not_started",
+        quantity: r.quantity ?? null,
+        unit: r.unit ?? null,
+        notes: r.notes ?? null,
+        docRefs: (r.docRefs ?? []).map((d: any) => ({
+          docRefId: d._id.toString(),
+          enrichedFileId: d.enrichedFileId.toString(),
+          page: d.page,
+          description: d.description ?? null,
+        })),
+        unitPrice: r.unitPrice ?? null,
+        markupOverride: r.markupOverride ?? null,
+        extraUnitPrice: r.extraUnitPrice ?? null,
+        extraUnitPriceMemo: r.extraUnitPriceMemo ?? null,
+        hasTemplate: r.rateBuildupSnapshot != null,
+        rateBuildupOutputs: (r.rateBuildupOutputs ?? []).map((o: any) => ({
+          kind: o.kind,
+          materialId: o.materialId?.toString() ?? null,
+          crewKindId: o.crewKindId?.toString() ?? null,
+          unit: o.unit,
+          perUnitValue: o.perUnitValue,
+          totalValue: o.totalValue,
+        })),
+      }));
+
+      return ok(
+        JSON.stringify({
+          defaultMarkupPct: sheet.defaultMarkupPct,
+          rows,
+          totalRows: rows.length,
+        }),
+      );
+    },
+  );
+
   // ── save_tender_note ──────────────────────────────────────────────────────
   server.registerTool(
     "save_tender_note",
