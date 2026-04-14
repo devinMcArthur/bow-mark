@@ -194,17 +194,19 @@ ${decompositionBlock}
           name,
           arguments: input as Record<string, unknown>,
         });
-        // MCP returns content as an array of blocks. streamConversation
-        // expects { content, summary }: pass the raw blocks through, derive
-        // a short summary from the first text block (if any) for logging.
-        const blocks = (result.content ?? []) as Array<{
-          type: string;
-          text?: string;
-        }>;
+        // MCP returns content as either an array of typed blocks or a plain
+        // string (the spreadsheet branch of read_document does the latter).
+        // Normalize to an array of blocks before deriving the summary.
+        const raw = result.content ?? [];
+        const blocks: Array<{ type: string; text?: string }> =
+          typeof raw === "string"
+            ? [{ type: "text", text: raw }]
+            : (raw as Array<{ type: string; text?: string }>);
         const firstText = blocks.find((b) => b.type === "text")?.text ?? "";
-        const summary = firstText.length > 200
-          ? firstText.slice(0, 200) + "…"
-          : firstText || `${name} completed`;
+        const summary =
+          firstText.length > 200
+            ? firstText.slice(0, 200) + "…"
+            : firstText || `${name} completed`;
         return {
           content: blocks as any,
           summary,
