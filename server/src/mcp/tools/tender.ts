@@ -429,6 +429,56 @@ export function register(
     },
   );
 
+  // ── reorder_pricing_rows ─────────────────────────────────────────────────
+  server.registerTool(
+    "reorder_pricing_rows",
+    {
+      description:
+        "Reorder ALL rows in the active tender's pricing sheet. Pass the complete list of rowIds in the desired order — partial reorders are rejected because they corrupt sortOrder. Reordering does not change row content, so it is allowed regardless of row status (not blocked by 'in_progress' rows).",
+      inputSchema: {
+        rowIds: z.array(z.string()).min(1),
+      },
+    },
+    async ({ rowIds }) => {
+      requirePmRole();
+      const { tenderId } = requireTenderContext();
+      const sheet = await TenderPricingSheet.getByTenderId(tenderId);
+      if (!sheet) throw new Error(`No pricing sheet found for tender ${tenderId}`);
+
+      if (rowIds.length !== sheet.rows.length) {
+        return ok(
+          `Error: rowIds.length (${rowIds.length}) does not match sheet.rows.length (${sheet.rows.length}). Reorder requires the full list of rows in the new order.`,
+        );
+      }
+      const sheetIdSet = new Set(sheet.rows.map((r: any) => r._id.toString()));
+      const inputIdSet = new Set(rowIds);
+      if (
+        sheetIdSet.size !== inputIdSet.size ||
+        ![...sheetIdSet].every((id) => inputIdSet.has(id))
+      ) {
+        return ok(
+          `Error: rowIds set does not match sheet.rows set. Every existing rowId must appear exactly once.`,
+        );
+      }
+
+      const rowMap = new Map(
+        sheet.rows.map((r: any) => [r._id.toString(), r]),
+      );
+      const reordered = rowIds.map((id, i) => {
+        const row = rowMap.get(id) as any;
+        row.sortOrder = i;
+        return row;
+      });
+      sheet.rows = reordered as any;
+      sheet.updatedAt = new Date();
+      await sheet.save();
+
+      return ok(
+        JSON.stringify({ reordered: true, totalRows: reordered.length }),
+      );
+    },
+  );
+
   // ── save_tender_note ──────────────────────────────────────────────────────
   server.registerTool(
     "save_tender_note",

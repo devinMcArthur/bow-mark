@@ -324,3 +324,73 @@ describe("delete_pricing_rows", () => {
     expect(sheet!.rows).toHaveLength(2);
   });
 });
+
+describe("reorder_pricing_rows", () => {
+  let tenderId: string;
+  let sheetId: string;
+  let r1Id: string;
+  let r2Id: string;
+  let r3Id: string;
+
+  beforeEach(async () => {
+    const tender = await Tender.create({ name: "T", jobcode: "T-004", files: [], createdBy: new Types.ObjectId() } as any);
+    tenderId = tender._id.toString();
+    const r1 = new mongoose.Types.ObjectId();
+    const r2 = new mongoose.Types.ObjectId();
+    const r3 = new mongoose.Types.ObjectId();
+    r1Id = r1.toString();
+    r2Id = r2.toString();
+    r3Id = r3.toString();
+    const sheet = await TenderPricingSheet.create({
+      tender: tender._id,
+      defaultMarkupPct: 15,
+      rows: [
+        { _id: r1, type: "item", sortOrder: 0, description: "A", indentLevel: 0, status: "not_started", docRefs: [] },
+        { _id: r2, type: "item", sortOrder: 1, description: "B", indentLevel: 0, status: "in_progress", docRefs: [] },
+        { _id: r3, type: "item", sortOrder: 2, description: "C", indentLevel: 0, status: "not_started", docRefs: [] },
+      ],
+    } as any);
+    sheetId = sheet._id.toString();
+  });
+
+  afterEach(async () => {
+    await Tender.deleteOne({ _id: tenderId });
+    await TenderPricingSheet.deleteOne({ _id: sheetId });
+  });
+
+  it("reorders the full list and reassigns sortOrder", async () => {
+    const srv = makeServer();
+    await runWithContext(
+      { userId: new Types.ObjectId().toString(), role: UserRoles.ProjectManager, tenderId },
+      () => srv.call("reorder_pricing_rows", { rowIds: [r3Id, r1Id, r2Id] }),
+    );
+    const sheet = await TenderPricingSheet.findById(sheetId).lean();
+    expect(sheet!.rows.map((r: any) => r._id.toString())).toEqual([r3Id, r1Id, r2Id]);
+    expect(sheet!.rows.map((r: any) => r.sortOrder)).toEqual([0, 1, 2]);
+  });
+
+  it("allows reordering even when a row is in_progress", async () => {
+    // r2 is in_progress in beforeEach; reorder should still succeed
+    const srv = makeServer();
+    const result = await runWithContext(
+      { userId: new Types.ObjectId().toString(), role: UserRoles.ProjectManager, tenderId },
+      () => srv.call("reorder_pricing_rows", { rowIds: [r2Id, r3Id, r1Id] }),
+    );
+    const text = (result.content[0] as any).text;
+    expect(text).toContain("reordered");
+
+    const sheet = await TenderPricingSheet.findById(sheetId).lean();
+    expect(sheet!.rows[0]._id.toString()).toBe(r2Id);
+    expect(sheet!.rows[0].status).toBe("in_progress");
+  });
+
+  it("rejects partial reorders (missing row)", async () => {
+    const srv = makeServer();
+    const result = await runWithContext(
+      { userId: new Types.ObjectId().toString(), role: UserRoles.ProjectManager, tenderId },
+      () => srv.call("reorder_pricing_rows", { rowIds: [r1Id, r2Id] }),
+    );
+    const text = (result.content[0] as any).text;
+    expect(text).toMatch(/does not match sheet\.rows\.length/);
+  });
+});
