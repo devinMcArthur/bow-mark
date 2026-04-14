@@ -1,7 +1,7 @@
 // @ts-nocheck — TypeScript 5.x OOMs on deeply chained Zod+Kysely types
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { Tender as TenderModel, System, TenderPricingSheet } from "@models";
 import { UserRoles } from "@typescript/user";
 import { scheduleTenderSummary } from "../../lib/generateTenderSummary";
@@ -107,6 +107,119 @@ export function register(
           totalRows: rows.length,
         }),
       );
+    },
+  );
+
+  // ── create_pricing_rows ──────────────────────────────────────────────────
+  server.registerTool(
+    "create_pricing_rows",
+    {
+      description:
+        "Create one or more pricing rows (schedules, groups, or items) on the active tender. Rows are appended to the end of the sheet in the order provided. New rows always start in 'not_started' state. Quantity and unit are only allowed on items, not schedules or groups. itemNumber should be set to the SoQ-source number (e.g. 'A.1.3'). Up to 100 rows per call. Validation is all-or-nothing — if any row is invalid, none are saved.",
+      inputSchema: {
+        rows: z
+          .array(
+            z.object({
+              type: z.enum(["schedule", "group", "item"]),
+              itemNumber: z.string().optional(),
+              description: z.string().min(1),
+              indentLevel: z.number().int().min(0).max(3).default(0),
+              quantity: z.number().optional(),
+              unit: z.string().optional(),
+              notes: z.string().optional(),
+              docRefs: z
+                .array(
+                  z.object({
+                    enrichedFileId: z.string(),
+                    page: z.number().int().min(1),
+                    description: z.string().optional(),
+                  }),
+                )
+                .optional(),
+            }),
+          )
+          .min(1)
+          .max(100),
+      },
+    },
+    async ({ rows }) => {
+      requirePmRole();
+      const { tenderId } = requireTenderContext();
+      const sheet = await TenderPricingSheet.getByTenderId(tenderId);
+      if (!sheet) throw new Error(`No pricing sheet found for tender ${tenderId}`);
+
+      // Build a set of valid enrichedFileIds attached to this tender + sys spec files
+      const [tender, sys] = await Promise.all([
+        TenderModel.findById(tenderId)
+          .populate({ path: "files", populate: { path: "file" } })
+          .lean(),
+        System.getSystem(),
+      ]);
+      const validFileIds = new Set<string>();
+      for (const f of [
+        ...(((tender as any)?.files ?? []) as any[]),
+        ...(((sys?.specFiles ?? []) as any[])),
+      ]) {
+        if (f?._id) validFileIds.add(f._id.toString());
+        if (f?.file?._id) validFileIds.add(f.file._id.toString());
+      }
+
+      // Validate every row first
+      const errors: string[] = [];
+      rows.forEach((r, i) => {
+        if (r.type !== "item" && (r.quantity != null || r.unit != null)) {
+          errors.push(`row[${i}]: quantity/unit only allowed on items, not ${r.type}`);
+        }
+        for (const ref of r.docRefs ?? []) {
+          if (!validFileIds.has(ref.enrichedFileId)) {
+            errors.push(
+              `row[${i}]: docRef enrichedFileId '${ref.enrichedFileId}' is not attached to this tender`,
+            );
+          }
+        }
+      });
+      if (errors.length > 0) {
+        return ok(`Error: validation failed. No rows created.\n${errors.join("\n")}`);
+      }
+
+      // Apply each row
+      const created: Array<{
+        rowId: string;
+        type: string;
+        itemNumber: string;
+        description: string;
+      }> = [];
+      for (const r of rows) {
+        const newRow: any = {
+          _id: new Types.ObjectId(),
+          type: r.type,
+          sortOrder: sheet.rows.length,
+          itemNumber: r.itemNumber ?? "",
+          description: r.description,
+          indentLevel: r.indentLevel,
+          ...(r.type === "item" && r.quantity != null ? { quantity: r.quantity } : {}),
+          ...(r.type === "item" && r.unit != null ? { unit: r.unit } : {}),
+          ...(r.notes != null ? { notes: r.notes } : {}),
+          docRefs: (r.docRefs ?? []).map((d) => ({
+            _id: new Types.ObjectId(),
+            enrichedFileId: new Types.ObjectId(d.enrichedFileId),
+            page: d.page,
+            ...(d.description != null ? { description: d.description } : {}),
+          })),
+          status: "not_started",
+        };
+        sheet.rows.push(newRow);
+        created.push({
+          rowId: newRow._id.toString(),
+          type: newRow.type,
+          itemNumber: newRow.itemNumber,
+          description: newRow.description,
+        });
+      }
+      sheet.updatedAt = new Date();
+      await sheet.save();
+
+      return ok(JSON.stringify({ created, totalRows: created.length }));
     },
   );
 
