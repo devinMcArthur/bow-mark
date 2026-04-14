@@ -262,3 +262,65 @@ describe("update_pricing_rows", () => {
     expect(sheet!.rows[0].docRefs.map((d: any) => d.page).sort()).toEqual([5, 7]);
   });
 });
+
+describe("delete_pricing_rows", () => {
+  let tenderId: string;
+  let sheetId: string;
+  let row1Id: string;
+  let row2Id: string;
+
+  beforeEach(async () => {
+    const tender = await Tender.create({
+      name: "T",
+      jobcode: "T-003",
+      files: [],
+      createdBy: new Types.ObjectId(),
+    } as any);
+    tenderId = tender._id.toString();
+    const r1 = new mongoose.Types.ObjectId();
+    const r2 = new mongoose.Types.ObjectId();
+    row1Id = r1.toString();
+    row2Id = r2.toString();
+    const sheet = await TenderPricingSheet.create({
+      tender: tender._id,
+      defaultMarkupPct: 15,
+      rows: [
+        { _id: r1, type: "item", sortOrder: 0, description: "A", indentLevel: 0, status: "not_started", docRefs: [] },
+        { _id: r2, type: "item", sortOrder: 1, description: "B", indentLevel: 0, status: "not_started", docRefs: [] },
+      ],
+    } as any);
+    sheetId = sheet._id.toString();
+  });
+
+  afterEach(async () => {
+    await Tender.deleteOne({ _id: tenderId });
+    await TenderPricingSheet.deleteOne({ _id: sheetId });
+  });
+
+  it("deletes both rows when both are not_started", async () => {
+    const srv = makeServer();
+    await runWithContext(
+      { userId: new Types.ObjectId().toString(), role: UserRoles.ProjectManager, tenderId },
+      () => srv.call("delete_pricing_rows", { rowIds: [row1Id, row2Id] }),
+    );
+    const sheet = await TenderPricingSheet.findById(sheetId).lean();
+    expect(sheet!.rows).toHaveLength(0);
+  });
+
+  it("rejects whole batch if one row is in_progress", async () => {
+    await TenderPricingSheet.updateOne(
+      { _id: sheetId, "rows._id": new mongoose.Types.ObjectId(row2Id) },
+      { $set: { "rows.$.status": "in_progress" } },
+    );
+    const srv = makeServer();
+    const result = await runWithContext(
+      { userId: new Types.ObjectId().toString(), role: UserRoles.ProjectManager, tenderId },
+      () => srv.call("delete_pricing_rows", { rowIds: [row1Id, row2Id] }),
+    );
+    const text = (result.content[0] as any).text;
+    expect(text).toMatch(/in state 'in_progress'/);
+
+    const sheet = await TenderPricingSheet.findById(sheetId).lean();
+    expect(sheet!.rows).toHaveLength(2);
+  });
+});

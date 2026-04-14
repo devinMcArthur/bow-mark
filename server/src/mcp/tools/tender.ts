@@ -382,6 +382,53 @@ export function register(
     },
   );
 
+  // ── delete_pricing_rows ──────────────────────────────────────────────────
+  server.registerTool(
+    "delete_pricing_rows",
+    {
+      description:
+        "Delete one or more pricing rows from the active tender. Only rows in 'not_started' state can be deleted. Up to 100 rows per call. Validation is all-or-nothing — if any row is not editable, none are deleted.",
+      inputSchema: {
+        rowIds: z.array(z.string()).min(1).max(100),
+      },
+    },
+    async ({ rowIds }) => {
+      requirePmRole();
+      const { tenderId } = requireTenderContext();
+      const sheet = await TenderPricingSheet.getByTenderId(tenderId);
+      if (!sheet) throw new Error(`No pricing sheet found for tender ${tenderId}`);
+
+      const errors: string[] = [];
+      const rowsById = new Map(
+        sheet.rows.map((r: any) => [r._id.toString(), r]),
+      );
+      for (const id of rowIds) {
+        const row = rowsById.get(id) as any;
+        if (!row) {
+          errors.push(`row ${id}: not found`);
+          continue;
+        }
+        if (row.status !== "not_started") {
+          errors.push(
+            `row ${id}: in state '${row.status}', cannot delete (only 'not_started' rows can be deleted)`,
+          );
+        }
+      }
+      if (errors.length > 0) {
+        return ok(`Error: validation failed. No rows deleted.\n${errors.join("\n")}`);
+      }
+
+      const idSet = new Set(rowIds);
+      sheet.rows = sheet.rows.filter(
+        (r: any) => !idSet.has(r._id.toString()),
+      ) as any;
+      sheet.updatedAt = new Date();
+      await sheet.save();
+
+      return ok(JSON.stringify({ deleted: rowIds, totalDeleted: rowIds.length }));
+    },
+  );
+
   // ── save_tender_note ──────────────────────────────────────────────────────
   server.registerTool(
     "save_tender_note",
