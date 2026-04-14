@@ -226,6 +226,132 @@ export function register(
     },
   );
 
+  // ── update_pricing_rows ──────────────────────────────────────────────────
+  server.registerTool(
+    "update_pricing_rows",
+    {
+      description:
+        "Update one or more pricing rows on the active tender. Each update is identified by rowId. Only rows in 'not_started' state can be edited — already-started rows are protected. Editable fields: itemNumber, description, indentLevel, quantity, unit (items only). Notes and docRefs are append-only via appendNotes / appendDocRefs — existing content is never overwritten. Up to 100 updates per call. Validation is all-or-nothing.",
+      inputSchema: {
+        updates: z
+          .array(
+            z.object({
+              rowId: z.string(),
+              itemNumber: z.string().optional(),
+              description: z.string().optional(),
+              indentLevel: z.number().int().min(0).max(3).optional(),
+              quantity: z.number().optional(),
+              unit: z.string().optional(),
+              appendNotes: z.string().optional(),
+              appendDocRefs: z
+                .array(
+                  z.object({
+                    enrichedFileId: z.string(),
+                    page: z.number().int().min(1),
+                    description: z.string().optional(),
+                  }),
+                )
+                .optional(),
+            }),
+          )
+          .min(1)
+          .max(100),
+      },
+    },
+    async ({ updates }) => {
+      requirePmRole();
+      const { tenderId } = requireTenderContext();
+      const sheet = await TenderPricingSheet.getByTenderId(tenderId);
+      if (!sheet) throw new Error(`No pricing sheet found for tender ${tenderId}`);
+
+      const rowsById = new Map(
+        sheet.rows.map((r: any) => [r._id.toString(), r]),
+      );
+
+      // Validate-all-then-apply
+      const errors: string[] = [];
+      for (const u of updates) {
+        const row = rowsById.get(u.rowId) as any;
+        if (!row) {
+          errors.push(`row ${u.rowId}: not found`);
+          continue;
+        }
+        if (row.status !== "not_started") {
+          errors.push(
+            `row ${u.rowId}: in state '${row.status}', cannot edit (only 'not_started' rows are editable)`,
+          );
+        }
+        if (
+          row.type !== "item" &&
+          (u.quantity !== undefined || u.unit !== undefined)
+        ) {
+          errors.push(
+            `row ${u.rowId}: quantity/unit only allowed on items, not ${row.type}`,
+          );
+        }
+      }
+      if (errors.length > 0) {
+        return ok(`Error: validation failed. No updates applied.\n${errors.join("\n")}`);
+      }
+
+      const updated: Array<{ rowId: string; fieldsChanged: string[] }> = [];
+      for (const u of updates) {
+        const row = rowsById.get(u.rowId) as any;
+        const fieldsChanged: string[] = [];
+
+        if (u.itemNumber !== undefined) {
+          row.itemNumber = u.itemNumber;
+          fieldsChanged.push("itemNumber");
+        }
+        if (u.description !== undefined) {
+          row.description = u.description;
+          fieldsChanged.push("description");
+        }
+        if (u.indentLevel !== undefined) {
+          row.indentLevel = u.indentLevel;
+          fieldsChanged.push("indentLevel");
+        }
+        if (u.quantity !== undefined) {
+          row.quantity = u.quantity;
+          fieldsChanged.push("quantity");
+        }
+        if (u.unit !== undefined) {
+          row.unit = u.unit;
+          fieldsChanged.push("unit");
+        }
+        if (u.appendNotes !== undefined) {
+          row.notes = (row.notes ? row.notes + "\n\n" : "") + u.appendNotes;
+          fieldsChanged.push("appendNotes");
+        }
+        if (u.appendDocRefs !== undefined) {
+          const existing = (row.docRefs ?? []) as any[];
+          for (const ref of u.appendDocRefs) {
+            const isDup = existing.some(
+              (e) =>
+                e.enrichedFileId.toString() === ref.enrichedFileId &&
+                e.page === ref.page,
+            );
+            if (isDup) continue;
+            existing.push({
+              _id: new Types.ObjectId(),
+              enrichedFileId: new Types.ObjectId(ref.enrichedFileId),
+              page: ref.page,
+              ...(ref.description != null ? { description: ref.description } : {}),
+            });
+          }
+          row.docRefs = existing;
+          fieldsChanged.push("appendDocRefs");
+        }
+
+        updated.push({ rowId: u.rowId, fieldsChanged });
+      }
+      sheet.updatedAt = new Date();
+      await sheet.save();
+
+      return ok(JSON.stringify({ updated, totalUpdated: updated.length }));
+    },
+  );
+
   // ── save_tender_note ──────────────────────────────────────────────────────
   server.registerTool(
     "save_tender_note",

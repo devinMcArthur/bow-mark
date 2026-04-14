@@ -120,3 +120,145 @@ describe("create_pricing_rows", () => {
     ).rejects.toThrow(/Forbidden: PM or Admin role required/);
   });
 });
+
+describe("update_pricing_rows", () => {
+  let tenderId: string;
+  let sheetId: string;
+  let rowId: string;
+
+  beforeEach(async () => {
+    const tender = await Tender.create({
+      name: "T",
+      jobcode: "T-002",
+      files: [],
+      createdBy: new Types.ObjectId(),
+    } as any);
+    tenderId = tender._id.toString();
+    const rowOid = new mongoose.Types.ObjectId();
+    rowId = rowOid.toString();
+    const sheet = await TenderPricingSheet.create({
+      tender: tender._id,
+      defaultMarkupPct: 15,
+      rows: [
+        {
+          _id: rowOid,
+          type: "item",
+          sortOrder: 0,
+          itemNumber: "A.1",
+          description: "Old description",
+          indentLevel: 2,
+          quantity: 100,
+          unit: "m",
+          status: "not_started",
+          docRefs: [],
+        },
+      ],
+    } as any);
+    sheetId = sheet._id.toString();
+  });
+
+  afterEach(async () => {
+    await Tender.deleteOne({ _id: tenderId });
+    await TenderPricingSheet.deleteOne({ _id: sheetId });
+  });
+
+  it("applies allowlisted updates to a not_started row", async () => {
+    const srv = makeServer();
+    const result = await runWithContext(
+      { userId: new Types.ObjectId().toString(), role: UserRoles.ProjectManager, tenderId },
+      () =>
+        srv.call("update_pricing_rows", {
+          updates: [{ rowId, description: "New description", quantity: 250 }],
+        }),
+    );
+    const text = (result.content[0] as any).text;
+    expect(text).toContain("totalUpdated");
+
+    const sheet = await TenderPricingSheet.findById(sheetId).lean();
+    expect(sheet!.rows[0].description).toBe("New description");
+    expect(sheet!.rows[0].quantity).toBe(250);
+  });
+
+  it("rejects the whole batch if any row is not not_started", async () => {
+    // Flip the row to in_progress
+    await TenderPricingSheet.updateOne(
+      { _id: sheetId, "rows._id": new mongoose.Types.ObjectId(rowId) },
+      { $set: { "rows.$.status": "in_progress" } },
+    );
+
+    const srv = makeServer();
+    const result = await runWithContext(
+      { userId: new Types.ObjectId().toString(), role: UserRoles.ProjectManager, tenderId },
+      () =>
+        srv.call("update_pricing_rows", {
+          updates: [{ rowId, description: "Should not apply" }],
+        }),
+    );
+    const text = (result.content[0] as any).text;
+    expect(text).toMatch(/in state 'in_progress'/);
+
+    const sheet = await TenderPricingSheet.findById(sheetId).lean();
+    expect(sheet!.rows[0].description).toBe("Old description");
+  });
+
+  it("appendNotes concatenates with newline separator instead of replacing", async () => {
+    // Pre-fill an existing note
+    await TenderPricingSheet.updateOne(
+      { _id: sheetId, "rows._id": new mongoose.Types.ObjectId(rowId) },
+      { $set: { "rows.$.notes": "Original note" } },
+    );
+
+    const srv = makeServer();
+    await runWithContext(
+      { userId: new Types.ObjectId().toString(), role: UserRoles.ProjectManager, tenderId },
+      () =>
+        srv.call("update_pricing_rows", {
+          updates: [{ rowId, appendNotes: "Added note" }],
+        }),
+    );
+
+    const sheet = await TenderPricingSheet.findById(sheetId).lean();
+    expect(sheet!.rows[0].notes).toBe("Original note\n\nAdded note");
+  });
+
+  it("appendDocRefs dedupes against existing (enrichedFileId, page) pairs", async () => {
+    const fileId = new mongoose.Types.ObjectId().toString();
+
+    // Add an existing docRef
+    await TenderPricingSheet.updateOne(
+      { _id: sheetId, "rows._id": new mongoose.Types.ObjectId(rowId) },
+      {
+        $set: {
+          "rows.$.docRefs": [
+            {
+              _id: new mongoose.Types.ObjectId(),
+              enrichedFileId: new mongoose.Types.ObjectId(fileId),
+              page: 5,
+            },
+          ],
+        },
+      },
+    );
+
+    const srv = makeServer();
+    await runWithContext(
+      { userId: new Types.ObjectId().toString(), role: UserRoles.ProjectManager, tenderId },
+      () =>
+        srv.call("update_pricing_rows", {
+          updates: [
+            {
+              rowId,
+              appendDocRefs: [
+                { enrichedFileId: fileId, page: 5 }, // duplicate, should be skipped
+                { enrichedFileId: fileId, page: 7 }, // new, should be added
+              ],
+            },
+          ],
+        }),
+    );
+
+    const sheet = await TenderPricingSheet.findById(sheetId).lean();
+    expect(sheet!.rows[0].docRefs).toHaveLength(2);
+    expect(sheet!.rows[0].docRefs.map((d: any) => d.page).sort()).toEqual([5, 7]);
+  });
+});
