@@ -664,7 +664,12 @@ export function register(
           const ws = workbook.Sheets[name];
           return `Sheet: ${name}\n${xlsx.utils.sheet_to_csv(ws)}`;
         }).join("\n\n");
-        content = `Document: ${docLabel}\n\n${text}`;
+        content = [
+          {
+            type: "text" as const,
+            text: `Document: ${docLabel}\n\n${text}`,
+          },
+        ];
         if (docPageCount > 0) sessionState.pdfPagesLoaded += docPageCount;
         sessionState.loadedRangeKeys.add(rangeKey);
       } else if (contentType.startsWith("image/")) {
