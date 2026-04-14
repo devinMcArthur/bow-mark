@@ -5,6 +5,7 @@ export interface RequestContext {
   userId: string;
   role: UserRoles;
   tenderId?: string;
+  /** Populated from X-Conversation-Id header (Task 2); used by tender note tools (Task 5). */
   conversationId?: string;
 }
 
