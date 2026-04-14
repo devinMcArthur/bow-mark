@@ -31,6 +31,7 @@ describe("create_pricing_rows", () => {
       name: "Test Tender",
       jobcode: "T-001",
       files: [],
+      createdBy: new Types.ObjectId(),
     } as any);
     tenderId = tender._id.toString();
     const sheet = await TenderPricingSheet.create({

@@ -161,7 +161,6 @@ export function register(
         ...(((sys?.specFiles ?? []) as any[])),
       ]) {
         if (f?._id) validFileIds.add(f._id.toString());
-        if (f?.file?._id) validFileIds.add(f.file._id.toString());
       }
 
       // Validate every row first
@@ -171,7 +170,11 @@ export function register(
           errors.push(`row[${i}]: quantity/unit only allowed on items, not ${r.type}`);
         }
         for (const ref of r.docRefs ?? []) {
-          if (!validFileIds.has(ref.enrichedFileId)) {
+          if (!mongoose.isValidObjectId(ref.enrichedFileId)) {
+            errors.push(
+              `row[${i}]: docRef enrichedFileId '${ref.enrichedFileId}' is not a valid ObjectId`,
+            );
+          } else if (!validFileIds.has(ref.enrichedFileId)) {
             errors.push(
               `row[${i}]: docRef enrichedFileId '${ref.enrichedFileId}' is not attached to this tender`,
             );
