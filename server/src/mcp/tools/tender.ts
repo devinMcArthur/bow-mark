@@ -4,6 +4,7 @@ import { z } from "zod";
 import mongoose from "mongoose";
 import { Tender as TenderModel, System, TenderPricingSheet } from "@models";
 import { UserRoles } from "@typescript/user";
+import { TenderPricingRowType } from "@typescript/tenderPricingSheet";
 import { scheduleTenderSummary } from "../../lib/generateTenderSummary";
 import { requireTenderContext } from "../context";
 import Anthropic from "@anthropic-ai/sdk";
@@ -49,12 +50,59 @@ function ok(text: string) {
   return { content: [{ type: "text" as const, text }] };
 }
 
+/**
+ * Wraps an MCP tool handler with entry/exit/error logging. Every tool call
+ * gets a one-line success log with timing, and any thrown error is logged
+ * with a stack trace before being re-thrown (so the chat router can surface
+ * it as is_error: true to Claude).
+ *
+ * Set MCP_DEBUG_TOOL_INPUTS=1 to also log the input args on each call.
+ * Leave unset in prod — input dumps can be noisy and may include user data.
+ */
+function instrumented<TArgs>(
+  name: string,
+  handler: (args: TArgs) => Promise<unknown>,
+): (args: TArgs) => Promise<unknown> {
+  return async (args: TArgs) => {
+    const start = Date.now();
+    if (process.env.MCP_DEBUG_TOOL_INPUTS === "1") {
+      console.log(`[mcp:${name}] input:`, JSON.stringify(args));
+    }
+    try {
+      const result = await handler(args);
+      console.log(`[mcp:${name}] ok (${Date.now() - start}ms)`);
+      return result;
+    } catch (err) {
+      console.error(
+        `[mcp:${name}] threw after ${Date.now() - start}ms:`,
+        err instanceof Error ? err.stack ?? err.message : err,
+      );
+      throw err;
+    }
+  };
+}
+
+/**
+ * Drop-in wrapper around `server.registerTool` that auto-instruments the
+ * handler. Use this in place of `server.registerTool` for every tool in
+ * this file so we get uniform entry/exit/error logging and never forget.
+ */
+function registerInstrumented<TConfig, TArgs>(
+  server: McpServer,
+  name: string,
+  config: TConfig,
+  handler: (args: TArgs) => Promise<unknown>,
+): void {
+  (server as any).registerTool(name, config, instrumented(name, handler));
+}
+
 export function register(
   server: McpServer,
   sessionState: TenderToolsSessionState,
 ): void {
   // ── get_tender_pricing_rows ──────────────────────────────────────────────
-  server.registerTool(
+  registerInstrumented(
+    server,
     "get_tender_pricing_rows",
     {
       description:
@@ -111,7 +159,8 @@ export function register(
   );
 
   // ── create_pricing_rows ──────────────────────────────────────────────────
-  server.registerTool(
+  registerInstrumented(
+    server,
     "create_pricing_rows",
     {
       description:
@@ -120,7 +169,7 @@ export function register(
         rows: z
           .array(
             z.object({
-              type: z.enum(["Schedule", "Group", "Item"]),
+              type: z.nativeEnum(TenderPricingRowType),
               itemNumber: z.string().optional(),
               description: z.string().min(1),
               indentLevel: z.number().int().min(0).max(3).default(0),
@@ -166,7 +215,7 @@ export function register(
       // Validate every row first
       const errors: string[] = [];
       rows.forEach((r, i) => {
-        if (r.type !== "Item" && (r.quantity != null || r.unit != null)) {
+        if (r.type !== TenderPricingRowType.Item && (r.quantity != null || r.unit != null)) {
           errors.push(`row[${i}]: quantity/unit only allowed on items, not ${r.type}`);
         }
         for (const ref of r.docRefs ?? []) {
@@ -182,7 +231,7 @@ export function register(
         }
       });
       if (errors.length > 0) {
-        return ok(`Error: validation failed. No rows created.\n${errors.join("\n")}`);
+        throw new Error(`validation failed. No rows created.\n${errors.join("\n")}`);
       }
 
       // Apply each row
@@ -200,8 +249,8 @@ export function register(
           itemNumber: r.itemNumber ?? "",
           description: r.description,
           indentLevel: r.indentLevel,
-          ...(r.type === "Item" && r.quantity != null ? { quantity: r.quantity } : {}),
-          ...(r.type === "Item" && r.unit != null ? { unit: r.unit } : {}),
+          ...(r.type === TenderPricingRowType.Item && r.quantity != null ? { quantity: r.quantity } : {}),
+          ...(r.type === TenderPricingRowType.Item && r.unit != null ? { unit: r.unit } : {}),
           ...(r.notes != null ? { notes: r.notes } : {}),
           docRefs: (r.docRefs ?? []).map((d) => ({
             _id: new mongoose.Types.ObjectId(),
@@ -227,7 +276,8 @@ export function register(
   );
 
   // ── update_pricing_rows ──────────────────────────────────────────────────
-  server.registerTool(
+  registerInstrumented(
+    server,
     "update_pricing_rows",
     {
       description:
@@ -297,7 +347,7 @@ export function register(
           );
         }
         if (
-          row.type !== "Item" &&
+          row.type !== TenderPricingRowType.Item &&
           (u.quantity !== undefined || u.unit !== undefined)
         ) {
           errors.push(
@@ -317,7 +367,7 @@ export function register(
         }
       }
       if (errors.length > 0) {
-        return ok(`Error: validation failed. No updates applied.\n${errors.join("\n")}`);
+        throw new Error(`validation failed. No updates applied.\n${errors.join("\n")}`);
       }
 
       const updated: Array<{ rowId: string; fieldsChanged: string[] }> = [];
@@ -383,7 +433,8 @@ export function register(
   );
 
   // ── delete_pricing_rows ──────────────────────────────────────────────────
-  server.registerTool(
+  registerInstrumented(
+    server,
     "delete_pricing_rows",
     {
       description:
@@ -415,7 +466,7 @@ export function register(
         }
       }
       if (errors.length > 0) {
-        return ok(`Error: validation failed. No rows deleted.\n${errors.join("\n")}`);
+        throw new Error(`validation failed. No rows deleted.\n${errors.join("\n")}`);
       }
 
       const idSet = new Set(rowIds);
@@ -430,7 +481,8 @@ export function register(
   );
 
   // ── reorder_pricing_rows ─────────────────────────────────────────────────
-  server.registerTool(
+  registerInstrumented(
+    server,
     "reorder_pricing_rows",
     {
       description:
@@ -446,8 +498,8 @@ export function register(
       if (!sheet) throw new Error(`No pricing sheet found for tender ${tenderId}`);
 
       if (rowIds.length !== sheet.rows.length) {
-        return ok(
-          `Error: rowIds.length (${rowIds.length}) does not match sheet.rows.length (${sheet.rows.length}). Reorder requires the full list of rows in the new order.`,
+        throw new Error(
+          `rowIds.length (${rowIds.length}) does not match sheet.rows.length (${sheet.rows.length}). Reorder requires the full list of rows in the new order.`,
         );
       }
       const sheetIdSet = new Set(sheet.rows.map((r: any) => r._id.toString()));
@@ -456,8 +508,8 @@ export function register(
         sheetIdSet.size !== inputIdSet.size ||
         ![...sheetIdSet].every((id) => inputIdSet.has(id))
       ) {
-        return ok(
-          `Error: rowIds set does not match sheet.rows set. Every existing rowId must appear exactly once.`,
+        throw new Error(
+          `rowIds set does not match sheet.rows set. Every existing rowId must appear exactly once.`,
         );
       }
 
@@ -480,7 +532,8 @@ export function register(
   );
 
   // ── save_tender_note ──────────────────────────────────────────────────────
-  server.registerTool(
+  registerInstrumented(
+    server,
     "save_tender_note",
     {
       description:
@@ -514,7 +567,8 @@ export function register(
   );
 
   // ── delete_tender_note ────────────────────────────────────────────────────
-  server.registerTool(
+  registerInstrumented(
+    server,
     "delete_tender_note",
     {
       description:
@@ -534,7 +588,7 @@ export function register(
       );
 
       if (result.modifiedCount === 0) {
-        return ok(`Error: Note not found — nothing was deleted.`);
+        throw new Error(`Note not found — nothing was deleted.`);
       }
 
       scheduleTenderSummary(tenderId);
@@ -543,7 +597,8 @@ export function register(
   );
 
   // ── list_document_pages ───────────────────────────────────────────────────
-  server.registerTool(
+  registerInstrumented(
+    server,
     "list_document_pages",
     {
       description:
@@ -580,7 +635,8 @@ export function register(
   );
 
   // ── read_document ────────────────────────────────────────────────────────
-  server.registerTool(
+  registerInstrumented(
+    server,
     "read_document",
     {
       description:
