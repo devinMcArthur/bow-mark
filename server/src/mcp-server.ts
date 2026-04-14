@@ -14,6 +14,7 @@ import { register as registerSearch } from "./mcp/tools/search";
 import { register as registerFinancial } from "./mcp/tools/financial";
 import { register as registerProductivity } from "./mcp/tools/productivity";
 import { register as registerOperational } from "./mcp/tools/operational";
+import { register as registerTender, makeSessionState as makeTenderSessionState } from "./mcp/tools/tender";
 import jwt from "jsonwebtoken";
 import { User } from "@models";
 import { UserRoles } from "@typescript/user";
@@ -31,6 +32,11 @@ function createMcpServer(): McpServer {
   registerFinancial(server);
   registerProductivity(server);
   registerOperational(server);
+
+  // Per-session state for tender tools (page budget + dedup) — fresh per
+  // McpServer instance, which createMcpServer() creates one of per session.
+  const tenderSessionState = makeTenderSessionState();
+  registerTender(server, tenderSessionState);
 
   return server;
 }
