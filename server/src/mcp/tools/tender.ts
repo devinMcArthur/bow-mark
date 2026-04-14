@@ -1,7 +1,7 @@
 // @ts-nocheck — TypeScript 5.x OOMs on deeply chained Zod+Kysely types
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import mongoose, { Types } from "mongoose";
+import mongoose from "mongoose";
 import { Tender as TenderModel, System, TenderPricingSheet } from "@models";
 import { UserRoles } from "@typescript/user";
 import { scheduleTenderSummary } from "../../lib/generateTenderSummary";
@@ -194,7 +194,7 @@ export function register(
       }> = [];
       for (const r of rows) {
         const newRow: any = {
-          _id: new Types.ObjectId(),
+          _id: new mongoose.Types.ObjectId(),
           type: r.type,
           sortOrder: sheet.rows.length,
           itemNumber: r.itemNumber ?? "",
@@ -204,8 +204,8 @@ export function register(
           ...(r.type === "item" && r.unit != null ? { unit: r.unit } : {}),
           ...(r.notes != null ? { notes: r.notes } : {}),
           docRefs: (r.docRefs ?? []).map((d) => ({
-            _id: new Types.ObjectId(),
-            enrichedFileId: new Types.ObjectId(d.enrichedFileId),
+            _id: new mongoose.Types.ObjectId(),
+            enrichedFileId: new mongoose.Types.ObjectId(d.enrichedFileId),
             page: d.page,
             ...(d.description != null ? { description: d.description } : {}),
           })),
@@ -361,8 +361,8 @@ export function register(
             if (isDup) continue;
             addedAny = true;
             existing.push({
-              _id: new Types.ObjectId(),
-              enrichedFileId: new Types.ObjectId(ref.enrichedFileId),
+              _id: new mongoose.Types.ObjectId(),
+              enrichedFileId: new mongoose.Types.ObjectId(ref.enrichedFileId),
               page: ref.page,
               ...(ref.description != null ? { description: ref.description } : {}),
             });
