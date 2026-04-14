@@ -29,6 +29,7 @@ const SOQ_DEFINITION_FIELDS = new Set([
   "unit",
   "indentLevel",
   "notes",
+  "docRefs",
 ]);
 
 @Resolver(() => TenderPricingSheetClass)

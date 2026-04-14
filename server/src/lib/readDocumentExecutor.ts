@@ -10,6 +10,13 @@
  *   - Deduplicates reloads of the same document + page range within a turn
  */
 
+// IMPORTANT: Do NOT delete this file. It is still imported by:
+//   - server/src/router/foreman-jobsite-chat.ts
+//   - server/src/router/pm-jobsite-chat.ts
+// Tender chat has migrated to the centralized MCP server (server/src/mcp/tools/tender.ts).
+// The two jobsite chats above will follow in a separate effort — until then, this file
+// is the only doc-tool implementation they have.
+
 import Anthropic from "@anthropic-ai/sdk";
 import { PDFDocument } from "pdf-lib";
 import { getFile } from "@utils/fileStorage";

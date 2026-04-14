@@ -1,5 +1,5 @@
 import mongoose, { Types } from "mongoose";
-import { TenderPricingSheet, Tender, System } from "@models";
+import { TenderPricingSheet, Tender, System, EnrichedFile, File as FileModel } from "@models";
 import { UserRoles } from "@typescript/user";
 import { runWithContext } from "../../mcp/context";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -69,7 +69,7 @@ describe("create_pricing_rows", () => {
     );
     const text = (result.content[0] as any).text;
     const parsed = JSON.parse(text);
-    expect(parsed.totalRows).toBe(3);
+    expect(parsed.totalCreated).toBe(3);
     expect(parsed.created).toHaveLength(3);
 
     const sheet = await TenderPricingSheet.findById(sheetId).lean();
@@ -125,12 +125,27 @@ describe("update_pricing_rows", () => {
   let tenderId: string;
   let sheetId: string;
   let rowId: string;
+  // seeded EnrichedFile id used in the appendDocRefs dedup test
+  let seededEnrichedFileId: string;
+  let seededFileModelId: string;
 
   beforeEach(async () => {
+    // Seed a minimal File + EnrichedFile so the appendDocRefs validation
+    // can resolve the enrichedFileId from the tender's files array.
+    const fileDoc = await FileModel.create({
+      mimetype: "application/pdf",
+    } as any);
+    seededFileModelId = fileDoc._id.toString();
+    const enrichedFileDoc = await EnrichedFile.create({
+      file: fileDoc._id,
+      summaryStatus: "pending",
+    } as any);
+    seededEnrichedFileId = enrichedFileDoc._id.toString();
+
     const tender = await Tender.create({
       name: "T",
       jobcode: "T-002",
-      files: [],
+      files: [enrichedFileDoc._id],
       createdBy: new Types.ObjectId(),
     } as any);
     tenderId = tender._id.toString();
@@ -160,6 +175,8 @@ describe("update_pricing_rows", () => {
   afterEach(async () => {
     await Tender.deleteOne({ _id: tenderId });
     await TenderPricingSheet.deleteOne({ _id: sheetId });
+    if (seededEnrichedFileId) await EnrichedFile.deleteOne({ _id: seededEnrichedFileId });
+    if (seededFileModelId) await FileModel.deleteOne({ _id: seededFileModelId });
   });
 
   it("applies allowlisted updates to a not_started row", async () => {
@@ -222,9 +239,11 @@ describe("update_pricing_rows", () => {
   });
 
   it("appendDocRefs dedupes against existing (enrichedFileId, page) pairs", async () => {
-    const fileId = new mongoose.Types.ObjectId().toString();
+    // Uses seededEnrichedFileId which is attached to the tender (files array),
+    // so the validation accepts it. This ensures the dedup logic — not validation —
+    // is what determines the final result.
 
-    // Add an existing docRef
+    // Pre-populate the row with an existing docRef at page 5
     await TenderPricingSheet.updateOne(
       { _id: sheetId, "rows._id": new mongoose.Types.ObjectId(rowId) },
       {
@@ -232,7 +251,7 @@ describe("update_pricing_rows", () => {
           "rows.$.docRefs": [
             {
               _id: new mongoose.Types.ObjectId(),
-              enrichedFileId: new mongoose.Types.ObjectId(fileId),
+              enrichedFileId: new mongoose.Types.ObjectId(seededEnrichedFileId),
               page: 5,
             },
           ],
@@ -249,8 +268,8 @@ describe("update_pricing_rows", () => {
             {
               rowId,
               appendDocRefs: [
-                { enrichedFileId: fileId, page: 5 }, // duplicate, should be skipped
-                { enrichedFileId: fileId, page: 7 }, // new, should be added
+                { enrichedFileId: seededEnrichedFileId, page: 5 }, // duplicate — should be skipped
+                { enrichedFileId: seededEnrichedFileId, page: 7 }, // new — should be added
               ],
             },
           ],
@@ -392,5 +411,156 @@ describe("reorder_pricing_rows", () => {
     );
     const text = (result.content[0] as any).text;
     expect(text).toMatch(/does not match sheet\.rows\.length/);
+  });
+});
+
+describe("get_tender_pricing_rows", () => {
+  let tenderId: string;
+  let sheetId: string;
+
+  beforeEach(async () => {
+    const tender = await Tender.create({
+      name: "T",
+      jobcode: "T-005",
+      files: [],
+      createdBy: new Types.ObjectId(),
+    } as any);
+    tenderId = tender._id.toString();
+    const r1 = new mongoose.Types.ObjectId();
+    const r2 = new mongoose.Types.ObjectId();
+    const sheet = await TenderPricingSheet.create({
+      tender: tender._id,
+      defaultMarkupPct: 12,
+      rows: [
+        {
+          _id: r1,
+          type: "item",
+          sortOrder: 0,
+          description: "Item with template",
+          indentLevel: 0,
+          status: "not_started",
+          docRefs: [],
+          rateBuildupSnapshot: '{"version":1}',
+        },
+        {
+          _id: r2,
+          type: "item",
+          sortOrder: 1,
+          description: "Item without template",
+          indentLevel: 0,
+          status: "not_started",
+          docRefs: [],
+        },
+      ],
+    } as any);
+    sheetId = sheet._id.toString();
+  });
+
+  afterEach(async () => {
+    await Tender.deleteOne({ _id: tenderId });
+    await TenderPricingSheet.deleteOne({ _id: sheetId });
+  });
+
+  it("returns rows with hasTemplate flag and strips rateBuildupSnapshot", async () => {
+    const srv = makeServer();
+    const result = await runWithContext(
+      { userId: new Types.ObjectId().toString(), role: UserRoles.ProjectManager, tenderId },
+      () => srv.call("get_tender_pricing_rows", {}),
+    );
+    const text = (result.content[0] as any).text;
+    const parsed = JSON.parse(text);
+
+    expect(parsed.rows).toHaveLength(2);
+    expect(parsed.totalRows).toBe(2);
+    expect(parsed.defaultMarkupPct).toBe(12);
+
+    const withTemplate = parsed.rows.find((r: any) => r.description === "Item with template");
+    const withoutTemplate = parsed.rows.find((r: any) => r.description === "Item without template");
+
+    expect(withTemplate.hasTemplate).toBe(true);
+    expect(withoutTemplate.hasTemplate).toBe(false);
+
+    // rateBuildupSnapshot must never leak into the response
+    for (const row of parsed.rows) {
+      expect(row).not.toHaveProperty("rateBuildupSnapshot");
+    }
+  });
+});
+
+describe("save_tender_note", () => {
+  let tenderId: string;
+
+  beforeEach(async () => {
+    const tender = await Tender.create({
+      name: "T",
+      jobcode: "T-006",
+      files: [],
+      createdBy: new Types.ObjectId(),
+    } as any);
+    tenderId = tender._id.toString();
+  });
+
+  afterEach(async () => {
+    await Tender.deleteOne({ _id: tenderId });
+  });
+
+  it("appends a note with content, savedBy, savedAt, conversationId", async () => {
+    const userId = new Types.ObjectId().toString();
+    const conversationId = "conv-abc-123";
+    const srv = makeServer();
+    await runWithContext(
+      { userId, role: UserRoles.ProjectManager, tenderId, conversationId },
+      () => srv.call("save_tender_note", { content: "test note" }),
+    );
+
+    const tender = await Tender.findById(tenderId).lean();
+    expect((tender as any)!.notes).toHaveLength(1);
+    const note = (tender as any)!.notes[0];
+    expect(note.content).toBe("test note");
+    expect(note.savedBy.toString()).toBe(userId);
+    expect(note.savedAt).toBeInstanceOf(Date);
+    expect(note.conversationId).toBe(conversationId);
+  });
+});
+
+describe("delete_tender_note", () => {
+  let tenderId: string;
+  let noteId: string;
+
+  beforeEach(async () => {
+    const noteOid = new mongoose.Types.ObjectId();
+    noteId = noteOid.toString();
+    const tender = await Tender.create({
+      name: "T",
+      jobcode: "T-007",
+      files: [],
+      createdBy: new Types.ObjectId(),
+      notes: [
+        {
+          _id: noteOid,
+          content: "existing note",
+          savedAt: new Date(),
+          conversationId: "conv-existing",
+        },
+      ],
+    } as any);
+    tenderId = tender._id.toString();
+  });
+
+  afterEach(async () => {
+    await Tender.deleteOne({ _id: tenderId });
+  });
+
+  it("removes the note from the tender's notes array", async () => {
+    const srv = makeServer();
+    const result = await runWithContext(
+      { userId: new Types.ObjectId().toString(), role: UserRoles.ProjectManager, tenderId },
+      () => srv.call("delete_tender_note", { noteId }),
+    );
+    const text = (result.content[0] as any).text;
+    expect(text).toContain("deleted");
+
+    const tender = await Tender.findById(tenderId).lean();
+    expect((tender as any)!.notes).toHaveLength(0);
   });
 });

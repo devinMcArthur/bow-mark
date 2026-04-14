@@ -222,7 +222,7 @@ export function register(
       sheet.updatedAt = new Date();
       await sheet.save();
 
-      return ok(JSON.stringify({ created, totalRows: created.length }));
+      return ok(JSON.stringify({ created, totalCreated: created.length }));
     },
   );
 
