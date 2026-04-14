@@ -268,6 +268,21 @@ export function register(
         sheet.rows.map((r: any) => [r._id.toString(), r]),
       );
 
+      // Build a set of valid enrichedFileIds attached to this tender + sys spec files
+      const [tender, sys] = await Promise.all([
+        TenderModel.findById(tenderId)
+          .populate({ path: "files", populate: { path: "file" } })
+          .lean(),
+        System.getSystem(),
+      ]);
+      const validFileIds = new Set<string>();
+      for (const f of [
+        ...(((tender as any)?.files ?? []) as any[]),
+        ...(((sys?.specFiles ?? []) as any[])),
+      ]) {
+        if (f?._id) validFileIds.add(f._id.toString());
+      }
+
       // Validate-all-then-apply
       const errors: string[] = [];
       for (const u of updates) {
@@ -288,6 +303,17 @@ export function register(
           errors.push(
             `row ${u.rowId}: quantity/unit only allowed on items, not ${row.type}`,
           );
+        }
+        for (const ref of u.appendDocRefs ?? []) {
+          if (!mongoose.isValidObjectId(ref.enrichedFileId)) {
+            errors.push(
+              `update[${updates.indexOf(u)}]: docRef enrichedFileId '${ref.enrichedFileId}' is not a valid ObjectId`,
+            );
+          } else if (!validFileIds.has(ref.enrichedFileId)) {
+            errors.push(
+              `update[${updates.indexOf(u)}]: docRef enrichedFileId '${ref.enrichedFileId}' is not attached to this tender`,
+            );
+          }
         }
       }
       if (errors.length > 0) {
@@ -325,6 +351,7 @@ export function register(
         }
         if (u.appendDocRefs !== undefined) {
           const existing = (row.docRefs ?? []) as any[];
+          let addedAny = false;
           for (const ref of u.appendDocRefs) {
             const isDup = existing.some(
               (e) =>
@@ -332,6 +359,7 @@ export function register(
                 e.page === ref.page,
             );
             if (isDup) continue;
+            addedAny = true;
             existing.push({
               _id: new Types.ObjectId(),
               enrichedFileId: new Types.ObjectId(ref.enrichedFileId),
@@ -339,8 +367,10 @@ export function register(
               ...(ref.description != null ? { description: ref.description } : {}),
             });
           }
-          row.docRefs = existing;
-          fieldsChanged.push("appendDocRefs");
+          if (addedAny) {
+            row.docRefs = existing;
+            fieldsChanged.push("appendDocRefs");
+          }
         }
 
         updated.push({ rowId: u.rowId, fieldsChanged });
