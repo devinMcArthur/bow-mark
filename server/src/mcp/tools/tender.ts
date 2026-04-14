@@ -89,7 +89,7 @@ export function register(
         markupOverride: r.markupOverride ?? null,
         extraUnitPrice: r.extraUnitPrice ?? null,
         extraUnitPriceMemo: r.extraUnitPriceMemo ?? null,
-        hasTemplate: r.rateBuildupSnapshot != null,
+        hasTemplate: r.rateBuildupSnapshot != null && r.rateBuildupSnapshot !== "",
         rateBuildupOutputs: (r.rateBuildupOutputs ?? []).map((o: any) => ({
           kind: o.kind,
           materialId: o.materialId?.toString() ?? null,
