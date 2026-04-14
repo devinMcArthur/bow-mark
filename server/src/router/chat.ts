@@ -56,7 +56,7 @@ router.post("/message", requireAuth, async (req, res) => {
   const systemPrompt = userContext ? `${userContext}\n\n${SYSTEM_PROMPT}` : SYSTEM_PROMPT;
 
   // ── Connect to MCP server and fetch tools ──────────────────────────────────
-  const mcpConnection = await connectMcp("bow-mark-chat", "[chat]", res);
+  const mcpConnection = await connectMcp("bow-mark-chat", "[chat]", res, { authToken: req.token });
   if (!mcpConnection) return;
   const { client: mcpClient, tools: mcpTools } = mcpConnection;
 

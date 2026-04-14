@@ -147,7 +147,7 @@ ${decompositionBlock}
 - Citations for document quotes: **[[Document Type, p.X]](URL#page=X)**`;
 
   // ── Connect to MCP server and fetch tools ──────────────────────────────────
-  const mcpConnection = await connectMcp("bow-mark-pm-chat", "[pm-jobsite-chat]", res);
+  const mcpConnection = await connectMcp("bow-mark-pm-chat", "[pm-jobsite-chat]", res, { authToken: req.token });
   if (!mcpConnection) return;
   const { client: mcpClient, tools: mcpTools } = mcpConnection;
 
