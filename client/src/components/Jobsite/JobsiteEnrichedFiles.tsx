@@ -43,6 +43,11 @@ import dataUrlToBlob from "../../utils/dataUrlToBlob";
 import { collectDroppedFiles } from "../../utils/collectDroppedFiles";
 import { localStorageTokenKey } from "../../contexts/Auth";
 import { UserRoles } from "../../generated/graphql";
+import {
+  EnrichedFileProgress,
+  summaryStatusColor,
+  summaryStatusLabel,
+} from "../Common/EnrichedFileProgress";
 
 // ─── GQL ─────────────────────────────────────────────────────────────────────
 
@@ -63,6 +68,13 @@ const ENRICHED_FILE_ENTRY_FRAGMENT = `
     summaryStatus
     summaryError
     pageCount
+    processingStartedAt
+    summaryProgress {
+      phase
+      current
+      total
+      updatedAt
+    }
     summary {
       overview
       documentType
@@ -128,6 +140,13 @@ export interface EnrichedFileDetails {
   summaryStatus: string;
   summaryError?: string | null;
   pageCount?: number | null;
+  processingStartedAt?: string | null;
+  summaryProgress?: {
+    phase: string;
+    current: number;
+    total: number;
+    updatedAt: string;
+  } | null;
   summary?: {
     overview: string;
     documentType: string;
@@ -152,15 +171,6 @@ const ROLE_LABELS: Record<UserRoles, string> = {
   [UserRoles.Admin]: "Admin only",
   [UserRoles.Developer]: "Developer only",
 };
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function summaryStatusColor(status: string): string {
-  if (status === "ready") return "green";
-  if (status === "failed") return "red";
-  if (status === "processing") return "yellow";
-  return "gray";
-}
 
 // ─── File row ─────────────────────────────────────────────────────────────────
 
@@ -193,6 +203,8 @@ const FileRow = ({ entry, jobsiteId, onRemove, onRetry, removingId, retryingId, 
               summaryStatus
               summaryError
               pageCount
+              processingStartedAt
+              summaryProgress { phase current total updatedAt }
               summary { overview documentType keyTopics }
               file { _id mimetype description }
             }
@@ -273,9 +285,15 @@ const FileRow = ({ entry, jobsiteId, onRemove, onRetry, removingId, retryingId, 
               colorScheme={summaryStatusColor(file.summaryStatus)}
               cursor={file.summaryError ? "help" : undefined}
             >
-              {file.summaryStatus}
+              {summaryStatusLabel(file.summaryStatus)}
             </Badge>
           </Tooltip>
+          <EnrichedFileProgress
+            status={file.summaryStatus}
+            progress={file.summaryProgress}
+            processingStartedAt={file.processingStartedAt}
+            compact
+          />
         </Td>
         <Td isNumeric>{file.pageCount ?? "—"}</Td>
         <Td textAlign="right">
@@ -291,7 +309,9 @@ const FileRow = ({ entry, jobsiteId, onRemove, onRetry, removingId, retryingId, 
               <MenuItem icon={<FiExternalLink />} onClick={openFile}>
                 Open file
               </MenuItem>
-              {(file.summaryStatus === "failed" || file.summaryStatus === "ready") && (
+              {(file.summaryStatus === "failed" ||
+                file.summaryStatus === "ready" ||
+                file.summaryStatus === "partial") && (
                 <MenuItem
                   icon={retryingId === file._id ? <Spinner size="xs" /> : <FiRefreshCw />}
                   isDisabled={retryingId === file._id}
@@ -407,10 +427,12 @@ const JobsiteEnrichedFiles = ({
   const [removeEnrichedFile] = Apollo.useMutation(JOBSITE_REMOVE_ENRICHED_FILE);
   const [retryEnrichedFile] = Apollo.useMutation(JOBSITE_RETRY_ENRICHED_FILE);
 
+  // partial counts as in-flight — watchdog will retry and complete it
   const pendingCount = enrichedFiles.filter(
     (entry) =>
       entry.enrichedFile.summaryStatus === "pending" ||
-      entry.enrichedFile.summaryStatus === "processing"
+      entry.enrichedFile.summaryStatus === "processing" ||
+      entry.enrichedFile.summaryStatus === "partial"
   ).length;
 
   const handleUpload = React.useCallback(
@@ -647,7 +669,7 @@ const JobsiteEnrichedFiles = ({
               type="file"
               multiple
               style={{ display: "none" }}
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+              accept=".pdf,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
               onChange={handleFileChange}
             />
             <input

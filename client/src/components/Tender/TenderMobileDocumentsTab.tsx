@@ -14,6 +14,7 @@ import dynamic from "next/dynamic";
 import ClientOnly from "../Common/ClientOnly";
 import { TenderFileItem } from "./types";
 import { localStorageTokenKey } from "../../contexts/Auth";
+import { EnrichedFileProgress } from "../Common/EnrichedFileProgress";
 
 const PdfViewer = dynamic(
   () => import("../TenderPricing/PdfViewer"),
@@ -39,7 +40,10 @@ interface FileListItemProps {
 }
 
 const FileListItem: React.FC<FileListItemProps> = ({ file, onSelect }) => {
-  const isProcessing = file.summaryStatus === "pending" || file.summaryStatus === "processing";
+  const isProcessing =
+    file.summaryStatus === "processing" || file.summaryStatus === "partial";
+  const isPending = file.summaryStatus === "pending";
+  const isOrphaned = file.summaryStatus === "orphaned";
   return (
     <Flex
       px={4}
@@ -62,11 +66,24 @@ const FileListItem: React.FC<FileListItemProps> = ({ file, onSelect }) => {
             {file.file.description || "Untitled"}
           </Text>
         </Flex>
-        {isProcessing ? (
+        {isOrphaned ? (
+          <Text fontSize="xs" color="red.500">
+            Source file missing
+          </Text>
+        ) : isPending ? (
           <Flex align="center">
             <Spinner size="xs" color="gray.400" mr={1} />
-            <Text fontSize="xs" color="gray.400">Processing…</Text>
+            <Text fontSize="xs" color="gray.400">
+              Queued…
+            </Text>
           </Flex>
+        ) : isProcessing ? (
+          <EnrichedFileProgress
+            status={file.summaryStatus}
+            progress={file.summaryProgress}
+            processingStartedAt={file.processingStartedAt}
+            compact
+          />
         ) : file.summary?.overview ? (
           <Text fontSize="xs" color="gray.500" noOfLines={2}>
             {file.summary.overview}

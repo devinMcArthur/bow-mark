@@ -36,6 +36,13 @@ fragment JobsiteFullSnippet on JobsiteClass {
       summaryStatus
       summaryError
       pageCount
+      processingStartedAt
+      summaryProgress {
+        phase
+        current
+        total
+        updatedAt
+      }
       summary {
         overview
         documentType

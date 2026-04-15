@@ -23,6 +23,16 @@ export interface TenderFileSummary {
   chunks?: TenderFileSummaryChunk[] | null;
 }
 
+// Live progress while the handler is running. `phase` is "summary" during
+// chunked PDF summary and "page_index" during the per-page index build.
+// Null once the file is terminal (ready / failed / orphaned).
+export interface TenderFileSummaryProgress {
+  phase: string;
+  current: number;
+  total: number;
+  updatedAt: string;
+}
+
 export interface TenderFileItem {
   _id: string;
   documentType?: string | null;
@@ -30,6 +40,8 @@ export interface TenderFileItem {
   summaryError?: string | null;
   pageCount?: number | null;
   summary?: TenderFileSummary | null;
+  summaryProgress?: TenderFileSummaryProgress | null;
+  processingStartedAt?: string | null;
   file: {
     _id: string;
     mimetype: string;
