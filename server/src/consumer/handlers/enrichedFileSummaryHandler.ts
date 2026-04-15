@@ -13,6 +13,7 @@ import {
 } from "./summarizePdf";
 import { publishEnrichedFileCreated } from "../../rabbitmq/publisher";
 import { scheduleTenderSummary } from "../../lib/generateTenderSummary";
+import { scheduleCategorization } from "../../lib/categorizeTenderFiles";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -444,13 +445,25 @@ export const enrichedFileSummaryHandler = {
 
       console.log(`[EnrichedFileSummary] Done for file ${fileId}`);
 
-      // ── Trigger tender summary ──────────────────────────────────────
-      // Fires when every file on the parent tender has reached a terminal
-      // success state. Partial files are still in-flight (watchdog will
-      // retry), so they block tender summary regeneration.
+      // ── Trigger tender-level regeneration ───────────────────────────
+      // Two things piggyback on a file reaching ready:
+      //   1. Tender summary — only when every file on the tender has
+      //      reached a terminal success state (partial/pending/processing
+      //      all block it, because they'll still change the summary)
+      //   2. Document categorization — on every file transition, 60s
+      //      debounced. Burst uploads collapse into one Claude call.
+      //      Partial files don't block categorization because they
+      //      already have a usable summary.
       try {
         const tender = await Tender.findOne({ files: enrichedFileId }).lean();
         if (tender) {
+          const tenderIdStr = (tender as any)._id.toString();
+
+          // Always schedule categorization — the debounce ensures we
+          // don't thrash on batch uploads, and a new file is exactly
+          // when the folder structure may need to change.
+          scheduleCategorization(tenderIdStr);
+
           const fileIds = ((tender as any).files as any[]).map((f: any) =>
             f._id ? f._id.toString() : f.toString()
           );
@@ -462,14 +475,14 @@ export const enrichedFileSummaryHandler = {
           });
           if (pendingCount === 0) {
             console.log(
-              `[EnrichedFileSummary] All tender files ready — scheduling summary for tender ${(tender as any)._id}`
+              `[EnrichedFileSummary] All tender files ready — scheduling summary for tender ${tenderIdStr}`
             );
-            scheduleTenderSummary((tender as any)._id.toString());
+            scheduleTenderSummary(tenderIdStr);
           }
         }
       } catch (triggerErr) {
         console.warn(
-          "[EnrichedFileSummary] Tender summary trigger check failed:",
+          "[EnrichedFileSummary] Tender-level trigger check failed:",
           triggerErr
         );
       }

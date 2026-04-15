@@ -116,6 +116,12 @@ const TENDER_QUERY = gql`
           description
         }
       }
+      fileCategories {
+        _id
+        name
+        order
+        fileIds
+      }
       notes {
         _id
         content
