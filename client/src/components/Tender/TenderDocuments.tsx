@@ -671,21 +671,19 @@ const TenderDocuments = ({ tender, onUpdated, onFileSelect }: TenderDocumentsPro
         />
       </Box>
 
-      {/* File list — scrollable */}
-      <Box flex={1} overflowY="auto" px={5} py={3}>
-        {hasPending && (
-          <Alert status="warning" mb={3} borderRadius="md" size="sm">
-            <AlertIcon />
-            <AlertDescription fontSize="sm">
-              {pendingCount} {pendingCount === 1 ? "document is" : "documents are"} still being processed — answers may be incomplete.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Search bar — shown when there's more than one file. Filters
-            across filename, AI document type, key topics, and overview. */}
-        {tender.files.length > 1 && (
-          <InputGroup size="sm" mb={3}>
+      {/* Search bar — pinned below the upload area. Shown when there's
+          more than one file. Filters across filename, AI document type,
+          key topics, and overview. */}
+      {tender.files.length > 1 && (
+        <Box
+          px={5}
+          py={2}
+          borderBottom="1px solid"
+          borderColor="gray.200"
+          flexShrink={0}
+          bg="white"
+        >
+          <InputGroup size="sm">
             <InputLeftElement pointerEvents="none" color="gray.400">
               <FiSearch />
             </InputLeftElement>
@@ -708,6 +706,18 @@ const TenderDocuments = ({ tender, onUpdated, onFileSelect }: TenderDocumentsPro
               </InputRightElement>
             )}
           </InputGroup>
+        </Box>
+      )}
+
+      {/* File list — scrollable */}
+      <Box flex={1} overflowY="auto" px={5} py={3}>
+        {hasPending && (
+          <Alert status="warning" mb={3} borderRadius="md" size="sm">
+            <AlertIcon />
+            <AlertDescription fontSize="sm">
+              {pendingCount} {pendingCount === 1 ? "document is" : "documents are"} still being processed — answers may be incomplete.
+            </AlertDescription>
+          </Alert>
         )}
 
         {tender.files.length === 0 ? (
