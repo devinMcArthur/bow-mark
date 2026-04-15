@@ -66,8 +66,12 @@ const WATCHDOG_INTERVAL_MS = 10 * 60_000; // 10 min
 /** Max time a file can be in "processing" before the watchdog reclaims it. */
 const PROCESSING_STUCK_MS = 90 * 60_000; // 90 min (generous — large PDFs can take 45+ min)
 
-/** Max time a file can be in "pending" before the watchdog republishes it. */
-const PENDING_STUCK_MS = 10 * 60_000; // 10 min
+/** Max time a file can be in "pending" since its last publish before the
+ *  watchdog republishes it. Checked against `queuedAt` (fallback: `createdAt`
+ *  for legacy docs that pre-date the field). Must be comfortably larger than
+ *  the worst-case queue-drain time for a large upload batch (60+ files at
+ *  prefetch=2 with 2–5 min per file ≈ up to 2.5 h). */
+const PENDING_STUCK_MS = 3 * 60 * 60_000; // 3 hr
 
 /** Cooldown before retrying a "failed" file. */
 const FAILED_RETRY_COOLDOWN_MS = 60 * 60_000; // 1 hr
@@ -178,11 +182,18 @@ async function recoverStuckFiles(): Promise<void> {
     .populate("file")
     .lean();
 
-  // Files in "pending" older than the pending cutoff (createdAt, since updatedAt
-  // isn't tracked). Covers: publish-to-queue failure, broker drop.
+  // Files in "pending" whose last publish timestamp is older than the cutoff.
+  // `queuedAt` is stamped by every call to publishEnrichedFileCreated, so a
+  // fresh queuedAt means the file is legitimately waiting in the queue behind
+  // a batch and must not be republished (republishing creates duplicate queue
+  // messages — the root cause of the Ready→Processing loop bug). Legacy docs
+  // without the field fall back to `createdAt`.
   const stuckPending = await EnrichedFile.find({
     summaryStatus: "pending",
-    createdAt: { $lt: pendingCutoff },
+    $or: [
+      { queuedAt: { $exists: true, $lt: pendingCutoff } },
+      { queuedAt: { $exists: false }, createdAt: { $lt: pendingCutoff } },
+    ],
   })
     .populate("file")
     .lean();
