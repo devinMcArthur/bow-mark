@@ -5,6 +5,49 @@ export default class MyDocument extends Document {
     return (
       <Html>
         <Head>
+          {/*
+            PWA cache rescue — runs before any bundle loads, so it can
+            unstick users whose installed PWA is serving stale cached HTML
+            or an old service worker that doesn't reflect a shipped fix.
+            Bump PWA_VERSION to force every client (Safari tab or
+            home-screen PWA) to unregister its service worker, clear all
+            Cache Storage, and reload into the fresh build on next page
+            load. Users see at most one extra reload, no manual action.
+          */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+(function () {
+  try {
+    var PWA_VERSION = "2026-04-15-standalone-fix";
+    if (localStorage.getItem("pwaVersion") === PWA_VERSION) return;
+    localStorage.setItem("pwaVersion", PWA_VERSION);
+    var didWork = false;
+    var finish = function () {
+      if (didWork) window.location.reload();
+    };
+    var clearCaches = function () {
+      if (!window.caches) return finish();
+      caches.keys().then(function (ks) {
+        if (ks.length === 0) return finish();
+        didWork = true;
+        Promise.all(ks.map(function (k) { return caches.delete(k); })).then(finish, finish);
+      }, finish);
+    };
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (rs) {
+        if (rs.length === 0) return clearCaches();
+        didWork = true;
+        Promise.all(rs.map(function (r) { return r.unregister(); })).then(clearCaches, clearCaches);
+      }, clearCaches);
+    } else {
+      clearCaches();
+    }
+  } catch (e) {}
+})();
+              `.trim(),
+            }}
+          />
           <meta charSet="utf-8" />
           <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
           <meta name="description" content="Bow Mark Web Application" />
