@@ -15,7 +15,7 @@ const NavbarChat = () => {
   return React.useMemo(() => {
     if (!user) return null;
     return (
-      <Permission minRole={UserRoles.ProjectManager}>
+      <Permission minRole={UserRoles.Admin}>
         <Tooltip label="Analytics Assistant" placement="bottom" hasArrow>
           <IconButton
             aria-label="Analytics Assistant"

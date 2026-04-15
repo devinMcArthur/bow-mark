@@ -2,6 +2,8 @@ import { NextPage } from "next";
 import { useRouter } from "next/router";
 import { Box } from "@chakra-ui/react";
 import ChatPage from "../../components/Chat/ChatPage";
+import Permission from "../../components/Common/Permission";
+import { UserRoles } from "../../generated/graphql";
 import { navbarHeight } from "../../constants/styles";
 
 const ChatConversationPage: NextPage = () => {
@@ -12,13 +14,15 @@ const ChatConversationPage: NextPage = () => {
   if (!router.isReady || typeof conversationId !== "string") return null;
 
   return (
-    <Box position="fixed" top={navbarHeight} left={0} right={0} bottom={0} overflow="hidden">
-      <ChatPage
-        initialConversationId={conversationId}
-        conversationsEndpoint="/api/conversations?scope=all"
-        height="100%"
-      />
-    </Box>
+    <Permission minRole={UserRoles.Admin} type={null} showError>
+      <Box position="fixed" top={navbarHeight} left={0} right={0} bottom={0} overflow="hidden">
+        <ChatPage
+          initialConversationId={conversationId}
+          conversationsEndpoint="/api/conversations?scope=all"
+          height="100%"
+        />
+      </Box>
+    </Permission>
   );
 };
 
