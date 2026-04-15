@@ -3075,6 +3075,7 @@ export type TenderClass = {
   createdAt: Scalars['DateTime'];
   createdBy: UserClass;
   description?: Maybe<Scalars['String']>;
+  fileCategories?: Maybe<Array<TenderFileCategoryClass>>;
   files: Array<EnrichedFileClass>;
   jobcode: Scalars['String'];
   jobsite?: Maybe<JobsiteClass>;
@@ -3090,6 +3091,14 @@ export type TenderCreateData = {
   description?: InputMaybe<Scalars['String']>;
   jobcode: Scalars['String'];
   name: Scalars['String'];
+};
+
+export type TenderFileCategoryClass = {
+  __typename?: 'TenderFileCategoryClass';
+  _id: Scalars['ID'];
+  fileIds: Array<Scalars['ID']>;
+  name: Scalars['String'];
+  order: Scalars['Float'];
 };
 
 export type TenderJobSummaryClass = {

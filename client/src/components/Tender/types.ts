@@ -69,6 +69,16 @@ export interface TenderJobSummary {
   generatedFrom: string[];
 }
 
+// AI-generated document folder. Populated by the server-side categorizer
+// (lib/categorizeTenderFiles). `fileIds` references TenderFileItem._id.
+// Order is descending by typical-access-frequency during estimation.
+export interface TenderFileCategory {
+  _id: string;
+  name: string;
+  order: number;
+  fileIds: string[];
+}
+
 export interface TenderDetail {
   _id: string;
   name: string;
@@ -76,6 +86,7 @@ export interface TenderDetail {
   status: string;
   description?: string | null;
   files: TenderFileItem[];
+  fileCategories?: TenderFileCategory[] | null;
   notes: TenderNote[];
   summaryGenerating: boolean;
   jobSummary?: TenderJobSummary | null;

@@ -1,4 +1,9 @@
 import {
+  Accordion,
+  AccordionButton,
+  AccordionIcon,
+  AccordionItem,
+  AccordionPanel,
   Alert,
   AlertDescription,
   AlertIcon,
@@ -8,6 +13,10 @@ import {
   Collapse,
   HStack,
   IconButton,
+  Input,
+  InputGroup,
+  InputLeftElement,
+  InputRightElement,
   Spinner,
   Text,
   Tooltip,
@@ -19,7 +28,15 @@ import {
 import { gql } from "@apollo/client";
 import * as Apollo from "@apollo/client";
 import React from "react";
-import { FiChevronDown, FiChevronRight, FiExternalLink, FiRefreshCw, FiTrash2 } from "react-icons/fi";
+import {
+  FiChevronDown,
+  FiChevronRight,
+  FiExternalLink,
+  FiRefreshCw,
+  FiSearch,
+  FiTrash2,
+  FiX,
+} from "react-icons/fi";
 import { TenderDetail, TenderFileItem } from "./types";
 import dataUrlToBlob from "../../utils/dataUrlToBlob";
 import { collectDroppedFiles } from "../../utils/collectDroppedFiles";
@@ -361,8 +378,70 @@ const TenderDocuments = ({ tender, onUpdated, onFileSelect }: TenderDocumentsPro
   const [removingId, setRemovingId] = React.useState<string | null>(null);
   const [retryingId, setRetryingId] = React.useState<string | null>(null);
   const [isDragOver, setIsDragOver] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const folderInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Case-insensitive substring match over filename, AI documentType, key
+  // topics, and the summary overview. Overview is included so a user
+  // searching for "temperature" finds a spec book whose per-page index
+  // hasn't been loaded yet — the high-level summary still mentions it.
+  const filteredFiles = React.useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return tender.files;
+    return tender.files.filter((f) => {
+      const filename = (f.file.description ?? "").toLowerCase();
+      if (filename.includes(q)) return true;
+      const docType = (f.summary?.documentType ?? f.documentType ?? "").toLowerCase();
+      if (docType.includes(q)) return true;
+      const topics = (f.summary?.keyTopics ?? []).join(" ").toLowerCase();
+      if (topics.includes(q)) return true;
+      const overview = (f.summary?.overview ?? "").toLowerCase();
+      if (overview.includes(q)) return true;
+      return false;
+    });
+  }, [tender.files, searchQuery]);
+
+  // Group filtered files by AI-generated category. Returns null when no
+  // categories exist yet (newly-uploaded tender before the first
+  // categorization pass) — the caller falls back to a flat list.
+  //
+  // Categories come server-side in display order (most-accessed first).
+  // Files not claimed by any category land in the "Uncategorized" bucket
+  // at the end; empty buckets are dropped so search results stay tight.
+  const groupedFiles = React.useMemo(() => {
+    const categories = tender.fileCategories ?? [];
+    if (categories.length === 0) return null;
+
+    const sortedCategories = [...categories].sort((a, b) => a.order - b.order);
+    const fileById = new Map(filteredFiles.map((f) => [f._id, f]));
+
+    const groups: Array<{
+      _id: string;
+      name: string;
+      files: TenderFileItem[];
+    }> = [];
+    const claimed = new Set<string>();
+
+    for (const cat of sortedCategories) {
+      const files = cat.fileIds
+        .map((id) => fileById.get(id))
+        .filter((f): f is TenderFileItem => f !== undefined);
+      files.forEach((f) => claimed.add(f._id));
+      groups.push({ _id: cat._id, name: cat.name, files });
+    }
+
+    const uncategorized = filteredFiles.filter((f) => !claimed.has(f._id));
+    if (uncategorized.length > 0) {
+      groups.push({
+        _id: "uncategorized",
+        name: "Uncategorized",
+        files: uncategorized,
+      });
+    }
+
+    return groups.filter((g) => g.files.length > 0);
+  }, [filteredFiles, tender.fileCategories]);
 
   React.useEffect(() => {
     folderInputRef.current?.setAttribute("webkitdirectory", "");
@@ -603,9 +682,98 @@ const TenderDocuments = ({ tender, onUpdated, onFileSelect }: TenderDocumentsPro
           </Alert>
         )}
 
-        {tender.files.length > 0 ? (
+        {/* Search bar — shown when there's more than one file. Filters
+            across filename, AI document type, key topics, and overview. */}
+        {tender.files.length > 1 && (
+          <InputGroup size="sm" mb={3}>
+            <InputLeftElement pointerEvents="none" color="gray.400">
+              <FiSearch />
+            </InputLeftElement>
+            <Input
+              placeholder="Search documents…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              borderRadius="md"
+              bg="white"
+            />
+            {searchQuery && (
+              <InputRightElement>
+                <IconButton
+                  aria-label="Clear search"
+                  icon={<FiX />}
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => setSearchQuery("")}
+                />
+              </InputRightElement>
+            )}
+          </InputGroup>
+        )}
+
+        {tender.files.length === 0 ? (
+          <Text fontSize="sm" color="gray.500">
+            No documents yet.
+          </Text>
+        ) : filteredFiles.length === 0 ? (
+          <Text fontSize="sm" color="gray.500">
+            No documents match &ldquo;{searchQuery}&rdquo;.
+          </Text>
+        ) : groupedFiles && groupedFiles.length > 0 ? (
+          // Grouped view — AI-categorized folders. All open by default;
+          // user can collapse individual sections. Order comes from the
+          // server (most-accessed folder first).
+          <Accordion
+            allowMultiple
+            defaultIndex={groupedFiles.map((_, i) => i)}
+            // Force re-mount when the group count changes so newly-added
+            // folders default to expanded. Without this, Accordion holds
+            // onto its original defaultIndex across re-renders.
+            key={groupedFiles.length}
+          >
+            {groupedFiles.map((group) => (
+              <AccordionItem key={group._id} border="none" mb={2}>
+                <AccordionButton
+                  px={2}
+                  py={1}
+                  borderRadius="md"
+                  _hover={{ bg: "gray.100" }}
+                >
+                  <Box flex="1" textAlign="left">
+                    <HStack spacing={2}>
+                      <Text fontSize="sm" fontWeight="semibold" color="gray.700">
+                        {group.name}
+                      </Text>
+                      <Text fontSize="xs" color="gray.400">
+                        {group.files.length}
+                      </Text>
+                    </HStack>
+                  </Box>
+                  <AccordionIcon color="gray.400" />
+                </AccordionButton>
+                <AccordionPanel px={0} pb={2} pt={1}>
+                  <VStack spacing={2} align="stretch">
+                    {group.files.map((file) => (
+                      <FileCard
+                        key={file._id}
+                        file={file}
+                        tenderId={tender._id}
+                        onRemove={handleRemove}
+                        onRetry={handleRetry}
+                        removingId={removingId}
+                        retryingId={retryingId}
+                        onFileSelect={onFileSelect}
+                      />
+                    ))}
+                  </VStack>
+                </AccordionPanel>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        ) : (
+          // Flat list — either no categories yet (first upload before
+          // categorizer has run) or categorizer returned nothing usable.
           <VStack spacing={2} align="stretch">
-            {tender.files.map((file) => (
+            {filteredFiles.map((file) => (
               <FileCard
                 key={file._id}
                 file={file}
@@ -618,10 +786,6 @@ const TenderDocuments = ({ tender, onUpdated, onFileSelect }: TenderDocumentsPro
               />
             ))}
           </VStack>
-        ) : (
-          <Text fontSize="sm" color="gray.500">
-            No documents yet.
-          </Text>
         )}
       </Box>
     </Box>
