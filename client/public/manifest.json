@@ -3,7 +3,7 @@
   "short_name": "Bow Mark",
   "theme_color": "#ef2e25",
   "background_color": "#edf2f7",
-  "display": "fullscreen",
+  "display": "standalone",
   "orientation": "portrait",
   "start_url": "/",
   "icons": [
