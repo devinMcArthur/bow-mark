@@ -40,8 +40,6 @@ import {
   closeConnection as closePostgres,
 } from "../db";
 import type { SyncMessage, EnrichedFileSummaryMessage } from "../rabbitmq/publisher";
-import { publishEnrichedFileCreated } from "../rabbitmq/publisher";
-import { EnrichedFile } from "@models";
 import {
   dailyReportSyncHandler,
   employeeWorkSyncHandler,
@@ -51,6 +49,7 @@ import {
   invoiceSyncHandler,
   enrichedFileSummaryHandler,
 } from "./handlers";
+import { recoverStuckFiles } from "./watchdog";
 
 // ─── Resilience tuning ────────────────────────────────────────────────────────
 
@@ -62,22 +61,6 @@ const RECONNECT_DELAY_MS = 5_000;
 
 /** How often the watchdog scans for stuck files. */
 const WATCHDOG_INTERVAL_MS = 10 * 60_000; // 10 min
-
-/** Max time a file can be in "processing" before the watchdog reclaims it. */
-const PROCESSING_STUCK_MS = 90 * 60_000; // 90 min (generous — large PDFs can take 45+ min)
-
-/** Max time a file can be in "pending" since its last publish before the
- *  watchdog republishes it. Checked against `queuedAt` (fallback: `createdAt`
- *  for legacy docs that pre-date the field). Must be comfortably larger than
- *  the worst-case queue-drain time for a large upload batch (60+ files at
- *  prefetch=2 with 2–5 min per file ≈ up to 2.5 h). */
-const PENDING_STUCK_MS = 3 * 60 * 60_000; // 3 hr
-
-/** Cooldown before retrying a "failed" file. */
-const FAILED_RETRY_COOLDOWN_MS = 60 * 60_000; // 1 hr
-
-/** Max attempts before giving up on a file entirely. */
-const MAX_SUMMARY_ATTEMPTS = 5;
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -157,109 +140,6 @@ async function processMessage(
 }
 
 // ─── Watchdog ─────────────────────────────────────────────────────────────────
-
-/**
- * Scan for files stuck in processing / pending / failed states and recover them.
- * Called at startup and on a periodic interval.
- *
- * Recovery uses timestamp eligibility so we never race with an in-flight handler.
- */
-async function recoverStuckFiles(): Promise<void> {
-  const now = Date.now();
-  const processingCutoff = new Date(now - PROCESSING_STUCK_MS);
-  const pendingCutoff = new Date(now - PENDING_STUCK_MS);
-  const failedCutoff = new Date(now - FAILED_RETRY_COOLDOWN_MS);
-
-  // Files in "processing" whose handler exceeded the max processing window.
-  // Covers: consumer crash mid-handler, broker channel timeout killing ack.
-  const stuckProcessing = await EnrichedFile.find({
-    summaryStatus: "processing",
-    $or: [
-      { processingStartedAt: { $lt: processingCutoff } },
-      { processingStartedAt: { $exists: false } }, // legacy docs without the field
-    ],
-  })
-    .populate("file")
-    .lean();
-
-  // Files in "pending" whose last publish timestamp is older than the cutoff.
-  // `queuedAt` is stamped by every call to publishEnrichedFileCreated, so a
-  // fresh queuedAt means the file is legitimately waiting in the queue behind
-  // a batch and must not be republished (republishing creates duplicate queue
-  // messages — the root cause of the Ready→Processing loop bug). Legacy docs
-  // without the field fall back to `createdAt`.
-  const stuckPending = await EnrichedFile.find({
-    summaryStatus: "pending",
-    $or: [
-      { queuedAt: { $exists: true, $lt: pendingCutoff } },
-      { queuedAt: { $exists: false }, createdAt: { $lt: pendingCutoff } },
-    ],
-  })
-    .populate("file")
-    .lean();
-
-  // Files in "failed" past the retry cooldown, below max attempts.
-  // Covers: transient failures (network, API outages, Claude 529s).
-  const stuckFailed = await EnrichedFile.find({
-    summaryStatus: "failed",
-    createdAt: { $lt: failedCutoff },
-    $or: [
-      { summaryAttempts: { $exists: false } },
-      { summaryAttempts: { $lt: MAX_SUMMARY_ATTEMPTS } },
-    ],
-  })
-    .populate("file")
-    .lean();
-
-  const total = stuckProcessing.length + stuckPending.length + stuckFailed.length;
-  if (total === 0) return;
-
-  console.warn(
-    `[Watchdog] Found stuck files — processing: ${stuckProcessing.length}, ` +
-    `pending: ${stuckPending.length}, failed: ${stuckFailed.length}`
-  );
-
-  const requeue = async (
-    files: Array<{ _id: mongoose.Types.ObjectId; file?: unknown }>,
-    bucket: string
-  ): Promise<void> => {
-    for (const enrichedFile of files) {
-      if (!enrichedFile.file) {
-        console.warn(`[Watchdog] Skipping ${enrichedFile._id} — no file ref`);
-        continue;
-      }
-      const fileRef = enrichedFile.file as { _id?: unknown };
-      const fileId = fileRef._id
-        ? (fileRef._id as { toString(): string }).toString()
-        : (enrichedFile.file as { toString(): string }).toString();
-
-      await EnrichedFile.findByIdAndUpdate(enrichedFile._id, {
-        $set: { summaryStatus: "pending" },
-        $unset: { processingStartedAt: "", summaryError: "" },
-      });
-      const published = await publishEnrichedFileCreated(
-        enrichedFile._id.toString(),
-        fileId,
-        0
-      );
-      if (published) {
-        console.log(
-          `[Watchdog] Requeued ${bucket} file ${enrichedFile._id} → ${fileId}`
-        );
-      } else {
-        console.error(
-          `[Watchdog] Failed to republish ${bucket} file ${enrichedFile._id} — will retry next pass`
-        );
-      }
-      // Small delay between publishes to avoid flooding broker
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-  };
-
-  await requeue(stuckProcessing as any, "processing");
-  await requeue(stuckPending as any, "pending");
-  await requeue(stuckFailed as any, "failed");
-}
 
 function startWatchdog(): void {
   if (watchdogTimer) return;

@@ -17,6 +17,13 @@ fragment SystemSnippet on SystemClass {
     summaryStatus
     summaryError
     pageCount
+    processingStartedAt
+    summaryProgress {
+      phase
+      current
+      total
+      updatedAt
+    }
     summary {
       overview
       documentType

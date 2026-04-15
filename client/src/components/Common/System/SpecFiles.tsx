@@ -372,7 +372,7 @@ const SystemSpecFiles = ({ system: systemProp }: SystemSpecFilesProps) => {
             ref={fileInputRef}
             type="file"
             style={{ display: "none" }}
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+            accept=".pdf,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
             onChange={handleFileChange}
           />
         </HStack>

@@ -23,6 +23,11 @@ import { FiChevronDown, FiChevronRight, FiExternalLink, FiRefreshCw, FiTrash2 } 
 import { TenderDetail, TenderFileItem } from "./types";
 import dataUrlToBlob from "../../utils/dataUrlToBlob";
 import { collectDroppedFiles } from "../../utils/collectDroppedFiles";
+import {
+  EnrichedFileProgress,
+  summaryStatusColor,
+  summaryStatusLabel,
+} from "../Common/EnrichedFileProgress";
 
 const FILE_CREATE = gql`
   mutation TenderFileCreate($data: FileCreateData!) {
@@ -45,6 +50,13 @@ const TENDER_ADD_FILE = gql`
         summaryStatus
         summaryError
         pageCount
+        processingStartedAt
+        summaryProgress {
+          phase
+          current
+          total
+          updatedAt
+        }
         summary {
           overview
           documentType
@@ -76,6 +88,13 @@ const TENDER_REMOVE_FILE = gql`
         summaryStatus
         summaryError
         pageCount
+        processingStartedAt
+        summaryProgress {
+          phase
+          current
+          total
+          updatedAt
+        }
         summary {
           overview
           documentType
@@ -107,6 +126,13 @@ const TENDER_RETRY_SUMMARY = gql`
         summaryStatus
         summaryError
         pageCount
+        processingStartedAt
+        summaryProgress {
+          phase
+          current
+          total
+          updatedAt
+        }
         summary {
           overview
           documentType
@@ -146,15 +172,6 @@ interface TenderRemoveFileVars {
 interface TenderRetryVars {
   id: string;
   fileObjectId: string;
-}
-
-// ─── Status badge color ───────────────────────────────────────────────────────
-
-function summaryStatusColor(status: string): string {
-  if (status === "ready") return "green";
-  if (status === "failed") return "red";
-  if (status === "processing") return "yellow";
-  return "gray"; // pending
 }
 
 // ─── Expandable file row ──────────────────────────────────────────────────────
@@ -235,7 +252,7 @@ const FileCard = ({
                 cursor={file.summaryError ? "help" : undefined}
                 fontSize="xs"
               >
-                {file.summaryStatus}
+                {summaryStatusLabel(file.summaryStatus)}
               </Badge>
             </Tooltip>
             {file.pageCount != null && (
@@ -264,7 +281,9 @@ const FileCard = ({
                 onClick={() => setExpanded((v) => !v)}
               />
             )}
-            {(file.summaryStatus === "failed" || file.summaryStatus === "ready") && (
+            {(file.summaryStatus === "failed" ||
+              file.summaryStatus === "ready" ||
+              file.summaryStatus === "partial") && (
               <IconButton
                 aria-label="Retry summary"
                 icon={retryingId === file._id ? <Spinner size="xs" /> : <FiRefreshCw />}
@@ -286,6 +305,16 @@ const FileCard = ({
             />
           </HStack>
         </HStack>
+
+        {/* Live progress bar during summary/indexing phases. Rendered
+            below the status row so the layout stays stable as progress
+            appears and disappears. `partial` keeps showing progress
+            because the watchdog will retry and resume. */}
+        <EnrichedFileProgress
+          status={file.summaryStatus}
+          progress={file.summaryProgress}
+          processingStartedAt={file.processingStartedAt}
+        />
       </Box>
 
       {hasSummary && (
@@ -354,9 +383,14 @@ const TenderDocuments = ({ tender, onUpdated, onFileSelect }: TenderDocumentsPro
     TENDER_RETRY_SUMMARY
   );
 
-  // Detect any pending/processing files
+  // Count files still in flight. Treats "partial" as in-flight since the
+  // watchdog will retry and complete them — the user should see the same
+  // "still processing" banner until they reach a terminal state.
   const pendingCount = tender.files.filter(
-    (f) => f.summaryStatus === "pending" || f.summaryStatus === "processing"
+    (f) =>
+      f.summaryStatus === "pending" ||
+      f.summaryStatus === "processing" ||
+      f.summaryStatus === "partial"
   ).length;
   const hasPending = pendingCount > 0;
 
@@ -546,7 +580,7 @@ const TenderDocuments = ({ tender, onUpdated, onFileSelect }: TenderDocumentsPro
           type="file"
           multiple
           style={{ display: "none" }}
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+          accept=".pdf,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
           onChange={handleFileChange}
         />
         <input
