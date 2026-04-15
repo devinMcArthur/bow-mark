@@ -74,6 +74,34 @@ const PDF_PAGE_LIMIT = 90; // conservative buffer below Anthropic's 100-page har
  *                   `_id`, `file` (ref or populated object with `_id`),
  *                   `documentType`, `summary?.documentType`, `pageCount`
  */
+/**
+ * Build the display label for a file. Prefers the original uploaded
+ * filename (stored on the File ref's `description` field), falling back
+ * to the AI-generated documentType only if the filename isn't present.
+ *
+ * The old behavior used summary.documentType first, which was confusing
+ * — Claude's tool log would say "Loaded document: Schedule of Quantities
+ * with Letter of Intent" when the actual file was named
+ * "SchedOfQty_T123.pdf". Users citing or referencing the doc had no way
+ * to match the label against what they'd uploaded.
+ */
+function buildFileLabel(fileObj: any): string {
+  const fileRef = fileObj?.file;
+  const filename =
+    fileRef && typeof fileRef === "object" && typeof fileRef.description === "string"
+      ? fileRef.description.trim()
+      : "";
+  if (filename) return filename;
+  const summaryDocType = (fileObj?.summary as any)?.documentType;
+  if (typeof summaryDocType === "string" && summaryDocType.trim()) {
+    return summaryDocType.trim();
+  }
+  if (typeof fileObj?.documentType === "string" && fileObj.documentType.trim()) {
+    return fileObj.documentType.trim();
+  }
+  return "Document";
+}
+
 export function makeReadDocumentExecutor(
   allFiles: any[]
 ): (name: string, input: Record<string, unknown>) => Promise<ToolExecutionResult> {
@@ -87,8 +115,7 @@ export function makeReadDocumentExecutor(
       const fileObj = allFiles.find((f: any) => f._id.toString() === fileId);
       if (!fileObj) throw new Error(`File ${fileId} not found`);
 
-      const docLabel =
-        (fileObj.summary as any)?.documentType || fileObj.documentType || "Document";
+      const docLabel = buildFileLabel(fileObj);
       const pageIndex = fileObj.pageIndex as Array<{ page: number; summary: string }> | undefined;
 
       if (!pageIndex || pageIndex.length === 0) {
@@ -117,7 +144,7 @@ export function makeReadDocumentExecutor(
         ? (fileObj.file as any)._id.toString()
         : (fileObj.file as any).toString();
 
-    const docLabel = (fileObj.summary as any)?.documentType || fileObj.documentType || "Document";
+    const docLabel = buildFileLabel(fileObj);
 
     // Deduplicate same document + page range within this turn
     const rangeKey = `${fileId}:${input.start_page ?? 0}:${input.end_page ?? "end"}`;

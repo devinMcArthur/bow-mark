@@ -1,5 +1,9 @@
 import { FileClass } from "../../File/class";
-import { IEnrichedFileSummary, SummaryStatus } from "@typescript/enrichedFile";
+import {
+  IEnrichedFileSummary,
+  IEnrichedFileSummaryProgress,
+  SummaryStatus,
+} from "@typescript/enrichedFile";
 import { prop, Ref } from "@typegoose/typegoose";
 import { Types } from "mongoose";
 import { Field, ID, ObjectType } from "type-graphql";
@@ -28,6 +32,17 @@ export class EnrichedFilePageIndexEntryClass {
 }
 
 @ObjectType()
+export class EnrichedFileSummaryProgressClass {
+  // "summary" while chunked PDF summary is running, "page_index" while the
+  // per-page index is being built. Nullable on the doc when neither phase
+  // is active (pending / ready / failed / orphaned).
+  @Field(() => String) public phase!: string;
+  @Field() public current!: number;
+  @Field() public total!: number;
+  @Field() public updatedAt!: Date;
+}
+
+@ObjectType()
 export class EnrichedFileSchema {
   @Field(() => ID) public _id!: Types.ObjectId;
 
@@ -43,10 +58,22 @@ export class EnrichedFileSchema {
   @prop({ type: () => Object, required: false })
   public summary?: IEnrichedFileSummary;
 
+  // State machine:
+  //   pending → processing → ready           (normal happy path)
+  //   pending → processing → partial         (summary done, pageIndex crash — retriable)
+  //   pending → processing → failed          (transient error — retriable via watchdog)
+  //   * → orphaned                           (source file missing from storage — terminal)
   @Field(() => String)
   @prop({
     required: true,
-    enum: ["pending", "processing", "ready", "failed"],
+    enum: [
+      "pending",
+      "processing",
+      "ready",
+      "partial",
+      "failed",
+      "orphaned",
+    ],
     default: "pending",
   })
   public summaryStatus!: SummaryStatus;
@@ -69,11 +96,35 @@ export class EnrichedFileSchema {
   @prop({ required: false })
   public processingStartedAt?: Date;
 
+  // Updated on every publish to the summary queue. Used by watchdog to
+  // distinguish files legitimately waiting in the queue (fresh queuedAt)
+  // from files whose queue message was dropped (stale queuedAt). Without
+  // this, pending files waiting behind a batch get repeatedly republished
+  // by the watchdog using createdAt — creating duplicate queue messages.
+  @Field({ nullable: true })
+  @prop({ required: false })
+  public queuedAt?: Date;
+
   // Incremented each time the handler runs (successfully or otherwise).
   // Used by watchdog to cap retry attempts on persistently failing files.
   @Field({ nullable: true })
   @prop({ required: false, default: 0 })
   public summaryAttempts?: number;
+
+  // Monotonic counter incremented by the atomic ownership claim in the
+  // handler. All progress writes (summaryProgress, pageIndex checkpoints)
+  // must include this in their update predicate, so stale writes from a
+  // dead handler can't clobber the state of a newer claim.
+  @Field({ nullable: true })
+  @prop({ required: false, default: 0 })
+  public processingVersion?: number;
+
+  // Live progress while the handler is running. Cleared on terminal
+  // transitions (ready / failed / orphaned). Drives the client progress
+  // bar and ETA.
+  @Field(() => EnrichedFileSummaryProgressClass, { nullable: true })
+  @prop({ type: () => Object, required: false })
+  public summaryProgress?: IEnrichedFileSummaryProgress;
 
   @Field()
   @prop({ required: true, default: Date.now })

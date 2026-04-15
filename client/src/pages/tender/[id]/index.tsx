@@ -98,6 +98,13 @@ const TENDER_QUERY = gql`
         summaryStatus
         summaryError
         pageCount
+        processingStartedAt
+        summaryProgress {
+          phase
+          current
+          total
+          updatedAt
+        }
         summary {
           overview
           documentType
@@ -108,6 +115,12 @@ const TENDER_QUERY = gql`
           mimetype
           description
         }
+      }
+      fileCategories {
+        _id
+        name
+        order
+        fileIds
       }
       notes {
         _id
@@ -363,12 +376,18 @@ const TenderDetailPage = () => {
 
   const tender = tenderData?.tender;
 
-  // Poll while files are processing or summary is generating
+  // Poll while files are non-terminal (pending/processing/partial) or a
+  // tender summary is actively regenerating. `partial` counts as non-terminal
+  // because the watchdog will retry to complete page indexing — polling
+  // keeps the UI live so the user sees recovery happen.
   useEffect(() => {
-    const hasProcessing = tender?.files.some(
-      (f) => f.summaryStatus === "pending" || f.summaryStatus === "processing"
+    const hasNonTerminal = tender?.files.some(
+      (f) =>
+        f.summaryStatus === "pending" ||
+        f.summaryStatus === "processing" ||
+        f.summaryStatus === "partial"
     );
-    if (hasProcessing || tender?.summaryGenerating) {
+    if (hasNonTerminal || tender?.summaryGenerating) {
       startPolling(3000);
     } else {
       stopPolling();

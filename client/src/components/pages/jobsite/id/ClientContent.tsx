@@ -158,11 +158,17 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
     previousYears,
   ]);
 
+  // Poll while any enriched file is non-terminal. `partial` counts because
+  // the server-side watchdog will retry it — the UI stays live so users
+  // see recovery happen without a manual refresh.
   React.useEffect(() => {
-    const hasProcessing = data?.jobsite?.enrichedFiles?.some(
-      (f) => f.enrichedFile?.summaryStatus === "pending" || f.enrichedFile?.summaryStatus === "processing"
+    const hasNonTerminal = data?.jobsite?.enrichedFiles?.some(
+      (f) =>
+        f.enrichedFile?.summaryStatus === "pending" ||
+        f.enrichedFile?.summaryStatus === "processing" ||
+        f.enrichedFile?.summaryStatus === "partial"
     );
-    if (hasProcessing) {
+    if (hasNonTerminal) {
       startPolling(3000);
     } else {
       stopPolling();

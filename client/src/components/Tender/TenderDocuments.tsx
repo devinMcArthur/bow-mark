@@ -1,4 +1,9 @@
 import {
+  Accordion,
+  AccordionButton,
+  AccordionIcon,
+  AccordionItem,
+  AccordionPanel,
   Alert,
   AlertDescription,
   AlertIcon,
@@ -8,6 +13,10 @@ import {
   Collapse,
   HStack,
   IconButton,
+  Input,
+  InputGroup,
+  InputLeftElement,
+  InputRightElement,
   Spinner,
   Text,
   Tooltip,
@@ -19,10 +28,23 @@ import {
 import { gql } from "@apollo/client";
 import * as Apollo from "@apollo/client";
 import React from "react";
-import { FiChevronDown, FiChevronRight, FiExternalLink, FiRefreshCw, FiTrash2 } from "react-icons/fi";
+import {
+  FiChevronDown,
+  FiChevronRight,
+  FiExternalLink,
+  FiRefreshCw,
+  FiSearch,
+  FiTrash2,
+  FiX,
+} from "react-icons/fi";
 import { TenderDetail, TenderFileItem } from "./types";
 import dataUrlToBlob from "../../utils/dataUrlToBlob";
 import { collectDroppedFiles } from "../../utils/collectDroppedFiles";
+import {
+  EnrichedFileProgress,
+  summaryStatusColor,
+  summaryStatusLabel,
+} from "../Common/EnrichedFileProgress";
 
 const FILE_CREATE = gql`
   mutation TenderFileCreate($data: FileCreateData!) {
@@ -45,6 +67,13 @@ const TENDER_ADD_FILE = gql`
         summaryStatus
         summaryError
         pageCount
+        processingStartedAt
+        summaryProgress {
+          phase
+          current
+          total
+          updatedAt
+        }
         summary {
           overview
           documentType
@@ -76,6 +105,13 @@ const TENDER_REMOVE_FILE = gql`
         summaryStatus
         summaryError
         pageCount
+        processingStartedAt
+        summaryProgress {
+          phase
+          current
+          total
+          updatedAt
+        }
         summary {
           overview
           documentType
@@ -107,6 +143,13 @@ const TENDER_RETRY_SUMMARY = gql`
         summaryStatus
         summaryError
         pageCount
+        processingStartedAt
+        summaryProgress {
+          phase
+          current
+          total
+          updatedAt
+        }
         summary {
           overview
           documentType
@@ -146,15 +189,6 @@ interface TenderRemoveFileVars {
 interface TenderRetryVars {
   id: string;
   fileObjectId: string;
-}
-
-// ─── Status badge color ───────────────────────────────────────────────────────
-
-function summaryStatusColor(status: string): string {
-  if (status === "ready") return "green";
-  if (status === "failed") return "red";
-  if (status === "processing") return "yellow";
-  return "gray"; // pending
 }
 
 // ─── Expandable file row ──────────────────────────────────────────────────────
@@ -235,7 +269,7 @@ const FileCard = ({
                 cursor={file.summaryError ? "help" : undefined}
                 fontSize="xs"
               >
-                {file.summaryStatus}
+                {summaryStatusLabel(file.summaryStatus)}
               </Badge>
             </Tooltip>
             {file.pageCount != null && (
@@ -264,7 +298,9 @@ const FileCard = ({
                 onClick={() => setExpanded((v) => !v)}
               />
             )}
-            {(file.summaryStatus === "failed" || file.summaryStatus === "ready") && (
+            {(file.summaryStatus === "failed" ||
+              file.summaryStatus === "ready" ||
+              file.summaryStatus === "partial") && (
               <IconButton
                 aria-label="Retry summary"
                 icon={retryingId === file._id ? <Spinner size="xs" /> : <FiRefreshCw />}
@@ -286,6 +322,16 @@ const FileCard = ({
             />
           </HStack>
         </HStack>
+
+        {/* Live progress bar during summary/indexing phases. Rendered
+            below the status row so the layout stays stable as progress
+            appears and disappears. `partial` keeps showing progress
+            because the watchdog will retry and resume. */}
+        <EnrichedFileProgress
+          status={file.summaryStatus}
+          progress={file.summaryProgress}
+          processingStartedAt={file.processingStartedAt}
+        />
       </Box>
 
       {hasSummary && (
@@ -332,8 +378,70 @@ const TenderDocuments = ({ tender, onUpdated, onFileSelect }: TenderDocumentsPro
   const [removingId, setRemovingId] = React.useState<string | null>(null);
   const [retryingId, setRetryingId] = React.useState<string | null>(null);
   const [isDragOver, setIsDragOver] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const folderInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Case-insensitive substring match over filename, AI documentType, key
+  // topics, and the summary overview. Overview is included so a user
+  // searching for "temperature" finds a spec book whose per-page index
+  // hasn't been loaded yet — the high-level summary still mentions it.
+  const filteredFiles = React.useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return tender.files;
+    return tender.files.filter((f) => {
+      const filename = (f.file.description ?? "").toLowerCase();
+      if (filename.includes(q)) return true;
+      const docType = (f.summary?.documentType ?? f.documentType ?? "").toLowerCase();
+      if (docType.includes(q)) return true;
+      const topics = (f.summary?.keyTopics ?? []).join(" ").toLowerCase();
+      if (topics.includes(q)) return true;
+      const overview = (f.summary?.overview ?? "").toLowerCase();
+      if (overview.includes(q)) return true;
+      return false;
+    });
+  }, [tender.files, searchQuery]);
+
+  // Group filtered files by AI-generated category. Returns null when no
+  // categories exist yet (newly-uploaded tender before the first
+  // categorization pass) — the caller falls back to a flat list.
+  //
+  // Categories come server-side in display order (most-accessed first).
+  // Files not claimed by any category land in the "Uncategorized" bucket
+  // at the end; empty buckets are dropped so search results stay tight.
+  const groupedFiles = React.useMemo(() => {
+    const categories = tender.fileCategories ?? [];
+    if (categories.length === 0) return null;
+
+    const sortedCategories = [...categories].sort((a, b) => a.order - b.order);
+    const fileById = new Map(filteredFiles.map((f) => [f._id, f]));
+
+    const groups: Array<{
+      _id: string;
+      name: string;
+      files: TenderFileItem[];
+    }> = [];
+    const claimed = new Set<string>();
+
+    for (const cat of sortedCategories) {
+      const files = cat.fileIds
+        .map((id) => fileById.get(id))
+        .filter((f): f is TenderFileItem => f !== undefined);
+      files.forEach((f) => claimed.add(f._id));
+      groups.push({ _id: cat._id, name: cat.name, files });
+    }
+
+    const uncategorized = filteredFiles.filter((f) => !claimed.has(f._id));
+    if (uncategorized.length > 0) {
+      groups.push({
+        _id: "uncategorized",
+        name: "Uncategorized",
+        files: uncategorized,
+      });
+    }
+
+    return groups.filter((g) => g.files.length > 0);
+  }, [filteredFiles, tender.fileCategories]);
 
   React.useEffect(() => {
     folderInputRef.current?.setAttribute("webkitdirectory", "");
@@ -354,9 +462,14 @@ const TenderDocuments = ({ tender, onUpdated, onFileSelect }: TenderDocumentsPro
     TENDER_RETRY_SUMMARY
   );
 
-  // Detect any pending/processing files
+  // Count files still in flight. Treats "partial" as in-flight since the
+  // watchdog will retry and complete them — the user should see the same
+  // "still processing" banner until they reach a terminal state.
   const pendingCount = tender.files.filter(
-    (f) => f.summaryStatus === "pending" || f.summaryStatus === "processing"
+    (f) =>
+      f.summaryStatus === "pending" ||
+      f.summaryStatus === "processing" ||
+      f.summaryStatus === "partial"
   ).length;
   const hasPending = pendingCount > 0;
 
@@ -546,7 +659,7 @@ const TenderDocuments = ({ tender, onUpdated, onFileSelect }: TenderDocumentsPro
           type="file"
           multiple
           style={{ display: "none" }}
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+          accept=".pdf,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
           onChange={handleFileChange}
         />
         <input
@@ -557,6 +670,44 @@ const TenderDocuments = ({ tender, onUpdated, onFileSelect }: TenderDocumentsPro
           onChange={handleFileChange}
         />
       </Box>
+
+      {/* Search bar — pinned below the upload area. Shown when there's
+          more than one file. Filters across filename, AI document type,
+          key topics, and overview. */}
+      {tender.files.length > 1 && (
+        <Box
+          px={5}
+          py={2}
+          borderBottom="1px solid"
+          borderColor="gray.200"
+          flexShrink={0}
+          bg="white"
+        >
+          <InputGroup size="sm">
+            <InputLeftElement pointerEvents="none" color="gray.400">
+              <FiSearch />
+            </InputLeftElement>
+            <Input
+              placeholder="Search documents…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              borderRadius="md"
+              bg="white"
+            />
+            {searchQuery && (
+              <InputRightElement>
+                <IconButton
+                  aria-label="Clear search"
+                  icon={<FiX />}
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => setSearchQuery("")}
+                />
+              </InputRightElement>
+            )}
+          </InputGroup>
+        </Box>
+      )}
 
       {/* File list — scrollable */}
       <Box flex={1} overflowY="auto" px={5} py={3}>
@@ -569,9 +720,70 @@ const TenderDocuments = ({ tender, onUpdated, onFileSelect }: TenderDocumentsPro
           </Alert>
         )}
 
-        {tender.files.length > 0 ? (
+        {tender.files.length === 0 ? (
+          <Text fontSize="sm" color="gray.500">
+            No documents yet.
+          </Text>
+        ) : filteredFiles.length === 0 ? (
+          <Text fontSize="sm" color="gray.500">
+            No documents match &ldquo;{searchQuery}&rdquo;.
+          </Text>
+        ) : groupedFiles && groupedFiles.length > 0 ? (
+          // Grouped view — AI-categorized folders. All open by default;
+          // user can collapse individual sections. Order comes from the
+          // server (most-accessed folder first).
+          <Accordion
+            allowMultiple
+            defaultIndex={groupedFiles.map((_, i) => i)}
+            // Force re-mount when the group count changes so newly-added
+            // folders default to expanded. Without this, Accordion holds
+            // onto its original defaultIndex across re-renders.
+            key={groupedFiles.length}
+          >
+            {groupedFiles.map((group) => (
+              <AccordionItem key={group._id} border="none" mb={2}>
+                <AccordionButton
+                  px={2}
+                  py={1}
+                  borderRadius="md"
+                  _hover={{ bg: "gray.100" }}
+                >
+                  <Box flex="1" textAlign="left">
+                    <HStack spacing={2}>
+                      <Text fontSize="sm" fontWeight="semibold" color="gray.700">
+                        {group.name}
+                      </Text>
+                      <Text fontSize="xs" color="gray.400">
+                        {group.files.length}
+                      </Text>
+                    </HStack>
+                  </Box>
+                  <AccordionIcon color="gray.400" />
+                </AccordionButton>
+                <AccordionPanel px={0} pb={2} pt={1}>
+                  <VStack spacing={2} align="stretch">
+                    {group.files.map((file) => (
+                      <FileCard
+                        key={file._id}
+                        file={file}
+                        tenderId={tender._id}
+                        onRemove={handleRemove}
+                        onRetry={handleRetry}
+                        removingId={removingId}
+                        retryingId={retryingId}
+                        onFileSelect={onFileSelect}
+                      />
+                    ))}
+                  </VStack>
+                </AccordionPanel>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        ) : (
+          // Flat list — either no categories yet (first upload before
+          // categorizer has run) or categorizer returned nothing usable.
           <VStack spacing={2} align="stretch">
-            {tender.files.map((file) => (
+            {filteredFiles.map((file) => (
               <FileCard
                 key={file._id}
                 file={file}
@@ -584,10 +796,6 @@ const TenderDocuments = ({ tender, onUpdated, onFileSelect }: TenderDocumentsPro
               />
             ))}
           </VStack>
-        ) : (
-          <Text fontSize="sm" color="gray.500">
-            No documents yet.
-          </Text>
         )}
       </Box>
     </Box>

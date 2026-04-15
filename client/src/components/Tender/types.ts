@@ -23,6 +23,16 @@ export interface TenderFileSummary {
   chunks?: TenderFileSummaryChunk[] | null;
 }
 
+// Live progress while the handler is running. `phase` is "summary" during
+// chunked PDF summary and "page_index" during the per-page index build.
+// Null once the file is terminal (ready / failed / orphaned).
+export interface TenderFileSummaryProgress {
+  phase: string;
+  current: number;
+  total: number;
+  updatedAt: string;
+}
+
 export interface TenderFileItem {
   _id: string;
   documentType?: string | null;
@@ -30,6 +40,8 @@ export interface TenderFileItem {
   summaryError?: string | null;
   pageCount?: number | null;
   summary?: TenderFileSummary | null;
+  summaryProgress?: TenderFileSummaryProgress | null;
+  processingStartedAt?: string | null;
   file: {
     _id: string;
     mimetype: string;
@@ -57,6 +69,16 @@ export interface TenderJobSummary {
   generatedFrom: string[];
 }
 
+// AI-generated document folder. Populated by the server-side categorizer
+// (lib/categorizeTenderFiles). `fileIds` references TenderFileItem._id.
+// Order is descending by typical-access-frequency during estimation.
+export interface TenderFileCategory {
+  _id: string;
+  name: string;
+  order: number;
+  fileIds: string[];
+}
+
 export interface TenderDetail {
   _id: string;
   name: string;
@@ -64,6 +86,7 @@ export interface TenderDetail {
   status: string;
   description?: string | null;
   files: TenderFileItem[];
+  fileCategories?: TenderFileCategory[] | null;
   notes: TenderNote[];
   summaryGenerating: boolean;
   jobSummary?: TenderJobSummary | null;
