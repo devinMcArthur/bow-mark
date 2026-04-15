@@ -89,7 +89,7 @@ const createApp = async () => {
 
   app.use(cors());
 
-  app.use(express.json({ limit: "100mb" }));
+  app.use(express.json({ limit: "500mb" }));
 
   const { typeDefs, resolvers } = await buildTypeDefsAndResolvers({
     resolvers: [
@@ -228,7 +228,7 @@ const createApp = async () => {
 
   app.use(
     graphqlUploadExpress({
-      maxFileSize: 100000000, // 100mb
+      maxFileSize: 500000000, // 500mb
       maxFiles: 20,
     })
   );
