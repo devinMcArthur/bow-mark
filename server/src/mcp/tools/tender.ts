@@ -6,7 +6,7 @@ import { Tender as TenderModel, System, TenderPricingSheet } from "@models";
 import { UserRoles } from "@typescript/user";
 import { TenderPricingRowType } from "@typescript/tenderPricingSheet";
 import { scheduleTenderSummary } from "../../lib/generateTenderSummary";
-import { requireTenderContext } from "../context";
+import { getRequestContext, requireTenderContext } from "../context";
 import Anthropic from "@anthropic-ai/sdk";
 import { PDFDocument } from "pdf-lib";
 import { getFile } from "@utils/fileStorage";
@@ -172,11 +172,28 @@ export function register(
     "get_tender_pricing_rows",
     {
       description:
-        "Read the full pricing schedule for the active tender — every schedule, group, and item with quantity, unit, status, notes, doc references, and pricing fields (unitPrice, markup, rate buildup outputs). Call this whenever you need to know the current state of the schedule of quantities before suggesting edits.",
-      inputSchema: {},
+        "Read the full pricing schedule for a tender — every schedule, group, and item with quantity, unit, status, notes, doc references, and pricing fields (unitPrice, markup, rate buildup outputs). In a tender-scoped chat (tender page), the active tenderId is resolved automatically and any tenderId argument is ignored. In a cross-tender chat (executive /chat, pm-jobsite-chat, etc.), pass the tenderId explicitly — use search_tenders first to find it by name or jobcode.",
+      inputSchema: {
+        tenderId: z
+          .string()
+          .optional()
+          .describe(
+            "Required when called from a chat that isn't bound to a specific tender. Ignored inside tender-specific chats.",
+          ),
+      },
     },
-    async () => {
-      const { tenderId } = requireTenderContext();
+    async ({ tenderId: inputTenderId }) => {
+      // Context-bound tenderId (from X-Tender-Id header) always wins over
+      // Claude-supplied input — this preserves the prompt-injection guard
+      // for tender-chat. If no context binding is present, fall back to the
+      // explicit input param (exec /chat, pm-jobsite-chat flow).
+      const ctx = getRequestContext();
+      const tenderId = ctx.tenderId ?? inputTenderId;
+      if (!tenderId) {
+        throw new Error(
+          "No tender context — pass a tenderId parameter (use search_tenders to find one by name or jobcode).",
+        );
+      }
       const sheet = await TenderPricingSheet.getByTenderId(tenderId);
       if (!sheet) {
         return ok(JSON.stringify({ rows: [], totalRows: 0, defaultMarkupPct: null }));
