@@ -404,7 +404,7 @@ export function register(
     "update_pricing_rows",
     {
       description:
-        "Update one or more pricing rows on the active tender. Each update is identified by rowId. Only rows in 'not_started' state can be edited — already-started rows are protected. Editable fields: itemNumber, description, indentLevel, quantity, unit (items only). Notes and docRefs are append-only via appendNotes / appendDocRefs — existing content is never overwritten. Up to 100 updates per call. Validation is all-or-nothing.",
+        "Update one or more pricing rows on the active tender. Each update is identified by rowId. Only rows in 'not_started' state can be edited — already-started rows are protected. Editable fields: itemNumber, description, indentLevel, quantity, unit, unitPrice (items only). Notes and docRefs are append-only via appendNotes / appendDocRefs — existing content is never overwritten. Up to 100 updates per call. Validation is all-or-nothing.",
       inputSchema: {
         updates: z
           .array(
@@ -415,6 +415,7 @@ export function register(
               indentLevel: z.number().int().min(0).max(3).optional(),
               quantity: z.number().optional(),
               unit: z.string().optional(),
+              unitPrice: z.number().nullable().optional(),
               appendNotes: z.string().optional(),
               appendDocRefs: z
                 .array(
@@ -471,10 +472,10 @@ export function register(
         }
         if (
           row.type !== TenderPricingRowType.Item &&
-          (u.quantity !== undefined || u.unit !== undefined)
+          (u.quantity !== undefined || u.unit !== undefined || u.unitPrice !== undefined)
         ) {
           errors.push(
-            `row ${u.rowId}: quantity/unit only allowed on items, not ${row.type}`,
+            `row ${u.rowId}: quantity/unit/unitPrice only allowed on items, not ${row.type}`,
           );
         }
         for (const ref of u.appendDocRefs ?? []) {
@@ -517,6 +518,10 @@ export function register(
         if (u.unit !== undefined) {
           row.unit = u.unit;
           fieldsChanged.push("unit");
+        }
+        if (u.unitPrice !== undefined) {
+          row.unitPrice = u.unitPrice;
+          fieldsChanged.push("unitPrice");
         }
         if (u.appendNotes !== undefined) {
           row.notes = (row.notes ? row.notes + "\n\n" : "") + u.appendNotes;
