@@ -25,6 +25,12 @@ export default class MyDocument extends Document {
           />
           <link rel="apple-touch-icon" href="/icons/apple-icon.png"></link>
           <meta name="theme-color" content="#ef2e25" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+          <meta
+            name="apple-mobile-web-app-title"
+            content={`Bow Mark${process.env.NEXT_PUBLIC_APP_NAME ? ` ${process.env.NEXT_PUBLIC_APP_NAME}` : ""}`}
+          />
 
           <script
             async

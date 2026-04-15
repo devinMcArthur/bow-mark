@@ -49,11 +49,13 @@ export default async function globalSetup() {
   const page = await context.newPage();
 
   console.log("[e2e-setup] Logging in as admin to capture auth state...");
-  await page.goto("/login");
+  // Next.js dev mode compiles each page on first request. Cold-compile of
+  // /login can take 60s+ on the first run after a fresh webServer start.
+  await page.goto("/login", { timeout: 120_000 });
   await page.getByLabel("Email").fill("admin@bowmark.ca");
   await page.getByLabel("Password").fill("password");
   await page.getByRole("button", { name: /submit/i }).click();
-  await expect(page).not.toHaveURL(/login/, { timeout: 15_000 });
+  await expect(page).not.toHaveURL(/login/, { timeout: 30_000 });
 
   await context.storageState({ path: path.join(authDir, "admin.json") });
   console.log("[e2e-setup] Auth state saved.");

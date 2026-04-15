@@ -8,6 +8,13 @@ import { scheduleTenderSummary } from "../../lib/generateTenderSummary";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+// Matches PROCESSING_STUCK_MS in consumer/index.ts. If a message arrives
+// while another handler is already processing the file, we bail as long as
+// that handler is inside its processing window. After the window elapses,
+// the watchdog treats the file as orphaned and any redelivered message is
+// free to take ownership.
+const HANDLER_OWNERSHIP_WINDOW_MS = 90 * 60_000;
+
 const SUMMARY_PROMPT = `You are processing a construction document for a paving/concrete company.
 Analyze this document and return a JSON object with exactly these fields:
 {
@@ -25,6 +32,43 @@ export const enrichedFileSummaryHandler = {
   async handle(message: EnrichedFileSummaryMessage): Promise<void> {
     const { enrichedFileId, fileId, attempt = 0 } = message;
     console.log(`[EnrichedFileSummary] Processing file ${fileId} (enrichedFile ${enrichedFileId}, attempt ${attempt})`);
+
+    // Idempotency guard — duplicate messages (from watchdog republish, broker
+    // redelivery, rate-limit retry, etc.) must not clobber a file that has
+    // already been processed or is actively being processed by another handler.
+    // Without this, a duplicate for a "ready" file would flip it back to
+    // "processing" and burn Claude tokens re-summarizing.
+    const current = await EnrichedFile.findById(enrichedFileId).lean();
+    if (!current) {
+      console.warn(`[EnrichedFileSummary] File ${enrichedFileId} not found — skipping`);
+      return;
+    }
+    if (current.summaryStatus === "ready") {
+      console.log(`[EnrichedFileSummary] File ${enrichedFileId} already ready — skipping duplicate`);
+      return;
+    }
+    if (current.summaryStatus === "failed") {
+      // Explicit retries (tenderRetrySummary, rescan script) reset status to
+      // "pending" before republishing, so a "failed" status at entry means
+      // this is a stray redelivery of an already-failed attempt. Skip.
+      console.log(`[EnrichedFileSummary] File ${enrichedFileId} is failed — skipping stray delivery`);
+      return;
+    }
+    if (current.summaryStatus === "processing") {
+      const startedAt = current.processingStartedAt?.getTime() ?? 0;
+      const ageMs = Date.now() - startedAt;
+      if (ageMs < HANDLER_OWNERSHIP_WINDOW_MS) {
+        console.log(
+          `[EnrichedFileSummary] File ${enrichedFileId} already owned by another handler (${Math.round(ageMs / 1000)}s ago) — skipping duplicate`
+        );
+        return;
+      }
+      // Ownership window elapsed — the previous handler is presumed dead.
+      // Fall through and take over.
+      console.warn(
+        `[EnrichedFileSummary] File ${enrichedFileId} was in processing for ${Math.round(ageMs / 60_000)}min — taking ownership`
+      );
+    }
 
     await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
       $set: {

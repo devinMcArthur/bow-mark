@@ -480,7 +480,7 @@ const ItemRow: React.FC<ItemRowProps> = ({
         </Text>
       </Td>
       <Td isNumeric whiteSpace="nowrap">
-        <Text fontSize="sm" color={costUP > 0 ? "gray.800" : "gray.400"}>
+        <Text data-testid="row-cost-up" fontSize="sm" color={costUP > 0 ? "gray.800" : "gray.400"}>
           {costUP > 0 ? `$${costUP.toFixed(2)}` : "—"}
         </Text>
       </Td>

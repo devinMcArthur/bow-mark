@@ -69,6 +69,15 @@ export class EnrichedFileSchema {
   @prop({ required: false })
   public processingStartedAt?: Date;
 
+  // Updated on every publish to the summary queue. Used by watchdog to
+  // distinguish files legitimately waiting in the queue (fresh queuedAt)
+  // from files whose queue message was dropped (stale queuedAt). Without
+  // this, pending files waiting behind a batch get repeatedly republished
+  // by the watchdog using createdAt — creating duplicate queue messages.
+  @Field({ nullable: true })
+  @prop({ required: false })
+  public queuedAt?: Date;
+
   // Incremented each time the handler runs (successfully or otherwise).
   // Used by watchdog to cap retry attempts on persistently failing files.
   @Field({ nullable: true })

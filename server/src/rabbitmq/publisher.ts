@@ -9,6 +9,7 @@
  * ensures the consumer always sees the latest state.
  */
 
+import mongoose, { Types } from "mongoose";
 import { getChannel, setupTopology, RABBITMQ_CONFIG, ROUTING_KEYS } from ".";
 import type { ActionType } from "./config";
 
@@ -164,6 +165,29 @@ export const publishEnrichedFileCreated = async (
     timestamp: new Date().toISOString(),
     attempt,
   };
+  // Stamp queuedAt BEFORE publishing so the watchdog can distinguish files
+  // legitimately waiting in the queue from files whose message was dropped.
+  // Uses a raw collection write to avoid importing @models (which would
+  // introduce a circular import via post-save hooks). If the publish below
+  // fails, queuedAt still reflects the last attempt; the watchdog retries
+  // once the pending cutoff elapses.
+  try {
+    const db = mongoose.connection.db;
+    if (db) {
+      await db
+        .collection("enrichedfiles")
+        .updateOne(
+          { _id: new Types.ObjectId(enrichedFileId) },
+          { $set: { queuedAt: new Date() } }
+        );
+    }
+  } catch (stampErr) {
+    console.warn(
+      `[RabbitMQ] Failed to stamp queuedAt on ${enrichedFileId}:`,
+      stampErr
+    );
+    // Non-fatal — fall through to publish.
+  }
   try {
     const channel = await getChannel();
     await setupTopology();

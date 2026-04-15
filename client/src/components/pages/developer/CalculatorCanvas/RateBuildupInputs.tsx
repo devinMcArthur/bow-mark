@@ -3,9 +3,10 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Box, Flex, Grid, Input, Popover, PopoverBody, PopoverContent, PopoverTrigger, Select, Text, Textarea } from "@chakra-ui/react";
 import { FiChevronDown, FiChevronRight, FiMessageSquare, FiPlus } from "react-icons/fi";
 import katex from "katex";
-import { CanvasDocument, GroupDef, ControllerDef, isGroupActive, computeInactiveNodeIds } from "./canvasStorage";
+import { CanvasDocument, GroupDef, ControllerDef, isGroupActive } from "./canvasStorage";
+import { evaluateCanvasDoc } from "./snapshotEvaluator";
 import { RateEntry } from "../../../../components/TenderPricing/calculators/types";
-import { evaluateTemplate, debugEvaluateTemplate, evaluateExpression } from "../../../../components/TenderPricing/calculators/evaluate";
+import { debugEvaluateTemplate } from "../../../../components/TenderPricing/calculators/evaluate";
 import { RateRow } from "../../../../components/TenderPricing/calculatorShared";
 import { formulaToLatex } from "./formulaToLatex";
 import { unitLabel } from "../../../../constants/units";
@@ -427,6 +428,7 @@ const GroupSection: React.FC<GroupSectionProps> = ({
         {/* Activation toggle — inline in header */}
         {activationCtrl?.type === "toggle" && (
           <Box
+            data-testid={`group-toggle-${group.id}`}
             onClick={(e) => {
               e.stopPropagation();
               onControllerChange(activationCtrl.id, !(controllers[activationCtrl.id] as boolean));
@@ -916,34 +918,14 @@ const RateBuildupInputs: React.FC<RateBuildupInputsProps> = ({
 }) => {
   const inputs = useMemo(() => ({ params, tables }), [params, tables]);
 
-  const controllerValues = useMemo<Record<string, number>>(() => {
-    const result: Record<string, number> = {};
-    for (const c of (doc.controllerDefs ?? [])) {
-      if (c.type === "percentage") result[c.id] = controllers[c.id] as number ?? 0;
-      if (c.type === "toggle") result[c.id] = (controllers[c.id] as boolean) ? 1 : 0;
-    }
-    return result;
-  }, [doc.controllerDefs, controllers]);
-
-  const inactiveNodeIds = useMemo(
-    () => computeInactiveNodeIds(doc, controllers, unit),
-    [doc, controllers, unit]
-  );
-
-  const normalizedQuantity = useMemo(() => {
-    if (!unit || !doc.unitVariants?.length) return quantity;
-    const variant = doc.unitVariants.find((v) => v.unit === unit);
-    if (!variant?.conversionFormula) return quantity;
-    const ctx: Record<string, number> = { quantity };
-    for (const p of doc.parameterDefs) ctx[p.id] = params[p.id] ?? p.defaultValue;
-    const converted = evaluateExpression(variant.conversionFormula, ctx);
-    return converted !== null && converted > 0 ? converted : quantity;
-  }, [unit, doc.unitVariants, doc.parameterDefs, quantity, params]);
-
-  const result = useMemo(
-    () => evaluateTemplate(doc, inputs, normalizedQuantity, controllerValues, inactiveNodeIds),
-    [doc, inputs, normalizedQuantity, controllerValues, inactiveNodeIds]
-  );
+  // Single source of truth for the live-preview compute. Shares
+  // evaluateCanvasDoc with evaluateSnapshot (save path) so the two cannot
+  // drift. See snapshotEvaluator.ts for the rationale.
+  const { result, normalizedQuantity, controllerNumeric, inactiveNodeIds } =
+    useMemo(
+      () => evaluateCanvasDoc(doc, params, tables, controllers, quantity, unit),
+      [doc, params, tables, controllers, quantity, unit]
+    );
 
   const onResultRef = useRef(onResult);
   onResultRef.current = onResult;
@@ -953,11 +935,14 @@ const RateBuildupInputs: React.FC<RateBuildupInputsProps> = ({
 
   const [outputsOpen, setOutputsOpen] = useState(false);
 
-  // Map of formula step id → { label, value, formula } for all active, non-errored steps
+  // Map of formula step id → { label, value, formula } for all active, non-errored steps.
+  // Uses the same normalizedQuantity + controllerNumeric + inactiveNodeIds that
+  // the main result memo computed via evaluateCanvasDoc, so the debug panel
+  // and the main result can never disagree on their inputs.
   const formulaOutputMap = useMemo<Record<string, { label: string; value: number; formula: string }>>(() => {
     if (!doc.formulaSteps.length) return {};
     const stepMeta = new Map(doc.formulaSteps.map((s) => [s.id, { label: s.label ?? s.id, formula: s.formula }]));
-    const stepResults = debugEvaluateTemplate(doc, inputs, normalizedQuantity, controllerValues, inactiveNodeIds);
+    const stepResults = debugEvaluateTemplate(doc, inputs, normalizedQuantity, controllerNumeric, inactiveNodeIds);
     const map: Record<string, { label: string; value: number; formula: string }> = {};
     for (const s of stepResults) {
       const meta = stepMeta.get(s.id);
@@ -966,7 +951,7 @@ const RateBuildupInputs: React.FC<RateBuildupInputsProps> = ({
       }
     }
     return map;
-  }, [doc, inputs, normalizedQuantity, controllerValues, inactiveNodeIds]);
+  }, [doc, inputs, normalizedQuantity, controllerNumeric, inactiveNodeIds]);
 
   // id → label for all variables in scope (used by formulaToLatex inside FormulaOutputRow)
   const variableLabelMap = useMemo<Record<string, string>>(() => {
@@ -978,7 +963,9 @@ const RateBuildupInputs: React.FC<RateBuildupInputsProps> = ({
     return map;
   }, [doc]);
 
-  // id → current numeric value for all variables (used in the variable breakdown table)
+  // id → current numeric value for all variables (used in the variable breakdown table).
+  // Controller values come from the shared controllerNumeric map so the
+  // debug table shows the exact values that went into the formula context.
   const variableValueMap = useMemo<Record<string, number>>(() => {
     const map: Record<string, number> = { quantity: normalizedQuantity };
     for (const p of doc.parameterDefs) map[p.id] = params[p.id] ?? p.defaultValue;
@@ -987,12 +974,9 @@ const RateBuildupInputs: React.FC<RateBuildupInputsProps> = ({
       map[`${t.id}RatePerHr`] = rows.reduce((s, r) => s + r.qty * r.ratePerHour, 0);
     }
     for (const [id, out] of Object.entries(formulaOutputMap)) map[id] = out.value;
-    for (const c of (doc.controllerDefs ?? [])) {
-      if (c.type === "percentage") map[c.id] = controllers[c.id] as number ?? 0;
-      if (c.type === "toggle") map[c.id] = (controllers[c.id] as boolean) ? 1 : 0;
-    }
+    for (const [id, v] of Object.entries(controllerNumeric)) map[id] = v;
     return map;
-  }, [doc, params, tables, normalizedQuantity, formulaOutputMap, controllers]);
+  }, [doc, params, tables, normalizedQuantity, formulaOutputMap, controllerNumeric]);
 
   // Ungrouped formula outputs (not a member of any group)
   const ungroupedFormulaOutputs = useMemo(() => {
