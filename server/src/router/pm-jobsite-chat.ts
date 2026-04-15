@@ -151,8 +151,21 @@ ${decompositionBlock}
   if (!mcpConnection) return;
   const { client: mcpClient, tools: mcpTools } = mcpConnection;
 
-  // Combine document tools with MCP analytics tools
-  const allTools: Anthropic.Tool[] = [LIST_DOCUMENT_PAGES_TOOL, READ_DOCUMENT_TOOL, ...mcpTools];
+  // Combine document tools with MCP analytics tools.
+  // The MCP server now exposes tender-scoped read_document/list_document_pages
+  // (registered for tender-chat) — they collide on name with our inline jobsite
+  // versions. Filter them out so the inline tools (which know about jobsiteFiles)
+  // win for this chat. The jobsite-aware MCP migration is tracked as a follow-up.
+  const inlineToolNames = new Set([
+    LIST_DOCUMENT_PAGES_TOOL.name,
+    READ_DOCUMENT_TOOL.name,
+  ]);
+  const filteredMcpTools = mcpTools.filter((t) => !inlineToolNames.has(t.name));
+  const allTools: Anthropic.Tool[] = [
+    LIST_DOCUMENT_PAGES_TOOL,
+    READ_DOCUMENT_TOOL,
+    ...filteredMcpTools,
+  ];
 
   const docExecutor = makeReadDocumentExecutor([...jobsiteFiles, ...specFiles]);
 
