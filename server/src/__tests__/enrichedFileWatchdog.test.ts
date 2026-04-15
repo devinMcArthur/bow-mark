@@ -1,12 +1,3 @@
-// Hoisted mock replaces publishEnrichedFileCreated with a vi.fn() that
-// records calls without touching RabbitMQ. Must be declared BEFORE the
-// import of watchdog.ts so vitest hoists it correctly. `vi` is available
-// as a global (vitest config enables globals).
-vi.mock("../rabbitmq/publisher", () => ({
-  publishEnrichedFileCreated: vi.fn().mockResolvedValue(true),
-}));
-
-import mongoose from "mongoose";
 import { EnrichedFile, File } from "@models";
 import { prepareDatabase } from "@testing/vitestDB";
 import {
@@ -16,20 +7,27 @@ import {
   FAILED_RETRY_COOLDOWN_MS,
   MAX_SUMMARY_ATTEMPTS,
 } from "../consumer/watchdog";
-import { publishEnrichedFileCreated } from "../rabbitmq/publisher";
+import * as publisher from "../rabbitmq/publisher";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mockPublish = publishEnrichedFileCreated as any;
+// We spy on the publisher module's export rather than using vi.mock with
+// a relative path. vi.mock + relative paths has hoisting quirks in CI
+// that left mockPublish as the real function — vi.spyOn mutates the
+// module.exports at runtime after both the test and watchdog.ts have
+// loaded the publisher, so both see the same spy.
+let publishSpy: ReturnType<typeof vi.spyOn>;
 
 beforeAll(async () => {
   await prepareDatabase();
 });
 
 beforeEach(() => {
-  mockPublish.mockClear();
+  publishSpy = vi
+    .spyOn(publisher, "publishEnrichedFileCreated")
+    .mockResolvedValue(true);
 });
 
 afterEach(async () => {
+  publishSpy.mockRestore();
   await EnrichedFile.deleteMany({});
   await (File as any).deleteMany({});
 });
@@ -63,9 +61,13 @@ describe("recoverStuckFiles", () => {
 
     await recoverStuckFiles();
 
-    expect(mockPublish).toHaveBeenCalledTimes(1);
+    expect(publishSpy).toHaveBeenCalledTimes(1);
     // Real attempt count is preserved — not reset to 0 (H4 fix)
-    expect(mockPublish).toHaveBeenCalledWith(doc._id.toString(), expect.any(String), 2);
+    expect(publishSpy).toHaveBeenCalledWith(
+      doc._id.toString(),
+      expect.any(String),
+      2
+    );
 
     const refetched = await (EnrichedFile as any).findById(doc._id).lean();
     expect(refetched.summaryStatus).toBe("pending");
@@ -81,7 +83,7 @@ describe("recoverStuckFiles", () => {
 
     await recoverStuckFiles();
 
-    expect(mockPublish).not.toHaveBeenCalled();
+    expect(publishSpy).not.toHaveBeenCalled();
   });
 
   it("requeues a file stuck in pending past the queue-drain window", async () => {
@@ -93,8 +95,8 @@ describe("recoverStuckFiles", () => {
 
     await recoverStuckFiles();
 
-    expect(mockPublish).toHaveBeenCalledTimes(1);
-    expect(mockPublish).toHaveBeenCalledWith(
+    expect(publishSpy).toHaveBeenCalledTimes(1);
+    expect(publishSpy).toHaveBeenCalledWith(
       doc._id.toString(),
       expect.any(String),
       expect.any(Number)
@@ -110,7 +112,7 @@ describe("recoverStuckFiles", () => {
 
     await recoverStuckFiles();
 
-    expect(mockPublish).not.toHaveBeenCalled();
+    expect(publishSpy).not.toHaveBeenCalled();
   });
 
   it("requeues a failed file past the cooldown under max attempts", async () => {
@@ -122,8 +124,12 @@ describe("recoverStuckFiles", () => {
 
     await recoverStuckFiles();
 
-    expect(mockPublish).toHaveBeenCalledTimes(1);
-    expect(mockPublish).toHaveBeenCalledWith(doc._id.toString(), expect.any(String), 2);
+    expect(publishSpy).toHaveBeenCalledTimes(1);
+    expect(publishSpy).toHaveBeenCalledWith(
+      doc._id.toString(),
+      expect.any(String),
+      2
+    );
   });
 
   it("skips a failed file that hit MAX_SUMMARY_ATTEMPTS", async () => {
@@ -135,7 +141,7 @@ describe("recoverStuckFiles", () => {
 
     await recoverStuckFiles();
 
-    expect(mockPublish).not.toHaveBeenCalled();
+    expect(publishSpy).not.toHaveBeenCalled();
   });
 
   it("skips an orphaned file entirely (never retried)", async () => {
@@ -147,7 +153,7 @@ describe("recoverStuckFiles", () => {
 
     await recoverStuckFiles();
 
-    expect(mockPublish).not.toHaveBeenCalled();
+    expect(publishSpy).not.toHaveBeenCalled();
   });
 
   it("requeues a partial file past the cooldown without flipping status", async () => {
@@ -162,8 +168,12 @@ describe("recoverStuckFiles", () => {
 
     await recoverStuckFiles();
 
-    expect(mockPublish).toHaveBeenCalledTimes(1);
-    expect(mockPublish).toHaveBeenCalledWith(doc._id.toString(), expect.any(String), 1);
+    expect(publishSpy).toHaveBeenCalledTimes(1);
+    expect(publishSpy).toHaveBeenCalledWith(
+      doc._id.toString(),
+      expect.any(String),
+      1
+    );
 
     const refetched = await (EnrichedFile as any).findById(doc._id).lean();
     // Status stays "partial" — the handler will flip it to "processing"
@@ -175,7 +185,7 @@ describe("recoverStuckFiles", () => {
 
   it("handles an empty database without error", async () => {
     await expect(recoverStuckFiles()).resolves.not.toThrow();
-    expect(mockPublish).not.toHaveBeenCalled();
+    expect(publishSpy).not.toHaveBeenCalled();
   });
 
   it("processes multiple buckets in one pass", async () => {
@@ -206,6 +216,6 @@ describe("recoverStuckFiles", () => {
 
     await recoverStuckFiles();
 
-    expect(mockPublish).toHaveBeenCalledTimes(4);
+    expect(publishSpy).toHaveBeenCalledTimes(4);
   });
 });
