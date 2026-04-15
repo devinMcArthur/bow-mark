@@ -37,6 +37,36 @@ spec:
               value: production
             - name: MCP_PORT
               value: "8081"
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: concrete
+                  key: mongoURI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: general
+                  key: jwtSecret
+            - name: SPACES_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: spaces
+                  key: name
+            - name: SPACES_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: spaces
+                  key: region
+            - name: SPACES_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: spaces
+                  key: key
+            - name: SPACES_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: spaces
+                  key: secret
             - name: POSTGRES_HOST
               valueFrom:
                 secretKeyRef:
@@ -62,3 +92,28 @@ spec:
                 secretKeyRef:
                   name: postgres
                   key: dbConcrete
+            - name: RABBITMQ_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: host
+            - name: RABBITMQ_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: port
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: user
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: password
+            - name: RABBITMQ_VHOST
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: vhost
