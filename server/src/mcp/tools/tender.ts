@@ -100,6 +100,72 @@ export function register(
   server: McpServer,
   sessionState: TenderToolsSessionState,
 ): void {
+  // ── search_tenders ───────────────────────────────────────────────────────
+  // Cross-tender read tool — unlike the other tender tools, this one does
+  // NOT use requireTenderContext() because its whole purpose is to find a
+  // tenderId in the first place. Any authenticated chat (exec /chat,
+  // pm-jobsite-chat, etc.) can call it to resolve a tender by name/jobcode
+  // before calling tender-scoped tools.
+  registerInstrumented(
+    server,
+    "search_tenders",
+    {
+      description:
+        "Search for tenders by name or jobcode. Returns matching tenders with their IDs, names, jobcodes, and status. Use this to resolve a tender reference before calling any other tender tool — every tender-scoped tool needs a tenderId, and this is how you find one from a name the user mentions.",
+      inputSchema: {
+        query: z
+          .string()
+          .describe(
+            "Name or jobcode to search for. Partial, case-insensitive match.",
+          ),
+        status: z
+          .enum(["bidding", "won", "lost"])
+          .optional()
+          .describe("Optional filter: only return tenders in this status."),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(50)
+          .optional()
+          .default(10)
+          .describe("Max results to return. Default 10, max 50."),
+      },
+    },
+    async ({ query, status, limit }) => {
+      // Escape regex metacharacters so user input can't accidentally construct
+      // a malicious or malformed pattern.
+      const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(escaped, "i");
+
+      const filter: any = {
+        $or: [{ name: regex }, { jobcode: regex }],
+      };
+      if (status) filter.status = status;
+
+      const results = await (TenderModel as any)
+        .find(filter)
+        .select("_id name jobcode status description")
+        .sort({ name: 1 })
+        .limit(limit ?? 10)
+        .lean();
+
+      return ok(
+        JSON.stringify(
+          results.map((t: any) => ({
+            id: t._id.toString(),
+            name: t.name,
+            jobcode: t.jobcode,
+            status: t.status,
+            description: t.description ?? null,
+          })),
+          null,
+          2,
+        ),
+      );
+    },
+  );
+
   // ── get_tender_pricing_rows ──────────────────────────────────────────────
   registerInstrumented(
     server,
