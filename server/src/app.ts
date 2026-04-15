@@ -37,6 +37,7 @@ import DailyReportResolver from "@graphql/resolvers/dailyReport";
 import EmployeeResolver from "@graphql/resolvers/employee";
 import EmployeeReportResolver from "@graphql/resolvers/employeeReport";
 import EmployeeWorkResolver from "@graphql/resolvers/employeeWork";
+import EnrichedFileResolver from "@graphql/resolvers/enrichedFile";
 import FileResolver from "@graphql/resolvers/file";
 import InvoiceResolver from "@graphql/resolvers/invoice";
 import InvoiceReportResolver from "@graphql/resolvers/invoiceReport";
@@ -88,7 +89,7 @@ const createApp = async () => {
 
   app.use(cors());
 
-  app.use(express.json({ limit: "100mb" }));
+  app.use(express.json({ limit: "500mb" }));
 
   const { typeDefs, resolvers } = await buildTypeDefsAndResolvers({
     resolvers: [
@@ -105,6 +106,7 @@ const createApp = async () => {
       EmployeeResolver,
       EmployeeReportResolver,
       EmployeeWorkResolver,
+      EnrichedFileResolver,
       FileResolver,
       InvoiceResolver,
       InvoiceReportResolver,
@@ -226,7 +228,7 @@ const createApp = async () => {
 
   app.use(
     graphqlUploadExpress({
-      maxFileSize: 100000000, // 100mb
+      maxFileSize: 500000000, // 500mb
       maxFiles: 20,
     })
   );

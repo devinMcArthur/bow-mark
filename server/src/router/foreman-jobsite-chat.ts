@@ -3,11 +3,18 @@ import mongoose from "mongoose";
 import Anthropic from "@anthropic-ai/sdk";
 import { Jobsite, User, System, EnrichedFile } from "@models";
 import { isDocument } from "@typegoose/typegoose";
-import { streamConversation } from "../lib/streamConversation";
-import { READ_DOCUMENT_TOOL, LIST_DOCUMENT_PAGES_TOOL, makeReadDocumentExecutor } from "../lib/readDocumentExecutor";
+import { streamConversation, ToolExecutionResult } from "../lib/streamConversation";
 import { buildFileIndex } from "../lib/buildFileIndex";
 import { UserRoles } from "../typescript/user";
 import { requireAuth } from "../lib/authMiddleware";
+import { connectMcp } from "../lib/mcpClient";
+
+// Foremen get the narrowest possible tool surface: document reading only.
+// The MCP server exposes many other tools (tender pricing, analytics,
+// financial data) — we allowlist by name so a field worker can never
+// call a revenue query, a tender pricing lookup, or anything else
+// regardless of what the MCP server adds in the future.
+const FOREMAN_ALLOWED_TOOLS = new Set(["list_document_pages", "read_document"]);
 
 const router = Router();
 
@@ -121,25 +128,66 @@ ${decompositionBlock}
 - **Loading documents — two steps.** For documents with a page index, call list_document_pages first to see the page-by-page breakdown, then call read_document with only the specific pages you need. Only skip list_document_pages if the document has no page index.
 - Load ONE document at a time. Never call read_document more than once per response.
 - There is a strict 90-page limit per conversation turn.
-- When quoting requirements, include the page number: e.g. "According to the specs (p. 12)..."
+- **Citations.** When you reference a specific fact, requirement, or drawing from a document, include a clickable page link in this format: **[[Document Type, p.X]](URL#page=X)**. Use the URL from the document list above. Only cite pages you have actually read. Tapping the link opens the document at that page.
 - **Cross-references.** If a page references another drawing or standard, note it so the worker knows where else to look.
 - **Completeness.** Before answering, confirm you have addressed all parts of the question.
 - Keep answers short and focused. Workers are in the field.`;
 
-  await streamConversation({
+  // ── Connect to MCP server with jobsite binding ────────────────────────────
+  // The MCP doc tools load jobsite files from context and apply the per-file
+  // minRole gate inside loadChatFiles, so foremen only see files they're
+  // authorized for. The allowlist below prevents Claude from ever calling
+  // any tool beyond document reading, regardless of what the MCP server
+  // exposes in its tool list.
+  const conn = await connectMcp(
+    "foreman-jobsite-chat",
+    "[foreman-jobsite-chat]",
     res,
-    userId: req.userId,
-    conversationId,
-    jobsiteId,
-    chatType: "jobsite-foreman",
-    messages,
-    systemPrompt,
-    tools: [LIST_DOCUMENT_PAGES_TOOL, READ_DOCUMENT_TOOL],
-    toolChoice: { type: "auto", disable_parallel_tool_use: true },
-    maxTokens: 4096,
-    executeTool: makeReadDocumentExecutor([...jobsiteFiles, ...specFiles]),
-    logPrefix: "[foreman-jobsite-chat]",
-  });
+    { authToken: req.token, jobsiteId },
+  );
+  if (!conn) return;
+
+  const allowedTools = conn.tools.filter((t) =>
+    FOREMAN_ALLOWED_TOOLS.has(t.name),
+  );
+
+  try {
+    await streamConversation({
+      res,
+      userId: req.userId,
+      conversationId,
+      jobsiteId,
+      chatType: "jobsite-foreman",
+      messages,
+      systemPrompt,
+      tools: allowedTools,
+      toolChoice: { type: "auto", disable_parallel_tool_use: true },
+      maxTokens: 4096,
+      executeTool: async (name, input): Promise<ToolExecutionResult> => {
+        if (!FOREMAN_ALLOWED_TOOLS.has(name)) {
+          throw new Error(`Tool ${name} is not available in this chat`);
+        }
+        const result = await conn.client.callTool({
+          name,
+          arguments: input as Record<string, unknown>,
+        });
+        const raw = result.content ?? [];
+        const blocks: Array<{ type: string; text?: string }> =
+          typeof raw === "string"
+            ? [{ type: "text", text: raw }]
+            : (raw as Array<{ type: string; text?: string }>);
+        const firstText = blocks.find((b) => b.type === "text")?.text ?? "";
+        const summary =
+          firstText.length > 200
+            ? firstText.slice(0, 200) + "…"
+            : firstText || `${name} completed`;
+        return { content: blocks as any, summary };
+      },
+      logPrefix: "[foreman-jobsite-chat]",
+    });
+  } finally {
+    await conn.client.close().catch(() => undefined);
+  }
 });
 
 export default router;

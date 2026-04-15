@@ -5,6 +5,7 @@ import { User } from "@models";
 import { streamConversation } from "../lib/streamConversation";
 import { requireAuth } from "../lib/authMiddleware";
 import { connectMcp } from "../lib/mcpClient";
+import { UserRoles } from "../typescript/user";
 
 const router = Router();
 
@@ -46,6 +47,14 @@ router.post("/message", requireAuth, async (req, res) => {
 
   // ── Build user-aware system prompt ─────────────────────────────────────────
   const user = await User.findById(req.userId).populate("employee");
+
+  // Server-side role guard: the analytics assistant exposes revenue, cost,
+  // margin, and tender pricing data — restricted to Admin and above.
+  if (!user || (user.role ?? UserRoles.User) < UserRoles.Admin) {
+    res.status(403).json({ error: "Forbidden: Admin role required" });
+    return;
+  }
+
   const employee = isDocument(user?.employee) ? user!.employee : null;
   const userContext = [
     user?.name && `The user's name is ${user.name}.`,
@@ -56,7 +65,7 @@ router.post("/message", requireAuth, async (req, res) => {
   const systemPrompt = userContext ? `${userContext}\n\n${SYSTEM_PROMPT}` : SYSTEM_PROMPT;
 
   // ── Connect to MCP server and fetch tools ──────────────────────────────────
-  const mcpConnection = await connectMcp("bow-mark-chat", "[chat]", res);
+  const mcpConnection = await connectMcp("bow-mark-chat", "[chat]", res, { authToken: req.token });
   if (!mcpConnection) return;
   const { client: mcpClient, tools: mcpTools } = mcpConnection;
 

@@ -10,6 +10,17 @@ export interface McpConnection {
   tools: Anthropic.Tool[];
 }
 
+export interface ConnectMcpOptions {
+  /** Authorization header value passed to the MCP server (raw token, no "Bearer" prefix needed — the existing requireAuth pattern uses raw tokens). */
+  authToken?: string;
+  /** Tender ID bound to this MCP session. Used by tender-scoped tools. */
+  tenderId?: string;
+  /** Jobsite ID bound to this MCP session. Used by jobsite-scoped chats for document loading. */
+  jobsiteId?: string;
+  /** Optional conversation ID — passed through for note traceability. */
+  conversationId?: string;
+}
+
 /**
  * Connect to the MCP analytics server and load its tool list.
  * Returns null and writes a 503 response if connection or tool loading fails.
@@ -18,10 +29,23 @@ export interface McpConnection {
 export async function connectMcp(
   clientName: string,
   logPrefix: string,
-  res: Response
+  res: Response,
+  opts?: ConnectMcpOptions,
 ): Promise<McpConnection | null> {
   const client = new Client({ name: clientName, version: "1.0.0" });
-  const transport = new StreamableHTTPClientTransport(new URL(`${MCP_SERVER_URL}/mcp`));
+
+  const headers: Record<string, string> = {};
+  if (opts?.authToken) headers["Authorization"] = opts.authToken;
+  if (opts?.tenderId) headers["X-Tender-Id"] = opts.tenderId;
+  if (opts?.jobsiteId) headers["X-Jobsite-Id"] = opts.jobsiteId;
+  if (opts?.conversationId) headers["X-Conversation-Id"] = opts.conversationId;
+
+  const transport = new StreamableHTTPClientTransport(
+    new URL(`${MCP_SERVER_URL}/mcp`),
+    Object.keys(headers).length > 0
+      ? { requestInit: { headers } }
+      : undefined,
+  );
 
   try {
     await client.connect(transport);

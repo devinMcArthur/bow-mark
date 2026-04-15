@@ -1125,6 +1125,41 @@ export const ssrEmployees = {
       withPage: withPageEmployees,
       usePage: useEmployees,
     }
+export async function getServerPageEnrichedFile
+    (options: Omit<Apollo.QueryOptions<Types.EnrichedFileQueryVariables>, 'query'>, ctx: ApolloClientContext ){
+        const apolloClient = getApolloClient(ctx);
+        
+        const data = await apolloClient.query<Types.EnrichedFileQuery>({ ...options, query: Operations.EnrichedFileDocument });
+        
+        const apolloState = apolloClient.cache.extract();
+
+        return {
+            props: {
+                apolloState: apolloState,
+                data: data?.data,
+                error: data?.error ?? data?.errors ?? null,
+            },
+        };
+      }
+export const useEnrichedFile = (
+  optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.EnrichedFileQuery, Types.EnrichedFileQueryVariables>) => {
+  const router = useRouter();
+  const options = optionsFunc ? optionsFunc(router) : {};
+  return useQuery(Operations.EnrichedFileDocument, options);
+};
+export type PageEnrichedFileComp = React.FC<{data?: Types.EnrichedFileQuery, error?: Apollo.ApolloError}>;
+export const withPageEnrichedFile = (optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.EnrichedFileQuery, Types.EnrichedFileQueryVariables>) => (WrappedComponent:PageEnrichedFileComp) : NextPage  => (props) => {
+                const router = useRouter()
+                const options = optionsFunc ? optionsFunc(router) : {};
+                const {data, error } = useQuery(Operations.EnrichedFileDocument, options)    
+                return <WrappedComponent {...props} data={data} error={error} /> ;
+                   
+            }; 
+export const ssrEnrichedFile = {
+      getServerPage: getServerPageEnrichedFile,
+      withPage: withPageEnrichedFile,
+      usePage: useEnrichedFile,
+    }
 export async function getServerPageFileFull
     (options: Omit<Apollo.QueryOptions<Types.FileFullQueryVariables>, 'query'>, ctx: ApolloClientContext ){
         const apolloClient = getApolloClient(ctx);

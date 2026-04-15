@@ -1,5 +1,6 @@
 import * as dotenv from "dotenv";
 import path from "path";
+import { randomUUID } from "crypto";
 import "reflect-metadata";
 
 if (!process.env.NODE_ENV || process.env.NODE_ENV === "development") {
@@ -14,6 +15,11 @@ import { register as registerSearch } from "./mcp/tools/search";
 import { register as registerFinancial } from "./mcp/tools/financial";
 import { register as registerProductivity } from "./mcp/tools/productivity";
 import { register as registerOperational } from "./mcp/tools/operational";
+import { register as registerTender, makeSessionState as makeTenderSessionState } from "./mcp/tools/tender";
+import jwt from "jsonwebtoken";
+import { User } from "@models";
+import { UserRoles } from "@typescript/user";
+import { runWithContext, RequestContext } from "./mcp/context";
 
 // ─── MCP Server ───────────────────────────────────────────────────────────────
 
@@ -28,6 +34,11 @@ function createMcpServer(): McpServer {
   registerProductivity(server);
   registerOperational(server);
 
+  // Per-session state for tender tools (page budget + dedup) — fresh per
+  // McpServer instance, which createMcpServer() creates one of per session.
+  const tenderSessionState = makeTenderSessionState();
+  registerTender(server, tenderSessionState);
+
   return server;
 }
 
@@ -39,18 +50,76 @@ app.use(express.json());
 const transports: Map<string, StreamableHTTPServerTransport> = new Map();
 
 app.post("/mcp", async (req, res) => {
+  // ── Auth: validate JWT from Authorization header ────────────────────────
+  const token = req.headers.authorization;
+  if (!token || !process.env.JWT_SECRET) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  let userId: string;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET) as jwt.JwtPayload;
+    if (!decoded?.userId) {
+      res.status(401).json({ error: "Invalid token payload" });
+      return;
+    }
+    userId = decoded.userId;
+  } catch {
+    res.status(401).json({ error: "Invalid token" });
+    return;
+  }
+
+  const user = await User.findById(userId).lean();
+  if (!user) {
+    res.status(401).json({ error: "User not found" });
+    return;
+  }
+  const role = (user.role ?? UserRoles.User) as UserRoles;
+  if (role < UserRoles.User) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  // ── Optional tender / jobsite binding ──────────────────────────────────
+  const tenderIdHeader = req.headers["x-tender-id"];
+  const tenderId =
+    typeof tenderIdHeader === "string" ? tenderIdHeader : undefined;
+  if (tenderId && !mongoose.isValidObjectId(tenderId)) {
+    res.status(400).json({ error: "Invalid X-Tender-Id" });
+    return;
+  }
+
+  const jobsiteIdHeader = req.headers["x-jobsite-id"];
+  const jobsiteId =
+    typeof jobsiteIdHeader === "string" ? jobsiteIdHeader : undefined;
+  if (jobsiteId && !mongoose.isValidObjectId(jobsiteId)) {
+    res.status(400).json({ error: "Invalid X-Jobsite-Id" });
+    return;
+  }
+
+  const conversationIdHeader = req.headers["x-conversation-id"];
+  const conversationId =
+    typeof conversationIdHeader === "string" ? conversationIdHeader : undefined;
+
+  const ctx: RequestContext = { userId, role, tenderId, jobsiteId, conversationId };
+
+  // ── Route through MCP transport inside the ALS context ─────────────────
   const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
   if (sessionId && transports.has(sessionId)) {
     const transport = transports.get(sessionId)!;
-    await transport.handleRequest(req, res, req.body);
+    await runWithContext(ctx, () =>
+      transport.handleRequest(req, res, req.body),
+    );
     return;
   }
 
-  // New session
+  // New session — use cryptographically strong session IDs (128 bits of
+  // entropy) so unauthenticated GET/DELETE /mcp handlers can't be attacked
+  // by guessing a session ID to attach to a stream or terminate it.
   const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: () =>
-      `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    sessionIdGenerator: () => randomUUID(),
     onsessioninitialized: (sid) => {
       transports.set(sid, transport);
     },
@@ -64,7 +133,9 @@ app.post("/mcp", async (req, res) => {
 
   const server = createMcpServer();
   await server.connect(transport);
-  await transport.handleRequest(req, res, req.body);
+  await runWithContext(ctx, () =>
+    transport.handleRequest(req, res, req.body),
+  );
 });
 
 app.get("/mcp", async (req, res) => {

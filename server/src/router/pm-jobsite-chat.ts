@@ -3,8 +3,7 @@ import { Router } from "express";
 import mongoose from "mongoose";
 import { Jobsite, User, System, EnrichedFile } from "@models";
 import { isDocument } from "@typegoose/typegoose";
-import { streamConversation } from "../lib/streamConversation";
-import { READ_DOCUMENT_TOOL, LIST_DOCUMENT_PAGES_TOOL, makeReadDocumentExecutor } from "../lib/readDocumentExecutor";
+import { streamConversation, ToolExecutionResult } from "../lib/streamConversation";
 import { buildFileIndex } from "../lib/buildFileIndex";
 import { UserRoles } from "../typescript/user";
 import { requireAuth } from "../lib/authMiddleware";
@@ -146,15 +145,17 @@ ${decompositionBlock}
   - Employee: [Name](/employee/{mongo_id})
 - Citations for document quotes: **[[Document Type, p.X]](URL#page=X)**`;
 
-  // ── Connect to MCP server and fetch tools ──────────────────────────────────
-  const mcpConnection = await connectMcp("bow-mark-pm-chat", "[pm-jobsite-chat]", res);
-  if (!mcpConnection) return;
-  const { client: mcpClient, tools: mcpTools } = mcpConnection;
-
-  // Combine document tools with MCP analytics tools
-  const allTools: Anthropic.Tool[] = [LIST_DOCUMENT_PAGES_TOOL, READ_DOCUMENT_TOOL, ...mcpTools];
-
-  const docExecutor = makeReadDocumentExecutor([...jobsiteFiles, ...specFiles]);
+  // ── Connect to MCP server with jobsite binding ────────────────────────────
+  // The MCP server's read_document / list_document_pages tools now handle
+  // jobsite context via X-Jobsite-Id and apply per-file minRole filtering
+  // inside loadChatFiles, so we no longer need inline doc tools here.
+  const conn = await connectMcp(
+    "bow-mark-pm-chat",
+    "[pm-jobsite-chat]",
+    res,
+    { authToken: req.token, jobsiteId },
+  );
+  if (!conn) return;
 
   try {
     await streamConversation({
@@ -165,25 +166,29 @@ ${decompositionBlock}
       chatType: "jobsite-pm",
       messages,
       systemPrompt,
-      tools: allTools,
+      tools: conn.tools,
       maxTokens: 8192,
-      executeTool: async (name, input) => {
-        // Route to document executor or MCP
-        if (name === READ_DOCUMENT_TOOL.name || name === LIST_DOCUMENT_PAGES_TOOL.name) {
-          return docExecutor(name, input);
-        }
-        const mcpResult = await mcpClient.callTool({ name, arguments: input });
-        const text =
-          (mcpResult.content as Array<{ type: string; text?: string }>)
-            .filter((c) => c.type === "text")
-            .map((c) => c.text ?? "")
-            .join("\n") || "No result";
-        return { content: text, summary: text };
+      executeTool: async (name, input): Promise<ToolExecutionResult> => {
+        const result = await conn.client.callTool({
+          name,
+          arguments: input as Record<string, unknown>,
+        });
+        const raw = result.content ?? [];
+        const blocks: Array<{ type: string; text?: string }> =
+          typeof raw === "string"
+            ? [{ type: "text", text: raw }]
+            : (raw as Array<{ type: string; text?: string }>);
+        const firstText = blocks.find((b) => b.type === "text")?.text ?? "";
+        const summary =
+          firstText.length > 200
+            ? firstText.slice(0, 200) + "…"
+            : firstText || `${name} completed`;
+        return { content: blocks as any, summary };
       },
       logPrefix: "[pm-jobsite-chat]",
     });
   } finally {
-    await mcpClient.close();
+    await conn.client.close().catch(() => undefined);
   }
 });
 

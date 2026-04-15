@@ -515,6 +515,24 @@ export type EnrichedFilePageIndexEntryClass = {
   summary: Scalars['String'];
 };
 
+export type EnrichedFileSchema = {
+  __typename?: 'EnrichedFileSchema';
+  _id: Scalars['ID'];
+  createdAt: Scalars['DateTime'];
+  documentType?: Maybe<Scalars['String']>;
+  file: FileClass;
+  pageCount?: Maybe<Scalars['Float']>;
+  pageIndex?: Maybe<Array<EnrichedFilePageIndexEntryClass>>;
+  processingStartedAt?: Maybe<Scalars['DateTime']>;
+  processingVersion?: Maybe<Scalars['Float']>;
+  queuedAt?: Maybe<Scalars['DateTime']>;
+  summary?: Maybe<EnrichedFileSummaryClass>;
+  summaryAttempts?: Maybe<Scalars['Float']>;
+  summaryError?: Maybe<Scalars['String']>;
+  summaryProgress?: Maybe<EnrichedFileSummaryProgressClass>;
+  summaryStatus: Scalars['String'];
+};
+
 export type EnrichedFileSummaryChunkClass = {
   __typename?: 'EnrichedFileSummaryChunkClass';
   endPage: Scalars['Float'];
@@ -2271,6 +2289,7 @@ export type Query = {
   employeeHourReports: EmployeeHoursReport;
   employees: Array<EmployeeClass>;
   employeeSearch: Array<EmployeeClass>;
+  enrichedFile?: Maybe<EnrichedFileSchema>;
   file: FileClass;
   financialPerformance: FinancialPerformanceReport;
   jobsite: JobsiteClass;
@@ -2432,6 +2451,11 @@ export type QueryEmployeesArgs = {
 export type QueryEmployeeSearchArgs = {
   options?: InputMaybe<SearchOptions>;
   searchString: Scalars['String'];
+};
+
+
+export type QueryEnrichedFileArgs = {
+  id: Scalars['ID'];
 };
 
 
@@ -4645,6 +4669,13 @@ export type EmployeesQueryVariables = Exact<{
 
 
 export type EmployeesQuery = { __typename?: 'Query', employees: Array<{ __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> }> };
+
+export type EnrichedFileQueryVariables = Exact<{
+  id: Scalars['ID'];
+}>;
+
+
+export type EnrichedFileQuery = { __typename?: 'Query', enrichedFile?: { __typename?: 'EnrichedFileSchema', _id: string, summaryStatus: string, file: { __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null } } | null };
 
 export type FileFullQueryVariables = Exact<{
   id: Scalars['String'];
@@ -11113,6 +11144,47 @@ export function useEmployeesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<
 export type EmployeesQueryHookResult = ReturnType<typeof useEmployeesQuery>;
 export type EmployeesLazyQueryHookResult = ReturnType<typeof useEmployeesLazyQuery>;
 export type EmployeesQueryResult = Apollo.QueryResult<EmployeesQuery, EmployeesQueryVariables>;
+export const EnrichedFileDocument = gql`
+    query EnrichedFile($id: ID!) {
+  enrichedFile(id: $id) {
+    _id
+    summaryStatus
+    file {
+      _id
+      mimetype
+      description
+    }
+  }
+}
+    `;
+
+/**
+ * __useEnrichedFileQuery__
+ *
+ * To run a query within a React component, call `useEnrichedFileQuery` and pass it any options that fit your needs.
+ * When your component renders, `useEnrichedFileQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useEnrichedFileQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useEnrichedFileQuery(baseOptions: Apollo.QueryHookOptions<EnrichedFileQuery, EnrichedFileQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<EnrichedFileQuery, EnrichedFileQueryVariables>(EnrichedFileDocument, options);
+      }
+export function useEnrichedFileLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<EnrichedFileQuery, EnrichedFileQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<EnrichedFileQuery, EnrichedFileQueryVariables>(EnrichedFileDocument, options);
+        }
+export type EnrichedFileQueryHookResult = ReturnType<typeof useEnrichedFileQuery>;
+export type EnrichedFileLazyQueryHookResult = ReturnType<typeof useEnrichedFileLazyQuery>;
+export type EnrichedFileQueryResult = Apollo.QueryResult<EnrichedFileQuery, EnrichedFileQueryVariables>;
 export const FileFullDocument = gql`
     query FileFull($id: String!) {
   file(id: $id) {

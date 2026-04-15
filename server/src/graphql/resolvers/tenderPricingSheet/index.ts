@@ -22,6 +22,16 @@ import { TRACKED_ROW_FIELDS } from "@typescript/tenderReview";
 
 const VALID_ROW_STATUSES = ["not_started", "in_progress", "review", "approved"] as const;
 
+const SOQ_DEFINITION_FIELDS = new Set([
+  "itemNumber",
+  "description",
+  "quantity",
+  "unit",
+  "indentLevel",
+  "notes",
+  "docRefs",
+]);
+
 @Resolver(() => TenderPricingSheetClass)
 export default class TenderPricingSheetResolver {
   @Authorized(["ADMIN", "PM"])
@@ -111,6 +121,25 @@ export default class TenderPricingSheetResolver {
     }
     const sheet = await TenderPricingSheet.getById(sheetId, { throwError: true });
     const row = sheet!.rows.find((r) => r._id.toString() === rowId.toString());
+
+    // ── Auto-transition: estimator editing pricing fields on a not_started
+    // row flips it to in_progress. Allowlisted fields (SoQ definition) keep
+    // the row in not_started. Explicit `status` on the input always wins.
+    if (
+      row?.status === "not_started" &&
+      (data as any).status === undefined
+    ) {
+      const editedFields = Object.keys(data).filter(
+        (k) => (data as any)[k] !== undefined,
+      );
+      const hasNonAllowlistEdit = editedFields.some(
+        (f) => !SOQ_DEFINITION_FIELDS.has(f),
+      );
+      if (hasNonAllowlistEdit) {
+        (data as any).status = "in_progress";
+      }
+    }
+
     await sheet!.updateRow(rowId, data);
     await sheet!.save();
 
