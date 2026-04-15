@@ -1,0 +1,11 @@
+query EnrichedFile($id: ID!) {
+  enrichedFile(id: $id) {
+    _id
+    summaryStatus
+    file {
+      _id
+      mimetype
+      description
+    }
+  }
+}

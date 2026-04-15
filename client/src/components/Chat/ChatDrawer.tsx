@@ -5,10 +5,14 @@ import {
   Flex,
   Text,
   useMediaQuery,
+  useToast,
 } from "@chakra-ui/react";
 import ChatPage from "./ChatPage";
-import { UserRoles } from "../../generated/graphql";
+import { UserRoles, useEnrichedFileLazyQuery } from "../../generated/graphql";
 import { navbarHeight } from "../../constants/styles";
+import DocumentViewerModal, {
+  DocumentViewerFile,
+} from "../Common/DocumentViewerModal";
 
 interface ChatDrawerProps {
   isOpen: boolean;
@@ -20,6 +24,14 @@ interface ChatDrawerProps {
   suggestions?: string[];
   minRole?: UserRoles;
   onToolResult?: (toolName: string, result: string) => void;
+  /**
+   * Optional override for docref click handling. By default, ChatDrawer
+   * fetches the file metadata via the EnrichedFile query and opens its
+   * own DocumentViewerModal — so callers don't need to do anything to
+   * get the file-preview behavior. Pass this only if you want to bypass
+   * the built-in modal (e.g. to highlight a row in a parallel pricing
+   * sheet view instead of opening a modal).
+   */
   onDocRefClick?: (enrichedFileId: string, page?: number) => void;
   initialConversationId?: string;
 }
@@ -38,6 +50,61 @@ const ChatDrawer = ({
   initialConversationId,
 }: ChatDrawerProps) => {
   const [isDesktop] = useMediaQuery("(min-width: 768px)");
+  const toast = useToast();
+
+  // ── Built-in document viewer ───────────────────────────────────────────
+  // Server-side resolution: when a docref is clicked, fetch the file
+  // metadata from the API instead of relying on a parent-passed file list.
+  // This keeps ChatDrawer self-contained and works for any file the user
+  // has access to, including ones outside the parent's known context.
+  const [docViewerFile, setDocViewerFile] =
+    React.useState<DocumentViewerFile | null>(null);
+  const [fetchEnrichedFile] = useEnrichedFileLazyQuery({
+    fetchPolicy: "cache-first",
+  });
+
+  const handleDocRefClick = React.useCallback(
+    async (enrichedFileId: string, page?: number) => {
+      // Open the modal immediately with a placeholder so the user gets
+      // instant feedback; metadata fills in once the query resolves.
+      setDocViewerFile({ enrichedFileId, page });
+
+      try {
+        const result = await fetchEnrichedFile({ variables: { id: enrichedFileId } });
+        const ef = result.data?.enrichedFile;
+        if (!ef) {
+          setDocViewerFile(null);
+          toast({
+            title: "File not found",
+            description: "This document is no longer available.",
+            status: "warning",
+            duration: 5000,
+            isClosable: true,
+          });
+          return;
+        }
+        setDocViewerFile({
+          enrichedFileId,
+          fileName: ef.file.description ?? undefined,
+          mimetype: ef.file.mimetype,
+          page,
+        });
+      } catch (err) {
+        setDocViewerFile(null);
+        toast({
+          title: "Couldn't load file",
+          description: err instanceof Error ? err.message : "Unknown error",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    },
+    [fetchEnrichedFile, toast],
+  );
+
+  // Parent-supplied handler wins if present; otherwise use the built-in.
+  const effectiveDocRefClick = onDocRefClick ?? handleDocRefClick;
 
   React.useEffect(() => {
     if (isOpen) {
@@ -119,11 +186,20 @@ const ChatDrawer = ({
             height="100%"
             minRole={minRole}
             onToolResult={onToolResult}
-            onDocRefClick={onDocRefClick}
+            onDocRefClick={effectiveDocRefClick}
             initialConversationId={initialConversationId}
           />
         </Box>
       </Box>
+
+      {/* Built-in document viewer modal — only rendered when a parent
+          hasn't overridden onDocRefClick. */}
+      {!onDocRefClick && (
+        <DocumentViewerModal
+          file={docViewerFile}
+          onClose={() => setDocViewerFile(null)}
+        />
+      )}
     </>
   );
 };
