@@ -1,5 +1,6 @@
 import * as dotenv from "dotenv";
 import path from "path";
+import { randomUUID } from "crypto";
 import "reflect-metadata";
 
 if (!process.env.NODE_ENV || process.env.NODE_ENV === "development") {
@@ -106,10 +107,11 @@ app.post("/mcp", async (req, res) => {
     return;
   }
 
-  // New session
+  // New session — use cryptographically strong session IDs (128 bits of
+  // entropy) so unauthenticated GET/DELETE /mcp handlers can't be attacked
+  // by guessing a session ID to attach to a stream or terminate it.
   const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: () =>
-      `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    sessionIdGenerator: () => randomUUID(),
     onsessioninitialized: (sid) => {
       transports.set(sid, transport);
     },
