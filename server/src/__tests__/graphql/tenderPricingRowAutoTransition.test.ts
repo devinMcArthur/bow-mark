@@ -30,7 +30,7 @@ describe("tenderPricingRowUpdate auto-transition", () => {
       rows: [
         {
           _id: rowOid,
-          type: "item",
+          type: "Item",
           sortOrder: 0,
           itemNumber: "A.1",
           description: "Item",
