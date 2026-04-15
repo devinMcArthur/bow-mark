@@ -81,7 +81,7 @@ app.post("/mcp", async (req, res) => {
     return;
   }
 
-  // ── Optional tender binding ─────────────────────────────────────────────
+  // ── Optional tender / jobsite binding ──────────────────────────────────
   const tenderIdHeader = req.headers["x-tender-id"];
   const tenderId =
     typeof tenderIdHeader === "string" ? tenderIdHeader : undefined;
@@ -90,11 +90,19 @@ app.post("/mcp", async (req, res) => {
     return;
   }
 
+  const jobsiteIdHeader = req.headers["x-jobsite-id"];
+  const jobsiteId =
+    typeof jobsiteIdHeader === "string" ? jobsiteIdHeader : undefined;
+  if (jobsiteId && !mongoose.isValidObjectId(jobsiteId)) {
+    res.status(400).json({ error: "Invalid X-Jobsite-Id" });
+    return;
+  }
+
   const conversationIdHeader = req.headers["x-conversation-id"];
   const conversationId =
     typeof conversationIdHeader === "string" ? conversationIdHeader : undefined;
 
-  const ctx: RequestContext = { userId, role, tenderId, conversationId };
+  const ctx: RequestContext = { userId, role, tenderId, jobsiteId, conversationId };
 
   // ── Route through MCP transport inside the ALS context ─────────────────
   const sessionId = req.headers["mcp-session-id"] as string | undefined;

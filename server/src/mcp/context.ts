@@ -5,6 +5,8 @@ export interface RequestContext {
   userId: string;
   role: UserRoles;
   tenderId?: string;
+  /** Populated from X-Jobsite-Id header. Used by jobsite-scoped chats (pm-jobsite-chat, foreman-jobsite-chat) for document loading. Mutually exclusive with tenderId in practice — a chat is either tender-bound or jobsite-bound. */
+  jobsiteId?: string;
   /** Populated from X-Conversation-Id header (Task 2); used by tender note tools (Task 5). */
   conversationId?: string;
 }

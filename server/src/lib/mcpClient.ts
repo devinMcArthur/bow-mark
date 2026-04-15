@@ -15,6 +15,8 @@ export interface ConnectMcpOptions {
   authToken?: string;
   /** Tender ID bound to this MCP session. Used by tender-scoped tools. */
   tenderId?: string;
+  /** Jobsite ID bound to this MCP session. Used by jobsite-scoped chats for document loading. */
+  jobsiteId?: string;
   /** Optional conversation ID — passed through for note traceability. */
   conversationId?: string;
 }
@@ -35,6 +37,7 @@ export async function connectMcp(
   const headers: Record<string, string> = {};
   if (opts?.authToken) headers["Authorization"] = opts.authToken;
   if (opts?.tenderId) headers["X-Tender-Id"] = opts.tenderId;
+  if (opts?.jobsiteId) headers["X-Jobsite-Id"] = opts.jobsiteId;
   if (opts?.conversationId) headers["X-Conversation-Id"] = opts.conversationId;
 
   const transport = new StreamableHTTPClientTransport(

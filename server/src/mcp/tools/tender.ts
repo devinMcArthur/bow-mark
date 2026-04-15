@@ -2,7 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import mongoose from "mongoose";
-import { Tender as TenderModel, System, TenderPricingSheet } from "@models";
+import { Tender as TenderModel, Jobsite, EnrichedFile, System, TenderPricingSheet } from "@models";
 import { UserRoles } from "@typescript/user";
 import { TenderPricingRowType } from "@typescript/tenderPricingSheet";
 import { scheduleTenderSummary } from "../../lib/generateTenderSummary";
@@ -25,18 +25,58 @@ const PDF_PAGE_LIMIT = 90;
 
 // System.getSystem() populates specFiles.file — required by read_document for the file._id lookup.
 // Do not replace with a plain System.findOne() without preserving that population.
-async function loadTenderFiles(tenderId: string): Promise<any[]> {
-  const [tender, sys] = await Promise.all([
-    TenderModel.findById(tenderId)
-      .populate({ path: "files", populate: { path: "file" } })
-      .lean(),
-    System.getSystem(),
-  ]);
-  if (!tender) throw new Error(`Tender ${tenderId} not found`);
-  return [
-    ...(((tender as any).files ?? []) as any[]),
-    ...(((sys?.specFiles ?? []) as any[])),
-  ];
+//
+// Loads the document set for whichever chat is calling:
+//   - Tender-scoped chat  → tender.files + system spec files
+//   - Jobsite-scoped chat → allowed jobsite.enrichedFiles (minRole filtered) + system spec files
+//
+// For jobsite context, the per-file `minRole` gate is applied here — a foreman
+// (role = User) will never receive files whose minRole is ProjectManager or higher,
+// so the document tool handlers can't leak restricted content even if Claude
+// asks for it by ID.
+async function loadChatFiles(ctx: {
+  tenderId?: string;
+  jobsiteId?: string;
+  role: UserRoles;
+}): Promise<any[]> {
+  if (ctx.tenderId) {
+    const [tender, sys] = await Promise.all([
+      TenderModel.findById(ctx.tenderId)
+        .populate({ path: "files", populate: { path: "file" } })
+        .lean(),
+      System.getSystem(),
+    ]);
+    if (!tender) throw new Error(`Tender ${ctx.tenderId} not found`);
+    return [
+      ...(((tender as any).files ?? []) as any[]),
+      ...(((sys?.specFiles ?? []) as any[])),
+    ];
+  }
+
+  if (ctx.jobsiteId) {
+    const [jobsite, sys] = await Promise.all([
+      Jobsite.findById(ctx.jobsiteId).lean(),
+      System.getSystem(),
+    ]);
+    if (!jobsite) throw new Error(`Jobsite ${ctx.jobsiteId} not found`);
+
+    const allEntries = ((jobsite as any).enrichedFiles ?? []) as any[];
+    const allowedIds = allEntries
+      .filter((entry) => (entry.minRole ?? UserRoles.ProjectManager) <= ctx.role)
+      .map((entry) => entry.enrichedFile);
+    const jobsiteFiles = await EnrichedFile.find({ _id: { $in: allowedIds } })
+      .populate("file")
+      .lean();
+
+    return [
+      ...jobsiteFiles,
+      ...(((sys?.specFiles ?? []) as any[])),
+    ];
+  }
+
+  throw new Error(
+    "No chat context — document tools require either X-Tender-Id or X-Jobsite-Id header",
+  );
 }
 
 function requirePmRole(): void {
@@ -693,8 +733,8 @@ export function register(
       },
     },
     async ({ file_object_id }) => {
-      const { tenderId } = requireTenderContext();
-      const allFiles = await loadTenderFiles(tenderId);
+      const ctx = getRequestContext();
+      const allFiles = await loadChatFiles(ctx);
       const fileObj = allFiles.find((f: any) => f._id.toString() === file_object_id);
       if (!fileObj) throw new Error(`File ${file_object_id} not found`);
 
@@ -743,8 +783,8 @@ export function register(
       },
     },
     async ({ file_object_id, start_page, end_page }) => {
-      const { tenderId } = requireTenderContext();
-      const allFiles = await loadTenderFiles(tenderId);
+      const ctx = getRequestContext();
+      const allFiles = await loadChatFiles(ctx);
 
       const fileObj = allFiles.find((f: any) => f._id.toString() === file_object_id);
       if (!fileObj) throw new Error(`File ${file_object_id} not found`);
