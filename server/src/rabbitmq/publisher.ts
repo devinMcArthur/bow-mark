@@ -9,7 +9,7 @@
  * ensures the consumer always sees the latest state.
  */
 
-import mongoose, { Types } from "mongoose";
+import mongoose from "mongoose";
 import { getChannel, setupTopology, RABBITMQ_CONFIG, ROUTING_KEYS } from ".";
 import type { ActionType } from "./config";
 
@@ -177,7 +177,7 @@ export const publishEnrichedFileCreated = async (
       await db
         .collection("enrichedfiles")
         .updateOne(
-          { _id: new Types.ObjectId(enrichedFileId) },
+          { _id: new mongoose.Types.ObjectId(enrichedFileId) },
           { $set: { queuedAt: new Date() } }
         );
     }

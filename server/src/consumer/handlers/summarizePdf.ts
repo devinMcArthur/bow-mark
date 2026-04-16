@@ -209,14 +209,14 @@ export async function generatePageIndex(
   options: GeneratePageIndexOptions = {}
 ): Promise<PageIndexEntry[]> {
   let pdfDoc: PDFDocument;
+  let totalPages: number;
   try {
     pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+    totalPages = pdfDoc.getPageCount();
   } catch {
-    console.warn("[generatePageIndex] pdf-lib failed to parse — skipping page index");
+    console.warn("[generatePageIndex] pdf-lib failed to parse page tree — skipping page index");
     return [];
   }
-
-  const totalPages = pdfDoc.getPageCount();
   const resumeFrom = options.resumeFrom ?? [];
   const completedPages = new Set(resumeFrom.map((p) => p.page));
   const index: PageIndexEntry[] = [...resumeFrom];
