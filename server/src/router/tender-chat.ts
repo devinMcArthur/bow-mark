@@ -5,6 +5,7 @@ import { Tender, User, System } from "@models";
 import { isDocument } from "@typegoose/typegoose";
 import { streamConversation, ToolExecutionResult } from "../lib/streamConversation";
 import { connectMcp } from "../lib/mcpClient";
+import { adaptMcpContent, deriveSummary } from "../lib/mcpContentAdapter";
 import { buildFileIndex } from "../lib/buildFileIndex";
 import { requireAuth } from "../lib/authMiddleware";
 import { UserRoles } from "../typescript/user";
@@ -149,9 +150,16 @@ ${fileIndex || "No tender documents have been processed yet."}${pendingNotice}${
 ${decompositionBlock}
 ## Instructions
 
-**Clarify before assuming.** Construction documents often contain multiple instances of similar things — two crossings, two structures, two phases, two contract items with similar names. If a question could apply to more than one thing, ask which one the user means before loading a document.
+**HARD RULE — cite or disclaim.** Every factual claim you make about this project MUST include a citation to a specific document and page you have actually loaded and read. If you cannot point to a specific page that supports what you are about to say, you MUST say "I was not able to find this in the uploaded documents" instead of stating it as fact. This applies especially to:
+- Where something appears on a drawing ("shown on sheet C-3" — only say this if you loaded and read sheet C-3)
+- What a spec requires ("OPSS 1150 requires..." — only say this if you loaded and read that spec page)
+- Quantities, dimensions, or locations ("the 300mm storm sewer runs along..." — only if you read the page showing it)
 
-**Ask when uncertain.** If you read a document and are not confident it contains the answer, say so explicitly and ask the user if they want you to look in a different document or provide more context. Do not guess or fill gaps with general knowledge.
+Do NOT rely on general construction knowledge to fill gaps. If the documents don't contain the answer, say so. Being wrong is far more costly to an estimator than saying "I don't know — I checked these documents and couldn't find it."
+
+**Self-check before responding.** Before you state where something is located on a drawing or what a spec says, verify: did I actually call read_document and load that specific page? If the answer is no, you are about to hallucinate. Stop, and either load the page first or tell the user you haven't been able to find it.
+
+**Clarify before assuming.** Construction documents often contain multiple instances of similar things — two crossings, two structures, two phases, two contract items with similar names. If a question could apply to more than one thing, ask which one the user means before loading a document.
 
 **Loading documents — two steps.** For documents that have a page index, call list_document_pages first to see the page-by-page breakdown, then call read_document with only the specific pages you need. This is much cheaper and faster than loading large page ranges blindly. Only skip list_document_pages if the document has no page index (the navigation hint will say so).
 
@@ -162,6 +170,8 @@ ${decompositionBlock}
 **Cross-references.** When you read a page that references another drawing, document, or standard (e.g. "see Drawing C-3", "per OPSS 1150"), note it explicitly. If it directly answers the question, follow it automatically. If tangential, mention it so the user can decide whether to pursue it.
 
 **Completeness.** Before giving your final answer, confirm you have addressed all parts of the question. If you found cross-references you have not checked, note what is outstanding so the user can decide.
+
+**When you can't find something.** If you've searched the available documents and can't locate what the user is asking about, say so directly: "I searched [list which documents you checked] and was not able to find [what they asked about]. It may be in a document that hasn't been uploaded, or I may have missed it — would you like me to check specific pages?" This is infinitely more helpful than guessing.
 
 **Saving job notes.** If the user mentions something important that is not in the documents — owner preferences, site context, verbal agreements, known risks — draft a 1-2 sentence note and ask "Should I save that to the job notes?" before calling save_tender_note. Never save without explicit confirmation.
 
@@ -206,22 +216,10 @@ When creating or updating line items on the pricing sheet:
           name,
           arguments: input as Record<string, unknown>,
         });
-        // MCP returns content as either an array of typed blocks or a plain
-        // string (the spreadsheet branch of read_document does the latter).
-        // Normalize to an array of blocks before deriving the summary.
-        const raw = result.content ?? [];
-        const blocks: Array<{ type: string; text?: string }> =
-          typeof raw === "string"
-            ? [{ type: "text", text: raw }]
-            : (raw as Array<{ type: string; text?: string }>);
-        const firstText = blocks.find((b) => b.type === "text")?.text ?? "";
-        const summary =
-          firstText.length > 200
-            ? firstText.slice(0, 200) + "…"
-            : firstText || `${name} completed`;
+        const blocks = adaptMcpContent(result.content);
         return {
           content: blocks as any,
-          summary,
+          summary: deriveSummary(blocks, name),
         };
       },
       logPrefix: "[tender-chat]",

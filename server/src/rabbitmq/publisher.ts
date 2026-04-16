@@ -9,7 +9,7 @@
  * ensures the consumer always sees the latest state.
  */
 
-import mongoose, { Types } from "mongoose";
+import mongoose from "mongoose";
 import { getChannel, setupTopology, RABBITMQ_CONFIG, ROUTING_KEYS } from ".";
 import type { ActionType } from "./config";
 
@@ -154,6 +154,9 @@ export interface EnrichedFileSummaryMessage {
   attempt?: number;
 }
 
+const PUBLISH_MAX_RETRIES = 3;
+const PUBLISH_RETRY_DELAY_MS = 1000;
+
 export const publishEnrichedFileCreated = async (
   enrichedFileId: string,
   fileId: string,
@@ -165,44 +168,60 @@ export const publishEnrichedFileCreated = async (
     timestamp: new Date().toISOString(),
     attempt,
   };
-  // Stamp queuedAt BEFORE publishing so the watchdog can distinguish files
-  // legitimately waiting in the queue from files whose message was dropped.
-  // Uses a raw collection write to avoid importing @models (which would
-  // introduce a circular import via post-save hooks). If the publish below
-  // fails, queuedAt still reflects the last attempt; the watchdog retries
-  // once the pending cutoff elapses.
-  try {
-    const db = mongoose.connection.db;
-    if (db) {
-      await db
-        .collection("enrichedfiles")
-        .updateOne(
-          { _id: new Types.ObjectId(enrichedFileId) },
-          { $set: { queuedAt: new Date() } }
+
+  // Retry the publish up to PUBLISH_MAX_RETRIES times with backoff.
+  // The lazy RabbitMQ connect (getChannel) can fail on transient DNS or
+  // network errors — a single retry usually succeeds.
+  for (let retry = 0; retry < PUBLISH_MAX_RETRIES; retry++) {
+    try {
+      const channel = await getChannel();
+      await setupTopology();
+      const success = channel.publish(
+        RABBITMQ_CONFIG.exchange.name,
+        ROUTING_KEYS.enrichedFile.created,
+        Buffer.from(JSON.stringify(message)),
+        { persistent: true, contentType: "application/json" }
+      );
+      if (success) {
+        console.log(
+          `[RabbitMQ] Published enriched_file.created: ${enrichedFileId}${retry > 0 ? ` (retry ${retry})` : ""}`
         );
+
+        // Stamp queuedAt AFTER successful publish — not before. If the
+        // stamp were before, a failed publish leaves a fresh queuedAt that
+        // makes the watchdog think the file is legitimately queued when it
+        // actually has no queue message.
+        try {
+          const db = mongoose.connection.db;
+          if (db) {
+            await db
+              .collection("enrichedfiles")
+              .updateOne(
+                { _id: new mongoose.Types.ObjectId(enrichedFileId) },
+                { $set: { queuedAt: new Date() } }
+              );
+          }
+        } catch (stampErr) {
+          console.warn(
+            `[RabbitMQ] Failed to stamp queuedAt on ${enrichedFileId}:`,
+            stampErr
+          );
+        }
+      }
+      return success;
+    } catch (error) {
+      console.error(
+        `[RabbitMQ] Publish attempt ${retry + 1}/${PUBLISH_MAX_RETRIES} failed for enriched_file.created:`,
+        error instanceof Error ? error.message : error
+      );
+      if (retry < PUBLISH_MAX_RETRIES - 1) {
+        await new Promise((r) => setTimeout(r, PUBLISH_RETRY_DELAY_MS * (retry + 1)));
+      }
     }
-  } catch (stampErr) {
-    console.warn(
-      `[RabbitMQ] Failed to stamp queuedAt on ${enrichedFileId}:`,
-      stampErr
-    );
-    // Non-fatal — fall through to publish.
   }
-  try {
-    const channel = await getChannel();
-    await setupTopology();
-    const success = channel.publish(
-      RABBITMQ_CONFIG.exchange.name,
-      ROUTING_KEYS.enrichedFile.created,
-      Buffer.from(JSON.stringify(message)),
-      { persistent: true, contentType: "application/json" }
-    );
-    if (success) {
-      console.log(`[RabbitMQ] Published enriched_file.created: ${enrichedFileId}`);
-    }
-    return success;
-  } catch (error) {
-    console.error(`[RabbitMQ] Failed to publish enriched_file.created:`, error);
-    return false;
-  }
+
+  console.error(
+    `[RabbitMQ] All ${PUBLISH_MAX_RETRIES} publish attempts failed for enriched_file.created: ${enrichedFileId}`
+  );
+  return false;
 };

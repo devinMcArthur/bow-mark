@@ -112,7 +112,10 @@ export default class SystemResolver {
       ? enrichedFile.file._id.toString()
       : enrichedFile.file.toString();
 
-    await publishEnrichedFileCreated(fileObjectId.toString(), fileId);
+    const published = await publishEnrichedFileCreated(fileObjectId.toString(), fileId);
+    if (!published) {
+      throw new Error("Failed to queue file for processing — please try again");
+    }
 
     return System.getSystem();
   }

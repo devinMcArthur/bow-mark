@@ -5,6 +5,7 @@ import { User } from "@models";
 import { streamConversation } from "../lib/streamConversation";
 import { requireAuth } from "../lib/authMiddleware";
 import { connectMcp } from "../lib/mcpClient";
+import { adaptMcpContent, deriveSummary } from "../lib/mcpContentAdapter";
 import { UserRoles } from "../typescript/user";
 
 const router = Router();
@@ -80,12 +81,11 @@ router.post("/message", requireAuth, async (req, res) => {
       tools: mcpTools,
       executeTool: async (name, input) => {
         const mcpResult = await mcpClient.callTool({ name, arguments: input });
-        const text =
-          (mcpResult.content as Array<{ type: string; text?: string }>)
-            .filter((c) => c.type === "text")
-            .map((c) => c.text ?? "")
-            .join("\n") || "No result";
-        return { content: text, summary: text };
+        const blocks = adaptMcpContent(mcpResult.content);
+        return {
+          content: blocks as any,
+          summary: deriveSummary(blocks, name),
+        };
       },
       logPrefix: "[chat]",
     });

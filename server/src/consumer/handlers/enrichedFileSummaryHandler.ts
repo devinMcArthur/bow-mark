@@ -411,15 +411,67 @@ export const enrichedFileSummaryHandler = {
           }
         );
 
-        console.log(
-          `[EnrichedFileSummary] Synthesizing summary from ${pageIndex.length} page descriptions for file ${fileId}...`
-        );
-        summary = await synthesizeSummaryFromPageIndex(
-          anthropic,
-          pageIndex,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (claimed as any).file?.description ?? null
-        );
+        if (pageIndex.length === 0) {
+          // pdf-lib couldn't parse the page tree (e.g. markup-heavy takeoff
+          // PDFs with non-standard catalog structures). Fall back to sending
+          // the raw PDF to Claude for a single-shot summary — no page index,
+          // but at least we get a usable summary + documentType.
+          console.warn(
+            `[EnrichedFileSummary] Page index empty for ${fileId} — falling back to single-shot PDF summary`
+          );
+          const response = await withRateLimitRetry(
+            () =>
+              anthropic.messages.create({
+                model: "claude-haiku-4-5",
+                max_tokens: 512,
+                messages: [
+                  {
+                    role: "user",
+                    content: [
+                      {
+                        type: "text" as const,
+                        text: SINGLE_SHOT_SUMMARY_PROMPT,
+                      },
+                      {
+                        type: "document" as any,
+                        source: {
+                          type: "base64" as const,
+                          media_type: "application/pdf" as const,
+                          data: buffer.toString("base64"),
+                        },
+                      },
+                    ],
+                  },
+                ],
+              }),
+            "pdf-fallback"
+          );
+          const text =
+            response.content[0]?.type === "text"
+              ? response.content[0].text.trim()
+              : "";
+          const cleaned = text
+            .replace(/^```(?:json)?\s*/i, "")
+            .replace(/\s*```$/, "")
+            .trim();
+          try {
+            summary = JSON.parse(cleaned);
+          } catch {
+            throw new Error(
+              `Claude returned invalid JSON for PDF fallback: ${text.slice(0, 200)}`
+            );
+          }
+        } else {
+          console.log(
+            `[EnrichedFileSummary] Synthesizing summary from ${pageIndex.length} page descriptions for file ${fileId}...`
+          );
+          summary = await synthesizeSummaryFromPageIndex(
+            anthropic,
+            pageIndex,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (claimed as any).file?.description ?? null
+          );
+        }
       }
 
       // ── Terminal state ──────────────────────────────────────────────
