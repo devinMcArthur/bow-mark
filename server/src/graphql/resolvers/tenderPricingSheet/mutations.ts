@@ -43,6 +43,15 @@ export class TenderPricingRowCreateData {
 }
 
 @InputType()
+export class RateBuildupSnapshotEntryInput {
+  @Field()
+  public snapshot!: string;
+
+  @Field({ nullable: true })
+  public memo?: string;
+}
+
+@InputType()
 export class TenderPricingRowUpdateData {
   @Field({ nullable: true })
   public itemNumber?: string;
@@ -70,6 +79,9 @@ export class TenderPricingRowUpdateData {
 
   @Field(() => String, { nullable: true })
   public rateBuildupSnapshot?: string | null;
+
+  @Field(() => [RateBuildupSnapshotEntryInput], { nullable: true })
+  public rateBuildupSnapshots?: RateBuildupSnapshotEntryInput[] | null;
 
   /**
    * Per-row rate buildup outputs captured at snapshot evaluation time.
