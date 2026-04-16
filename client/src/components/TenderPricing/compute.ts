@@ -22,7 +22,13 @@ export function computeRow(
 /**
  * Computes the subtotal for a header row (schedule or group).
  * Walks forward from headerIndex, accumulating lineItemTotal for all "item"
- * rows until hitting a row with type === "schedule" OR indentLevel <= header's indentLevel.
+ * rows that belong to this header.
+ *
+ * Schedule: owns ALL items until the next Schedule (regardless of indentLevel).
+ * Group: owns items until the next Group/Schedule at the same or lower indentLevel.
+ *
+ * This handles both properly-indented hierarchies AND flat-indent data
+ * (e.g. Claude-created rows where everything is at indentLevel 0).
  */
 export function computeSubtotal(
   rows: TenderPricingRow[],
@@ -36,8 +42,15 @@ export function computeSubtotal(
 
   for (let i = headerIndex + 1; i < rows.length; i++) {
     const row = rows[i];
-    if (row.type === TenderPricingRowType.Schedule) break;
-    if (row.indentLevel <= header.indentLevel) break;
+
+    if (header.type === TenderPricingRowType.Schedule) {
+      if (row.type === TenderPricingRowType.Schedule) break;
+    } else {
+      if (
+        row.type !== TenderPricingRowType.Item &&
+        row.indentLevel <= header.indentLevel
+      ) break;
+    }
 
     if (row.type === TenderPricingRowType.Item) {
       const { lineItemTotal } = computeRow(row, defaultMarkupPct);
