@@ -22,7 +22,7 @@ export function parseEdges(template: CalculatorTemplate | CanvasDocument): Edge[
     ...template.tableDefs.map((t) => `${t.id}RatePerHr`),
     ...template.formulaSteps.map((s) => s.id),
     // Percentage and Toggle controllers can be referenced in formula expressions
-    ...controllerDefs.filter((c) => c.type !== "selector").map((c) => c.id),
+    ...controllerDefs.filter((c) => c.type !== "selector" && c.type !== "singleSelect").map((c) => c.id),
   ]);
 
   // Formula steps: parse each formula string for variable name tokens.
@@ -80,7 +80,7 @@ export function parseEdges(template: CalculatorTemplate | CanvasDocument): Edge[
     if (!group.activation) continue;
     const ctrl = controllerDefs.find((c) => c.id === group.activation!.controllerId);
     const sourceHandle =
-      ctrl?.type === "selector" && group.activation.optionId
+      (ctrl?.type === "selector" || ctrl?.type === "singleSelect") && group.activation.optionId
         ? group.activation.optionId
         : undefined;
     edges.push({

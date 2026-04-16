@@ -39,7 +39,7 @@ export class RateBuildupControllerOption {
 export class RateBuildupControllerDef {
   @Field() @prop({ required: true }) public id!: string;
   @Field() @prop({ required: true }) public label!: string;
-  /** "percentage" | "toggle" | "selector" */
+  /** "percentage" | "toggle" | "selector" | "singleSelect" */
   @Field() @prop({ required: true }) public type!: string;
   /** Percentage: 0–1. Toggle: 0 or 1. Absent for selector. */
   @Field(() => Float, { nullable: true }) @prop() public defaultValue?: number;

@@ -221,7 +221,7 @@ interface ContextMenuProps {
   onCopy: (ids: string[]) => void;
   onPaste: (position: { x: number; y: number }) => void;
   onDelete: (ids: string[]) => void;
-  onCreate: (type: "formula" | "param" | "table" | "breakdown" | "output" | "group" | "controller:percentage" | "controller:toggle" | "controller:selector", pos: { x: number; y: number }) => void;
+  onCreate: (type: "formula" | "param" | "table" | "breakdown" | "output" | "group" | "controller:percentage" | "controller:toggle" | "controller:selector" | "controller:singleSelect", pos: { x: number; y: number }) => void;
   onDismiss: () => void;
 }
 
@@ -278,7 +278,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
             boxShadow: "0 8px 30px rgba(0,0,0,0.6)",
             zIndex: 1001,
           }}>
-            {(["percentage", "toggle", "selector"] as const).map((ctrlType) => (
+            {(["percentage", "toggle", "selector", "singleSelect"] as const).map((ctrlType) => (
               <div
                 key={ctrlType}
                 style={MENU_ITEM}
@@ -290,7 +290,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
                 onMouseEnter={(e) => (e.currentTarget.style.background = "#334155")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
-                {ctrlType === "percentage" ? "Percentage" : ctrlType === "toggle" ? "Toggle" : "Selector"}
+                {ctrlType === "percentage" ? "Percentage" : ctrlType === "toggle" ? "Toggle" : ctrlType === "singleSelect" ? "Single Select" : "Selector"}
               </div>
             ))}
           </div>
@@ -407,7 +407,7 @@ interface Props {
   onCopy: (nodeIds: string[]) => void;
   onPaste: (position: { x: number; y: number }) => void;
   onDeleteNodes: (nodeIds: string[]) => void;
-  onCreateNode: (type: "formula" | "param" | "table" | "breakdown" | "output" | "group" | "controller:percentage" | "controller:toggle" | "controller:selector", position: { x: number; y: number }) => void;
+  onCreateNode: (type: "formula" | "param" | "table" | "breakdown" | "output" | "group" | "controller:percentage" | "controller:toggle" | "controller:selector" | "controller:singleSelect", position: { x: number; y: number }) => void;
   positionResetKey: number;
 }
 

@@ -530,7 +530,7 @@ export function createGroup(
 export function createController(
   doc: CanvasDocument,
   position: { x: number; y: number },
-  type: "percentage" | "toggle" | "selector" = "percentage"
+  type: "percentage" | "toggle" | "selector" | "singleSelect" = "percentage"
 ): { doc: CanvasDocument; newId: string } {
   const takenIds = new Set([
     ...doc.controllerDefs.map((c) => c.id),
@@ -544,7 +544,7 @@ export function createController(
     "quantity", "unitPrice",
   ]);
   const takenLabels = new Set(doc.controllerDefs.map((c) => c.label));
-  const baseLabel = type === "percentage" ? "Percentage" : type === "toggle" ? "Toggle" : "Selector";
+  const baseLabel = type === "percentage" ? "Percentage" : type === "toggle" ? "Toggle" : type === "singleSelect" ? "Single Select" : "Selector";
   const label = nextLabel(baseLabel, takenLabels);
   const id = nextSlugId(`${slugify(label)}_${type}`, takenIds);
 
@@ -555,7 +555,7 @@ export function createController(
     position: { x: position.x, y: position.y },
     ...(type === "percentage" ? { defaultValue: 0.5 } : {}),
     ...(type === "toggle" ? { defaultValue: false } : {}),
-    ...(type === "selector" ? { options: [], defaultSelected: [] } : {}),
+    ...(type === "selector" || type === "singleSelect" ? { options: [], defaultSelected: [] } : {}),
   };
 
   return {

@@ -63,7 +63,7 @@ function initControllers(
       c.id,
       seed[c.id] !== undefined
         ? seed[c.id]
-        : c.type === "selector"
+        : c.type === "selector" || c.type === "singleSelect"
         ? (c.defaultSelected ?? [])
         : c.type === "toggle"
         ? (c.defaultValue as boolean ?? false)

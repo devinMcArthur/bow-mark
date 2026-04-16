@@ -126,7 +126,7 @@ export const QuantityNode: React.FC<NodeProps> = ({ data, selected }) => (
 );
 
 export const ControllerNode: React.FC<NodeProps> = ({ data, selected }) => {
-  const isSelector = data.controllerType === "selector";
+  const isSelector = data.controllerType === "selector" || data.controllerType === "singleSelect";
   const isToggle = data.controllerType === "toggle";
 
   return (
@@ -173,7 +173,9 @@ export const ControllerNode: React.FC<NodeProps> = ({ data, selected }) => {
                   fontFamily: "monospace",
                   lineHeight: "1.6",
                 }}>
-                  {isSelected ? "☑" : "☐"} {opt.label}
+                  {data.controllerType === "singleSelect"
+                    ? (isSelected ? "●" : "○")
+                    : (isSelected ? "☑" : "☐")} {opt.label}
                 </div>
                 <Handle
                   type="source"

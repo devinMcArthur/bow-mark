@@ -805,8 +805,8 @@ const ControllerEdit: React.FC<{
         </Box>
       )}
 
-      {/* Selector options */}
-      {ctrl.type === "selector" && (
+      {/* Selector / singleSelect options */}
+      {(ctrl.type === "selector" || ctrl.type === "singleSelect") && (
         <Box mb={3}>
           <Text fontSize="10px" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide" mb={2}>
             Options
@@ -887,14 +887,15 @@ const ControllerEdit: React.FC<{
                 return (
                   <Flex key={opt.id} align="center" gap={2} mb={1} cursor="pointer"
                     onClick={() => {
+                      const isSingle = ctrl.type === "singleSelect";
                       const newSelected = isSelected
                         ? (ctrl.defaultSelected ?? []).filter((id) => id !== opt.id)
-                        : [...(ctrl.defaultSelected ?? []), opt.id];
+                        : isSingle ? [opt.id] : [...(ctrl.defaultSelected ?? []), opt.id];
                       updateCtrl({ defaultSelected: newSelected });
                     }}
                   >
                     <Box w={3} h={3} border="1px solid" borderColor={isSelected ? "teal.400" : "gray.300"}
-                      bg={isSelected ? "teal.400" : "transparent"} rounded="sm" />
+                      bg={isSelected ? "teal.400" : "transparent"} rounded={ctrl.type === "singleSelect" ? "full" : "sm"} />
                     <Text fontSize="xs" color="gray.600">{opt.label}</Text>
                   </Flex>
                 );
@@ -984,8 +985,8 @@ const GroupEdit: React.FC<{
         </Box>
       )}
 
-      {/* Option selector for selector type */}
-      {ctrl && ctrl.type === "selector" && (
+      {/* Option selector for selector / singleSelect type */}
+      {ctrl && (ctrl.type === "selector" || ctrl.type === "singleSelect") && (
         <Box mb={3}>
           <Text fontSize="10px" color="gray.400" mb={1}>Active when option</Text>
           <Select
