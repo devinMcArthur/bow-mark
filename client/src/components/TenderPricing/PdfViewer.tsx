@@ -54,6 +54,17 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url, fileName, initialPage, onPag
   const livePinchScale = useRef(1); // visual-only scale during gesture, avoids re-renders
   const pinchMidpoint = useRef({ x: 0, y: 0 });
 
+  // Sync initialPage prop → pageNumber state when the caller navigates
+  // to a different page on the same document (e.g. clicking a second
+  // docRef for the same file but a different page while the modal is
+  // already open). useState only reads the initial value on mount.
+  useEffect(() => {
+    if (initialPage != null) {
+      setPageNumber(initialPage);
+      setPan({ x: 0, y: 0 });
+    }
+  }, [initialPage]);
+
   // Track container width for page sizing
   useEffect(() => {
     const el = containerRef.current;

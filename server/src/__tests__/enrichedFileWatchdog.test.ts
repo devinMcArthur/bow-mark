@@ -207,7 +207,7 @@ describe("recoverStuckFiles", () => {
     });
     await makeStuck({
       summaryStatus: "failed",
-      summaryAttempts: 3,
+      summaryAttempts: 2,
     });
     await makeStuck({
       summaryStatus: "partial",

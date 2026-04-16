@@ -404,7 +404,7 @@ export function register(
     "update_pricing_rows",
     {
       description:
-        "Update one or more pricing rows on the active tender. Each update is identified by rowId. Only rows in 'not_started' state can be edited — already-started rows are protected. Editable fields: itemNumber, description, indentLevel, quantity, unit, unitPrice (items only). Notes and docRefs are append-only via appendNotes / appendDocRefs — existing content is never overwritten. Up to 100 updates per call. Validation is all-or-nothing.",
+        "Update one or more pricing rows on the active tender. Each update is identified by rowId. Only rows in 'not_started' state can be edited — already-started rows are protected. Editable fields: itemNumber, description, indentLevel, quantity, unit, unitPrice (items only). Notes: use appendNotes to add, replaceNotes to overwrite (for corrections). DocRefs: use appendDocRefs to add, removeDocRefIds to remove specific refs by ID (from get_tender_pricing_rows). Up to 100 updates per call. Validation is all-or-nothing.",
       inputSchema: {
         updates: z
           .array(
@@ -417,6 +417,13 @@ export function register(
               unit: z.string().optional(),
               unitPrice: z.number().nullable().optional(),
               appendNotes: z.string().optional(),
+              replaceNotes: z
+                .string()
+                .nullable()
+                .optional()
+                .describe(
+                  "Replace the entire notes field with this value. Pass null to clear notes entirely. Takes precedence over appendNotes if both are provided.",
+                ),
               appendDocRefs: z
                 .array(
                   z.object({
@@ -426,6 +433,12 @@ export function register(
                   }),
                 )
                 .optional(),
+              removeDocRefIds: z
+                .array(z.string())
+                .optional()
+                .describe(
+                  "Remove specific doc references by their docRefId (from get_tender_pricing_rows output).",
+                ),
             }),
           )
           .min(1)
@@ -523,9 +536,22 @@ export function register(
           row.unitPrice = u.unitPrice;
           fieldsChanged.push("unitPrice");
         }
-        if (u.appendNotes !== undefined) {
+        if (u.replaceNotes !== undefined) {
+          row.notes = u.replaceNotes ?? undefined;
+          fieldsChanged.push("replaceNotes");
+        } else if (u.appendNotes !== undefined) {
           row.notes = (row.notes ? row.notes + "\n\n" : "") + u.appendNotes;
           fieldsChanged.push("appendNotes");
+        }
+        if (u.removeDocRefIds !== undefined && u.removeDocRefIds.length > 0) {
+          const removeSet = new Set(u.removeDocRefIds);
+          const before = (row.docRefs ?? []).length;
+          row.docRefs = (row.docRefs ?? []).filter(
+            (d: any) => !removeSet.has(d._id.toString()),
+          );
+          if ((row.docRefs as any[]).length < before) {
+            fieldsChanged.push("removeDocRefIds");
+          }
         }
         if (u.appendDocRefs !== undefined) {
           const existing = (row.docRefs ?? []) as any[];
