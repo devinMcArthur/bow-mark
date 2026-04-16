@@ -15,9 +15,17 @@ import TenderMobileDocumentsTab from "./TenderMobileDocumentsTab";
 import TenderSummaryTab from "./TenderSummaryTab";
 import TenderNotesTab from "./TenderNotesTab";
 import TenderMobileReviewTab from "./TenderMobileReviewTab";
+import ChatDrawer from "../Chat/ChatDrawer";
+import { UserRoles } from "../../generated/graphql";
 import { TenderDetail, tenderStatusColor } from "./types";
 import { TenderPricingSheet } from "../TenderPricing/types";
 import { navbarHeight } from "../../constants/styles";
+
+const TENDER_SUGGESTIONS = [
+  "What's in the schedule of quantities?",
+  "Summarize the key specs",
+  "What addendums affect scope?",
+];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,6 +62,7 @@ const TenderMobileLayout: React.FC<TenderMobileLayoutProps> = ({
 }) => {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<MobileTab>("pricing");
+  const [chatOpen, setChatOpen] = useState(false);
 
   return (
     <Flex
@@ -127,6 +136,40 @@ const TenderMobileLayout: React.FC<TenderMobileLayoutProps> = ({
           <TenderMobileReviewTab tenderId={tenderId} />
         )}
       </Box>
+
+      {/* Floating chat button — sits above the tab bar */}
+      {!chatOpen && (
+        <IconButton
+          aria-label="Open chat"
+          icon={<FiMessageSquare size={20} />}
+          colorScheme="blue"
+          size="lg"
+          borderRadius="full"
+          position="fixed"
+          right={4}
+          bottom={`calc(${TAB_BAR_HEIGHT} + 16px + env(safe-area-inset-bottom, 0px))`}
+          zIndex={4}
+          boxShadow="lg"
+          onClick={() => setChatOpen(true)}
+        />
+      )}
+
+      {/* Chat drawer */}
+      <ChatDrawer
+        isOpen={chatOpen}
+        onClose={() => setChatOpen(false)}
+        title={tender.name}
+        messageEndpoint="/api/tender-chat/message"
+        conversationsEndpoint={`/api/tender-conversations/${tenderId}`}
+        extraPayload={{ tenderId }}
+        suggestions={TENDER_SUGGESTIONS}
+        minRole={UserRoles.ProjectManager}
+        onToolResult={(toolName) => {
+          if (toolName === "save_tender_note" || toolName === "delete_tender_note") {
+            onRefetch();
+          }
+        }}
+      />
 
       {/* Bottom tab bar */}
       <Flex
