@@ -8,6 +8,7 @@ import { buildFileIndex } from "../lib/buildFileIndex";
 import { UserRoles } from "../typescript/user";
 import { requireAuth } from "../lib/authMiddleware";
 import { connectMcp } from "../lib/mcpClient";
+import { adaptMcpContent, deriveSummary } from "../lib/mcpContentAdapter";
 
 // Foremen get the narrowest possible tool surface: document reading only.
 // The MCP server exposes many other tools (tender pricing, analytics,
@@ -171,17 +172,11 @@ ${decompositionBlock}
           name,
           arguments: input as Record<string, unknown>,
         });
-        const raw = result.content ?? [];
-        const blocks: Array<{ type: string; text?: string }> =
-          typeof raw === "string"
-            ? [{ type: "text", text: raw }]
-            : (raw as Array<{ type: string; text?: string }>);
-        const firstText = blocks.find((b) => b.type === "text")?.text ?? "";
-        const summary =
-          firstText.length > 200
-            ? firstText.slice(0, 200) + "…"
-            : firstText || `${name} completed`;
-        return { content: blocks as any, summary };
+        const blocks = adaptMcpContent(result.content);
+        return {
+          content: blocks as any,
+          summary: deriveSummary(blocks, name),
+        };
       },
       logPrefix: "[foreman-jobsite-chat]",
     });

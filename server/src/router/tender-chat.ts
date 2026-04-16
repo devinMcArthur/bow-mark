@@ -5,6 +5,7 @@ import { Tender, User, System } from "@models";
 import { isDocument } from "@typegoose/typegoose";
 import { streamConversation, ToolExecutionResult } from "../lib/streamConversation";
 import { connectMcp } from "../lib/mcpClient";
+import { adaptMcpContent, deriveSummary } from "../lib/mcpContentAdapter";
 import { buildFileIndex } from "../lib/buildFileIndex";
 import { requireAuth } from "../lib/authMiddleware";
 import { UserRoles } from "../typescript/user";
@@ -215,22 +216,10 @@ When creating or updating line items on the pricing sheet:
           name,
           arguments: input as Record<string, unknown>,
         });
-        // MCP returns content as either an array of typed blocks or a plain
-        // string (the spreadsheet branch of read_document does the latter).
-        // Normalize to an array of blocks before deriving the summary.
-        const raw = result.content ?? [];
-        const blocks: Array<{ type: string; text?: string }> =
-          typeof raw === "string"
-            ? [{ type: "text", text: raw }]
-            : (raw as Array<{ type: string; text?: string }>);
-        const firstText = blocks.find((b) => b.type === "text")?.text ?? "";
-        const summary =
-          firstText.length > 200
-            ? firstText.slice(0, 200) + "…"
-            : firstText || `${name} completed`;
+        const blocks = adaptMcpContent(result.content);
         return {
           content: blocks as any,
-          summary,
+          summary: deriveSummary(blocks, name),
         };
       },
       logPrefix: "[tender-chat]",

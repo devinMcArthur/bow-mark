@@ -937,18 +937,27 @@ export function register(
             ? `Pages ${startIdx + 1}–${endIdx} of ${totalPages} total. Use start_page/end_page to read other sections.`
             : `All ${totalPages} pages.`;
 
+        // The MCP SDK doesn't support Anthropic's "document" content type
+        // in tool results — it validates against text/image/audio/resource
+        // only. We encode the PDF as a JSON envelope inside a text block
+        // that the SDK accepts. The chat router's executeTool adapter
+        // detects the __mcp_document marker and reconstructs the native
+        // Anthropic document block before sending to Claude.
         content = [
           {
             type: "text" as const,
             text: `Document: ${docLabel}\n${pageNote}\nWhen citing this document use the filename: "${docLabel}"`,
           },
           {
-            type: "document" as any,
-            source: {
-              type: "base64" as const,
-              media_type: "application/pdf" as const,
-              data: pdfChunk.toString("base64"),
-            },
+            type: "text" as const,
+            text: JSON.stringify({
+              __mcp_document: true,
+              source: {
+                type: "base64",
+                media_type: "application/pdf",
+                data: pdfChunk.toString("base64"),
+              },
+            }),
           },
         ];
 
