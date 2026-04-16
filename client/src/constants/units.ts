@@ -24,6 +24,7 @@ export const CANONICAL_UNITS: CanonicalUnit[] = [
   { code: "day",    label: "day",    name: "Days",           dimension: "time"   },
   { code: "ea",     label: "EA",     name: "Each",           dimension: null     },
   { code: "ls",     label: "LS",     name: "Lump Sum",       dimension: null     },
+  { code: "ca",     label: "CA",     name: "Cash Allowance", dimension: null     },
 ];
 
 export const CANONICAL_UNIT_CODES = new Set(CANONICAL_UNITS.map((u) => u.code));
