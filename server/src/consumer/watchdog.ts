@@ -13,9 +13,11 @@ export const PROCESSING_STUCK_MS = 90 * 60_000; // 90 min
 
 /** Max time a file can be in "pending" since its last publish before the
  *  watchdog republishes it. Checked against `queuedAt` (fallback: `createdAt`
- *  for legacy docs that pre-date the field). Must be comfortably larger than
- *  the worst-case queue-drain time for a large upload batch. */
-export const PENDING_STUCK_MS = 3 * 60 * 60_000; // 3 hr
+ *  for legacy docs that pre-date the field). 30 min is long enough for a
+ *  large batch to drain through the queue (prefetch=2, ~2 min per file) but
+ *  short enough that a silently-dropped publish is recovered within one
+ *  watchdog cycle instead of waiting hours. */
+export const PENDING_STUCK_MS = 30 * 60_000; // 30 min
 
 /** Cooldown before retrying a "failed" or "partial" file. */
 export const FAILED_RETRY_COOLDOWN_MS = 60 * 60_000; // 1 hr
