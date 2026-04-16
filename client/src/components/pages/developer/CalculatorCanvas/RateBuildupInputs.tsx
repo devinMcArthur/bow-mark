@@ -279,8 +279,9 @@ const ControllerWidget: React.FC<{
     );
   }
 
-  // selector — pill options
+  // selector / singleSelect — pill options
   const selected = value as string[];
+  const isSingle = ctrl.type === "singleSelect";
   return (
     <Box mb={3}>
       <Text fontSize="xs" fontWeight="semibold" color="gray.500" textTransform="uppercase" letterSpacing="wide" mb={1.5}>
@@ -307,8 +308,12 @@ const ControllerWidget: React.FC<{
               transition="all 0.1s ease"
               _hover={{ borderColor: isSelected ? "orange.400" : "gray.300", color: isSelected ? "orange.700" : "gray.600" }}
               onClick={() => {
-                const next = isSelected ? selected.filter((id) => id !== opt.id) : [...selected, opt.id];
-                onChange(ctrl.id, next);
+                if (isSingle) {
+                  onChange(ctrl.id, isSelected ? [] : [opt.id]);
+                } else {
+                  const next = isSelected ? selected.filter((id) => id !== opt.id) : [...selected, opt.id];
+                  onChange(ctrl.id, next);
+                }
               }}
             >
               {opt.label}
@@ -469,7 +474,7 @@ const GroupSection: React.FC<GroupSectionProps> = ({
             const ctrl = (doc.controllerDefs ?? []).find((c) => c.id === id)!;
             return (
               <ControllerWidget key={id} ctrl={ctrl}
-                value={controllers[id] ?? (ctrl.type === "selector" ? [] : ctrl.type === "toggle" ? false : 0)}
+                value={controllers[id] ?? (ctrl.type === "selector" || ctrl.type === "singleSelect" ? [] : ctrl.type === "toggle" ? false : 0)}
                 onChange={onControllerChange} />
             );
           })}
@@ -499,7 +504,7 @@ const GroupSection: React.FC<GroupSectionProps> = ({
             <Box key={ctrl.id} mb={2}>
               {ctrl.type !== "toggle" && (
                 <ControllerWidget ctrl={ctrl}
-                  value={controllers[ctrl.id] ?? (ctrl.type === "selector" ? [] : 0)}
+                  value={controllers[ctrl.id] ?? (ctrl.type === "selector" || ctrl.type === "singleSelect" ? [] : 0)}
                   onChange={onControllerChange} />
               )}
               {groupIds.map((id) => {
@@ -1022,7 +1027,7 @@ const RateBuildupInputs: React.FC<RateBuildupInputsProps> = ({
         <Box mb={4}>
           {loneControllers.map((c) => (
             <ControllerWidget key={c.id} ctrl={c}
-              value={controllers[c.id] ?? (c.type === "selector" ? [] : c.type === "toggle" ? false : 0)}
+              value={controllers[c.id] ?? (c.type === "selector" || c.type === "singleSelect" ? [] : c.type === "toggle" ? false : 0)}
               onChange={onControllerChange} />
           ))}
         </Box>
@@ -1053,7 +1058,7 @@ const RateBuildupInputs: React.FC<RateBuildupInputsProps> = ({
         <Box key={ctrl.id} mb={3}>
           {ctrl.type !== "toggle" && (
             <ControllerWidget ctrl={ctrl}
-              value={controllers[ctrl.id] ?? (ctrl.type === "selector" ? [] : 0)}
+              value={controllers[ctrl.id] ?? (ctrl.type === "selector" || ctrl.type === "singleSelect" ? [] : 0)}
               onChange={onControllerChange} />
           )}
           {groups.map((g) => (

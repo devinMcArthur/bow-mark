@@ -42,12 +42,12 @@ export interface UnitVariant {
 export interface ControllerDef {
   id: string;
   label: string;
-  type: "percentage" | "toggle" | "selector";
+  type: "percentage" | "toggle" | "selector" | "singleSelect";
   /** Percentage: 0–1 number. Toggle: boolean. Absent for selector. */
   defaultValue?: number | boolean;
-  /** Selector only */
+  /** Selector / singleSelect only */
   options?: ControllerOption[];
-  /** Selector only: option IDs selected by default */
+  /** Selector / singleSelect only: option IDs selected by default */
   defaultSelected?: string[];
   hint?: string;      // template-level guidance shown read-only to estimators
   position: Position; // canvas node position

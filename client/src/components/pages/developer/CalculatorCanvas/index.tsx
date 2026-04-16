@@ -198,7 +198,7 @@ const CalculatorCanvas: React.FC<Props> = ({
     for (const c of (doc.controllerDefs ?? [])) {
       if (c.type === "percentage") result[c.id] = typeof c.defaultValue === "number" ? c.defaultValue : 0;
       else if (c.type === "toggle") result[c.id] = c.defaultValue ?? false;
-      else if (c.type === "selector") result[c.id] = c.defaultSelected ?? [];
+      else if (c.type === "selector" || c.type === "singleSelect") result[c.id] = c.defaultSelected ?? [];
     }
     return result;
   }, [doc]);
@@ -267,14 +267,14 @@ const CalculatorCanvas: React.FC<Props> = ({
   }, [doc, handleSave, selectedNodeId]);
 
   const handleCreateNode = useCallback(
-    (type: "formula" | "param" | "table" | "breakdown" | "output" | "group" | "controller:percentage" | "controller:toggle" | "controller:selector", position: { x: number; y: number }) => {
+    (type: "formula" | "param" | "table" | "breakdown" | "output" | "group" | "controller:percentage" | "controller:toggle" | "controller:selector" | "controller:singleSelect", position: { x: number; y: number }) => {
       if (type === "group") {
         const { doc: newDoc, newId } = createGroup(doc, position);
         handleSave(newDoc);
         setSelectedNodeId(newId);
         setPositionResetKey((k) => k + 1);
       } else if (type.startsWith("controller:")) {
-        const ctrlType = type.split(":")[1] as "percentage" | "toggle" | "selector";
+        const ctrlType = type.split(":")[1] as "percentage" | "toggle" | "selector" | "singleSelect";
         const { doc: newDoc, newId } = createController(doc, position, ctrlType);
         handleSave(newDoc);
         setSelectedNodeId(newId);

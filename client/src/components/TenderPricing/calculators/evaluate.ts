@@ -94,12 +94,12 @@ export function evaluateTemplate(
   const ctx: Record<string, number> = { quantity };
 
   for (const p of template.parameterDefs) {
-    ctx[p.id] = inputs?.params[p.id] ?? p.defaultValue;
+    ctx[p.id] = inactiveNodeIds?.has(p.id) ? 0 : (inputs?.params[p.id] ?? p.defaultValue);
   }
 
   for (const t of template.tableDefs) {
     const rows = inputs?.tables[t.id] ?? t.defaultRows ?? [];
-    ctx[`${t.id}RatePerHr`] = rows.reduce((s, r) => s + r.qty * r.ratePerHour, 0);
+    ctx[`${t.id}RatePerHr`] = inactiveNodeIds?.has(t.id) ? 0 : rows.reduce((s, r) => s + r.qty * r.ratePerHour, 0);
   }
 
   // Inject controller values (percentage/toggle) — formula steps may reference them by ID
@@ -169,12 +169,12 @@ export function debugEvaluateTemplate(
   const ctx: Record<string, number> = { quantity };
 
   for (const p of template.parameterDefs) {
-    ctx[p.id] = inputs?.params[p.id] ?? p.defaultValue;
+    ctx[p.id] = inactiveNodeIds?.has(p.id) ? 0 : (inputs?.params[p.id] ?? p.defaultValue);
   }
 
   for (const t of template.tableDefs) {
     const rows = inputs?.tables[t.id] ?? t.defaultRows ?? [];
-    ctx[`${t.id}RatePerHr`] = rows.reduce((s, r) => s + r.qty * r.ratePerHour, 0);
+    ctx[`${t.id}RatePerHr`] = inactiveNodeIds?.has(t.id) ? 0 : rows.reduce((s, r) => s + r.qty * r.ratePerHour, 0);
   }
 
   // Inject controller values (percentage/toggle) — formula steps may reference them by ID

@@ -29,7 +29,7 @@ export function isGroupActive(
   const ctrl = doc.controllerDefs.find((c) => c.id === activation.controllerId);
   if (!ctrl) return true; // controller deleted — treat as always active
 
-  if (ctrl.type === "selector") {
+  if (ctrl.type === "selector" || ctrl.type === "singleSelect") {
     const selected = (controllers[activation.controllerId] as string[] | undefined)
       ?? ctrl.defaultSelected ?? [];
     // If optionId is not yet set (in-progress authoring), treat as inactive
@@ -175,7 +175,7 @@ export function snapshotFromTemplate(template: CanvasDocument): RateBuildupSnaps
       controllers[c.id] = typeof c.defaultValue === "number" ? c.defaultValue : 0;
     else if (c.type === "toggle")
       controllers[c.id] = typeof c.defaultValue === "boolean" ? c.defaultValue : false;
-    else if (c.type === "selector")
+    else if (c.type === "selector" || c.type === "singleSelect")
       controllers[c.id] = c.defaultSelected ?? [];
   }
 
@@ -306,8 +306,8 @@ export function evaluateCanvasDoc(
     } else if (c.type === "toggle") {
       controllerNumeric[c.id] = c.defaultValue ? 1 : 0;
     }
-    // selector controllers aren't numeric — skip. Their activation is
-    // evaluated separately via isGroupActive.
+    // selector/singleSelect controllers aren't numeric — skip. Their
+    // activation is evaluated separately via isGroupActive.
   }
 
   // 3. Which nodes are inactive (inside groups whose activation evaluates
