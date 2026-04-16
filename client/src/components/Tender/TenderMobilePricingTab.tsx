@@ -56,7 +56,10 @@ const ROW_FIELDS = `
   unitPrice
   notes
   markupOverride
-  rateBuildupSnapshot
+  rateBuildupSnapshots {
+    snapshot
+    memo
+  }
   rateBuildupOutputs {
     kind
     materialId

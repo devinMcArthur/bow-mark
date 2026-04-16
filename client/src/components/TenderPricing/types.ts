@@ -22,6 +22,11 @@ export interface RateBuildupOutput {
   totalValue: number;
 }
 
+export interface RateBuildupSnapshotEntry {
+  snapshot: string;
+  memo?: string | null;
+}
+
 export interface TenderPricingRow {
   _id: string;
   type: TenderPricingRowType;
@@ -34,7 +39,7 @@ export interface TenderPricingRow {
   markupOverride?: number | null;
   unitPrice?: number | null;
   notes?: string | null;
-  rateBuildupSnapshot?: string | null;
+  rateBuildupSnapshots: RateBuildupSnapshotEntry[];
   rateBuildupOutputs?: RateBuildupOutput[] | null;
   extraUnitPrice?: number | null;
   extraUnitPriceMemo?: string | null;
