@@ -14,6 +14,7 @@ import { Company, System } from "@models";
 import mongoose from "mongoose";
 import createApp from "./app";
 import { bindEventEmitters } from "@events";
+import { setupTopology } from "./rabbitmq";
 
 let workerEnabled = true,
   apiEnabled = true;
@@ -40,6 +41,16 @@ const main = async () => {
 
     // Bind Event Emitters
     bindEventEmitters();
+
+    // Eagerly connect to RabbitMQ so the first file upload/retry doesn't
+    // have to wait for the lazy connection. If RabbitMQ isn't available
+    // yet, the publisher's retry logic (3 attempts with backoff) handles
+    // it per-call — this just warms the connection for the common case.
+    if (process.env.NODE_ENV !== "test") {
+      setupTopology().catch((err) =>
+        console.warn("[RabbitMQ] Eager connect failed (will retry lazily):", err.message)
+      );
+    }
 
     // Start API server
     if (apiEnabled) {
