@@ -5,7 +5,10 @@ import mongoose from "mongoose";
 import { Tender as TenderModel, Jobsite, EnrichedFile, System, TenderPricingSheet } from "@models";
 import { UserRoles } from "@typescript/user";
 import { TenderPricingRowType } from "@typescript/tenderPricingSheet";
+import { CANONICAL_UNITS, resolveUnitCode } from "@constants/units";
 import { scheduleTenderSummary } from "../../lib/generateTenderSummary";
+
+const UNIT_CODES_DESCRIPTION = `Unit code. Must be one of the canonical codes: ${CANONICAL_UNITS.map((u) => `${u.code} (${u.name})`).join(", ")}. The system may also have custom units — use the codes exactly as shown in get_tender_pricing_rows output.`;
 import { getRequestContext, requireTenderContext } from "../context";
 import Anthropic from "@anthropic-ai/sdk";
 import { PDFDocument } from "pdf-lib";
@@ -297,7 +300,7 @@ export function register(
               description: z.string().min(1),
               indentLevel: z.number().int().min(0).max(3).default(0),
               quantity: z.number().optional(),
-              unit: z.string().optional(),
+              unit: z.string().optional().describe(UNIT_CODES_DESCRIPTION),
               notes: z.string().optional(),
               docRefs: z
                 .array(
@@ -373,7 +376,7 @@ export function register(
           description: r.description,
           indentLevel: r.indentLevel,
           ...(r.type === TenderPricingRowType.Item && r.quantity != null ? { quantity: r.quantity } : {}),
-          ...(r.type === TenderPricingRowType.Item && r.unit != null ? { unit: r.unit } : {}),
+          ...(r.type === TenderPricingRowType.Item && r.unit != null ? { unit: resolveUnitCode(r.unit) } : {}),
           ...(r.notes != null ? { notes: r.notes } : {}),
           docRefs: (r.docRefs ?? []).map((d) => ({
             _id: new mongoose.Types.ObjectId(),
@@ -414,7 +417,7 @@ export function register(
               description: z.string().optional(),
               indentLevel: z.number().int().min(0).max(3).optional(),
               quantity: z.number().optional(),
-              unit: z.string().optional(),
+              unit: z.string().optional().describe(UNIT_CODES_DESCRIPTION),
               unitPrice: z.number().nullable().optional(),
               appendNotes: z.string().optional(),
               replaceNotes: z
@@ -529,7 +532,7 @@ export function register(
           fieldsChanged.push("quantity");
         }
         if (u.unit !== undefined) {
-          row.unit = u.unit;
+          row.unit = resolveUnitCode(u.unit);
           fieldsChanged.push("unit");
         }
         if (u.unitPrice !== undefined) {
