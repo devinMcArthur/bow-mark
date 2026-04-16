@@ -48,6 +48,13 @@ const updateRow = (
   if (data.unitPrice !== undefined) row.unitPrice = data.unitPrice;
   if (data.notes !== undefined) row.notes = data.notes;
   if (data.rateBuildupSnapshot !== undefined) row.rateBuildupSnapshot = data.rateBuildupSnapshot ?? undefined;
+  if (data.rateBuildupSnapshots !== undefined) {
+    if (data.rateBuildupSnapshots === null) {
+      row.rateBuildupSnapshots = [];
+    } else {
+      row.rateBuildupSnapshots = data.rateBuildupSnapshots as any;
+    }
+  }
   if (data.rateBuildupOutputs !== undefined) {
     // null from "remove buildup" → clear the array. undefined → no-op.
     // Each output is validated for kind↔field consistency.
@@ -155,6 +162,7 @@ const duplicateRow = (
     unitPrice: src.unitPrice,
     notes: src.notes,
     rateBuildupSnapshot: src.rateBuildupSnapshot,
+    rateBuildupSnapshots: src.rateBuildupSnapshots ?? [],
     rateBuildupOutputs: ((src.rateBuildupOutputs as IRateBuildupOutput[] | undefined) ?? []).filter(
       (out: IRateBuildupOutput) =>
         Object.values(RateBuildupOutputKind).includes(out.kind)
