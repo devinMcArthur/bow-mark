@@ -20,8 +20,9 @@ export const PENDING_STUCK_MS = 3 * 60 * 60_000; // 3 hr
 /** Cooldown before retrying a "failed" or "partial" file. */
 export const FAILED_RETRY_COOLDOWN_MS = 60 * 60_000; // 1 hr
 
-/** Max attempts before giving up on a file entirely. */
-export const MAX_SUMMARY_ATTEMPTS = 5;
+/** Max attempts before giving up on a file entirely. Applies to ALL
+ *  recovery paths (processing, pending, failed, partial). */
+export const MAX_SUMMARY_ATTEMPTS = 3;
 
 /**
  * Scan for files stuck in processing / pending / failed / partial states
@@ -40,25 +41,51 @@ export async function recoverStuckFiles(): Promise<void> {
   const pendingCutoff = new Date(now - PENDING_STUCK_MS);
   const failedCutoff = new Date(now - FAILED_RETRY_COOLDOWN_MS);
 
+  // ── Mark exhausted files as permanently failed ─────────────────────────
+  // Files in ANY non-terminal state that have exceeded MAX_SUMMARY_ATTEMPTS
+  // should stop cycling. Without this, processing↔pending resets loop
+  // indefinitely for files that consistently crash the handler.
+  const exhausted = await EnrichedFile.find({
+    summaryStatus: { $in: ["pending", "processing", "failed", "partial"] },
+    summaryAttempts: { $gte: MAX_SUMMARY_ATTEMPTS },
+  }).lean();
+  if (exhausted.length > 0) {
+    console.warn(
+      `[Watchdog] Marking ${exhausted.length} file(s) as permanently failed (exceeded ${MAX_SUMMARY_ATTEMPTS} attempts)`
+    );
+    await EnrichedFile.updateMany(
+      {
+        _id: { $in: exhausted.map((f) => f._id) },
+      },
+      {
+        $set: {
+          summaryStatus: "failed",
+          summaryError: `Exceeded max retry attempts (${MAX_SUMMARY_ATTEMPTS})`,
+        },
+        $unset: { processingStartedAt: "" },
+      }
+    );
+  }
+
   // Files in "processing" whose handler exceeded the max processing window.
   // Covers: consumer crash mid-handler, broker channel timeout killing ack.
+  // Capped by MAX_SUMMARY_ATTEMPTS (exhausted files already marked above).
   const stuckProcessing = await EnrichedFile.find({
     summaryStatus: "processing",
+    summaryAttempts: { $lt: MAX_SUMMARY_ATTEMPTS },
     $or: [
       { processingStartedAt: { $lt: processingCutoff } },
-      { processingStartedAt: { $exists: false } }, // legacy docs without the field
+      { processingStartedAt: { $exists: false } },
     ],
   })
     .populate("file")
     .lean();
 
   // Files in "pending" whose last publish timestamp is older than the cutoff.
-  // `queuedAt` is stamped by every call to publishEnrichedFileCreated, so a
-  // fresh queuedAt means the file is legitimately waiting in the queue behind
-  // a batch and must not be republished (republishing creates duplicate queue
-  // messages). Legacy docs without the field fall back to `createdAt`.
+  // Capped by MAX_SUMMARY_ATTEMPTS (exhausted files already marked above).
   const stuckPending = await EnrichedFile.find({
     summaryStatus: "pending",
+    summaryAttempts: { $lt: MAX_SUMMARY_ATTEMPTS },
     $or: [
       { queuedAt: { $exists: true, $lt: pendingCutoff } },
       { queuedAt: { $exists: false }, createdAt: { $lt: pendingCutoff } },
