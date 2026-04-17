@@ -36,6 +36,7 @@ import {
   computeSnapshotUnitPrice,
   evaluateSnapshot,
 } from "../pages/developer/CalculatorCanvas/canvasStorage";
+import { evaluateCanvasDoc } from "../pages/developer/CalculatorCanvas/snapshotEvaluator";
 import RateBuildupInputs from "../pages/developer/CalculatorCanvas/RateBuildupInputs";
 import { TemplateCard } from "../../pages/pricing";
 
@@ -232,7 +233,15 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
     }))
   );
   const [snapResults, setSnapResults] = useState<({ unitPrice: number; breakdown: { id: string; label: string; value: number }[] } | null)[]>(
-    () => parsedSnapshots.map(() => null)
+    () => parsedSnapshots.map((s) => {
+      try {
+        const { result } = evaluateCanvasDoc(
+          s.doc, s.snapshot.params ?? {}, s.snapshot.tables ?? {},
+          s.snapshot.controllers ?? {}, row.quantity ?? 1, row.unit ?? undefined
+        );
+        return { unitPrice: result.unitPrice, breakdown: result.breakdown };
+      } catch { return null; }
+    })
   );
   const [buildupExpanded, setBuildupExpanded] = useState<boolean[]>(() => parsedSnapshots.map(() => true));
   const [extraUnitPrice, setExtraUnitPrice] = useState(row.extraUnitPrice != null ? String(row.extraUnitPrice) : "");
@@ -249,7 +258,15 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
         outputs: s.snapshot.outputs ?? {},
       }))
     );
-    setSnapResults(parsedSnapshots.map(() => null));
+    setSnapResults(parsedSnapshots.map((s) => {
+      try {
+        const { result } = evaluateCanvasDoc(
+          s.doc, s.snapshot.params ?? {}, s.snapshot.tables ?? {},
+          s.snapshot.controllers ?? {}, row.quantity ?? 1, row.unit ?? undefined
+        );
+        return { unitPrice: result.unitPrice, breakdown: result.breakdown };
+      } catch { return null; }
+    }));
     setBuildupExpanded(parsedSnapshots.map(() => true));
     setExtraUnitPrice(row.extraUnitPrice != null ? String(row.extraUnitPrice) : "");
     setExtraUnitPriceMemo(row.extraUnitPriceMemo ?? "");
@@ -270,9 +287,18 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
         }
       );
     });
-    setSnapResults(prev =>
-      prev.length === parsedSnapshots.length ? prev : parsedSnapshots.map((_, i) => prev[i] ?? null)
-    );
+    setSnapResults(prev => {
+      if (prev.length === parsedSnapshots.length) return prev;
+      return parsedSnapshots.map((s, i) => prev[i] ?? (() => {
+        try {
+          const { result } = evaluateCanvasDoc(
+            s.doc, s.snapshot.params ?? {}, s.snapshot.tables ?? {},
+            s.snapshot.controllers ?? {}, row.quantity ?? 1, row.unit ?? undefined
+          );
+          return { unitPrice: result.unitPrice, breakdown: result.breakdown };
+        } catch { return null; }
+      })());
+    });
     setBuildupExpanded(prev =>
       prev.length === parsedSnapshots.length ? prev : parsedSnapshots.map((_, i) => prev[i] ?? true)
     );
