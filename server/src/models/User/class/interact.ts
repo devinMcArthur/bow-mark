@@ -2,6 +2,7 @@ import { UserDocument, UserModel } from "@models";
 import createJWT from "@utils/createJWT";
 import email from "@utils/email";
 import bcrypt from "bcryptjs";
+import { randomUUID } from "crypto";
 
 /**
  * ----- Static Methods -----
@@ -25,6 +26,7 @@ const login = async (
   const token = createJWT(
     {
       userId: user._id,
+      sessionId: randomUUID(),
     },
     { expiresIn }
   );

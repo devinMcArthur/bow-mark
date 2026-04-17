@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { User } from "@models";
 import { UserRoles } from "@typescript/user";
+import { getRequestContext, runWithContext } from "@lib/requestContext";
 
 declare global {
   namespace Express {
@@ -12,7 +13,11 @@ declare global {
   }
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+export function requireAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
   const token = req.headers.authorization;
   if (!token || !process.env.JWT_SECRET) {
     res.status(401).json({ error: "Unauthorized" });
@@ -27,6 +32,21 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     }
     req.userId = userId;
     req.token = token;
+
+    // Refine the ALS-backed RequestContext stamped by
+    // requestContextMiddleware: attach userId + sessionId so any
+    // mutation emitted during this request attributes correctly.
+    const ctx = getRequestContext();
+    if (ctx) {
+      const enriched = {
+        ...ctx,
+        userId,
+        sessionId:
+          typeof decoded.sessionId === "string" ? decoded.sessionId : ctx.sessionId,
+      };
+      runWithContext(enriched, () => next());
+      return;
+    }
     next();
   } catch {
     res.status(401).json({ error: "Invalid token" });

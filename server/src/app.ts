@@ -84,6 +84,11 @@ import { User, UserDocument, Conversation } from "@models";
 import pubsub from "@pubsub";
 import authChecker from "@utils/authChecker";
 import { requestContextMiddleware } from "@middleware/requestContext";
+import {
+  getRequestContext,
+  runWithContext,
+  type RequestContext,
+} from "@lib/requestContext";
 
 const createApp = async () => {
   const app = express();
@@ -193,6 +198,25 @@ const createApp = async () => {
         const decoded = jwt.decode(token);
 
         user = await User.getById((decoded as jwt.JwtPayload)?.userId);
+      }
+
+      // Enrich the ALS RequestContext with userId + sessionId so GraphQL
+      // resolvers downstream see them when emitting DomainEvents.
+      const existing = getRequestContext();
+      if (existing) {
+        const decoded =
+          token && process.env.JWT_SECRET
+            ? (jwt.decode(token) as jwt.JwtPayload | null)
+            : null;
+        const enriched: RequestContext = {
+          ...existing,
+          userId: user?._id?.toString() ?? existing.userId,
+          sessionId:
+            (decoded && typeof decoded.sessionId === "string"
+              ? decoded.sessionId
+              : undefined) ?? existing.sessionId,
+        };
+        runWithContext(enriched, () => undefined);
       }
 
       return {
