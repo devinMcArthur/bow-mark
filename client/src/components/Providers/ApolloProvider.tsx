@@ -102,8 +102,10 @@ export default function MyApolloProvider({
         // Apollo merges objects with the same __typename:id across templates.
         RateBuildupGroupDef: { keyFields: false },
         RateBuildupControllerDef: { keyFields: false },
+        RateBuildupControllerOption: { keyFields: false },
         RateBuildupParameterDef: { keyFields: false },
         RateBuildupTableDef: { keyFields: false },
+        RateBuildupRateEntry: { keyFields: false },
         RateBuildupFormulaStep: { keyFields: false },
         RateBuildupBreakdownDef: { keyFields: false },
         RateBuildupOutputDef: { keyFields: false },
