@@ -330,17 +330,25 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
   quantityRef.current = quantity;
   const snapshotStatesRef = useRef(snapshotStates);
   snapshotStatesRef.current = snapshotStates;
+  const parsedSnapshotsRef = useRef(parsedSnapshots);
+  parsedSnapshotsRef.current = parsedSnapshots;
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+  const rowRef = useRef(row);
+  rowRef.current = row;
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scheduleSave = useCallback((updatedStates: SnapshotLocalState[]) => {
-    if (parsedSnapshots.length === 0 || !updatedStates) return;
+    const snaps = parsedSnapshotsRef.current;
+    if (snaps.length === 0 || !updatedStates) return;
     const entries: { snapshot: string; memo: string }[] = [];
     let totalUP = 0;
     const allOutputs: any[] = [];
+    const currentRow = rowRef.current;
 
-    for (let i = 0; i < parsedSnapshots.length; i++) {
-      const base = parsedSnapshots[i].snapshot;
+    for (let i = 0; i < snaps.length; i++) {
+      const base = snaps[i].snapshot;
       const state = updatedStates[i];
       if (!state) continue;
       const updated: RateBuildupSnapshot = {
@@ -354,25 +362,25 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
       const { unitPrice, outputs } = evaluateSnapshot(
         updated,
         parseFloat(quantityRef.current) || 1,
-        row.unit ?? undefined
+        currentRow.unit ?? undefined
       );
       totalUP += unitPrice;
       allOutputs.push(...outputs);
       entries.push({
         snapshot: JSON.stringify(updated),
-        memo: (row.rateBuildupSnapshots ?? [])[i]?.memo ?? "",
+        memo: (currentRow.rateBuildupSnapshots ?? [])[i]?.memo ?? "",
       });
     }
 
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      onUpdate(row._id, {
+      onUpdateRef.current(currentRow._id, {
         rateBuildupSnapshots: entries,
         unitPrice: totalUP || null,
         rateBuildupOutputs: allOutputs,
       });
     }, 500);
-  }, [parsedSnapshots, row._id, row.unit, row.rateBuildupSnapshots, onUpdate]);
+  }, []);
 
   // Per-snapshot change handlers — each updates the correct index in snapshotStates
   const updateSnapshotAndSave = useCallback((index: number, updater: (state: SnapshotLocalState) => SnapshotLocalState) => {
