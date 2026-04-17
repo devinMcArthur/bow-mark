@@ -238,6 +238,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
   const [extraUnitPrice, setExtraUnitPrice] = useState(row.extraUnitPrice != null ? String(row.extraUnitPrice) : "");
   const [extraUnitPriceMemo, setExtraUnitPriceMemo] = useState(row.extraUnitPriceMemo ?? "");
 
+  // Full reset when switching rows
   useEffect(() => {
     setSnapshotStates(
       parsedSnapshots.map((s) => ({
@@ -254,6 +255,28 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
     setExtraUnitPriceMemo(row.extraUnitPriceMemo ?? "");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [row._id]);
+
+  // Sync state arrays when snapshots are added or removed (same row)
+  useEffect(() => {
+    setSnapshotStates(prev => {
+      if (prev.length === parsedSnapshots.length) return prev;
+      return parsedSnapshots.map((s, i) =>
+        prev[i] ?? {
+          params: s.snapshot.params ?? {},
+          tables: s.snapshot.tables ?? {},
+          controllers: s.snapshot.controllers ?? {},
+          paramNotes: s.snapshot.paramNotes ?? {},
+          outputs: s.snapshot.outputs ?? {},
+        }
+      );
+    });
+    setSnapResults(prev =>
+      prev.length === parsedSnapshots.length ? prev : parsedSnapshots.map((_, i) => prev[i] ?? null)
+    );
+    setBuildupExpanded(prev =>
+      prev.length === parsedSnapshots.length ? prev : parsedSnapshots.map((_, i) => prev[i] ?? true)
+    );
+  }, [parsedSnapshots.length]);
 
   // Synchronously compute the correct summed unit price from all saved snapshots.
   // This is the source of truth for display and reconciliation.
