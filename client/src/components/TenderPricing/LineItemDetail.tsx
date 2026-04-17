@@ -324,85 +324,48 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
   }, [parsedSnapshots, row._id, row.unit, row.rateBuildupSnapshots, onUpdate]);
 
   // Per-snapshot change handlers — each updates the correct index in snapshotStates
+  const updateSnapshotAndSave = useCallback((index: number, updater: (state: SnapshotLocalState) => SnapshotLocalState) => {
+    let nextStates: SnapshotLocalState[];
+    setSnapshotStates(prev => {
+      nextStates = [...prev];
+      nextStates[index] = updater(nextStates[index]);
+      return nextStates;
+    });
+    scheduleSave(nextStates!);
+  }, [scheduleSave]);
+
   const makeSnapshotHandlers = useCallback((index: number) => ({
     onParamChange: (id: string, v: number) => {
-      setSnapshotStates(prev => {
-        const next = [...prev];
-        next[index] = { ...next[index], params: { ...next[index].params, [id]: v } };
-        scheduleSave(next);
-        return next;
-      });
+      updateSnapshotAndSave(index, s => ({ ...s, params: { ...s.params, [id]: v } }));
     },
     onUpdateRow: (tableId: string, rowId: string, field: keyof RateEntry, value: string | number) => {
-      setSnapshotStates(prev => {
-        const next = [...prev];
-        const prevTables = next[index].tables;
-        next[index] = {
-          ...next[index],
-          tables: {
-            ...prevTables,
-            [tableId]: (prevTables[tableId] ?? []).map((r) => r.id === rowId ? { ...r, [field]: value } : r),
-          },
-        };
-        scheduleSave(next);
-        return next;
-      });
+      updateSnapshotAndSave(index, s => ({
+        ...s,
+        tables: { ...s.tables, [tableId]: (s.tables[tableId] ?? []).map(r => r.id === rowId ? { ...r, [field]: value } : r) },
+      }));
     },
     onAddRow: (tableId: string) => {
-      setSnapshotStates(prev => {
-        const next = [...prev];
-        const prevTables = next[index].tables;
-        next[index] = {
-          ...next[index],
-          tables: {
-            ...prevTables,
-            [tableId]: [...(prevTables[tableId] ?? []), { id: uuidv4(), name: "", qty: 1, ratePerHour: 0 }],
-          },
-        };
-        scheduleSave(next);
-        return next;
-      });
+      updateSnapshotAndSave(index, s => ({
+        ...s,
+        tables: { ...s.tables, [tableId]: [...(s.tables[tableId] ?? []), { id: uuidv4(), name: "", qty: 1, ratePerHour: 0 }] },
+      }));
     },
     onRemoveRow: (tableId: string, rowId: string) => {
-      setSnapshotStates(prev => {
-        const next = [...prev];
-        const prevTables = next[index].tables;
-        next[index] = {
-          ...next[index],
-          tables: {
-            ...prevTables,
-            [tableId]: (prevTables[tableId] ?? []).filter((r) => r.id !== rowId),
-          },
-        };
-        scheduleSave(next);
-        return next;
-      });
+      updateSnapshotAndSave(index, s => ({
+        ...s,
+        tables: { ...s.tables, [tableId]: (s.tables[tableId] ?? []).filter(r => r.id !== rowId) },
+      }));
     },
     onControllerChange: (id: string, v: number | boolean | string[]) => {
-      setSnapshotStates(prev => {
-        const next = [...prev];
-        next[index] = { ...next[index], controllers: { ...next[index].controllers, [id]: v } };
-        scheduleSave(next);
-        return next;
-      });
+      updateSnapshotAndSave(index, s => ({ ...s, controllers: { ...s.controllers, [id]: v } }));
     },
     onParamNoteChange: (paramId: string, note: string) => {
-      setSnapshotStates(prev => {
-        const next = [...prev];
-        next[index] = { ...next[index], paramNotes: { ...next[index].paramNotes, [paramId]: note } };
-        scheduleSave(next);
-        return next;
-      });
+      updateSnapshotAndSave(index, s => ({ ...s, paramNotes: { ...s.paramNotes, [paramId]: note } }));
     },
     onOutputChange: (outputId: string, selection: { materialId?: string; crewKindId?: string }) => {
-      setSnapshotStates(prev => {
-        const next = [...prev];
-        next[index] = { ...next[index], outputs: { ...next[index].outputs, [outputId]: selection } };
-        scheduleSave(next);
-        return next;
-      });
+      updateSnapshotAndSave(index, s => ({ ...s, outputs: { ...s.outputs, [outputId]: selection } }));
     },
-  }), [scheduleSave]);
+  }), [updateSnapshotAndSave]);
 
   // Remove a snapshot at a given index
   const removeSnapshot = useCallback((index: number) => {
@@ -435,6 +398,31 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
     );
     onUpdate(row._id, { rateBuildupSnapshots: updated });
   }, [row._id, row.rateBuildupSnapshots, onUpdate]);
+
+  const attachTemplate = useCallback((templateDoc: CanvasDocument) => {
+    const snapshot = snapshotFromTemplate(templateDoc);
+    const { unitPrice: newUP, outputs: newOutputs } = evaluateSnapshot(
+      snapshot, row.quantity ?? 1, row.unit ?? templateDoc.defaultUnit ?? undefined
+    );
+    const newEntry = { snapshot: JSON.stringify(snapshot), memo: "" };
+    const existing = (row.rateBuildupSnapshots ?? []).map(e => ({ snapshot: e.snapshot, memo: e.memo ?? "" }));
+    const updatedEntries = [...existing, newEntry];
+
+    let totalUP = newUP;
+    const allOutputs = [...newOutputs];
+    for (const s of parsedSnapshots) {
+      const { unitPrice, outputs } = evaluateSnapshot(s.snapshot, row.quantity ?? 1, row.unit ?? undefined);
+      totalUP += unitPrice;
+      allOutputs.push(...outputs);
+    }
+
+    onUpdate(row._id, {
+      rateBuildupSnapshots: updatedEntries,
+      unit: row.unit || templateDoc.defaultUnit || null,
+      unitPrice: totalUP || null,
+      rateBuildupOutputs: allOutputs,
+    });
+  }, [row._id, row.quantity, row.unit, row.rateBuildupSnapshots, parsedSnapshots, onUpdate]);
 
   // Sum unit prices from all snapResults (when computed), else fall back to snapshotUnitPrice
   const snapResultSum = useMemo(() => {
@@ -580,35 +568,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
             <Text fontSize="xs" color="blue.500" mb={3}>
               Build your unit price from crew rates, equipment, materials, and production rates
             </Text>
-            <AttachTemplateButton
-              rowUnit={row.unit}
-              onAttach={(templateDoc) => {
-                const snapshot = snapshotFromTemplate(templateDoc);
-                const { unitPrice: newUP, outputs: newOutputs } = evaluateSnapshot(
-                  snapshot,
-                  row.quantity ?? 1,
-                  row.unit ?? templateDoc.defaultUnit ?? undefined
-                );
-                const newEntry = { snapshot: JSON.stringify(snapshot), memo: "" };
-                const existing = (row.rateBuildupSnapshots ?? []).map(e => ({ snapshot: e.snapshot, memo: e.memo ?? "" }));
-                const updatedEntries = [...existing, newEntry];
-
-                let totalUP = newUP;
-                const allOutputs = [...newOutputs];
-                for (const s of parsedSnapshots) {
-                  const { unitPrice, outputs } = evaluateSnapshot(s.snapshot, row.quantity ?? 1, row.unit ?? undefined);
-                  totalUP += unitPrice;
-                  allOutputs.push(...outputs);
-                }
-
-                onUpdate(row._id, {
-                  rateBuildupSnapshots: updatedEntries,
-                  unit: row.unit || templateDoc.defaultUnit || null,
-                  unitPrice: totalUP || null,
-                  rateBuildupOutputs: allOutputs,
-                });
-              }}
-            />
+            <AttachTemplateButton rowUnit={row.unit} onAttach={attachTemplate} />
             <Text fontSize="10px" color="gray.400" mt={3}>
               or enter a unit price manually below
             </Text>
@@ -806,35 +766,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
                 <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wider">
                   Rate Buildups ({parsedSnapshots.length})
                 </Text>
-                <AttachTemplateButton
-                  rowUnit={row.unit}
-                  onAttach={(templateDoc) => {
-                    const snapshot = snapshotFromTemplate(templateDoc);
-                    const { unitPrice: newUP, outputs: newOutputs } = evaluateSnapshot(
-                      snapshot,
-                      row.quantity ?? 1,
-                      row.unit ?? templateDoc.defaultUnit ?? undefined
-                    );
-                    const newEntry = { snapshot: JSON.stringify(snapshot), memo: "" };
-                    const existing = (row.rateBuildupSnapshots ?? []).map(e => ({ snapshot: e.snapshot, memo: e.memo ?? "" }));
-                    const updatedEntries = [...existing, newEntry];
-
-                    let totalUP = newUP;
-                    const allOutputs = [...newOutputs];
-                    for (const s of parsedSnapshots) {
-                      const { unitPrice, outputs } = evaluateSnapshot(s.snapshot, row.quantity ?? 1, row.unit ?? undefined);
-                      totalUP += unitPrice;
-                      allOutputs.push(...outputs);
-                    }
-
-                    onUpdate(row._id, {
-                      rateBuildupSnapshots: updatedEntries,
-                      unit: row.unit || templateDoc.defaultUnit || null,
-                      unitPrice: totalUP || null,
-                      rateBuildupOutputs: allOutputs,
-                    });
-                  }}
-                />
+                <AttachTemplateButton rowUnit={row.unit} onAttach={attachTemplate} />
               </Flex>
 
               {/* Summary bar — sums breakdown values across all snapshots */}
@@ -896,7 +828,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
                   computeSnapshotUnitPrice(ps.snapshot, row.quantity ?? 1, row.unit ?? undefined);
 
                 return (
-                  <Box key={index} borderBottom="1px solid" borderColor="gray.100">
+                  <Box key={`${ps.snapshot.sourceTemplateId ?? ps.snapshot.id}-${index}`} borderBottom="1px solid" borderColor="gray.100">
                     {/* Collapsible header */}
                     <Flex align="center" gap={0}>
                       <Flex
