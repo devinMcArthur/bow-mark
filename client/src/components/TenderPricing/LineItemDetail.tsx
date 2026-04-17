@@ -328,11 +328,13 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
 
   const quantityRef = useRef(quantity);
   quantityRef.current = quantity;
+  const snapshotStatesRef = useRef(snapshotStates);
+  snapshotStatesRef.current = snapshotStates;
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scheduleSave = useCallback((updatedStates: SnapshotLocalState[]) => {
-    if (parsedSnapshots.length === 0) return;
+    if (parsedSnapshots.length === 0 || !updatedStates) return;
     const entries: { snapshot: string; memo: string }[] = [];
     let totalUP = 0;
     const allOutputs: any[] = [];
@@ -374,13 +376,13 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
 
   // Per-snapshot change handlers — each updates the correct index in snapshotStates
   const updateSnapshotAndSave = useCallback((index: number, updater: (state: SnapshotLocalState) => SnapshotLocalState) => {
-    let nextStates: SnapshotLocalState[];
     setSnapshotStates(prev => {
-      nextStates = [...prev];
-      nextStates[index] = updater(nextStates[index]);
-      return nextStates;
+      const next = [...prev];
+      next[index] = updater(next[index]);
+      snapshotStatesRef.current = next;
+      return next;
     });
-    scheduleSave(nextStates!);
+    scheduleSave(snapshotStatesRef.current);
   }, [scheduleSave]);
 
   const makeSnapshotHandlers = useCallback((index: number) => ({
