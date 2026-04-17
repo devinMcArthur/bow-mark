@@ -162,7 +162,7 @@ const createTenderPricing = async (): Promise<SeededTenderPricing> => {
         quantity: 100,
         unit: "m2",
         unitPrice: initialUnitPrice,
-        rateBuildupSnapshot: JSON.stringify(snapshot),
+        rateBuildupSnapshots: [{ snapshot: JSON.stringify(snapshot) }],
         rateBuildupOutputs: initialOutputs,
         docRefs: [],
         status: "not_started",

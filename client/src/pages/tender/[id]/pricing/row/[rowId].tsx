@@ -20,19 +20,17 @@ import { navbarHeight } from "../../../../../constants/styles";
 
 // ─── GQL ─────────────────────────────────────────────────────────────────────
 
-const SNAPSHOT_QUERY = gql`
-  query TenderPricingRowSnapshotForEdit($sheetId: ID!, $rowId: ID!) {
-    tenderPricingRowSnapshot(sheetId: $sheetId, rowId: $rowId)
-  }
-`;
-
-const SHEET_ID_QUERY = gql`
-  query TenderPricingSheetId($tenderId: ID!) {
+const SHEET_QUERY = gql`
+  query TenderPricingSheetForRowEdit($tenderId: ID!) {
     tenderPricingSheet(tenderId: $tenderId) {
       _id
       rows {
         _id
         quantity
+        rateBuildupSnapshots {
+          snapshot
+          memo
+        }
       }
     }
   }
@@ -55,75 +53,84 @@ const CANVAS_HEIGHT = `calc(100vh - ${navbarHeight} - 36px)`;
 const TenderRowCanvasPage: React.FC = () => {
   const { state: { user } } = useAuth();
   const router = useRouter();
-  const { id: tenderId, rowId, quantity: quantityParam, unit: unitParam } = router.query;
-  // Quantity passed via URL param takes priority (set by LineItemDetail on navigation)
+  const { id: tenderId, rowId, quantity: quantityParam, unit: unitParam, snapshotIndex: snapshotIndexParam } = router.query;
   const urlQuantity = quantityParam ? parseFloat(quantityParam as string) : null;
   const urlUnit = typeof unitParam === "string" && unitParam ? unitParam : undefined;
+  const snapshotIndex = snapshotIndexParam ? parseInt(snapshotIndexParam as string, 10) : 0;
 
   useEffect(() => {
     if (user === null) router.replace("/");
     else if (user !== undefined && !hasPermission(user.role, UserRoles.ProjectManager)) router.replace("/");
   }, [user, router]);
 
-  // Step 1: get sheetId from tenderId
-  const { data: sheetData, loading: sheetLoading } = useQuery(SHEET_ID_QUERY, {
+  const { data: sheetData, loading: sheetLoading } = useQuery(SHEET_QUERY, {
     variables: { tenderId },
     skip: !tenderId,
-  });
-  const sheetId = sheetData?.tenderPricingSheet?._id ?? null;
-  const serverQuantity: number = sheetData?.tenderPricingSheet?.rows?.find(
-    (r: { _id: string; quantity: number | null }) => r._id === rowId
-  )?.quantity ?? 1;
-  const rowQuantity = (urlQuantity !== null && !isNaN(urlQuantity) && urlQuantity > 0) ? urlQuantity : serverQuantity;
-
-  // Step 2: lazy-load the snapshot
-  const { data: snapData, loading: snapLoading } = useQuery(SNAPSHOT_QUERY, {
-    variables: { sheetId, rowId },
-    skip: !sheetId || !rowId,
     fetchPolicy: "network-only",
   });
+  const sheetId = sheetData?.tenderPricingSheet?._id ?? null;
+  const matchedRow = sheetData?.tenderPricingSheet?.rows?.find(
+    (r: any) => r._id === rowId
+  );
+  const serverQuantity: number = matchedRow?.quantity ?? 1;
+  const rowQuantity = (urlQuantity !== null && !isNaN(urlQuantity) && urlQuantity > 0) ? urlQuantity : serverQuantity;
+  const allEntries: { snapshot: string; memo?: string | null }[] = matchedRow?.rateBuildupSnapshots ?? [];
 
   const [updateRow] = useMutation(UPDATE_ROW);
 
-  // Parse snapshot
   const [snapshot, setSnapshot] = useState<RateBuildupSnapshot | null>(null);
 
   useEffect(() => {
-    const raw = snapData?.tenderPricingRowSnapshot;
-    if (!raw) return;
+    const entry = allEntries[snapshotIndex];
+    if (!entry?.snapshot) { setSnapshot(null); return; }
     try {
-      const parsed: RateBuildupSnapshot = JSON.parse(raw);
-      // Default outputDefs for snapshots saved before the field existed.
+      const parsed: RateBuildupSnapshot = JSON.parse(entry.snapshot);
       setSnapshot({ ...parsed, outputDefs: parsed.outputDefs ?? [] });
     } catch {
       console.error("[TenderRowCanvasPage] Failed to parse snapshot JSON");
     }
-  }, [snapData]);
+  }, [sheetData, snapshotIndex]);
 
   // Debounced save to server
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rowQuantityRef = useRef(rowQuantity);
   rowQuantityRef.current = rowQuantity;
 
+  const allEntriesRef = useRef(allEntries);
+  allEntriesRef.current = allEntries;
+
   const scheduleSave = useCallback(
     (updatedSnapshot: RateBuildupSnapshot) => {
       if (!sheetId || !rowId) return;
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(async () => {
-        const { unitPrice: freshUP, outputs: freshOutputs } = evaluateSnapshot(
-          updatedSnapshot,
-          rowQuantityRef.current,
-          urlUnit
+        const updatedJson = JSON.stringify(updatedSnapshot);
+        const entries = allEntriesRef.current.map((e, i) =>
+          i === snapshotIndex
+            ? { snapshot: updatedJson, memo: e.memo ?? "" }
+            : { snapshot: e.snapshot, memo: e.memo ?? "" }
         );
+
+        let totalUP = 0;
+        const allOutputs: any[] = [];
+        for (const entry of entries) {
+          try {
+            const snap = JSON.parse(entry.snapshot) as RateBuildupSnapshot;
+            const { unitPrice, outputs } = evaluateSnapshot(snap, rowQuantityRef.current, urlUnit);
+            totalUP += unitPrice;
+            allOutputs.push(...outputs);
+          } catch {}
+        }
+
         try {
           await updateRow({
             variables: {
               sheetId,
               rowId,
               data: {
-                rateBuildupSnapshot: JSON.stringify(updatedSnapshot),
-                unitPrice: freshUP || null,
-                rateBuildupOutputs: freshOutputs,
+                rateBuildupSnapshots: entries,
+                unitPrice: totalUP || null,
+                rateBuildupOutputs: allOutputs,
               },
             },
           });
@@ -132,7 +139,7 @@ const TenderRowCanvasPage: React.FC = () => {
         }
       }, 1500);
     },
-    [sheetId, rowId, updateRow]
+    [sheetId, rowId, snapshotIndex, updateRow]
   );
 
   // Called when CalculatorCanvas makes a structural change (node/edge edits)
@@ -193,7 +200,7 @@ const TenderRowCanvasPage: React.FC = () => {
 
   if (!user || !hasPermission(user.role, UserRoles.ProjectManager)) return null;
 
-  const loading = sheetLoading || snapLoading;
+  const loading = sheetLoading;
 
   if (loading) {
     return (

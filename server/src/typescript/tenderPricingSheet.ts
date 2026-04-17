@@ -37,6 +37,11 @@ export interface ITenderPricingRowCreate {
   sortOrder: number;
 }
 
+export interface IRateBuildupSnapshotEntry {
+  snapshot: string;
+  memo?: string;
+}
+
 export interface IRateBuildupOutput {
   kind: RateBuildupOutputKind;
   materialId?: string;
@@ -56,6 +61,7 @@ export interface ITenderPricingRowUpdate {
   unitPrice?: number | null;
   notes?: string;
   rateBuildupSnapshot?: string | null;
+  rateBuildupSnapshots?: IRateBuildupSnapshotEntry[] | null;
   rateBuildupOutputs?: IRateBuildupOutput[] | null;
   extraUnitPrice?: number | null;
   extraUnitPriceMemo?: string | null;

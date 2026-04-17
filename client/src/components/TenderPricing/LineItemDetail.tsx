@@ -17,7 +17,7 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { v4 as uuidv4 } from "uuid";
-import { FiChevronDown, FiChevronUp, FiEdit2, FiExternalLink, FiSlash, FiTrash2, FiX } from "react-icons/fi";
+import { FiChevronDown, FiChevronUp, FiEdit2, FiExternalLink, FiTrash2, FiX } from "react-icons/fi";
 import { useRouter } from "next/router";
 import { useApolloClient } from "@apollo/client";
 import { useSystem } from "../../contexts/System";
@@ -36,10 +36,21 @@ import {
   computeSnapshotUnitPrice,
   evaluateSnapshot,
 } from "../pages/developer/CalculatorCanvas/canvasStorage";
+import { evaluateCanvasDoc } from "../pages/developer/CalculatorCanvas/snapshotEvaluator";
 import RateBuildupInputs from "../pages/developer/CalculatorCanvas/RateBuildupInputs";
 import { TemplateCard } from "../../pages/pricing";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────
+
+interface SnapshotLocalState {
+  params: Record<string, number>;
+  tables: Record<string, RateEntry[]>;
+  controllers: Record<string, number | boolean | string[]>;
+  paramNotes: Record<string, string>;
+  outputs: Record<string, { materialId?: string; crewKindId?: string }>;
+}
+
+//── Helpers ───────────────────────────────────────────────────────────────────
 
 function templateSupportsUnit(templateDoc: CanvasDocument, unit: string | null | undefined): boolean {
   if (!unit) return true;                              // no unit on row — show everything
@@ -195,66 +206,118 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
     }
   };
 
-  const hasRateBuildup = !!row.rateBuildupSnapshot;
-
-  // Parse snapshot for inline RateBuildupInputs.
+  // Parse all snapshot entries into usable objects.
   // Snapshots saved before outputDefs existed won't have the field — default
   // it here so downstream code (RateBuildupInputs, CanvasFlow, etc.) can
   // assume it's always an array.
-  const parsedSnapshot = useMemo<RateBuildupSnapshot | null>(() => {
-    if (!row.rateBuildupSnapshot) return null;
-    try {
-      const raw = JSON.parse(row.rateBuildupSnapshot) as RateBuildupSnapshot;
-      return { ...raw, outputDefs: raw.outputDefs ?? [] };
-    } catch { return null; }
-  }, [row.rateBuildupSnapshot]);
+  const parsedSnapshots = useMemo<{ snapshot: RateBuildupSnapshot; memo: string; doc: CanvasDocument }[]>(() => {
+    return (row.rateBuildupSnapshots ?? []).map((entry) => {
+      try {
+        const raw = JSON.parse(entry.snapshot) as RateBuildupSnapshot;
+        const snapshot = { ...raw, outputDefs: raw.outputDefs ?? [] };
+        return { snapshot, memo: entry.memo ?? "", doc: snapshotToCanvasDoc(snapshot) };
+      } catch { return null; }
+    }).filter(Boolean) as { snapshot: RateBuildupSnapshot; memo: string; doc: CanvasDocument }[];
+  }, [row.rateBuildupSnapshots]);
 
-  const snapshotLabel = parsedSnapshot?.label ?? (hasRateBuildup ? "Buildup" : null);
-  const snapshotCanvasDoc = useMemo(
-    () => parsedSnapshot ? snapshotToCanvasDoc(parsedSnapshot) : null,
-    [parsedSnapshot]
-  );
+  const hasRateBuildup = parsedSnapshots.length > 0;
 
-  // Local state for snapshot inputs — reset when switching rows
-  const [snapParams, setSnapParams] = useState<Record<string, number>>(() => parsedSnapshot?.params ?? {});
-  const [snapTables, setSnapTables] = useState<Record<string, RateEntry[]>>(() => parsedSnapshot?.tables ?? {});
-  const [snapControllers, setSnapControllers] = useState<Record<string, number | boolean | string[]>>(
-    () => parsedSnapshot?.controllers ?? {}
+  // Per-snapshot local state — reset when switching rows
+  const [snapshotStates, setSnapshotStates] = useState<SnapshotLocalState[]>(() =>
+    parsedSnapshots.map((s) => ({
+      params: s.snapshot.params ?? {},
+      tables: s.snapshot.tables ?? {},
+      controllers: s.snapshot.controllers ?? {},
+      paramNotes: s.snapshot.paramNotes ?? {},
+      outputs: s.snapshot.outputs ?? {},
+    }))
   );
-  const [snapParamNotes, setSnapParamNotes] = useState<Record<string, string>>(
-    () => parsedSnapshot?.paramNotes ?? {}
+  const [snapResults, setSnapResults] = useState<({ unitPrice: number; breakdown: { id: string; label: string; value: number }[] } | null)[]>(
+    () => parsedSnapshots.map((s) => {
+      try {
+        const { result } = evaluateCanvasDoc(
+          s.doc, s.snapshot.params ?? {}, s.snapshot.tables ?? {},
+          s.snapshot.controllers ?? {}, row.quantity ?? 1, row.unit ?? undefined
+        );
+        return { unitPrice: result.unitPrice, breakdown: result.breakdown };
+      } catch { return null; }
+    })
   );
-  const [snapOutputs, setSnapOutputs] = useState<Record<string, { materialId?: string; crewKindId?: string }>>(
-    () => parsedSnapshot?.outputs ?? {}
-  );
-  const [snapResult, setSnapResult] = useState<{ unitPrice: number; breakdown: { id: string; label: string; value: number }[] } | null>(null);
-  const [buildupExpanded, setBuildupExpanded] = useState(true);
+  const [buildupExpanded, setBuildupExpanded] = useState<boolean[]>(() => parsedSnapshots.map(() => true));
   const [extraUnitPrice, setExtraUnitPrice] = useState(row.extraUnitPrice != null ? String(row.extraUnitPrice) : "");
   const [extraUnitPriceMemo, setExtraUnitPriceMemo] = useState(row.extraUnitPriceMemo ?? "");
 
+  // Full reset when switching rows
   useEffect(() => {
-    setSnapParams(parsedSnapshot?.params ?? {});
-    setSnapTables(parsedSnapshot?.tables ?? {});
-    setSnapControllers(parsedSnapshot?.controllers ?? {});
-    setSnapParamNotes(parsedSnapshot?.paramNotes ?? {});
-    setSnapOutputs(parsedSnapshot?.outputs ?? {});
-    setSnapResult(null);
-    setBuildupExpanded(true);
+    setSnapshotStates(
+      parsedSnapshots.map((s) => ({
+        params: s.snapshot.params ?? {},
+        tables: s.snapshot.tables ?? {},
+        controllers: s.snapshot.controllers ?? {},
+        paramNotes: s.snapshot.paramNotes ?? {},
+        outputs: s.snapshot.outputs ?? {},
+      }))
+    );
+    setSnapResults(parsedSnapshots.map((s) => {
+      try {
+        const { result } = evaluateCanvasDoc(
+          s.doc, s.snapshot.params ?? {}, s.snapshot.tables ?? {},
+          s.snapshot.controllers ?? {}, row.quantity ?? 1, row.unit ?? undefined
+        );
+        return { unitPrice: result.unitPrice, breakdown: result.breakdown };
+      } catch { return null; }
+    }));
+    setBuildupExpanded(parsedSnapshots.map(() => true));
     setExtraUnitPrice(row.extraUnitPrice != null ? String(row.extraUnitPrice) : "");
     setExtraUnitPriceMemo(row.extraUnitPriceMemo ?? "");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [row._id]);
 
-  // Synchronously compute the correct unit price from the saved snapshot.
+  // Sync state arrays when snapshots are added or removed (same row)
+  useEffect(() => {
+    setSnapshotStates(prev => {
+      if (prev.length === parsedSnapshots.length) return prev;
+      return parsedSnapshots.map((s, i) =>
+        prev[i] ?? {
+          params: s.snapshot.params ?? {},
+          tables: s.snapshot.tables ?? {},
+          controllers: s.snapshot.controllers ?? {},
+          paramNotes: s.snapshot.paramNotes ?? {},
+          outputs: s.snapshot.outputs ?? {},
+        }
+      );
+    });
+    setSnapResults(prev => {
+      if (prev.length === parsedSnapshots.length) return prev;
+      return parsedSnapshots.map((s, i) => prev[i] ?? (() => {
+        try {
+          const { result } = evaluateCanvasDoc(
+            s.doc, s.snapshot.params ?? {}, s.snapshot.tables ?? {},
+            s.snapshot.controllers ?? {}, row.quantity ?? 1, row.unit ?? undefined
+          );
+          return { unitPrice: result.unitPrice, breakdown: result.breakdown };
+        } catch { return null; }
+      })());
+    });
+    setBuildupExpanded(prev =>
+      prev.length === parsedSnapshots.length ? prev : parsedSnapshots.map((_, i) => prev[i] ?? true)
+    );
+  }, [parsedSnapshots.length]);
+
+  // Synchronously compute the correct summed unit price from all saved snapshots.
   // This is the source of truth for display and reconciliation.
   const snapshotUnitPrice = useMemo<number | null>(() => {
-    if (!parsedSnapshot) return null;
-    return computeSnapshotUnitPrice(parsedSnapshot, row.quantity ?? 1, row.unit ?? undefined) || null;
+    if (parsedSnapshots.length === 0) return null;
+    let total = 0;
+    for (const s of parsedSnapshots) {
+      total += computeSnapshotUnitPrice(s.snapshot, row.quantity ?? 1, row.unit ?? undefined);
+    }
+    return total || null;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [parsedSnapshot, row.quantity]);
+  }, [parsedSnapshots, row.quantity, row.unit]);
 
   // Reconcile on open or quantity change: if the stored unitPrice doesn't match what the
-  // snapshot actually computes, save the correct value immediately.
+  // snapshots actually compute, save the correct value immediately.
   useEffect(() => {
     if (snapshotUnitPrice === null) return;
     if (Math.abs(snapshotUnitPrice - (row.unitPrice ?? 0)) > 0.001) {
@@ -263,124 +326,176 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [row._id, row.quantity]);
 
-  // Refs so debounced save always sees latest values
   const quantityRef = useRef(quantity);
   quantityRef.current = quantity;
-  const snapParamsRef = useRef(snapParams);
-  snapParamsRef.current = snapParams;
-  const snapTablesRef = useRef(snapTables);
-  snapTablesRef.current = snapTables;
-  const snapControllersRef = useRef(snapControllers);
-  snapControllersRef.current = snapControllers;
-  const snapParamNotesRef = useRef(snapParamNotes);
-  snapParamNotesRef.current = snapParamNotes;
-  const snapOutputsRef = useRef(snapOutputs);
-  snapOutputsRef.current = snapOutputs;
-  const snapshotRef = useRef(parsedSnapshot);
-  snapshotRef.current = parsedSnapshot;
+  const snapshotStatesRef = useRef(snapshotStates);
+  snapshotStatesRef.current = snapshotStates;
+  const parsedSnapshotsRef = useRef(parsedSnapshots);
+  parsedSnapshotsRef.current = parsedSnapshots;
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+  const rowRef = useRef(row);
+  rowRef.current = row;
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const scheduleSave = useCallback((
-    params: Record<string, number>,
-    tables: Record<string, RateEntry[]>,
-    controllers: Record<string, number | boolean | string[]>,
-    paramNotes: Record<string, string>,
-    outputs: Record<string, { materialId?: string; crewKindId?: string }>
-  ) => {
-    const base = snapshotRef.current;
-    if (!base) return;
-    const updatedSnapshot: RateBuildupSnapshot = {
-      ...base,
-      params,
-      tables,
-      controllers,
-      paramNotes,
-      outputs,
-    };
-    // evaluateSnapshot returns both the unit price and the resolved per-row
-    // output list (materialId + unit + perUnitValue + totalValue) in one pass,
-    // so the row's rateBuildupOutputs stay in lockstep with the unit price.
-    const { unitPrice: freshUP, outputs: freshOutputs } = evaluateSnapshot(
-      updatedSnapshot,
-      parseFloat(quantityRef.current) || 1,
-      row.unit ?? undefined
-    );
+  const scheduleSave = useCallback(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      onUpdate(row._id, {
-        rateBuildupSnapshot: JSON.stringify(updatedSnapshot),
-        unitPrice: freshUP || null,
-        rateBuildupOutputs: freshOutputs,
+      const snaps = parsedSnapshotsRef.current;
+      const states = snapshotStatesRef.current;
+      const currentRow = rowRef.current;
+      if (snaps.length === 0 || !states) return;
+
+      const entries: { snapshot: string; memo: string }[] = [];
+      let totalUP = 0;
+      const allOutputs: any[] = [];
+
+      for (let i = 0; i < snaps.length; i++) {
+        const base = snaps[i].snapshot;
+        const state = states[i];
+        if (!state) continue;
+        const updated: RateBuildupSnapshot = {
+          ...base,
+          params: state.params,
+          tables: state.tables,
+          controllers: state.controllers,
+          paramNotes: state.paramNotes,
+          outputs: state.outputs,
+        };
+        const { unitPrice, outputs } = evaluateSnapshot(
+          updated,
+          parseFloat(quantityRef.current) || 1,
+          currentRow.unit ?? undefined
+        );
+        totalUP += unitPrice;
+        allOutputs.push(...outputs);
+        entries.push({
+          snapshot: JSON.stringify(updated),
+          memo: (currentRow.rateBuildupSnapshots ?? [])[i]?.memo ?? "",
+        });
+      }
+
+      onUpdateRef.current(currentRow._id, {
+        rateBuildupSnapshots: entries,
+        unitPrice: totalUP || null,
+        rateBuildupOutputs: allOutputs,
       });
     }, 500);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [row._id, onUpdate]);
+  }, []);
 
-  const onSnapParamChange = useCallback((id: string, v: number) => {
-    const next = { ...snapParamsRef.current, [id]: v };
-    setSnapParams(next);
-    scheduleSave(next, snapTablesRef.current, snapControllersRef.current, snapParamNotesRef.current, snapOutputsRef.current);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Per-snapshot change handlers — each updates the correct index in snapshotStates
+  const updateSnapshotAndSave = useCallback((index: number, updater: (state: SnapshotLocalState) => SnapshotLocalState) => {
+    setSnapshotStates(prev => {
+      const next = [...prev];
+      next[index] = updater(next[index]);
+      snapshotStatesRef.current = next;
+      return next;
+    });
+    scheduleSave();
   }, [scheduleSave]);
 
-  const onSnapUpdateRow = useCallback((tableId: string, rowId: string, field: keyof RateEntry, value: string | number) => {
-    const next = {
-      ...snapTablesRef.current,
-      [tableId]: (snapTablesRef.current[tableId] ?? []).map((r) => r.id === rowId ? { ...r, [field]: value } : r),
-    };
-    setSnapTables(next);
-    scheduleSave(snapParamsRef.current, next, snapControllersRef.current, snapParamNotesRef.current, snapOutputsRef.current);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scheduleSave]);
+  const makeSnapshotHandlers = useCallback((index: number) => ({
+    onParamChange: (id: string, v: number) => {
+      updateSnapshotAndSave(index, s => ({ ...s, params: { ...s.params, [id]: v } }));
+    },
+    onUpdateRow: (tableId: string, rowId: string, field: keyof RateEntry, value: string | number) => {
+      updateSnapshotAndSave(index, s => ({
+        ...s,
+        tables: { ...s.tables, [tableId]: (s.tables[tableId] ?? []).map(r => r.id === rowId ? { ...r, [field]: value } : r) },
+      }));
+    },
+    onAddRow: (tableId: string) => {
+      updateSnapshotAndSave(index, s => ({
+        ...s,
+        tables: { ...s.tables, [tableId]: [...(s.tables[tableId] ?? []), { id: uuidv4(), name: "", qty: 1, ratePerHour: 0 }] },
+      }));
+    },
+    onRemoveRow: (tableId: string, rowId: string) => {
+      updateSnapshotAndSave(index, s => ({
+        ...s,
+        tables: { ...s.tables, [tableId]: (s.tables[tableId] ?? []).filter(r => r.id !== rowId) },
+      }));
+    },
+    onControllerChange: (id: string, v: number | boolean | string[]) => {
+      updateSnapshotAndSave(index, s => ({ ...s, controllers: { ...s.controllers, [id]: v } }));
+    },
+    onParamNoteChange: (paramId: string, note: string) => {
+      updateSnapshotAndSave(index, s => ({ ...s, paramNotes: { ...s.paramNotes, [paramId]: note } }));
+    },
+    onOutputChange: (outputId: string, selection: { materialId?: string; crewKindId?: string }) => {
+      updateSnapshotAndSave(index, s => ({ ...s, outputs: { ...s.outputs, [outputId]: selection } }));
+    },
+  }), [updateSnapshotAndSave]);
 
-  const onSnapAddRow = useCallback((tableId: string) => {
-    const next = {
-      ...snapTablesRef.current,
-      [tableId]: [...(snapTablesRef.current[tableId] ?? []), { id: uuidv4(), name: "", qty: 1, ratePerHour: 0 }],
-    };
-    setSnapTables(next);
-    scheduleSave(snapParamsRef.current, next, snapControllersRef.current, snapParamNotesRef.current, snapOutputsRef.current);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scheduleSave]);
+  // Remove a snapshot at a given index
+  const removeSnapshot = useCallback((index: number) => {
+    const updated = (row.rateBuildupSnapshots ?? [])
+      .filter((_, i) => i !== index)
+      .map(e => ({ snapshot: e.snapshot, memo: e.memo ?? "" }));
 
-  const onSnapRemoveRow = useCallback((tableId: string, rowId: string) => {
-    const next = {
-      ...snapTablesRef.current,
-      [tableId]: (snapTablesRef.current[tableId] ?? []).filter((r) => r.id !== rowId),
-    };
-    setSnapTables(next);
-    scheduleSave(snapParamsRef.current, next, snapControllersRef.current, snapParamNotesRef.current, snapOutputsRef.current);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scheduleSave]);
+    let totalUP = 0;
+    const allOutputs: any[] = [];
+    for (const entry of updated) {
+      try {
+        const snap = JSON.parse(entry.snapshot) as RateBuildupSnapshot;
+        const { unitPrice, outputs } = evaluateSnapshot(snap, row.quantity ?? 1, row.unit ?? undefined);
+        totalUP += unitPrice;
+        allOutputs.push(...outputs);
+      } catch {}
+    }
 
-  const onSnapControllerChange = useCallback((id: string, v: number | boolean | string[]) => {
-    const next = { ...snapControllersRef.current, [id]: v };
-    setSnapControllers(next);
-    scheduleSave(snapParamsRef.current, snapTablesRef.current, next, snapParamNotesRef.current, snapOutputsRef.current);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scheduleSave]);
+    onUpdate(row._id, {
+      rateBuildupSnapshots: updated,
+      unitPrice: updated.length > 0 ? (totalUP || null) : null,
+      rateBuildupOutputs: updated.length > 0 ? allOutputs : null,
+    });
+  }, [row._id, row.rateBuildupSnapshots, row.quantity, row.unit, onUpdate]);
 
-  const onSnapParamNoteChange = useCallback((paramId: string, note: string) => {
-    const next = { ...snapParamNotesRef.current, [paramId]: note };
-    setSnapParamNotes(next);
-    scheduleSave(snapParamsRef.current, snapTablesRef.current, snapControllersRef.current, next, snapOutputsRef.current);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scheduleSave]);
+  // Update memo for a specific snapshot
+  const updateMemo = useCallback((index: number, memo: string) => {
+    const updated = (row.rateBuildupSnapshots ?? []).map((e, i) =>
+      i === index ? { snapshot: e.snapshot, memo } : { snapshot: e.snapshot, memo: e.memo ?? "" }
+    );
+    onUpdate(row._id, { rateBuildupSnapshots: updated });
+  }, [row._id, row.rateBuildupSnapshots, onUpdate]);
 
-  const onSnapOutputChange = useCallback((
-    outputId: string,
-    selection: { materialId?: string; crewKindId?: string }
-  ) => {
-    const next = { ...snapOutputsRef.current, [outputId]: selection };
-    setSnapOutputs(next);
-    scheduleSave(snapParamsRef.current, snapTablesRef.current, snapControllersRef.current, snapParamNotesRef.current, next);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scheduleSave]);
+  const attachTemplate = useCallback((templateDoc: CanvasDocument) => {
+    const snapshot = snapshotFromTemplate(templateDoc);
+    const { unitPrice: newUP, outputs: newOutputs } = evaluateSnapshot(
+      snapshot, row.quantity ?? 1, row.unit ?? templateDoc.defaultUnit ?? undefined
+    );
+    const newEntry = { snapshot: JSON.stringify(snapshot), memo: "" };
+    const existing = (row.rateBuildupSnapshots ?? []).map(e => ({ snapshot: e.snapshot, memo: e.memo ?? "" }));
+    const updatedEntries = [...existing, newEntry];
+
+    let totalUP = newUP;
+    const allOutputs = [...newOutputs];
+    for (const s of parsedSnapshots) {
+      const { unitPrice, outputs } = evaluateSnapshot(s.snapshot, row.quantity ?? 1, row.unit ?? undefined);
+      totalUP += unitPrice;
+      allOutputs.push(...outputs);
+    }
+
+    onUpdate(row._id, {
+      rateBuildupSnapshots: updatedEntries,
+      unit: row.unit || templateDoc.defaultUnit || null,
+      unitPrice: totalUP || null,
+      rateBuildupOutputs: allOutputs,
+    });
+  }, [row._id, row.quantity, row.unit, row.rateBuildupSnapshots, parsedSnapshots, onUpdate]);
+
+  // Sum unit prices from all snapResults (when computed), else fall back to snapshotUnitPrice
+  const snapResultSum = useMemo(() => {
+    if (snapResults.some(r => r != null)) {
+      return snapResults.reduce((sum, r) => sum + (r?.unitPrice ?? 0), 0);
+    }
+    return null;
+  }, [snapResults]);
 
   const previewRow: TenderPricingRow = {
     ...row,
-    unitPrice: hasRateBuildup ? (snapResult?.unitPrice ?? snapshotUnitPrice ?? row.unitPrice) : (parseFloat(unitPrice) || null),
+    unitPrice: hasRateBuildup ? (snapResultSum ?? snapshotUnitPrice ?? row.unitPrice) : (parseFloat(unitPrice) || null),
     quantity: parseFloat(quantity) || null,
     markupOverride: (() => {
       const t = markup.trim();
@@ -514,26 +629,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
             <Text fontSize="xs" color="blue.500" mb={3}>
               Build your unit price from crew rates, equipment, materials, and production rates
             </Text>
-            <AttachTemplateButton
-              rowUnit={row.unit}
-              onAttach={(templateDoc) => {
-                const snapshot = snapshotFromTemplate(templateDoc);
-                // Capture outputs at attach time using the seeded snapshot
-                // (templates may have defaultMaterialId, so demands can be
-                // non-empty from the first render).
-                const { unitPrice, outputs } = evaluateSnapshot(
-                  snapshot,
-                  row.quantity ?? 1,
-                  row.unit ?? templateDoc.defaultUnit ?? undefined
-                );
-                onUpdate(row._id, {
-                  rateBuildupSnapshot: JSON.stringify(snapshot),
-                  unit: row.unit || templateDoc.defaultUnit || null,
-                  unitPrice: unitPrice || null,
-                  rateBuildupOutputs: outputs,
-                });
-              }}
-            />
+            <AttachTemplateButton rowUnit={row.unit} onAttach={attachTemplate} />
             <Text fontSize="10px" color="gray.400" mt={3}>
               or enter a unit price manually below
             </Text>
@@ -624,7 +720,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
                   onChange={(e) => setQuantity(e.target.value)}
                   onBlur={() => {
                     commitNum("quantity", quantity);
-                    scheduleSave(snapParamsRef.current, snapTablesRef.current, snapControllersRef.current, snapParamNotesRef.current, snapOutputsRef.current);
+                    scheduleSave();
                   }}
                   placeholder="—"
                   bg="white"
@@ -715,78 +811,43 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
         </Grid>
         </Box>{/* end details Box */}
 
-        {/* ── Rate Buildup (below details) ── */}
+        {/* ── Rate Buildups (below details) ── */}
         <Box borderTop="1px solid" borderColor="gray.100">
           {hasRateBuildup ? (
             <Box>
-              {/* Sticky buildup header */}
-              <Box
-                position="sticky" top={0} zIndex={2}
-                mx={-5} px={5}
+              {/* Section header with Attach button */}
+              <Flex
+                align="center" justify="space-between"
+                position="sticky" top={0} zIndex={3}
+                mx={-5} px={5} py={2}
                 bg="white"
                 borderBottom="1px solid" borderColor="gray.100"
                 boxShadow="0 2px 8px rgba(0,0,0,0.05)"
               >
-                {/* Row 1: clickable toggle area + action buttons */}
-                <Flex align="center" gap={0}>
-                  {/* Clickable toggle — left side */}
-                  <Flex
-                    align="center" gap={2.5} flex={1} minW={0}
-                    py={2.5} pr={2}
-                    cursor="pointer"
-                    role="button"
-                    onClick={() => setBuildupExpanded((e) => !e)}
-                    sx={{ "&:hover .buildup-chevron": { color: "gray.700" } }}
-                  >
-                    <Flex
-                      className="buildup-chevron"
-                      align="center" justify="center"
-                      w="20px" h="20px"
-                      rounded="md"
-                      bg={buildupExpanded ? "orange.100" : "gray.100"}
-                      color={buildupExpanded ? "orange.600" : "gray.400"}
-                      flexShrink={0}
-                      transition="all 0.15s"
-                    >
-                      {buildupExpanded ? <FiChevronUp size={12} /> : <FiChevronDown size={12} />}
-                    </Flex>
-                    <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide" flexShrink={0} pl={2}>
-                      Rate Buildup
-                    </Text>
-                    <Text fontSize="sm" fontWeight="medium" color="gray.700" noOfLines={1} flex={1} pl={2}>
-                      {snapshotLabel}
-                    </Text>
-                    <Text fontSize="xs" color={buildupExpanded ? "orange.500" : "gray.400"} flexShrink={0} mr={1}>
-                      {buildupExpanded ? "collapse" : "expand"}
-                    </Text>
-                  </Flex>
-                  {/* Action buttons — right side, don't trigger toggle */}
-                  <Flex align="center" gap={0.5} flexShrink={0}>
-                    <IconButton
-                      aria-label="Edit buildup"
-                      icon={<FiEdit2 size={12} />}
-                      size="xs" variant="ghost"
-                      color="gray.400" _hover={{ color: "orange.500", bg: "orange.50" }}
-                      onClick={() => {
-                        const q = parseFloat(quantity);
-                        const qs = !isNaN(q) && q > 0 ? `?quantity=${q}` : "";
-                        const us = row.unit ? `${qs ? "&" : "?"}unit=${encodeURIComponent(row.unit)}` : "";
-                        router.push(`/tender/${tenderId}/pricing/row/${row._id}${qs}${us}`);
-                      }}
-                    />
-                    <IconButton
-                      aria-label="Detach buildup"
-                      icon={<FiSlash size={12} />}
-                      size="xs" variant="ghost"
-                      color="gray.400" _hover={{ color: "red.500", bg: "red.50" }}
-                      onClick={() => onUpdate(row._id, { rateBuildupSnapshot: null, unitPrice: null, rateBuildupOutputs: null })}
-                    />
-                  </Flex>
-                </Flex>
-                {/* Row 2: breakdown summary (uses snapResult when computed, else falls back to saved unitPrice) */}
-                {(snapResult || row.unitPrice != null) && (
-                  <Flex gap={0} borderTop="1px solid" borderColor="gray.100">
-                    {snapResult && snapResult.breakdown.map((cat) => (
+                <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wider">
+                  Rate Buildups ({parsedSnapshots.length})
+                </Text>
+                <AttachTemplateButton rowUnit={row.unit} onAttach={attachTemplate} />
+              </Flex>
+
+              {/* Summary bar — sums breakdown values across all snapshots */}
+              {(snapResults.some(r => r != null) || row.unitPrice != null) && (
+                <Flex gap={0} borderBottom="1px solid" borderColor="gray.100" mx={-5} px={5}>
+                  {(() => {
+                    // Merge breakdown categories across all snapResults
+                    const merged = new Map<string, { id: string; label: string; value: number }>();
+                    for (const r of snapResults) {
+                      if (!r) continue;
+                      for (const cat of r.breakdown) {
+                        const existing = merged.get(cat.id);
+                        if (existing) {
+                          existing.value += cat.value;
+                        } else {
+                          merged.set(cat.id, { ...cat });
+                        }
+                      }
+                    }
+                    return Array.from(merged.values()).map((cat) => (
                       <Box key={cat.id} px={3} py={1.5} flex={1} borderRight="1px solid" borderColor="gray.100">
                         <Text fontSize="9px" fontWeight="medium" color="gray.400" textTransform="uppercase" letterSpacing="wide">
                           {cat.label}
@@ -795,53 +856,145 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
                           ${cat.value.toFixed(2)}
                         </Text>
                       </Box>
-                    ))}
-                    {(row.extraUnitPrice ?? 0) !== 0 && (
-                      <Box px={3} py={1.5} borderRight="1px solid" borderColor="gray.100">
-                        <Text fontSize="9px" fontWeight="medium" color="gray.400" textTransform="uppercase" letterSpacing="wide">
-                          {row.extraUnitPriceMemo || "Extra"}
-                        </Text>
-                        <Text fontSize="xs" fontWeight="semibold" color="gray.600">
-                          +${(row.extraUnitPrice ?? 0).toFixed(2)}
-                        </Text>
-                      </Box>
-                    )}
-                    <Box px={3} py={1.5} minW="80px" bg="orange.50" ml="auto">
-                      <Text fontSize="9px" fontWeight="medium" color="orange.400" textTransform="uppercase" letterSpacing="wide">
-                        Unit Price
+                    ));
+                  })()}
+                  {(row.extraUnitPrice ?? 0) !== 0 && (
+                    <Box px={3} py={1.5} borderRight="1px solid" borderColor="gray.100">
+                      <Text fontSize="9px" fontWeight="medium" color="gray.400" textTransform="uppercase" letterSpacing="wide">
+                        {row.extraUnitPriceMemo || "Extra"}
                       </Text>
-                      <Text data-testid="buildup-unit-price" fontSize="xs" fontWeight="bold" color="orange.700">
-                        ${((snapResult?.unitPrice ?? row.unitPrice ?? 0) + (row.extraUnitPrice ?? 0)).toFixed(2)}
+                      <Text fontSize="xs" fontWeight="semibold" color="gray.600">
+                        +${(row.extraUnitPrice ?? 0).toFixed(2)}
                       </Text>
                     </Box>
-                  </Flex>
-                )}
-              </Box>
-
-              {/* Params — always mounted so onResult fires; hidden when collapsed */}
-              {snapshotCanvasDoc && (
-                <Box pt={5} pb={6} display={buildupExpanded ? "block" : "none"}>
-                  <RateBuildupInputs
-                    doc={snapshotCanvasDoc}
-                    params={snapParams}
-                    tables={snapTables}
-                    controllers={snapControllers}
-                    quantity={parseFloat(quantity) || 1}
-                    onParamChange={onSnapParamChange}
-                    onUpdateRow={onSnapUpdateRow}
-                    onAddRow={onSnapAddRow}
-                    onRemoveRow={onSnapRemoveRow}
-                    onControllerChange={onSnapControllerChange}
-                    paramNotes={snapParamNotes}
-                    onParamNoteChange={onSnapParamNoteChange}
-                    outputs={snapOutputs}
-                    onOutputChange={onSnapOutputChange}
-                    columns={2}
-                    onResult={setSnapResult}
-                    unit={row.unit ?? undefined}
-                  />
-                </Box>
+                  )}
+                  <Box px={3} py={1.5} minW="80px" bg="orange.50" ml="auto">
+                    <Text fontSize="9px" fontWeight="medium" color="orange.400" textTransform="uppercase" letterSpacing="wide">
+                      Unit Price
+                    </Text>
+                    <Text data-testid="buildup-unit-price" fontSize="xs" fontWeight="bold" color="orange.700">
+                      ${((snapResultSum ?? row.unitPrice ?? 0) + (row.extraUnitPrice ?? 0)).toFixed(2)}
+                    </Text>
+                  </Box>
+                </Flex>
               )}
+
+              {/* Per-snapshot cards */}
+              {parsedSnapshots.map((ps, index) => {
+                const expanded = buildupExpanded[index] ?? true;
+                const state = snapshotStates[index];
+                const handlers = makeSnapshotHandlers(index);
+                const label = ps.snapshot.label ?? "Buildup";
+                const thisSnapUP = snapResults[index]?.unitPrice ??
+                  computeSnapshotUnitPrice(ps.snapshot, row.quantity ?? 1, row.unit ?? undefined);
+
+                return (
+                  <Box key={`${ps.snapshot.sourceTemplateId ?? ps.snapshot.id}-${index}`} borderBottom="1px solid" borderColor="gray.100">
+                    {/* Collapsible header */}
+                    <Flex align="center" gap={0}>
+                      <Flex
+                        align="center" gap={2} flex={1} minW={0}
+                        py={2} px={1} pr={2}
+                        cursor="pointer"
+                        role="button"
+                        onClick={() => setBuildupExpanded(prev => {
+                          const next = [...prev];
+                          next[index] = !next[index];
+                          return next;
+                        })}
+                        sx={{ "&:hover .snap-chevron": { color: "gray.700" } }}
+                      >
+                        <Flex
+                          className="snap-chevron"
+                          align="center" justify="center"
+                          w="18px" h="18px"
+                          rounded="md"
+                          bg={expanded ? "orange.100" : "gray.100"}
+                          color={expanded ? "orange.600" : "gray.400"}
+                          flexShrink={0}
+                          transition="all 0.15s"
+                        >
+                          {expanded ? <FiChevronUp size={11} /> : <FiChevronDown size={11} />}
+                        </Flex>
+                        <Text fontSize="sm" fontWeight="medium" color="gray.700" noOfLines={1} flex={1}>
+                          {label}
+                        </Text>
+                        <Input
+                          size="xs"
+                          w="120px"
+                          defaultValue={ps.memo}
+                          placeholder="memo..."
+                          onClick={(e) => e.stopPropagation()}
+                          onBlur={(e) => updateMemo(index, e.target.value)}
+                          bg="gray.50"
+                          borderColor="gray.200"
+                          fontSize="xs"
+                          _focus={{ bg: "white", borderColor: "orange.400", boxShadow: "0 0 0 1px #fb923c" }}
+                          flexShrink={0}
+                        />
+                        <Text fontSize="xs" fontWeight="semibold" color="orange.600" flexShrink={0} ml={2}>
+                          ${thisSnapUP.toFixed(2)}
+                        </Text>
+                      </Flex>
+                      {/* Action buttons */}
+                      <Flex align="center" gap={0.5} flexShrink={0} pr={1}>
+                        <IconButton
+                          aria-label="Edit buildup"
+                          icon={<FiEdit2 size={11} />}
+                          size="xs" variant="ghost"
+                          color="gray.400" _hover={{ color: "orange.500", bg: "orange.50" }}
+                          onClick={() => {
+                            const q = parseFloat(quantity);
+                            const qs = !isNaN(q) && q > 0 ? `?quantity=${q}` : "";
+                            const si = `${qs ? "&" : "?"}snapshotIndex=${index}`;
+                            const us = row.unit ? `&unit=${encodeURIComponent(row.unit)}` : "";
+                            router.push(`/tender/${tenderId}/pricing/row/${row._id}${qs}${si}${us}`);
+                          }}
+                        />
+                        <IconButton
+                          aria-label="Remove buildup"
+                          icon={<FiTrash2 size={11} />}
+                          size="xs" variant="ghost"
+                          color="gray.400" _hover={{ color: "red.500", bg: "red.50" }}
+                          onClick={() => removeSnapshot(index)}
+                        />
+                      </Flex>
+                    </Flex>
+
+                    {/* Expanded: RateBuildupInputs */}
+                    {state && (
+                      <Box pt={3} pb={4} px={3} mx={1} mb={2} display={expanded ? "block" : "none"}
+                        bg="gray.50" rounded="md" border="1px solid" borderColor="gray.100">
+                        <RateBuildupInputs
+                          doc={ps.doc}
+                          params={state.params}
+                          tables={state.tables}
+                          controllers={state.controllers}
+                          quantity={parseFloat(quantity) || 1}
+                          onParamChange={handlers.onParamChange}
+                          onUpdateRow={handlers.onUpdateRow}
+                          onAddRow={handlers.onAddRow}
+                          onRemoveRow={handlers.onRemoveRow}
+                          onControllerChange={handlers.onControllerChange}
+                          paramNotes={state.paramNotes}
+                          onParamNoteChange={handlers.onParamNoteChange}
+                          outputs={state.outputs}
+                          onOutputChange={handlers.onOutputChange}
+                          columns={2}
+                          onResult={(result) => {
+                            setSnapResults(prev => {
+                              const next = [...prev];
+                              next[index] = result;
+                              return next;
+                            });
+                          }}
+                          unit={row.unit ?? undefined}
+                        />
+                      </Box>
+                    )}
+                  </Box>
+                );
+              })}
 
               {/* Extra unit price */}
               <Box borderTop="1px solid" borderColor="gray.100" px={1} pt={4} pb={5}>

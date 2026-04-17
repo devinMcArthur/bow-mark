@@ -8,6 +8,7 @@ export const TRACKED_ROW_FIELDS: string[] = [
   "unitPrice",
   "markupOverride",
   "rateBuildupSnapshot",
+  "rateBuildupSnapshots",
   "extraUnitPrice",
   "extraUnitPriceMemo",
   "description",

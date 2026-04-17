@@ -58,7 +58,10 @@ const SHEET_QUERY = gql`
         unitPrice
         notes
         markupOverride
-        rateBuildupSnapshot
+        rateBuildupSnapshots {
+          snapshot
+          memo
+        }
         rateBuildupOutputs {
           kind
           materialId
@@ -162,7 +165,10 @@ const CREATE_SHEET = gql`
         unitPrice
         notes
         markupOverride
-        rateBuildupSnapshot
+        rateBuildupSnapshots {
+          snapshot
+          memo
+        }
         rateBuildupOutputs {
           kind
           materialId

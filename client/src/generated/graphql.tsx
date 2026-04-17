@@ -2864,6 +2864,17 @@ export type RateBuildupRateEntryInput = {
   ratePerHour: Scalars['Float'];
 };
 
+export type RateBuildupSnapshotEntryClass = {
+  __typename?: 'RateBuildupSnapshotEntryClass';
+  memo?: Maybe<Scalars['String']>;
+  snapshot: Scalars['String'];
+};
+
+export type RateBuildupSnapshotEntryInput = {
+  memo?: InputMaybe<Scalars['String']>;
+  snapshot: Scalars['String'];
+};
+
 export type RateBuildupTableDef = {
   __typename?: 'RateBuildupTableDef';
   defaultRows: Array<RateBuildupRateEntry>;
@@ -3156,6 +3167,7 @@ export type TenderPricingRowClass = {
   quantity?: Maybe<Scalars['Float']>;
   rateBuildupOutputs?: Maybe<Array<RateBuildupOutputClass>>;
   rateBuildupSnapshot?: Maybe<Scalars['String']>;
+  rateBuildupSnapshots: Array<RateBuildupSnapshotEntryClass>;
   sortOrder: Scalars['Float'];
   status?: Maybe<Scalars['String']>;
   type: TenderPricingRowType;
@@ -3194,6 +3206,7 @@ export type TenderPricingRowUpdateData = {
   quantity?: InputMaybe<Scalars['Float']>;
   rateBuildupOutputs?: InputMaybe<Array<RateBuildupOutputInput>>;
   rateBuildupSnapshot?: InputMaybe<Scalars['String']>;
+  rateBuildupSnapshots?: InputMaybe<Array<RateBuildupSnapshotEntryInput>>;
   status?: InputMaybe<Scalars['String']>;
   unit?: InputMaybe<Scalars['String']>;
   unitPrice?: InputMaybe<Scalars['Float']>;

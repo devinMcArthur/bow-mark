@@ -59,6 +59,17 @@ export class DocRefClass {
 }
 
 @ObjectType()
+export class RateBuildupSnapshotEntryClass {
+  @Field()
+  @prop({ required: true })
+  public snapshot!: string;
+
+  @Field({ nullable: true })
+  @prop({ trim: true })
+  public memo?: string;
+}
+
+@ObjectType()
 export class TenderPricingRowClass {
   @Field(() => ID)
   public _id!: Types.ObjectId;
@@ -111,6 +122,10 @@ export class TenderPricingRowClass {
   @Field({ nullable: true })
   @prop({ trim: true })
   public rateBuildupSnapshot?: string;
+
+  @Field(() => [RateBuildupSnapshotEntryClass])
+  @prop({ type: () => [RateBuildupSnapshotEntryClass], _id: false, default: [] })
+  public rateBuildupSnapshots!: RateBuildupSnapshotEntryClass[];
 
   @Field(() => [RateBuildupOutputClass], { nullable: true })
   @prop({ type: () => [RateBuildupOutputClass], default: undefined })

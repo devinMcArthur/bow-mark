@@ -35,7 +35,7 @@ const GRAPHQL_URL = "http://localhost:4001/graphql";
 // ── State reset — login + seeded row cache ───────────────────────────────────
 
 let authToken: string;
-let seedSnapshotJson: string;
+let seedSnapshots: { snapshot: string; memo?: string }[];
 let seedOutputs: any[];
 let seedUnit: string;
 let seedQuantity: number;
@@ -76,7 +76,10 @@ async function captureSeedRowState(request: APIRequestContext) {
               quantity
               unit
               unitPrice
-              rateBuildupSnapshot
+              rateBuildupSnapshots {
+                snapshot
+                memo
+              }
               rateBuildupOutputs {
                 kind
                 materialId
@@ -96,7 +99,10 @@ async function captureSeedRowState(request: APIRequestContext) {
   if (body.errors) throw new Error(`Seed capture failed: ${JSON.stringify(body.errors)}`);
   const row = body.data.tenderPricingSheet.rows.find((r: any) => r._id === ROW_ID);
   if (!row) throw new Error(`Seeded row ${ROW_ID} not found`);
-  seedSnapshotJson = row.rateBuildupSnapshot;
+  seedSnapshots = (row.rateBuildupSnapshots ?? []).map((e: any) => {
+    const { __typename, ...rest } = e;
+    return rest;
+  });
   seedOutputs = (row.rateBuildupOutputs ?? []).map((o: any) => {
     // Strip Apollo's __typename before sending back as mutation input
     const { __typename, ...rest } = o;
@@ -128,7 +134,7 @@ async function resetRowState(request: APIRequestContext) {
           quantity: seedQuantity,
           unit: seedUnit,
           unitPrice: seedUnitPrice,
-          rateBuildupSnapshot: seedSnapshotJson,
+          rateBuildupSnapshots: seedSnapshots,
           rateBuildupOutputs: seedOutputs,
         },
       },
