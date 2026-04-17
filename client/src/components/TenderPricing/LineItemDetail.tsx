@@ -339,41 +339,43 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const scheduleSave = useCallback((updatedStates: SnapshotLocalState[]) => {
-    const snaps = parsedSnapshotsRef.current;
-    if (snaps.length === 0 || !updatedStates) return;
-    const entries: { snapshot: string; memo: string }[] = [];
-    let totalUP = 0;
-    const allOutputs: any[] = [];
-    const currentRow = rowRef.current;
-
-    for (let i = 0; i < snaps.length; i++) {
-      const base = snaps[i].snapshot;
-      const state = updatedStates[i];
-      if (!state) continue;
-      const updated: RateBuildupSnapshot = {
-        ...base,
-        params: state.params,
-        tables: state.tables,
-        controllers: state.controllers,
-        paramNotes: state.paramNotes,
-        outputs: state.outputs,
-      };
-      const { unitPrice, outputs } = evaluateSnapshot(
-        updated,
-        parseFloat(quantityRef.current) || 1,
-        currentRow.unit ?? undefined
-      );
-      totalUP += unitPrice;
-      allOutputs.push(...outputs);
-      entries.push({
-        snapshot: JSON.stringify(updated),
-        memo: (currentRow.rateBuildupSnapshots ?? [])[i]?.memo ?? "",
-      });
-    }
-
+  const scheduleSave = useCallback(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
+      const snaps = parsedSnapshotsRef.current;
+      const states = snapshotStatesRef.current;
+      const currentRow = rowRef.current;
+      if (snaps.length === 0 || !states) return;
+
+      const entries: { snapshot: string; memo: string }[] = [];
+      let totalUP = 0;
+      const allOutputs: any[] = [];
+
+      for (let i = 0; i < snaps.length; i++) {
+        const base = snaps[i].snapshot;
+        const state = states[i];
+        if (!state) continue;
+        const updated: RateBuildupSnapshot = {
+          ...base,
+          params: state.params,
+          tables: state.tables,
+          controllers: state.controllers,
+          paramNotes: state.paramNotes,
+          outputs: state.outputs,
+        };
+        const { unitPrice, outputs } = evaluateSnapshot(
+          updated,
+          parseFloat(quantityRef.current) || 1,
+          currentRow.unit ?? undefined
+        );
+        totalUP += unitPrice;
+        allOutputs.push(...outputs);
+        entries.push({
+          snapshot: JSON.stringify(updated),
+          memo: (currentRow.rateBuildupSnapshots ?? [])[i]?.memo ?? "",
+        });
+      }
+
       onUpdateRef.current(currentRow._id, {
         rateBuildupSnapshots: entries,
         unitPrice: totalUP || null,
@@ -390,7 +392,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
       snapshotStatesRef.current = next;
       return next;
     });
-    scheduleSave(snapshotStatesRef.current);
+    scheduleSave();
   }, [scheduleSave]);
 
   const makeSnapshotHandlers = useCallback((index: number) => ({
@@ -718,7 +720,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
                   onChange={(e) => setQuantity(e.target.value)}
                   onBlur={() => {
                     commitNum("quantity", quantity);
-                    scheduleSave(snapshotStates);
+                    scheduleSave();
                   }}
                   placeholder="—"
                   bg="white"
