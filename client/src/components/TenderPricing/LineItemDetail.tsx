@@ -902,7 +902,8 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
 
                     {/* Expanded: RateBuildupInputs */}
                     {state && (
-                      <Box pt={3} pb={4} px={1} display={expanded ? "block" : "none"}>
+                      <Box pt={3} pb={4} px={3} mx={1} mb={2} display={expanded ? "block" : "none"}
+                        bg="gray.50" rounded="md" border="1px solid" borderColor="gray.100">
                         <RateBuildupInputs
                           doc={ps.doc}
                           params={state.params}
