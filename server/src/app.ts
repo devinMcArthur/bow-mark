@@ -83,9 +83,14 @@ import { logger } from "@logger";
 import { User, UserDocument, Conversation } from "@models";
 import pubsub from "@pubsub";
 import authChecker from "@utils/authChecker";
+import { requestContextMiddleware } from "@middleware/requestContext";
 
 const createApp = async () => {
   const app = express();
+
+  // Must come first: stamps trace context on every request so downstream
+  // middleware, resolvers, and mutations can emit correlated events.
+  app.use(requestContextMiddleware);
 
   app.use(cors());
 
