@@ -97,6 +97,16 @@ export default function MyApolloProvider({
             },
           },
         },
+        // Embedded subdocs on RateBuildupTemplate have an `id` field that is
+        // only unique within a single template, not globally. Without this,
+        // Apollo merges objects with the same __typename:id across templates.
+        RateBuildupGroupDef: { keyFields: false },
+        RateBuildupControllerDef: { keyFields: false },
+        RateBuildupParameterDef: { keyFields: false },
+        RateBuildupTableDef: { keyFields: false },
+        RateBuildupFormulaStep: { keyFields: false },
+        RateBuildupBreakdownDef: { keyFields: false },
+        RateBuildupOutputDef: { keyFields: false },
       },
     }),
     connectToDevTools: true,
