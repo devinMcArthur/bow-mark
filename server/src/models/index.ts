@@ -3,6 +3,7 @@ export * from "./Company";
 export * from "./Crew";
 export * from "./CrewKind";
 export * from "./DailyReport";
+export * from "./DomainEvent";
 export * from "./Employee";
 export * from "./EmployeeWork";
 export * from "./File";
@@ -118,6 +119,34 @@ export type DailyReportModel = ReturnModelType<typeof DailyReportClass>;
 export const DailyReport = getModelForClass(DailyReportClass, {
   schemaOptions: { collection: "dailyreports" },
 });
+
+/**
+ * ----- Domain Event -----
+ */
+
+import { DomainEventSchema as DomainEventClass } from "./DomainEvent/schema";
+
+export type DomainEventDocument = DocumentType<DomainEventClass>;
+
+export type DomainEventModel = ReturnModelType<typeof DomainEventClass>;
+
+export const DomainEvent = getModelForClass(DomainEventClass, {
+  schemaOptions: {
+    collection: "domainevents",
+    versionKey: false,
+    timestamps: false,
+  },
+});
+
+// Indexes for DomainEvent. Typegoose doesn't expose schema-level compound
+// indexes via decorators, so we grab the schema and add them post-model-creation.
+DomainEvent.schema.index({ entityType: 1, entityId: 1, at: -1 });
+DomainEvent.schema.index({ "relatedEntities.entityId": 1, at: -1 });
+DomainEvent.schema.index({ actorId: 1, at: -1 });
+DomainEvent.schema.index({ sessionId: 1, at: 1 });
+DomainEvent.schema.index({ type: 1, at: -1 });
+DomainEvent.schema.index({ at: -1 });
+DomainEvent.schema.index({ idempotencyKey: 1 }, { sparse: true, unique: true });
 
 /**
  * ----- Employee Work -----
