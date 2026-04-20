@@ -8,8 +8,11 @@ export class DomainEventPatchOpClass {
   @prop({ required: true, enum: ["add", "remove", "replace"] })
   public op!: "add" | "remove" | "replace";
 
+  // JSON Patch (RFC 6902) path. Empty string is valid (refers to document
+  // root), so we can't use Mongoose's `required: true` which treats "" as
+  // missing. Default to "" so the field is always present on write.
   @Field()
-  @prop({ required: true })
+  @prop({ type: String, default: "" })
   public path!: string;
 
   @Field(() => Object, { nullable: true })

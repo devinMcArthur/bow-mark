@@ -47,22 +47,68 @@ export function watchDomainEvents(
   const close = () => {
     if (closed) return;
     closed = true;
-    stream.close().catch(() => undefined);
+    try {
+      const r = stream.close() as unknown as Promise<unknown> | undefined;
+      if (r && typeof r.catch === "function") r.catch(() => undefined);
+    } catch {
+      // already closed — nothing to do
+    }
   };
 
+  // Mongoose 5 ChangeStream is EventEmitter-based, not AsyncIterable.
+  // Bridge to AsyncIterable via a queue + resolver.
+  const queue: DomainEventDocument[] = [];
+  let resolveNext: ((v: IteratorResult<DomainEventDocument>) => void) | null = null;
+
+  const pushResult = (value: IteratorResult<DomainEventDocument>) => {
+    if (resolveNext) {
+      const r = resolveNext;
+      resolveNext = null;
+      r(value);
+    }
+  };
+
+  stream.on("change", (change: { operationType: string; fullDocument?: DomainEventDocument }) => {
+    if (closed) return;
+    if (change.operationType !== "insert") return;
+    if (!change.fullDocument) return;
+    if (resolveNext) {
+      pushResult({ value: change.fullDocument, done: false });
+    } else {
+      queue.push(change.fullDocument);
+    }
+  });
+  stream.on("error", () => close());
+  stream.on("close", () => {
+    closed = true;
+    pushResult({ value: undefined as unknown as DomainEventDocument, done: true });
+  });
+
   const iterator: AsyncIterable<DomainEventDocument> = {
-    async *[Symbol.asyncIterator]() {
-      try {
-        for await (const change of stream) {
-          if (closed) break;
-          if (change.operationType !== "insert") continue;
-          const doc = (change as unknown as { fullDocument: DomainEventDocument })
-            .fullDocument;
-          yield doc;
-        }
-      } finally {
-        close();
-      }
+    [Symbol.asyncIterator](): AsyncIterator<DomainEventDocument> {
+      return {
+        next(): Promise<IteratorResult<DomainEventDocument>> {
+          if (closed && queue.length === 0) {
+            return Promise.resolve({
+              value: undefined as unknown as DomainEventDocument,
+              done: true,
+            });
+          }
+          if (queue.length > 0) {
+            return Promise.resolve({ value: queue.shift()!, done: false });
+          }
+          return new Promise((resolve) => {
+            resolveNext = resolve;
+          });
+        },
+        return(): Promise<IteratorResult<DomainEventDocument>> {
+          close();
+          return Promise.resolve({
+            value: undefined as unknown as DomainEventDocument,
+            done: true,
+          });
+        },
+      };
     },
   };
 

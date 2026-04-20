@@ -67,12 +67,12 @@ export async function findOneAndUpdateVersioned<T extends Document>(
   });
 
   if (!updated) {
-    let query: any = model.exists(filter);
-    if (options.session) {
-      query = query.session(options.session);
-    }
-    const exists = await query;
-    if (exists) {
+    // Either the doc doesn't exist (caller error) or the version
+    // precondition failed. Disambiguate with a session-aware count.
+    const count = await model
+      .countDocuments(filter)
+      .session(options.session ?? null);
+    if (count > 0) {
       throw new StaleVersionError(model.modelName, filter, options.expectedVersion);
     }
   }
