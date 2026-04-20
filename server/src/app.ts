@@ -35,6 +35,7 @@ import CrewResolver, {
 import CrewKindResolver from "@graphql/resolvers/crewKind";
 import DailyReportResolver from "@graphql/resolvers/dailyReport";
 import DomainEventResolver from "@graphql/resolvers/domainEvent";
+import EntityPresenceResolver from "@graphql/resolvers/entityPresence";
 import EmployeeResolver from "@graphql/resolvers/employee";
 import EmployeeReportResolver from "@graphql/resolvers/employeeReport";
 import EmployeeWorkResolver from "@graphql/resolvers/employeeWork";
@@ -115,6 +116,7 @@ const createApp = async () => {
       CrewLocationResolver,
       DailyReportResolver,
       DomainEventResolver,
+      EntityPresenceResolver,
       EmployeeResolver,
       EmployeeReportResolver,
       EmployeeWorkResolver,
