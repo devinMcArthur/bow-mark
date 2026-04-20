@@ -30,7 +30,7 @@ export function versioned<T extends Document>(schema: Schema<T>): void {
   });
 
   schema.pre("save", function (next) {
-    if (\!this.isNew) {
+    if (!this.isNew) {
       (this as unknown as { version: number }).version += 1;
     }
     next();
@@ -66,8 +66,12 @@ export async function findOneAndUpdateVersioned<T extends Document>(
     session: options.session,
   });
 
-  if (\!updated) {
-    const exists = await model.exists(filter).session(options.session ?? null);
+  if (!updated) {
+    let query: any = model.exists(filter);
+    if (options.session) {
+      query = query.session(options.session);
+    }
+    const exists = await query;
     if (exists) {
       throw new StaleVersionError(model.modelName, filter, options.expectedVersion);
     }
