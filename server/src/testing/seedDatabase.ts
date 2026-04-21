@@ -1,5 +1,6 @@
 import { System } from "@models";
 import clearDatabase from "./clearDatabase";
+import { bootstrapRoots } from "@lib/fileTree/bootstrapRoots";
 import createCompanies, { SeededCompanies } from "./documents/company";
 
 import createCrews, { SeededCrews } from "./documents/crews";
@@ -62,6 +63,11 @@ const seedDatabase = async () => {
 
   // Clear Database
   await clearDatabase();
+
+  // Provision reserved FileNode roots (idempotent). Required by entity
+  // creation paths (Tender/Jobsite/DailyReport) which provision per-entity
+  // roots inside transactions.
+  await bootstrapRoots();
 
   // Create documents
 
