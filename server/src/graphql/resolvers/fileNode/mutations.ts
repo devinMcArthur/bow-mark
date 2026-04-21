@@ -5,6 +5,8 @@ import { FileNodeSchema } from "../../../models/FileNode/schema";
 import { normalizeNodeName } from "@lib/fileTree/reservedRoots";
 import { eventfulMutation } from "@lib/eventfulMutation";
 import { findOneAndUpdateVersioned } from "@lib/entityVersion";
+import { moveNodeCore, reevaluateEnrichmentAfterMove } from "../../../models/FileNode/class/move";
+import { publishEnrichedFileCreated } from "../../../rabbitmq/publisher";
 
 function assertNonEmptyName(raw: string): string {
   const trimmed = raw.trim();
@@ -148,6 +150,36 @@ export default class FileNodeMutationResolver {
       if (!updated) throw new Error("Node not found");
       return { result: updated as unknown as FileNodeSchema, event: null };
     });
+  }
+
+  @Mutation(() => FileNodeSchema)
+  async moveNode(
+    @Arg("id", () => ID) id: string,
+    @Arg("destinationParentId", () => ID) destinationParentId: string,
+    @Arg("expectedVersion", () => Int) expectedVersion: number
+  ): Promise<FileNodeSchema> {
+    if (!mongoose.isValidObjectId(id)) throw new Error("Invalid id");
+    if (!mongoose.isValidObjectId(destinationParentId)) throw new Error("Invalid destinationParentId");
+
+    const { updated, affectedDocumentIds } = await eventfulMutation(async (session) => {
+      const { updated, affectedDocumentIds } = await moveNodeCore({
+        nodeId: new mongoose.Types.ObjectId(id),
+        destinationParentId: new mongoose.Types.ObjectId(destinationParentId),
+        expectedVersion,
+        session,
+      });
+      return {
+        result: { updated, affectedDocumentIds },
+        event: null,
+      };
+    });
+
+    // Side effect — published after commit, NOT inside the transaction.
+    await reevaluateEnrichmentAfterMove(affectedDocumentIds, async (docId, fileId) => {
+      await publishEnrichedFileCreated(docId, fileId);
+    });
+
+    return updated as FileNodeSchema;
   }
 
   @Mutation(() => FileNodeSchema)
