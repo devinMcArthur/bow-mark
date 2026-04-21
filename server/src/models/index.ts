@@ -4,6 +4,7 @@ export * from "./Crew";
 export * from "./CrewKind";
 export * from "./Document";
 export * from "./DailyReport";
+export * from "./Enrichment";
 export * from "./Employee";
 export * from "./EmployeeWork";
 export * from "./File";
@@ -550,3 +551,19 @@ Document.schema.pre("save", function (next) {
   next();
 });
 
+/**
+ * ----- Enrichment -----
+ */
+
+import { EnrichmentSchema as EnrichmentClass } from "./Enrichment/schema";
+
+export type EnrichmentDocument = DocumentType<EnrichmentClass>;
+
+export type EnrichmentModel = ReturnModelType<typeof EnrichmentClass>;
+
+export const Enrichment = getModelForClass(EnrichmentClass, {
+  schemaOptions: { collection: "enrichments", timestamps: true },
+});
+
+Enrichment.schema.index({ documentId: 1 }, { unique: true });
+Enrichment.schema.index({ status: 1, queuedAt: 1 });
