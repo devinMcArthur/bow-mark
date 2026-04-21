@@ -15,6 +15,7 @@ import mongoose from "mongoose";
 import createApp from "./app";
 import { bindEventEmitters } from "@events";
 import { setupTopology } from "./rabbitmq";
+import { bootstrapRoots } from "@lib/fileTree/bootstrapRoots";
 
 let workerEnabled = true,
   apiEnabled = true;
@@ -37,6 +38,9 @@ const main = async () => {
         useFindAndModify: false,
       });
       console.log("MongoDB Connected");
+
+      await bootstrapRoots();
+      console.log("FileNode reserved roots bootstrapped");
     }
 
     // Bind Event Emitters
