@@ -4,6 +4,7 @@ export * from "./Crew";
 export * from "./CrewKind";
 export * from "./Document";
 export * from "./DailyReport";
+export * from "./FileNode";
 export * from "./Enrichment";
 export * from "./Employee";
 export * from "./EmployeeWork";
@@ -567,3 +568,35 @@ export const Enrichment = getModelForClass(EnrichmentClass, {
 
 Enrichment.schema.index({ documentId: 1 }, { unique: true });
 Enrichment.schema.index({ status: 1, queuedAt: 1 });
+
+/**
+ * ----- FileNode -----
+ */
+
+import { FileNodeSchema as FileNodeClass } from "./FileNode/schema";
+
+export type FileNodeDocument = DocumentType<FileNodeClass>;
+
+export type FileNodeModel = ReturnModelType<typeof FileNodeClass>;
+
+export const FileNode = getModelForClass(FileNodeClass, {
+  schemaOptions: { collection: "filenodes", timestamps: false },
+});
+
+FileNode.schema.index(
+  { parentId: 1, normalizedName: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { deletedAt: null },
+  }
+);
+
+FileNode.schema.index({ parentId: 1 });
+FileNode.schema.index({ parentId: 1, type: 1, deletedAt: 1 });
+FileNode.schema.index({ documentId: 1 }, { sparse: true });
+FileNode.schema.index({ deletedAt: 1 }, { sparse: true });
+
+FileNode.schema.pre("save", function (next) {
+  (this as unknown as { updatedAt: Date }).updatedAt = new Date();
+  next();
+});
