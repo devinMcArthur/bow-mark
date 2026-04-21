@@ -40,6 +40,7 @@ import EmployeeResolver from "@graphql/resolvers/employee";
 import EmployeeReportResolver from "@graphql/resolvers/employeeReport";
 import EmployeeWorkResolver from "@graphql/resolvers/employeeWork";
 import EnrichedFileResolver from "@graphql/resolvers/enrichedFile";
+import FileNodeResolver from "@graphql/resolvers/fileNode";
 import FileResolver from "@graphql/resolvers/file";
 import InvoiceResolver from "@graphql/resolvers/invoice";
 import InvoiceReportResolver from "@graphql/resolvers/invoiceReport";
@@ -121,6 +122,7 @@ const createApp = async () => {
       EmployeeReportResolver,
       EmployeeWorkResolver,
       EnrichedFileResolver,
+      FileNodeResolver,
       FileResolver,
       InvoiceResolver,
       InvoiceReportResolver,
