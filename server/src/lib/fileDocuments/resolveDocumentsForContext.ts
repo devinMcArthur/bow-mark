@@ -9,6 +9,7 @@ import {
   Document as DocumentModel,
   Enrichment,
 } from "@models";
+import { UserRoles } from "@typescript/user";
 import type { ResolveContext, ResolvedDocument } from "./types";
 
 /**
@@ -73,7 +74,18 @@ async function readNewShape(ctx: ResolveContext): Promise<ResolvedDocument[]> {
 
   if (descendants.length === 0) return [];
 
-  const docIds = descendants.map((n) => n.documentId as Types.ObjectId);
+  // Role-based filtering for jobsite scope: keep only nodes where minRole is
+  // unset (public) or minRole <= userRole (user has sufficient access).
+  const filteredDescendants =
+    ctx.scope === "jobsite" && ctx.userRole !== undefined
+      ? descendants.filter(
+          (n) => n.minRole == null || n.minRole <= ctx.userRole!
+        )
+      : descendants;
+
+  if (filteredDescendants.length === 0) return [];
+
+  const docIds = filteredDescendants.map((n) => n.documentId as Types.ObjectId);
   const [documents, enrichments] = await Promise.all([
     DocumentModel.find({ _id: { $in: docIds } }).lean(),
     Enrichment.find({ documentId: { $in: docIds } }).lean(),
@@ -108,9 +120,17 @@ async function readOldShape(ctx: ResolveContext): Promise<ResolvedDocument[]> {
     enrichedFileIds = ((tender as any)?.files as Types.ObjectId[]) ?? [];
   } else if (ctx.scope === "jobsite" && ctx.entityId) {
     const jobsite = await Jobsite.findById(ctx.entityId).select("enrichedFiles").lean();
-    enrichedFileIds = (((jobsite as any)?.enrichedFiles as any[]) ?? []).map(
-      (j) => j.enrichedFile as Types.ObjectId
-    );
+    const allEntries = ((jobsite as any)?.enrichedFiles as any[]) ?? [];
+    // Apply role-based filtering: keep entries where minRole <= userRole.
+    // Default minRole to ProjectManager when not set (matches existing convention).
+    const allowedEntries =
+      ctx.userRole !== undefined
+        ? allEntries.filter(
+            (entry: any) =>
+              (entry.minRole ?? UserRoles.ProjectManager) <= ctx.userRole!
+          )
+        : allEntries;
+    enrichedFileIds = allowedEntries.map((j: any) => j.enrichedFile as Types.ObjectId);
   } else if (ctx.scope === "system") {
     const system = await System.getSystem();
     enrichedFileIds = ((system as any)?.specFiles as Types.ObjectId[]) ?? [];

@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Router } from "express";
-import mongoose from "mongoose";
-import { Jobsite, User, System, EnrichedFile } from "@models";
+import mongoose, { Types } from "mongoose";
+import { Jobsite, User } from "@models";
 import { isDocument } from "@typegoose/typegoose";
 import { streamConversation, ToolExecutionResult } from "../lib/streamConversation";
 import { buildFileIndex } from "../lib/buildFileIndex";
@@ -9,6 +9,7 @@ import { UserRoles } from "../typescript/user";
 import { requireAuth } from "../lib/authMiddleware";
 import { connectMcp } from "../lib/mcpClient";
 import { adaptMcpContent, deriveSummary } from "../lib/mcpContentAdapter";
+import { resolveDocumentsForContext } from "../lib/fileDocuments/resolveDocumentsForContext";
 
 const router = Router();
 
@@ -29,9 +30,8 @@ router.post("/message", requireAuth, async (req, res) => {
   }
 
   // ── Load context ──────────────────────────────────────────────────────────
-  const [jobsite, systemDoc, user] = await Promise.all([
+  const [jobsite, user] = await Promise.all([
     Jobsite.findById(jobsiteId).lean(),
-    System.getSystem(),
     User.findById(req.userId).populate("employee"),
   ]);
 
@@ -57,13 +57,10 @@ router.post("/message", requireAuth, async (req, res) => {
   // PM chat: full PM-level document access
   // Default to UserRoles.User (least privilege) when role is unknown
   const userRole = user?.role ?? UserRoles.User;
-  const allEntries = ((jobsite?.enrichedFiles ?? []) as any[]);
-  const allowedEntries = allEntries.filter(
-    (entry: any) => (entry.minRole ?? UserRoles.ProjectManager) <= userRole
-  );
-  const allowedEnrichedFileIds = allowedEntries.map((e: any) => e.enrichedFile);
-  const jobsiteFiles = await EnrichedFile.find({ _id: { $in: allowedEnrichedFileIds } }).populate("file").lean();
-  const specFiles = ((systemDoc?.specFiles ?? []) as any[]);
+  const [jobsiteFiles, specFiles] = await Promise.all([
+    resolveDocumentsForContext({ scope: "jobsite", entityId: new Types.ObjectId(jobsiteId), userRole }),
+    resolveDocumentsForContext({ scope: "system" }),
+  ]);
 
   const serverBase = process.env.API_BASE_URL || `${req.protocol}://${req.get("host")}`;
   const { fileIndex, specFileIndex, pendingNotice } = buildFileIndex(

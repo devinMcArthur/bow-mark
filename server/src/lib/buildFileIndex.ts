@@ -1,6 +1,10 @@
-export function buildFileEntry(f: any, serverBase: string, token: string): string {
-  const summary = f.summary as any;
-  const pageIndex = f.pageIndex as Array<{ page: number; summary: string }> | undefined;
+import type { ResolvedDocument } from "./fileDocuments/types";
+
+export function buildFileEntry(f: ResolvedDocument, serverBase: string, token: string): string {
+  // Cast enrichmentSummary to any to read into the known summary shape:
+  // { overview, documentType, keyTopics, chunks? }
+  const summary = f.enrichmentSummary as any;
+  const pageIndex = f.enrichmentPageIndex as Array<{ page: number; summary: string }> | undefined;
   const chunks = summary?.chunks as Array<{
     startPage: number;
     endPage: number;
@@ -18,12 +22,12 @@ export function buildFileEntry(f: any, serverBase: string, token: string): strin
           .join("\n")}`
       : "";
 
-  const filename = f.file?.description;
+  const filename = f.originalFilename;
   return [
-    `**File ID: ${f._id}**`,
+    `**File ID: ${f.documentId}**`,
     filename ? `Filename: ${filename}` : null,
-    `Type: ${summary?.documentType || f.documentType || "Unknown"}`,
-    `URL: ${serverBase}/api/enriched-files/${f._id}`,
+    `Type: ${summary?.documentType || "Unknown"}`,
+    `URL: ${serverBase}/api/enriched-files/${f.documentId.toString()}`,
     summary
       ? `Overview: ${summary.overview}\nKey Topics: ${(summary.keyTopics as string[]).join(", ")}${navigationHint}`
       : "Summary: not yet available",
@@ -39,16 +43,16 @@ export interface FileIndexResult {
 }
 
 export function buildFileIndex(
-  jobsiteFiles: any[],
-  specFiles: any[],
+  jobsiteFiles: ResolvedDocument[],
+  specFiles: ResolvedDocument[],
   serverBase: string,
   token: string
 ): FileIndexResult {
-  const readyFiles = jobsiteFiles.filter((f: any) => f.summaryStatus === "ready");
+  const readyFiles = jobsiteFiles.filter((f) => f.enrichmentStatus === "ready");
   const pendingFiles = jobsiteFiles.filter(
-    (f: any) => f.summaryStatus === "pending" || f.summaryStatus === "processing"
+    (f) => f.enrichmentStatus === "pending" || f.enrichmentStatus === "processing"
   );
-  const readySpecFiles = specFiles.filter((f: any) => f.summaryStatus === "ready");
+  const readySpecFiles = specFiles.filter((f) => f.enrichmentStatus === "ready");
 
   const fileIndex = readyFiles
     .map((f) => buildFileEntry(f, serverBase, token))

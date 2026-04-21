@@ -1,7 +1,7 @@
 import { Router } from "express";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import Anthropic from "@anthropic-ai/sdk";
-import { Tender, User, System } from "@models";
+import { Tender, User } from "@models";
 import { isDocument } from "@typegoose/typegoose";
 import { streamConversation, ToolExecutionResult } from "../lib/streamConversation";
 import { connectMcp } from "../lib/mcpClient";
@@ -9,6 +9,7 @@ import { adaptMcpContent, deriveSummary } from "../lib/mcpContentAdapter";
 import { buildFileIndex } from "../lib/buildFileIndex";
 import { requireAuth } from "../lib/authMiddleware";
 import { UserRoles } from "../typescript/user";
+import { resolveDocumentsForContext } from "../lib/fileDocuments/resolveDocumentsForContext";
 
 const router = Router();
 
@@ -33,13 +34,13 @@ router.post("/message", requireAuth, async (req, res) => {
   }
 
   // ── Load context data ──────────────────────────────────────────────────────
-  const [tender, systemDoc, user] = await Promise.all([
+  const [tender, user, tenderFiles, specFiles] = await Promise.all([
     Tender.findById(tenderId)
-      .populate({ path: "files", populate: { path: "file" } })
       .populate({ path: "notes.savedBy", select: "name" })
       .lean(),
-    System.getSystem(),
     User.findById(req.userId).populate("employee"),
+    resolveDocumentsForContext({ scope: "tender", entityId: new Types.ObjectId(tenderId) }),
+    resolveDocumentsForContext({ scope: "system" }),
   ]);
 
   if (!tender) {
@@ -60,9 +61,6 @@ router.post("/message", requireAuth, async (req, res) => {
   ]
     .filter(Boolean)
     .join(" ");
-
-  const tenderFiles = (tender.files as any[]);
-  const specFiles = ((systemDoc?.specFiles ?? []) as any[]);
 
   const serverBase = process.env.API_BASE_URL || `${req.protocol}://${req.get("host")}`;
   const { fileIndex, specFileIndex, pendingNotice } = buildFileIndex(

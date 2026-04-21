@@ -2,8 +2,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import mongoose from "mongoose";
-import { Tender as TenderModel, Jobsite, EnrichedFile, System, TenderPricingSheet } from "@models";
+import { Tender as TenderModel, Jobsite, System, TenderPricingSheet } from "@models";
 import { UserRoles } from "@typescript/user";
+import { resolveDocumentsForContext } from "../../lib/fileDocuments/resolveDocumentsForContext";
 import { TenderPricingRowType } from "@typescript/tenderPricingSheet";
 import { CANONICAL_UNITS, resolveUnitCode } from "@constants/units";
 import { scheduleTenderSummary } from "../../lib/generateTenderSummary";
@@ -43,38 +44,19 @@ async function loadChatFiles(ctx: {
   role: UserRoles;
 }): Promise<any[]> {
   if (ctx.tenderId) {
-    const [tender, sys] = await Promise.all([
-      TenderModel.findById(ctx.tenderId)
-        .populate({ path: "files", populate: { path: "file" } })
-        .lean(),
-      System.getSystem(),
+    const [tenderFiles, specFiles] = await Promise.all([
+      resolveDocumentsForContext({ scope: "tender", entityId: new mongoose.Types.ObjectId(ctx.tenderId) }),
+      resolveDocumentsForContext({ scope: "system" }),
     ]);
-    if (!tender) throw new Error(`Tender ${ctx.tenderId} not found`);
-    return [
-      ...(((tender as any).files ?? []) as any[]),
-      ...(((sys?.specFiles ?? []) as any[])),
-    ];
+    return [...tenderFiles, ...specFiles];
   }
 
   if (ctx.jobsiteId) {
-    const [jobsite, sys] = await Promise.all([
-      Jobsite.findById(ctx.jobsiteId).lean(),
-      System.getSystem(),
+    const [jobsiteFiles, specFiles] = await Promise.all([
+      resolveDocumentsForContext({ scope: "jobsite", entityId: new mongoose.Types.ObjectId(ctx.jobsiteId), userRole: ctx.role }),
+      resolveDocumentsForContext({ scope: "system" }),
     ]);
-    if (!jobsite) throw new Error(`Jobsite ${ctx.jobsiteId} not found`);
-
-    const allEntries = ((jobsite as any).enrichedFiles ?? []) as any[];
-    const allowedIds = allEntries
-      .filter((entry) => (entry.minRole ?? UserRoles.ProjectManager) <= ctx.role)
-      .map((entry) => entry.enrichedFile);
-    const jobsiteFiles = await EnrichedFile.find({ _id: { $in: allowedIds } })
-      .populate("file")
-      .lean();
-
-    return [
-      ...jobsiteFiles,
-      ...(((sys?.specFiles ?? []) as any[])),
-    ];
+    return [...jobsiteFiles, ...specFiles];
   }
 
   throw new Error(
@@ -325,19 +307,12 @@ export function register(
       if (!sheet) throw new Error(`No pricing sheet found for tender ${tenderId}`);
 
       // Build a set of valid enrichedFileIds attached to this tender + sys spec files
-      const [tender, sys] = await Promise.all([
-        TenderModel.findById(tenderId)
-          .populate({ path: "files", populate: { path: "file" } })
-          .lean(),
-        System.getSystem(),
+      const [tenderFiles, specFiles] = await Promise.all([
+        resolveDocumentsForContext({ scope: "tender", entityId: new mongoose.Types.ObjectId(tenderId) }),
+        resolveDocumentsForContext({ scope: "system" }),
       ]);
       const validFileIds = new Set<string>();
-      for (const f of [
-        ...(((tender as any)?.files ?? []) as any[]),
-        ...(((sys?.specFiles ?? []) as any[])),
-      ]) {
-        if (f?._id) validFileIds.add(f._id.toString());
-      }
+      for (const f of [...tenderFiles, ...specFiles]) validFileIds.add(f.documentId.toString());
 
       // Validate every row first
       const errors: string[] = [];
@@ -460,19 +435,12 @@ export function register(
       );
 
       // Build a set of valid enrichedFileIds attached to this tender + sys spec files
-      const [tender, sys] = await Promise.all([
-        TenderModel.findById(tenderId)
-          .populate({ path: "files", populate: { path: "file" } })
-          .lean(),
-        System.getSystem(),
+      const [tenderFiles2, specFiles2] = await Promise.all([
+        resolveDocumentsForContext({ scope: "tender", entityId: new mongoose.Types.ObjectId(tenderId) }),
+        resolveDocumentsForContext({ scope: "system" }),
       ]);
       const validFileIds = new Set<string>();
-      for (const f of [
-        ...(((tender as any)?.files ?? []) as any[]),
-        ...(((sys?.specFiles ?? []) as any[])),
-      ]) {
-        if (f?._id) validFileIds.add(f._id.toString());
-      }
+      for (const f of [...tenderFiles2, ...specFiles2]) validFileIds.add(f.documentId.toString());
 
       // Validate-all-then-apply
       const errors: string[] = [];
@@ -770,12 +738,12 @@ export function register(
     async ({ file_object_id }) => {
       const ctx = getRequestContext();
       const allFiles = await loadChatFiles(ctx);
-      const fileObj = allFiles.find((f: any) => f._id.toString() === file_object_id);
+      const fileObj = allFiles.find((f: any) => f.documentId.toString() === file_object_id);
       if (!fileObj) throw new Error(`File ${file_object_id} not found`);
 
       const docLabel =
-        (fileObj.summary as any)?.documentType || fileObj.documentType || "Document";
-      const pageIndex = fileObj.pageIndex as
+        (fileObj.enrichmentSummary as any)?.documentType || "Document";
+      const pageIndex = fileObj.enrichmentPageIndex as
         | Array<{ page: number; summary: string }>
         | undefined;
 
@@ -821,17 +789,14 @@ export function register(
       const ctx = getRequestContext();
       const allFiles = await loadChatFiles(ctx);
 
-      const fileObj = allFiles.find((f: any) => f._id.toString() === file_object_id);
+      const fileObj = allFiles.find((f: any) => f.documentId.toString() === file_object_id);
       if (!fileObj) throw new Error(`File ${file_object_id} not found`);
-      if (!fileObj.file) throw new Error(`File reference missing for ${file_object_id}`);
+      if (!fileObj.fileId) throw new Error(`File reference missing for ${file_object_id}`);
 
-      const fileId =
-        typeof fileObj.file === "object" && (fileObj.file as any)._id
-          ? (fileObj.file as any)._id.toString()
-          : (fileObj.file as any).toString();
+      const fileId = fileObj.fileId.toString();
 
       const docLabel =
-        (fileObj.summary as any)?.documentType || fileObj.documentType || "Document";
+        (fileObj.enrichmentSummary as any)?.documentType || "Document";
 
       // Per-session dedup
       const rangeKey = `${fileId}:${start_page ?? 0}:${end_page ?? "end"}`;

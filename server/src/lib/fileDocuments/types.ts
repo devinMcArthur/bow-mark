@@ -20,4 +20,6 @@ export interface ResolvedDocument {
 export interface ResolveContext {
   scope: "tender" | "jobsite" | "system" | "daily-report";
   entityId?: Types.ObjectId;   // not needed for "system"
+  /** When provided on jobsite scope, filters by placement/entry minRole <= userRole */
+  userRole?: number;
 }
