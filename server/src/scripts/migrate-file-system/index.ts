@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import "dotenv/config";
 import { migrateEnrichedFiles } from "./01-enrichedFiles";
 import { migrateJobsiteEnrichedFiles } from "./02-jobsiteEnrichedFiles";
+import { migrateJobsiteFileObjects } from "./03-jobsiteFileObjects";
 
 async function main() {
   const dryRun = process.argv.includes("--dry-run");
@@ -17,6 +18,9 @@ async function main() {
 
   const jef = await migrateJobsiteEnrichedFiles({ dryRun });
   console.log("02-jobsiteEnrichedFiles:", JSON.stringify(jef, null, 2));
+
+  const jfo = await migrateJobsiteFileObjects({ dryRun });
+  console.log("03-jobsiteFileObjects:", JSON.stringify(jfo, null, 2));
 
   await mongoose.disconnect();
 }
