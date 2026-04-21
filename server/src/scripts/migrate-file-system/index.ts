@@ -4,6 +4,7 @@ import { migrateEnrichedFiles } from "./01-enrichedFiles";
 import { migrateJobsiteEnrichedFiles } from "./02-jobsiteEnrichedFiles";
 import { migrateJobsiteFileObjects } from "./03-jobsiteFileObjects";
 import { migrateSystemSpecFiles } from "./04-systemSpecFiles";
+import { migrateTenderFiles } from "./05-tenderFiles";
 
 async function main() {
   const dryRun = process.argv.includes("--dry-run");
@@ -25,6 +26,9 @@ async function main() {
 
   const ssf = await migrateSystemSpecFiles({ dryRun });
   console.log("04-systemSpecFiles:", JSON.stringify(ssf, null, 2));
+
+  const tf = await migrateTenderFiles({ dryRun });
+  console.log("05-tenderFiles:", JSON.stringify(tf, null, 2));
 
   await mongoose.disconnect();
 }
