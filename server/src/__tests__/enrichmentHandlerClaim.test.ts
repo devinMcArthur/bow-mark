@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
-import { EnrichedFile } from "@models";
+import { Enrichment, Document as DocumentModel } from "@models";
 import { prepareDatabase } from "@testing/vitestDB";
 import {
-  claimEnrichedFile,
+  claimEnrichment,
   isStorageNotFoundError,
   messageRetryDelayMs,
   HANDLER_OWNERSHIP_WINDOW_MS,
@@ -13,99 +13,103 @@ beforeAll(async () => {
 });
 
 afterEach(async () => {
-  await EnrichedFile.deleteMany({});
+  await Enrichment.deleteMany({});
+  await (DocumentModel as any).deleteMany({});
 });
 
-function fakeFileRef() {
-  return new mongoose.Types.ObjectId();
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function makeEnrichedFile(data: Record<string, any>) {
-  return (EnrichedFile as any).create({
-    file: fakeFileRef(),
+async function makeEnrichment(data: Record<string, any>) {
+  const documentId = new mongoose.Types.ObjectId();
+  const fileId = new mongoose.Types.ObjectId();
+  // Create a Document so the integrity is coherent (some tests may read it).
+  await DocumentModel.create({ _id: documentId, currentFileId: fileId, enrichmentLocked: false });
+  return Enrichment.create({
+    documentId,
+    fileId,
+    status: data.status ?? "pending",
+    attempts: data.attempts ?? 0,
+    processingVersion: data.processingVersion ?? 0,
     ...data,
   });
 }
 
-describe("claimEnrichedFile", () => {
-  it("claims a pending file and bumps processingVersion to 1", async () => {
-    const doc = await makeEnrichedFile({ summaryStatus: "pending" });
-    const claimed = await claimEnrichedFile(doc._id.toString());
+describe("claimEnrichment", () => {
+  it("claims a pending enrichment and bumps processingVersion to 1", async () => {
+    const enr = await makeEnrichment({ status: "pending" });
+    const claimed = await claimEnrichment(enr.documentId.toString());
 
     expect(claimed).not.toBeNull();
-    expect(claimed.summaryStatus).toBe("processing");
+    expect(claimed.status).toBe("processing");
     expect(claimed.processingVersion).toBe(1);
-    expect(claimed.summaryAttempts).toBe(1);
+    expect(claimed.attempts).toBe(1);
     expect(claimed.processingStartedAt).toBeInstanceOf(Date);
   });
 
-  it("claims a partial file so pageIndex generation can resume", async () => {
-    const doc = await makeEnrichedFile({
-      summaryStatus: "partial",
+  it("claims a partial enrichment so pageIndex generation can resume", async () => {
+    const enr = await makeEnrichment({
+      status: "partial",
       processingVersion: 2,
       pageIndex: [
         { page: 1, summary: "first page" },
         { page: 2, summary: "second page" },
       ],
     });
-    const claimed = await claimEnrichedFile(doc._id.toString());
+    const claimed = await claimEnrichment(enr.documentId.toString());
 
     expect(claimed).not.toBeNull();
-    expect(claimed.summaryStatus).toBe("processing");
+    expect(claimed.status).toBe("processing");
     // processingVersion bumps from 2 to 3 so stale handlers can't clobber state
     expect(claimed.processingVersion).toBe(3);
     // Existing pageIndex is preserved so the resume seed is available
     expect(claimed.pageIndex).toHaveLength(2);
   });
 
-  it("claims a stale-processing file (previous handler died mid-run)", async () => {
+  it("claims a stale-processing enrichment (previous handler died mid-run)", async () => {
     const staleTime = new Date(Date.now() - HANDLER_OWNERSHIP_WINDOW_MS - 60_000);
-    const doc = await makeEnrichedFile({
-      summaryStatus: "processing",
+    const enr = await makeEnrichment({
+      status: "processing",
       processingStartedAt: staleTime,
       processingVersion: 1,
     });
-    const claimed = await claimEnrichedFile(doc._id.toString());
+    const claimed = await claimEnrichment(enr.documentId.toString());
 
     expect(claimed).not.toBeNull();
     expect(claimed.processingVersion).toBe(2);
   });
 
-  it("claims a legacy processing file with missing processingStartedAt", async () => {
-    const doc = await makeEnrichedFile({ summaryStatus: "processing" });
+  it("claims a legacy processing enrichment with missing processingStartedAt", async () => {
+    const enr = await makeEnrichment({ status: "processing" });
     // No processingStartedAt — legacy doc path
-    const claimed = await claimEnrichedFile(doc._id.toString());
+    const claimed = await claimEnrichment(enr.documentId.toString());
 
     expect(claimed).not.toBeNull();
-    expect(claimed.summaryStatus).toBe("processing");
+    expect(claimed.status).toBe("processing");
   });
 
-  it("refuses to claim a ready file (terminal success)", async () => {
-    const doc = await makeEnrichedFile({ summaryStatus: "ready" });
-    const claimed = await claimEnrichedFile(doc._id.toString());
+  it("refuses to claim a ready enrichment (terminal success)", async () => {
+    const enr = await makeEnrichment({ status: "ready" });
+    const claimed = await claimEnrichment(enr.documentId.toString());
     expect(claimed).toBeNull();
   });
 
-  it("refuses to claim a failed file (stray redelivery)", async () => {
-    const doc = await makeEnrichedFile({ summaryStatus: "failed" });
-    const claimed = await claimEnrichedFile(doc._id.toString());
+  it("refuses to claim a failed enrichment (stray redelivery)", async () => {
+    const enr = await makeEnrichment({ status: "failed" });
+    const claimed = await claimEnrichment(enr.documentId.toString());
     expect(claimed).toBeNull();
   });
 
-  it("refuses to claim an orphaned file (source gone, terminal)", async () => {
-    const doc = await makeEnrichedFile({ summaryStatus: "orphaned" });
-    const claimed = await claimEnrichedFile(doc._id.toString());
+  it("refuses to claim an orphaned enrichment (source gone, terminal)", async () => {
+    const enr = await makeEnrichment({ status: "orphaned" });
+    const claimed = await claimEnrichment(enr.documentId.toString());
     expect(claimed).toBeNull();
   });
 
-  it("refuses to claim a fresh-processing file (owned by another handler)", async () => {
+  it("refuses to claim a fresh-processing enrichment (owned by another handler)", async () => {
     const freshTime = new Date(Date.now() - 60_000); // 1 min ago — well within ownership window
-    const doc = await makeEnrichedFile({
-      summaryStatus: "processing",
+    const enr = await makeEnrichment({
+      status: "processing",
       processingStartedAt: freshTime,
     });
-    const claimed = await claimEnrichedFile(doc._id.toString());
+    const claimed = await claimEnrichment(enr.documentId.toString());
     expect(claimed).toBeNull();
   });
 
@@ -113,11 +117,11 @@ describe("claimEnrichedFile", () => {
     // This is the core reason we replaced the read-then-write idempotency
     // guard with findOneAndUpdate — MongoDB atomicity means one query
     // matches the `pending` predicate and the other observes `processing`.
-    const doc = await makeEnrichedFile({ summaryStatus: "pending" });
+    const enr = await makeEnrichment({ status: "pending" });
 
     const [a, b] = await Promise.all([
-      claimEnrichedFile(doc._id.toString()),
-      claimEnrichedFile(doc._id.toString()),
+      claimEnrichment(enr.documentId.toString()),
+      claimEnrichment(enr.documentId.toString()),
     ]);
 
     const winners = [a, b].filter((x) => x !== null);
@@ -128,25 +132,26 @@ describe("claimEnrichedFile", () => {
   });
 
   it("increments processingVersion across sequential claims", async () => {
-    const doc = await makeEnrichedFile({ summaryStatus: "pending" });
+    const enr = await makeEnrichment({ status: "pending" });
 
-    const c1 = await claimEnrichedFile(doc._id.toString());
+    const c1 = await claimEnrichment(enr.documentId.toString());
     expect(c1.processingVersion).toBe(1);
 
-    // Simulate the file landing in partial status after the first claim
+    // Simulate the enrichment landing in partial status after the first claim
     // (summary succeeded, pageIndex crashed partway). The watchdog would
     // then republish, and the next claim should bump version to 2.
-    await (EnrichedFile as any).findByIdAndUpdate(doc._id, {
-      $set: { summaryStatus: "partial" },
-    });
+    await Enrichment.updateOne(
+      { documentId: enr.documentId },
+      { $set: { status: "partial" } }
+    );
 
-    const c2 = await claimEnrichedFile(doc._id.toString());
+    const c2 = await claimEnrichment(enr.documentId.toString());
     expect(c2.processingVersion).toBe(2);
   });
 
-  it("returns null when the file does not exist", async () => {
+  it("returns null when the enrichment does not exist", async () => {
     const ghostId = new mongoose.Types.ObjectId().toString();
-    const claimed = await claimEnrichedFile(ghostId);
+    const claimed = await claimEnrichment(ghostId);
     expect(claimed).toBeNull();
   });
 });
