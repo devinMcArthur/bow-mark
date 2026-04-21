@@ -2,6 +2,7 @@ export * from "./EnrichedFile";
 export * from "./Company";
 export * from "./Crew";
 export * from "./CrewKind";
+export * from "./Document";
 export * from "./DailyReport";
 export * from "./Employee";
 export * from "./EmployeeWork";
@@ -529,4 +530,23 @@ DomainEvent.schema.index({ sessionId: 1, at: 1 });
 DomainEvent.schema.index({ type: 1, at: -1 });
 DomainEvent.schema.index({ at: -1 });
 DomainEvent.schema.index({ idempotencyKey: 1 }, { sparse: true, unique: true });
+
+/**
+ * ----- Document -----
+ */
+
+import { DocumentSchema as DocumentClass } from "./Document/schema";
+
+export type DocumentDocument = DocumentType<DocumentClass>;
+
+export type DocumentModel = ReturnModelType<typeof DocumentClass>;
+
+export const Document = getModelForClass(DocumentClass, {
+  schemaOptions: { collection: "documents", timestamps: false },
+});
+
+Document.schema.pre("save", function (next) {
+  (this as unknown as { updatedAt: Date }).updatedAt = new Date();
+  next();
+});
 
