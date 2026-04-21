@@ -79,7 +79,8 @@ describe("shouldEnrichNow", () => {
     // directly via the driver — we need a mimetype that's storable in the
     // collection but absent from ENRICHABLE_MIMETYPES.
     const fileId = new mongoose.Types.ObjectId();
-    await File.collection.insertOne({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (File.collection as any).insertOne({
       _id: fileId,
       mimetype: "video/mp4",
       originalFilename: "x.mp4",
