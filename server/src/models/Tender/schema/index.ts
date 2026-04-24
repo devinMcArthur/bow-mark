@@ -103,6 +103,14 @@ export class TenderSchema {
   @prop({ ref: () => JobsiteClass, required: false })
   public jobsite?: Ref<JobsiteClass>;
 
+  /**
+   * @deprecated Replaced by FileNodes under `/tenders/<id>/`. No
+   * GraphQL surface still reads this field — the `documents` field
+   * resolver on Tender returns the unified-file-system view instead.
+   * Stored data is preserved as a safety net; field can be removed
+   * once a verification pass confirms every legacy entry has a
+   * corresponding FileNode placement (see migrate-file-system/05).
+   */
   @Field(() => [EnrichedFileClass])
   @prop({ ref: () => EnrichedFileClass, type: () => [Types.ObjectId], default: [] })
   public files!: Ref<EnrichedFileClass>[];

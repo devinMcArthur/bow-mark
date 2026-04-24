@@ -1,0 +1,14 @@
+mutation UpdateDailyReportEntry($id: ID!, $data: DailyReportEntryUpdateData!) {
+  updateDailyReportEntry(id: $id, data: $data) {
+    _id
+    text
+    documentIds
+    isIssue
+    createdAt
+    updatedAt
+    createdByUser {
+      _id
+      name
+    }
+  }
+}

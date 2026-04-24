@@ -111,7 +111,7 @@ const TenderMobileLayout: React.FC<TenderMobileLayoutProps> = ({
               sheet={sheet}
               tenderId={tenderId}
               onSheetUpdate={onSheetUpdate}
-              tenderFiles={tender.files}
+              tenderDocuments={tender.documents}
             />
           ) : (
             <Flex h="100%" align="center" justify="center">
@@ -120,7 +120,7 @@ const TenderMobileLayout: React.FC<TenderMobileLayoutProps> = ({
           )
         )}
         {activeTab === "documents" && (
-          <TenderMobileDocumentsTab files={tender.files} />
+          <TenderMobileDocumentsTab documents={tender.documents} />
         )}
         {activeTab === "notes" && (
           <Box h="100%" overflowY="auto" px={4} py={3}>

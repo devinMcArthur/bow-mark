@@ -2,4 +2,5 @@ fragment JobsiteCardSnippet on JobsiteClass {
   _id
   name
   jobcode
+  description
 }

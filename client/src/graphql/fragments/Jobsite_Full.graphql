@@ -3,7 +3,6 @@ fragment JobsiteFullSnippet on JobsiteClass {
   name
   jobcode
   description
-  location_url
   active
   archivedAt
   crews {
@@ -27,31 +26,18 @@ fragment JobsiteFullSnippet on JobsiteClass {
   fileObjects {
     ...JobsiteFileObjectPreloadSnippet
   }
-  enrichedFiles {
+  documents {
     _id
+    name
+    documentId
+    mimetype
     minRole
-    enrichedFile {
-      _id
-      documentType
-      summaryStatus
-      summaryError
-      pageCount
-      processingStartedAt
-      summaryProgress {
-        phase
-        current
-        total
-        updatedAt
-      }
+    enrichment {
+      status
       summary {
         overview
         documentType
         keyTopics
-      }
-      file {
-        _id
-        mimetype
-        description
       }
     }
   }

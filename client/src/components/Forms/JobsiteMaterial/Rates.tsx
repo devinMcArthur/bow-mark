@@ -1,29 +1,25 @@
 import {
   Box,
   Button,
+  Checkbox,
   Flex,
   FormLabel,
   IconButton,
-  SimpleGrid,
+  Input,
+  InputGroup,
+  InputLeftAddon,
+  NumberInput,
+  NumberInputField,
+  Text,
 } from "@chakra-ui/react";
 import React from "react";
-import { FiPlus, FiTrash } from "react-icons/fi";
+import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { JobsiteMaterialRateSnippetFragment } from "../../../generated/graphql";
-import FormContainer from "../../Common/FormContainer";
-import Checkbox from "../../Common/forms/Checkbox";
-import NumberForm from "../../Common/forms/Number";
-import TextField from "../../Common/forms/TextField";
 
 export interface IJobsiteMaterialRateError {
-  date?: {
-    message?: string;
-  };
-  rate?: {
-    message?: string;
-  };
-  estimate?: {
-    message?: string;
-  };
+  date?: { message?: string };
+  rate?: { message?: string };
+  estimate?: { message?: string };
 }
 
 export interface IJobsiteMaterialRatesForm {
@@ -34,43 +30,54 @@ export interface IJobsiteMaterialRatesForm {
   isLoading?: boolean;
   errors?: IJobsiteMaterialRateError[];
   label?: string;
+  /** Retained for backward-compat; ignored in the new compact layout. */
   singleColumn?: boolean;
 }
 
+const toInputDate = (d: Date | string): string => {
+  const date = typeof d === "string" ? new Date(d) : d;
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
+const formatThousands = (val: string | number | undefined): string => {
+  if (val === undefined || val === null || val === "") return "";
+  const stripped =
+    typeof val === "string" ? val.replace(/,/g, "") : String(val);
+  if (stripped === "" || stripped === "-") return stripped;
+  const [whole, fraction] = stripped.split(".");
+  const n = parseInt(whole, 10);
+  if (Number.isNaN(n)) return stripped;
+  const formattedWhole = n.toLocaleString("en-US");
+  return fraction !== undefined ? `${formattedWhole}.${fraction}` : formattedWhole;
+};
+const parseThousands = (val: string): string => val.replace(/,/g, "");
+
+/**
+ * Compact inline-grid editor for material rate schedules. Column
+ * headers render once at the top; each row is a tight horizontal strip
+ * (Date · Rate · Est. checkbox · trash).
+ */
 const JobsiteMaterialRatesForm = ({
   rates = [],
   onChange,
   isLoading,
   errors,
   label,
-  singleColumn = false,
 }: IJobsiteMaterialRatesForm) => {
-  /**
-   * ----- Variables -----
-   */
-
   const ratesCopy = React.useMemo(() => {
     const copy: JobsiteMaterialRateSnippetFragment[] = JSON.parse(
       JSON.stringify(rates)
     );
-
     for (let i = 0; i < copy.length; i++) {
       if (copy[i].__typename) delete copy[i].__typename;
     }
-
     return copy;
   }, [rates]);
 
-  /**
-   * ----- Functions -----
-   */
-
   const addRate = React.useCallback(() => {
-    ratesCopy.push({
-      rate: 0,
-      date: new Date(),
-      estimated: false,
-    });
+    ratesCopy.push({ rate: 0, date: new Date(), estimated: false });
     if (onChange) onChange(ratesCopy);
   }, [onChange, ratesCopy]);
 
@@ -85,16 +92,14 @@ const JobsiteMaterialRatesForm = ({
   const setDate = React.useCallback(
     (value: string, index: number) => {
       ratesCopy[index].date = value;
-
       if (onChange) onChange(ratesCopy.slice().sort((a, b) => b.date - a.date));
     },
     [ratesCopy, onChange]
   );
 
   const setRate = React.useCallback(
-    (value: number, index: number) => {
-      ratesCopy[index].rate = value;
-
+    (value: string, index: number) => {
+      ratesCopy[index].rate = value as unknown as number;
       if (onChange) onChange(ratesCopy);
     },
     [ratesCopy, onChange]
@@ -103,82 +108,111 @@ const JobsiteMaterialRatesForm = ({
   const setEstimated = React.useCallback(
     (value: boolean, index: number) => {
       ratesCopy[index].estimated = value;
-
       if (onChange) onChange(ratesCopy);
     },
     [ratesCopy, onChange]
   );
 
-  /**
-   * ----- Use-effects and other logic -----
-   */
-
-  /**
-   * ----- Rendering -----
-   */
-
   return (
     <Box>
       {label && (
-        <FormLabel fontWeight="bold" mb={0} mt={1} ml={1}>
+        <FormLabel fontWeight="bold" mb={1} ml={1}>
           {label}
         </FormLabel>
       )}
-      {rates.map((rate, index) => (
-        <FormContainer
-          key={index}
-          justifyContent="space-between"
-          display="flex"
-          flexDir="row"
-          border="1px solid"
-          borderColor="gray.400"
+
+      {rates.length > 0 && (
+        <Flex
+          gap={2}
+          px={2}
+          mb={1}
+          fontSize="xs"
+          fontWeight="semibold"
+          color="gray.500"
+          textTransform="uppercase"
+          letterSpacing="wide"
         >
-          <Flex flexDir="column" w="100%">
-            <SimpleGrid columns={singleColumn ? [1] : [1, 1, 2]} spacing={2}>
-              <TextField
-                value={rate.date}
-                isDisabled={isLoading}
-                type="date"
-                label="Date"
-                onChange={(e) => setDate(e.target.value, index)}
-                errorMessage={errors && errors[index]?.date?.message}
-              />
-              <NumberForm
-                value={rate.rate}
-                isDisabled={isLoading}
-                label="Rate"
-                precision={2}
-                inputLeftAddon="$"
-                onChange={(_, num) => setRate(num, index)}
-                errorMessage={errors && errors[index]?.rate?.message}
-              />
-            </SimpleGrid>
-            <Flex flexDir="row" justifyContent="space-between">
-              <Checkbox
-                isChecked={rate.estimated || undefined}
-                onChange={(e) => setEstimated(e.target.checked, index)}
-              >
-                Estimated
-              </Checkbox>
-              <IconButton
-                size="sm"
-                aria-label="remove"
-                icon={<FiTrash />}
-                backgroundColor="transparent"
-                onClick={() => removeRate(index)}
-              />
-            </Flex>
-          </Flex>
-        </FormContainer>
-      ))}
-      <Flex justifyContent="end">
+          <Box flex="1 1 35%">Date</Box>
+          <Box flex="1 1 40%">Rate</Box>
+          <Box flex="0 0 90px">Est.</Box>
+          <Box w="32px" />
+        </Flex>
+      )}
+
+      <Flex direction="column" gap={1}>
+        {rates.map((rate, index) => {
+          const dateErr = errors?.[index]?.date?.message;
+          const rateErr = errors?.[index]?.rate?.message;
+          return (
+            <Box key={index}>
+              <Flex gap={2} align="center">
+                <Box flex="1 1 35%">
+                  <Input
+                    size="sm"
+                    type="date"
+                    value={toInputDate(rate.date)}
+                    isDisabled={isLoading}
+                    isInvalid={!!dateErr}
+                    onChange={(e) => setDate(e.target.value, index)}
+                  />
+                </Box>
+                <Box flex="1 1 40%">
+                  <InputGroup size="sm">
+                    <InputLeftAddon>$</InputLeftAddon>
+                    <NumberInput
+                      size="sm"
+                      value={rate.rate?.toString() ?? ""}
+                      isDisabled={isLoading}
+                      isInvalid={!!rateErr}
+                      format={formatThousands}
+                      parse={parseThousands}
+                      onChange={(valueAsString) =>
+                        setRate(valueAsString, index)
+                      }
+                      w="100%"
+                    >
+                      <NumberInputField borderLeftRadius={0} />
+                    </NumberInput>
+                  </InputGroup>
+                </Box>
+                <Box flex="0 0 90px">
+                  <Checkbox
+                    isChecked={!!rate.estimated}
+                    isDisabled={isLoading}
+                    onChange={(e) => setEstimated(e.target.checked, index)}
+                  >
+                    <Text fontSize="sm">Est.</Text>
+                  </Checkbox>
+                </Box>
+                <IconButton
+                  w="32px"
+                  size="sm"
+                  aria-label="remove rate"
+                  icon={<FiTrash2 />}
+                  variant="ghost"
+                  color="gray.500"
+                  onClick={() => removeRate(index)}
+                />
+              </Flex>
+              {(dateErr || rateErr) && (
+                <Text fontSize="xs" color="red.500" pl={2} mt={0.5}>
+                  {dateErr || rateErr}
+                </Text>
+              )}
+            </Box>
+          );
+        })}
+      </Flex>
+
+      <Flex justifyContent="flex-start" mt={2}>
         <Button
-          mt={2}
+          size="sm"
+          variant="outline"
           isLoading={isLoading}
           leftIcon={<FiPlus />}
           onClick={addRate}
         >
-          New
+          Add rate
         </Button>
       </Flex>
     </Box>

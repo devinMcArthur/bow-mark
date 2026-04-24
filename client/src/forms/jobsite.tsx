@@ -114,6 +114,7 @@ const JobsiteUpdateSchema = yup
   .object()
   .shape({
     name: yup.string().required("please provide a name"),
+    description: yup.string().nullable(),
   })
   .required();
 
@@ -145,6 +146,26 @@ export const useJobsiteUpdateForm = (options?: UseFormProps) => {
                 {...field}
                 errorMessage={fieldState.error?.message}
                 label="Name"
+                isDisabled={isLoading}
+              />
+            )}
+          />
+        ),
+        [isLoading, props]
+      ),
+    Description: ({ isLoading, ...props }: IFormProps<ITextArea>) =>
+      React.useMemo(
+        () => (
+          <Controller
+            control={control}
+            name="description"
+            render={({ field, fieldState }) => (
+              <TextArea
+                {...props}
+                {...field}
+                value={field.value ?? ""}
+                errorMessage={fieldState.error?.message}
+                label="Description"
                 isDisabled={isLoading}
               />
             )}

@@ -49,6 +49,15 @@ export class SystemSchema {
   @prop({ required: true, default: "America/Edmonton" })
   public timezone!: string;
 
+  /**
+   * @deprecated Replaced by FileNodes under `/system/specs`. No
+   * GraphQL surface still reads this field — the SystemSpecLibrary
+   * UI uses the unified file system via the `systemSpecsRoot` query
+   * + FileBrowser. Stored data is preserved as a safety net; field
+   * can be removed once a verification pass confirms every legacy
+   * entry has a corresponding FileNode placement (see migrate-file-
+   * system/04).
+   */
   @Field(() => [EnrichedFileClass], { nullable: false })
   @prop({ ref: () => EnrichedFileClass, type: () => [Types.ObjectId], default: [] })
   public specFiles!: Ref<EnrichedFileClass>[];

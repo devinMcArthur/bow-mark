@@ -22,7 +22,8 @@ const InvoiceSchema = yup
     companyId: yup.string().required("please provide a company"),
     invoiceNumber: yup.string().required("please provide an invoice number"),
     cost: yup.number().required("please provide a cost"),
-    description: yup.string(),
+    description: yup.string().nullable(),
+    documentId: yup.string().nullable(),
     date: yup
       .date()
       .required("please provide a date")
@@ -54,6 +55,13 @@ export const useInvoiceForm = (options?: UseFormProps) => {
   const { handleSubmit, control, setValue } = form;
 
   const FormComponents = {
+    // NOTE: `Form` here is kept for backward-compat with callers that
+    // already use `<FormComponents.Form>`. It's inline-defined so it's a
+    // new component reference every render — if a caller's form tree
+    // holds stateful children (refs, inputs-by-ref, etc.), it WILL
+    // remount on each render and reset that state. New callers should
+    // render `<form onSubmit={handleSubmit(submit)}>` directly using the
+    // `handleSubmit` returned from this hook.
     Form: ({
       children,
       submitHandler,

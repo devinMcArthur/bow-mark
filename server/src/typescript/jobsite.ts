@@ -7,13 +7,13 @@ import { UserRoles } from "./user";
 export interface IJobsiteCreate {
   name: string;
   jobcode: string;
-  location_url?: string;
   description?: string;
   contract?: IJobsiteContract;
 }
 
 export interface IJobsiteUpdate {
   name: string;
+  description?: string | null;
 }
 
 export interface IJobsiteSearchObject {

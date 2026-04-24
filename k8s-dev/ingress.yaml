@@ -5,6 +5,10 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/use-regex: "true"
+    # Raise body limit so file uploads (graphql-upload multipart) aren't
+    # 413'd by nginx before reaching the server. Server's own limit is
+    # 500 MB (graphqlUploadExpress + express.json). Match it here.
+    nginx.ingress.kubernetes.io/proxy-body-size: 500m
 spec:
   rules:
     - http:

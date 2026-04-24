@@ -20,6 +20,11 @@ import jwt from "jsonwebtoken";
 import { User } from "@models";
 import { UserRoles } from "@typescript/user";
 import { runWithContext, RequestContext } from "./mcp/context";
+import {
+  parseTraceparent,
+  randomTraceId,
+  randomSpanId,
+} from "@lib/requestContext";
 
 // ─── MCP Server ───────────────────────────────────────────────────────────────
 
@@ -102,7 +107,18 @@ app.post("/mcp", async (req, res) => {
   const conversationId =
     typeof conversationIdHeader === "string" ? conversationIdHeader : undefined;
 
-  const ctx: RequestContext = { userId, role, tenderId, jobsiteId, conversationId };
+  const inbound = parseTraceparent(req.header("traceparent"));
+  const ctx: RequestContext = {
+    traceId: inbound?.traceId ?? randomTraceId(),
+    spanId: randomSpanId(),
+    parentSpanId: inbound?.spanId,
+    actorKind: "ai",
+    userId,
+    role,
+    tenderId,
+    jobsiteId,
+    conversationId,
+  };
 
   // ── Route through MCP transport inside the ALS context ─────────────────
   const sessionId = req.headers["mcp-session-id"] as string | undefined;

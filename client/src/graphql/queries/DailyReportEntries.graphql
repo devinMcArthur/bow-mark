@@ -1,0 +1,14 @@
+query DailyReportEntries($dailyReportId: ID!) {
+  dailyReportEntries(dailyReportId: $dailyReportId) {
+    _id
+    text
+    documentIds
+    isIssue
+    createdAt
+    updatedAt
+    createdByUser {
+      _id
+      name
+    }
+  }
+}

@@ -12,10 +12,15 @@ import {
   FieldResolver,
   ID,
   Mutation,
+  Query,
   Resolver,
   Root,
 } from "type-graphql";
 import mutations, { InvoiceData } from "./mutations";
+import {
+  JobsiteInvoiceSearchHit,
+  jobsiteInvoiceSearch,
+} from "./search";
 
 @Resolver(() => InvoiceClass)
 export default class InvoiceResolver {
@@ -66,5 +71,22 @@ export default class InvoiceResolver {
   @Mutation(() => Boolean)
   async invoiceRemove(@Arg("id", () => ID) id: Id) {
     return mutations.remove(id);
+  }
+
+  /**
+   * ----- Queries -----
+   */
+
+  // Search invoices tied to a single jobsite (expense + revenue +
+  // material buckets) by company name / invoice# / description. Used by
+  // the jobsite page search bar to pinpoint a specific invoice across
+  // the three sections without scrolling through them individually.
+  @Authorized(["ADMIN"])
+  @Query(() => [JobsiteInvoiceSearchHit])
+  async jobsiteInvoiceSearch(
+    @Arg("jobsiteId", () => ID) jobsiteId: string,
+    @Arg("query") query: string
+  ): Promise<JobsiteInvoiceSearchHit[]> {
+    return jobsiteInvoiceSearch(jobsiteId, query);
   }
 }

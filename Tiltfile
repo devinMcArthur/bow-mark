@@ -57,18 +57,38 @@ update_settings(
 # Dynamic ConfigMaps (generated from app-type config)
 # ============================================================================
 
-# App-config ConfigMap: injected into all app deployments via envFrom
+# App-config ConfigMap: injected into all app deployments via envFrom.
+#
+# NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: Maps JavaScript API + Places API key.
+# Precedence: host shell env wins when set — otherwise the key is omitted
+# from the ConfigMap so Next.js can fall back to client/.env.development.
+# Never emit an empty-string entry: `envFrom` would still inject it and
+# clobber the `.env.development` value.
+# For prod this is a CI build arg baked into the client image at
+# `next build` time.
+GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY", "")
+
+maps_line = (
+    '  NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: "{}"\n'.format(GOOGLE_MAPS_API_KEY)
+    if GOOGLE_MAPS_API_KEY
+    else ""
+)
+
 k8s_yaml(blob("""
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: app-config
 data:
-  MONGO_URI: "mongodb://mongo:27017/{app_type}"
+  MONGO_URI: "mongodb://mongo:27017/{app_type}?replicaSet=rs0"
   POSTGRES_DB: "bowmark_reports_{app_type}"
   APP_NAME: "{app_type}"
   NEXT_PUBLIC_APP_NAME: "{app_name}"
-""".format(app_type=APP_TYPE, app_name=APP_NAME_CAPITALIZED)))
+{maps_line}""".format(
+    app_type=APP_TYPE,
+    app_name=APP_NAME_CAPITALIZED,
+    maps_line=maps_line,
+)))
 
 # Postgres init script: creates the second database on first startup
 # (The first database is created automatically via POSTGRES_DB env var)
@@ -408,7 +428,7 @@ def switch_cmd(target_app_type):
         # 1. Update the app-config ConfigMap
         echo "Updating ConfigMap..."
         kubectl create configmap app-config \\
-            --from-literal=MONGO_URI="mongodb://mongo:27017/$TARGET" \\
+            --from-literal=MONGO_URI="mongodb://mongo:27017/$TARGET?replicaSet=rs0" \\
             --from-literal=POSTGRES_DB="bowmark_reports_$TARGET" \\
             --from-literal=APP_NAME="$TARGET" \\
             --from-literal=NEXT_PUBLIC_APP_NAME="$TARGET_NAME" \\
@@ -491,7 +511,19 @@ local_resource(
         kubectl delete pod reindex-search --ignore-not-found
         echo "MeiliSearch reindex complete!"
     ''',
-    resource_deps=['server-deployment', 'restore-mongo', 'meilisearch'],
+    # Push reindex-search to the tail of the dependency graph so user-
+    # facing surfaces (client UI, LAN ingress, Cloudflare tunnel) all come
+    # up first. reindex holds a parallel-updates slot for the full
+    # kubectl-wait + log-stream duration, so anything in the same queue
+    # position blocks until it finishes.
+    resource_deps=[
+        'server-deployment',
+        'restore-mongo',
+        'meilisearch',
+        'client-deployment',
+        'lan-access',
+        'cloudflare-tunnel',
+    ],
     labels=['setup'],
 )
 

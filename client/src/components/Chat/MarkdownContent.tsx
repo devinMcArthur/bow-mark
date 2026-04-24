@@ -59,10 +59,15 @@ const MarkdownContent = ({ content, onDocRefClick }: MarkdownContentProps) => (
         <Box borderLeft="3px solid" borderColor="blue.300" pl={3} py={0.5} my={2} color="gray.600">{children}</Box>
       ),
       a: ({ href, children }) => {
-        // For enriched-file links, open in the document viewer modal if a handler is provided.
-        if (href?.includes("/api/enriched-files/") && onDocRefClick) {
-          const match = href.match(/\/api\/enriched-files\/([a-f0-9]+)/);
-          const pageMatch = href.match(/#page=(\d+)/);
+        // Document links — recognize both the canonical /api/documents/:id
+        // path and the legacy /api/enriched-files/:id alias (historical chat
+        // messages still contain the latter).
+        const DOC_URL_RE = /\/api\/(?:documents|enriched-files)\/([a-f0-9]+)/;
+        const isDocLink = !!href && DOC_URL_RE.test(href);
+
+        if (isDocLink && onDocRefClick) {
+          const match = href!.match(DOC_URL_RE);
+          const pageMatch = href!.match(/#page=(\d+)/);
           if (match) {
             const fileId = match[1];
             const page = pageMatch ? parseInt(pageMatch[1], 10) : undefined;
@@ -80,13 +85,13 @@ const MarkdownContent = ({ content, onDocRefClick }: MarkdownContentProps) => (
             );
           }
         }
-        // For enriched-file links without a handler, append the current JWT at render time
+        // For document links without a handler, append the current JWT at render time
         // so links don't expire when the token baked into an old conversation ages out.
         let resolvedHref = href;
-        if (href?.includes("/api/enriched-files/") && typeof window !== "undefined") {
+        if (isDocLink && typeof window !== "undefined") {
           const token = localStorage.getItem(localStorageTokenKey);
           if (token) {
-            const url = new URL(href, window.location.origin);
+            const url = new URL(href!, window.location.origin);
             url.searchParams.set("token", token);
             resolvedHref = url.toString();
           }

@@ -23,6 +23,7 @@ const JobsiteUpdateForm = ({ jobsite, onSuccess }: IJobsiteUpdateForm) => {
   const { FormComponents } = useJobsiteUpdateForm({
     defaultValues: {
       name: jobsite.name,
+      description: jobsite.description ?? "",
     },
   });
 
@@ -66,6 +67,7 @@ const JobsiteUpdateForm = ({ jobsite, onSuccess }: IJobsiteUpdateForm) => {
   return (
     <FormComponents.Form submitHandler={handleSubmit}>
       <FormComponents.Name isLoading={loading} />
+      <FormComponents.Description isLoading={loading} />
       <SubmitButton isLoading={loading} />
     </FormComponents.Form>
   );

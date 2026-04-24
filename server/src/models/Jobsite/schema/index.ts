@@ -10,7 +10,6 @@ import { JobsiteEnrichedFileClass } from "./subDocuments";
 import { search_UpdateJobsite } from "@search";
 import { post, prop, Ref } from "@typegoose/typegoose";
 import { LocationClass } from "@typescript/location";
-import isUrl from "@validation/isUrl";
 import { Types } from "mongoose";
 import { Field, ID, ObjectType } from "type-graphql";
 import {
@@ -32,16 +31,6 @@ export class JobsiteSchema {
   @Field({ nullable: false })
   @prop({ required: true, minlength: 1, trim: true })
   public name!: string;
-
-  @Field({ nullable: true })
-  @prop({
-    trim: true,
-    validate: {
-      validator: (value) => isUrl(value),
-      message: "Provided URL is not a valid URL",
-    },
-  })
-  public location_url?: string;
 
   @Field({ nullable: true })
   @prop({ trim: true })
@@ -105,6 +94,14 @@ export class JobsiteSchema {
   @prop({ type: () => JobsiteFileObjectClass, default: [] })
   public fileObjects!: JobsiteFileObjectClass[];
 
+  /**
+   * @deprecated Replaced by FileNodes under `/jobsites/<id>/`. No
+   * GraphQL surface still reads this field — the `documents` field
+   * resolver on Jobsite returns the unified-file-system view instead.
+   * Stored data is preserved as a safety net; field can be removed
+   * once a verification pass confirms every legacy entry has a
+   * corresponding FileNode placement (see migrate-file-system/02).
+   */
   @Field(() => [JobsiteEnrichedFileClass])
   @prop({ type: () => [JobsiteEnrichedFileClass], default: [] })
   public enrichedFiles!: JobsiteEnrichedFileClass[];

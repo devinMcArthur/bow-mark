@@ -3,8 +3,8 @@ import {
   Badge,
   Box,
   Button,
+  Checkbox,
   Flex,
-  FormLabel,
   Heading,
   IconButton,
   Input,
@@ -12,7 +12,7 @@ import {
   Text,
   useToast,
 } from "@chakra-ui/react";
-import { FiCheck, FiEdit, FiPlus, FiTrash, FiX } from "react-icons/fi";
+import { FiCheck, FiEdit, FiPlus, FiTrash2, FiX } from "react-icons/fi";
 import {
   JobsiteMaterialCardSnippetFragment,
   RateScenarioClass,
@@ -20,9 +20,23 @@ import {
   useJobsiteMaterialScenarioRemoveMutation,
   useJobsiteMaterialScenarioUpdateMutation,
 } from "../../../generated/graphql";
-import FormContainer from "../../Common/FormContainer";
-import Checkbox from "../../Common/forms/Checkbox";
 import JobsiteMaterialRatesForm from "./Rates";
+
+/** Compact uppercase label shared across jobsite-page forms. */
+const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <Text
+    as="label"
+    display="block"
+    fontSize="xs"
+    fontWeight="semibold"
+    color="gray.500"
+    textTransform="uppercase"
+    letterSpacing="wide"
+    mb={1}
+  >
+    {children}
+  </Text>
+);
 
 export interface ScenarioDraft {
   label: string;
@@ -45,9 +59,22 @@ interface IScenarioForm {
   truckingRates?: { title: string }[];
 }
 
-export const ScenarioForm = ({ draft, onChange, onSave, onCancel, isLoading, truckingRates }: IScenarioForm) => (
-  <FormContainer border="1px solid" borderColor="blue.300" p={2} mt={1}>
-    <Flex direction="column" gap={2}>
+export const ScenarioForm = ({
+  draft,
+  onChange,
+  onSave,
+  onCancel,
+  isLoading,
+  truckingRates,
+}: IScenarioForm) => (
+  <Box
+    borderWidth="1px"
+    borderColor="blue.300"
+    borderRadius="md"
+    bg="blue.50"
+    p={3}
+  >
+    <Flex direction="column" gap={3}>
       <Checkbox
         isChecked={draft.delivered}
         onChange={(e) => {
@@ -60,7 +87,7 @@ export const ScenarioForm = ({ draft, onChange, onSave, onCancel, isLoading, tru
       </Checkbox>
       {draft.delivered && (
         <Box>
-          <FormLabel mb={0} fontSize="sm">Trucking Type</FormLabel>
+          <FieldLabel>Trucking Type</FieldLabel>
           {truckingRates && truckingRates.length > 0 ? (
             <Select
               size="sm"
@@ -71,7 +98,9 @@ export const ScenarioForm = ({ draft, onChange, onSave, onCancel, isLoading, tru
             >
               <option value="">Select type</option>
               {truckingRates.map((r) => (
-                <option key={r.title} value={r.title}>{r.title}</option>
+                <option key={r.title} value={r.title}>
+                  {r.title}
+                </option>
               ))}
             </Select>
           ) : (
@@ -86,33 +115,37 @@ export const ScenarioForm = ({ draft, onChange, onSave, onCancel, isLoading, tru
           )}
         </Box>
       )}
-      <JobsiteMaterialRatesForm
-        rates={draft.rates as any}
-        onChange={(rates) => onChange({ ...draft, rates: rates as any })}
-        isLoading={isLoading}
-        label="Rates"
-        singleColumn
-      />
+      <Box>
+        <FieldLabel>Rates</FieldLabel>
+        <JobsiteMaterialRatesForm
+          rates={draft.rates as any}
+          onChange={(rates) => onChange({ ...draft, rates: rates as any })}
+          isLoading={isLoading}
+        />
+      </Box>
       <Flex justifyContent="flex-end" gap={2} mt={1}>
-        <IconButton
+        <Button
           size="sm"
-          aria-label="cancel"
-          icon={<FiX />}
+          variant="ghost"
+          leftIcon={<FiX />}
           onClick={onCancel}
           isDisabled={isLoading}
-        />
-        <IconButton
+        >
+          Cancel
+        </Button>
+        <Button
           size="sm"
-          aria-label="save"
-          icon={<FiCheck />}
           colorScheme="blue"
+          leftIcon={<FiCheck />}
           onClick={onSave}
           isLoading={isLoading}
           isDisabled={draft.delivered && !draft.label}
-        />
+        >
+          Save scenario
+        </Button>
       </Flex>
     </Flex>
-  </FormContainer>
+  </Box>
 );
 
 interface IScenarioCard {
@@ -191,38 +224,48 @@ const ScenarioCard = ({ scenario, jobsiteMaterialId, onMutated, truckingRates }:
   }
 
   return (
-    <FormContainer border="1px solid" borderColor="gray.300" p={2} mt={1}>
+    <Box
+      borderWidth="1px"
+      borderColor="gray.200"
+      borderRadius="md"
+      p={3}
+    >
       <Flex justifyContent="space-between" alignItems="center">
         <Flex alignItems="center" gap={2}>
           <Text fontWeight="semibold">{scenario.label}</Text>
           {scenario.delivered && (
-            <Badge colorScheme="green">Delivered</Badge>
+            <Badge colorScheme="green" variant="subtle">
+              Delivered
+            </Badge>
           )}
         </Flex>
         <Flex gap={1}>
           <IconButton
-            size="sm"
+            size="xs"
             aria-label="edit scenario"
             icon={<FiEdit />}
-            backgroundColor="transparent"
+            variant="ghost"
             onClick={() => setEditing(true)}
           />
           <IconButton
-            size="sm"
+            size="xs"
             aria-label="remove scenario"
-            icon={<FiTrash />}
-            backgroundColor="transparent"
+            icon={<FiTrash2 />}
+            variant="ghost"
+            color="gray.500"
             onClick={handleRemove}
             isLoading={removeLoading}
           />
         </Flex>
       </Flex>
       {scenario.rates.length > 0 && (
-        <Text fontSize="sm" color="gray.600" mt={1}>
-          {scenario.rates.length} rate{scenario.rates.length > 1 ? "s" : ""} · latest ${scenario.rates[scenario.rates.length - 1]?.rate}/t
+        <Text fontSize="xs" color="gray.500" mt={1}>
+          {scenario.rates.length} rate
+          {scenario.rates.length > 1 ? "s" : ""} · latest $
+          {scenario.rates[scenario.rates.length - 1]?.rate}/t
         </Text>
       )}
-    </FormContainer>
+    </Box>
   );
 };
 
@@ -268,46 +311,60 @@ const ScenariosList = ({ jobsiteMaterial, onMutated, truckingRates }: IScenarios
   const scenarios = jobsiteMaterial.scenarios ?? [];
 
   return (
-    <Box mt={2}>
-      <Heading size="sm" mb={1}>
+    <Box>
+      <Heading
+        fontSize="xs"
+        fontWeight="semibold"
+        color="gray.500"
+        textTransform="uppercase"
+        letterSpacing="wide"
+        mb={2}
+      >
         Rate Scenarios
       </Heading>
 
       {scenarios.length === 0 && !adding && (
-        <Text color="gray.500" fontSize="sm">
+        <Text color="gray.500" fontSize="sm" mb={2}>
           No scenarios yet — add one below.
         </Text>
       )}
 
-      {scenarios.map((scenario) => (
-        <ScenarioCard
-          key={scenario._id}
-          scenario={scenario}
-          jobsiteMaterialId={jobsiteMaterial._id}
-          onMutated={onMutated}
-          truckingRates={truckingRates}
-        />
-      ))}
+      <Flex direction="column" gap={2}>
+        {scenarios.map((scenario) => (
+          <ScenarioCard
+            key={scenario._id}
+            scenario={scenario}
+            jobsiteMaterialId={jobsiteMaterial._id}
+            onMutated={onMutated}
+            truckingRates={truckingRates}
+          />
+        ))}
 
-      {adding ? (
-        <ScenarioForm
-          draft={addDraft}
-          onChange={setAddDraft}
-          onSave={handleAdd}
-          onCancel={() => {
-            setAdding(false);
-            setAddDraft(emptyDraft());
-          }}
-          isLoading={addLoading}
-          truckingRates={truckingRates}
-        />
-      ) : (
-        <Flex justifyContent="flex-end" mt={2}>
-          <Button size="sm" leftIcon={<FiPlus />} onClick={() => setAdding(true)}>
-            Add Scenario
-          </Button>
-        </Flex>
-      )}
+        {adding ? (
+          <ScenarioForm
+            draft={addDraft}
+            onChange={setAddDraft}
+            onSave={handleAdd}
+            onCancel={() => {
+              setAdding(false);
+              setAddDraft(emptyDraft());
+            }}
+            isLoading={addLoading}
+            truckingRates={truckingRates}
+          />
+        ) : (
+          <Flex justifyContent="flex-start" mt={1}>
+            <Button
+              size="sm"
+              variant="outline"
+              leftIcon={<FiPlus />}
+              onClick={() => setAdding(true)}
+            >
+              Add scenario
+            </Button>
+          </Flex>
+        )}
+      </Flex>
     </Box>
   );
 };

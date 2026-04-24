@@ -7,7 +7,6 @@ import Container from "../../../components/Common/Container";
 import JobsiteStoryClientContent from "../../../components/pages/jobsite/story/ClientContent";
 import { PageJobsiteSsrComp, ssrJobsiteSsr } from "../../../generated/page";
 import createLink from "../../../utils/createLink";
-import jobsiteName from "../../../utils/jobsiteName";
 
 const JobsiteStory: PageJobsiteSsrComp = ({ data }) => {
   const jobsite = data?.jobsite!;
@@ -21,7 +20,7 @@ const JobsiteStory: PageJobsiteSsrComp = ({ data }) => {
             link: "/jobsites",
           },
           {
-            title: jobsiteName(jobsite.name, jobsite.jobcode),
+            title: jobsite.jobcode || jobsite.name,
             link: createLink.jobsite(jobsite._id),
           },
           {

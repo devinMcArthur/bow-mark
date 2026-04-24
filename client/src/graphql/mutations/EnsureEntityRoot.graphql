@@ -1,0 +1,5 @@
+mutation EnsureEntityRoot($namespace: String!, $entityId: ID!) {
+  ensureEntityRoot(namespace: $namespace, entityId: $entityId) {
+    _id
+  }
+}

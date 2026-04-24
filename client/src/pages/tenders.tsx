@@ -41,7 +41,7 @@ const TENDERS_QUERY = gql`
       name
       jobcode
       status
-      files {
+      documents {
         _id
       }
       createdAt
@@ -64,7 +64,7 @@ interface TenderListItem {
   name: string;
   jobcode: string;
   status: string;
-  files: { _id: string }[];
+  documents: { _id: string }[];
   createdAt: string;
 }
 
@@ -269,11 +269,11 @@ const Tenders = () => {
                     <Text fontSize="xs" color="gray.400">
                       {new Date(tender.createdAt).toLocaleDateString("en-CA")}
                     </Text>
-                    {tender.files.length > 0 && (
+                    {tender.documents.length > 0 && (
                       <Flex align="center" gap={1}>
                         <FiFileText size={11} color="var(--chakra-colors-gray-400)" />
                         <Text fontSize="xs" color="gray.400">
-                          {tender.files.length}
+                          {tender.documents.length}
                         </Text>
                       </Flex>
                     )}

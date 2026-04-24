@@ -1,6 +1,10 @@
-export function buildFileEntry(f: any, serverBase: string, token: string): string {
-  const summary = f.summary as any;
-  const pageIndex = f.pageIndex as Array<{ page: number; summary: string }> | undefined;
+import type { ResolvedDocument } from "./fileDocuments/types";
+
+export function buildFileEntry(f: ResolvedDocument, serverBase: string, token: string): string {
+  // Cast enrichmentSummary to any to read into the known summary shape:
+  // { overview, documentType, keyTopics, chunks? }
+  const summary = f.enrichmentSummary as any;
+  const pageIndex = f.enrichmentPageIndex as Array<{ page: number; summary: string }> | undefined;
   const chunks = summary?.chunks as Array<{
     startPage: number;
     endPage: number;
@@ -18,12 +22,20 @@ export function buildFileEntry(f: any, serverBase: string, token: string): strin
           .join("\n")}`
       : "";
 
-  const filename = f.file?.description;
+  const filename = f.originalFilename ?? "Untitled";
+  const docType = summary?.documentType || "Unknown";
+  const url = `${serverBase}/api/documents/${f.documentId.toString()}`;
+  // Header leads with the filename (what Claude should refer to when
+  // talking about this file). The URL is given directly below with a
+  // citation template so Claude sees the exact markdown to emit — avoids
+  // falling back to raw "File ID: xxx" prose when it can't cite a page.
+  // folderPath ("/" means scope root) is shown when non-root so the bot
+  // can use it as a soft signal about how the user has organized things.
+  const folderHint =
+    f.folderPath && f.folderPath !== "/" ? ` · in ${f.folderPath}` : "";
   return [
-    `**File ID: ${f._id}**`,
-    filename ? `Filename: ${filename}` : null,
-    `Type: ${summary?.documentType || f.documentType || "Unknown"}`,
-    `URL: ${serverBase}/api/enriched-files/${f._id}`,
+    `**${filename}** (${docType})${folderHint}`,
+    `Link: [[${filename}]](${url}) · Page cite: [[${docType}, p.N]](${url}#page=N)`,
     summary
       ? `Overview: ${summary.overview}\nKey Topics: ${(summary.keyTopics as string[]).join(", ")}${navigationHint}`
       : "Summary: not yet available",
@@ -39,16 +51,16 @@ export interface FileIndexResult {
 }
 
 export function buildFileIndex(
-  jobsiteFiles: any[],
-  specFiles: any[],
+  jobsiteFiles: ResolvedDocument[],
+  specFiles: ResolvedDocument[],
   serverBase: string,
   token: string
 ): FileIndexResult {
-  const readyFiles = jobsiteFiles.filter((f: any) => f.summaryStatus === "ready");
+  const readyFiles = jobsiteFiles.filter((f) => f.enrichmentStatus === "ready");
   const pendingFiles = jobsiteFiles.filter(
-    (f: any) => f.summaryStatus === "pending" || f.summaryStatus === "processing"
+    (f) => f.enrichmentStatus === "pending" || f.enrichmentStatus === "processing"
   );
-  const readySpecFiles = specFiles.filter((f: any) => f.summaryStatus === "ready");
+  const readySpecFiles = specFiles.filter((f) => f.enrichmentStatus === "ready");
 
   const fileIndex = readyFiles
     .map((f) => buildFileEntry(f, serverBase, token))

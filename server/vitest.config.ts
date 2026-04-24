@@ -258,6 +258,8 @@ export default defineConfig({
           path.resolve(__dirname, "src/testing/mockFileStorageSetup.ts"),
           "--require",
           path.resolve(__dirname, "src/testing/mockEmailSetup.ts"),
+          "--require",
+          path.resolve(__dirname, "src/testing/vitestPreloadModels.ts"),
         ],
       },
     },
