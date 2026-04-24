@@ -116,10 +116,7 @@ const JobsiteClientContent = ({ id }: IJobsiteClientContent) => {
   // that layout do we want Documents to stretch to Materials' height —
   // on mobile/tablet the grid stacks and Documents should size
   // naturally instead of reserving a big empty box.
-  const isDesktopTwoCol = useBreakpointValue(
-    { base: false, lg: true },
-    { ssr: false }
-  );
+  const isDesktopTwoCol = useBreakpointValue({ base: false, lg: true });
 
   const { state: { user } } = useAuth();
   const { messageEndpoint: chatMessageEndpoint, conversationsEndpoint: chatConversationsEndpoint, suggestions: chatSuggestions } =
