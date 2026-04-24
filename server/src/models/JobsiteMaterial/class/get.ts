@@ -131,30 +131,33 @@ const completedQuantity = async (
 
   // Batch the daily-report date lookups into one query instead of one
   // per shipment. Each material shipment only needs the parent report's
-  // year to bucket the quantity, so we project just `_id` + `date`.
+  // year to bucket the quantity, so we project just `_id` + `date` +
+  // `materialShipment` (the array that actually holds the relationship;
+  // `MaterialShipment.dailyReport` is the deprecated back-pointer and
+  // isn't populated for shipments created via the normal DailyReport
+  // flow — relying on it used to silently zero out the total).
+  //
   // Jobsite pages often render 15+ materials concurrently, so the
   // serial per-shipment roundtrip used to fan out to 100s of tiny
   // queries on page load.
-  const dailyReportIds = Array.from(
-    new Set(
-      materialShipments
-        .map((s) => s.dailyReport?.toString())
-        .filter((id): id is string => !!id)
-    )
-  );
+  const shipmentIds = materialShipments.map((s) => s._id);
   const dailyReports = await DailyReport.find(
-    { _id: { $in: dailyReportIds } },
-    { date: 1 }
+    { materialShipment: { $in: shipmentIds } },
+    { date: 1, materialShipment: 1 }
   ).lean();
-  const dateById = new Map<string, Date>(
-    dailyReports.map((r) => [r._id.toString(), r.date])
-  );
+
+  // Map every shipment _id → its parent report's date.
+  const dateByShipmentId = new Map<string, Date>();
+  for (const report of dailyReports) {
+    for (const shipmentId of report.materialShipment ?? []) {
+      if (!shipmentId) continue;
+      dateByShipmentId.set(shipmentId.toString(), report.date);
+    }
+  }
 
   const quantityPerYear: YearlyQuantity = {};
   for (const shipment of materialShipments) {
-    const date = shipment.dailyReport
-      ? dateById.get(shipment.dailyReport.toString())
-      : undefined;
+    const date = dateByShipmentId.get(shipment._id.toString());
     if (!date) continue;
     const year = new Date(date).getFullYear();
     quantityPerYear[year] = (quantityPerYear[year] ?? 0) + shipment.quantity;

@@ -207,10 +207,10 @@ describe("uploadDocument", () => {
     ).rejects.toThrow(/trashed/i);
   });
 
-  it("rejects on sibling-name collision (unique index)", async () => {
+  it("auto-renames with (N) suffix on sibling-name collision", async () => {
     const tenderId = new mongoose.Types.ObjectId();
     const tenderRoot = await ensureTenderRoot(tenderId);
-    await resolver.uploadDocument({
+    const first = await resolver.uploadDocument({
       parentFileNodeId: tenderRoot!._id.toString(),
       fileUpload: makeUpload({
         filename: "dup.pdf",
@@ -218,15 +218,23 @@ describe("uploadDocument", () => {
         content: "1",
       }),
     });
-    await expect(
-      resolver.uploadDocument({
-        parentFileNodeId: tenderRoot!._id.toString(),
-        fileUpload: makeUpload({
-          filename: "dup.pdf",
-          mimetype: "application/pdf",
-          content: "2",
-        }),
-      })
-    ).rejects.toThrow(/already exists/i);
+    expect(first.name).toBe("dup.pdf");
+
+    const second = await resolver.uploadDocument({
+      parentFileNodeId: tenderRoot!._id.toString(),
+      fileUpload: makeUpload({
+        filename: "dup.pdf",
+        mimetype: "application/pdf",
+        content: "2",
+      }),
+    });
+    // Modern file-manager semantics: collision → auto-rename with (N) suffix.
+    expect(second.name).toMatch(/^dup \(\d+\)\.pdf$/);
+    expect(second._id.toString()).not.toBe(first._id.toString());
+
+    // Original node is untouched.
+    const original = await FileNode.findById(first._id).lean();
+    expect(original).not.toBeNull();
+    expect(original!.name).toBe("dup.pdf");
   });
 });

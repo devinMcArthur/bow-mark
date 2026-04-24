@@ -84,6 +84,15 @@ describe("fileSystem end-to-end: tender upload → enrichment → move → trash
 
     const tendersNs = await FileNode.findOne({ name: "tenders", isReservedRoot: true });
     expect(tendersNs).not.toBeNull();
+
+    // Roots are provisioned lazily: at tender-create time none exists yet.
+    const tenderRootBefore = await FileNode.findOne({ parentId: tendersNs!._id, name: tenderId.toString() });
+    expect(tenderRootBefore).toBeNull();
+
+    // Client surfaces call ensureEntityRoot right before the first upload —
+    // simulate that flow here so the lazy root gets provisioned.
+    await mutationResolver.ensureEntityRoot("/tenders", tenderId.toString());
+
     const tenderRoot = await FileNode.findOne({ parentId: tendersNs!._id, name: tenderId.toString() });
     expect(tenderRoot).not.toBeNull();
     expect(tenderRoot!.isReservedRoot).toBe(true);
