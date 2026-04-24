@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Agent Context & Knowledge Sync
+
+This repo is worked on from two Hermes agent instances — a laptop (dev) and a cloud droplet (hermes-agent, 143.110.213.39). Both stay in sync via GitHub. Key conventions:
+
+- **Plans** — `.hermes/plans/*.md` in this repo. Committed to git so both instances share them. Always `git pull` before starting work.
+- **Specs, decisions, runbooks** — `docs/specs/`, `docs/decisions/`, `docs/runbooks/`. Same rule.
+- **Hermes memory & skills** — live in `~/.hermes/` on each instance. Not git-synced yet — treat laptop as source of truth, cloud pulls via `scp` when needed.
+- **SecondBrain / Obsidian** — `github.com:devinMcArthur/SecondBrain`. Cloud instance should clone and `git pull` before reading notes.
+- **bow-mark repo on cloud** — `/home/hermes/bow-mark`. Always pull before starting a task: `git -C /home/hermes/bow-mark pull`.
+
+When working from the cloud agent, Claude Code works against `/home/hermes/bow-mark`.
+
 ## Project Overview
 
 Full-stack construction/paving jobsite management application (monorepo). Supports multiple app instances (Paving and Concrete) from the same codebase. Features material tracking, employee work tracking, daily reports, invoicing, and document management.
