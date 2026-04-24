@@ -30,6 +30,20 @@ const serverEnv = {
   // Skip System.validateSystem() / Company.validateCompanies() on startup —
   // the seed already handles both.
   SKIP_POST_STARTUP: "true",
+  // Dummy Spaces/S3 creds so the `File.downloadUrl` field resolver can
+  // generate a signed URL locally without a real bucket. aws-sdk v2's
+  // getSignedUrl signs purely client-side, so fake values are fine —
+  // the URL will point to a bucket that doesn't exist but we only
+  // assert the field resolves, not that it streams bytes.
+  //
+  // Without this, any DailyReport rendered via a Jobsite with seeded
+  // fileObjects (jobsite_1) 500s on the downloadUrl resolver, which
+  // cascades up non-nullable fields and nulls out the whole
+  // `dailyReport` query field — leaving the page stuck on Loading.
+  SPACES_NAME: "e2e-test-bucket",
+  SPACES_REGION: "e2e",
+  SPACES_KEY: "e2e-test-key",
+  SPACES_SECRET: "e2e-test-secret",
 };
 
 // Client env — override API URL to point at test server
@@ -56,18 +70,6 @@ const clientCommand = isCI
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  // TODO: three new E2E specs (employee-hour, production, vehicle-work) fail
-  // in CI with a Loading... spinner that never resolves on the
-  // /daily-report/:id page for jobsite_1_base_1_1 (DAILY_REPORT_ID=
-  // 621664558c026b7ac8fb32ef). The page works for jobsite_2 (used by
-  // material-shipment.spec.ts + global-setup pre-warm), so the failure is
-  // data-shape dependent. Same symptom on every test in all 3 files.
-  // Skipped for the unified-file-system deploy; re-enable after investigating.
-  testIgnore: [
-    "**/employee-hour.spec.ts",
-    "**/production.spec.ts",
-    "**/vehicle-work.spec.ts",
-  ],
   timeout: 30_000,
   retries: isCI ? 2 : 0,
   // Run tests in parallel — each worker gets its own browser context.
