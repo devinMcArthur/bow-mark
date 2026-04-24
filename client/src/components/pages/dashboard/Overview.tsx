@@ -231,20 +231,25 @@ const Overview = ({ startDate, endDate }: IOverview) => {
             )}
           </Stat>
 
-          {/* Avg Net Margin */}
+          {/* Net Margin */}
           <Stat>
-            <StatLabel fontWeight="bold">Avg Net Margin</StatLabel>
+            <StatLabel fontWeight="bold">Net Margin</StatLabel>
             <StatNumber
               color={
-                (report.avgNetMarginPercent ?? 0) >= 0 ? "green.600" : "red.500"
+                (report.overallNetMarginPercent ?? 0) >= 0 ? "green.600" : "red.500"
               }
               fontSize="lg"
             >
-              {report.avgNetMarginPercent != null
-                ? `${report.avgNetMarginPercent.toFixed(1)}%`
-                : "N/A"}
+              {report.overallNetMarginPercent != null
+                ? `${report.overallNetMarginPercent.toFixed(1)}%`
+                : "--"}
             </StatNumber>
-            <StatHelpText>Net / Revenue</StatHelpText>
+            <StatHelpText>Net / Total Revenue</StatHelpText>
+            {report.avgNetMarginPercent != null && (
+              <StatHelpText fontSize="sm" color="gray.500" mt={0}>
+                Avg Job Margin: {report.avgNetMarginPercent.toFixed(1)}%
+              </StatHelpText>
+            )}
           </Stat>
 
           {/* Total Tonnes */}

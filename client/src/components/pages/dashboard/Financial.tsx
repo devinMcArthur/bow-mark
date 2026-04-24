@@ -223,24 +223,25 @@ const Financial = ({ startDate, endDate }: IFinancial) => {
             </StatNumber>
           </Stat>
 
-          {/* Avg Net Margin % */}
+          {/* Net Margin */}
           <Stat>
-            <StatLabel>Avg Net Margin %</StatLabel>
+            <StatLabel>Net Margin</StatLabel>
             <StatNumber
               color={
-                (report.avgNetMarginPercent ?? 0) >= 15
-                  ? "green.600"
-                  : (report.avgNetMarginPercent ?? 0) >= 0
-                  ? "yellow.600"
-                  : "red.500"
+                (report.overallNetMarginPercent ?? 0) >= 0 ? "green.600" : "red.500"
               }
               fontSize="lg"
             >
-              {report.avgNetMarginPercent != null
-                ? `${report.avgNetMarginPercent.toFixed(1)}%`
-                : "N/A"}
+              {report.overallNetMarginPercent != null
+                ? `${report.overallNetMarginPercent.toFixed(1)}%`
+                : "--"}
             </StatNumber>
-            <StatHelpText>Net / Revenue</StatHelpText>
+            <StatHelpText>Net / Total Revenue</StatHelpText>
+            {report.avgNetMarginPercent != null && (
+              <StatHelpText fontSize="sm" color="gray.500" mt={0}>
+                Avg Job Margin: {report.avgNetMarginPercent.toFixed(1)}%
+              </StatHelpText>
+            )}
           </Stat>
         </SimpleGrid>
       </Card>

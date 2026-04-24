@@ -44,7 +44,17 @@ const Productivity = dynamic<{
   endDate: string;
 }>(() => import("../../../components/pages/jobsite-report/Productivity"), { ssr: false });
 
-const toDateInput = (d: Date) => d.toISOString().slice(0, 10);
+// Format a Date as a local-timezone YYYY-MM-DD string.
+// Using toISOString() would convert to UTC first, which shifts Jan 1 local
+// midnight to Dec 31 in any timezone west of UTC (e.g. all of North America),
+// causing the year badge to show "This Year / 2026" while the date pickers
+// display 2025-12-31.
+const toDateInput = (d: Date): string => {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
 
 type ActivePreset = string | null; // year string (e.g. "2026") or "all-time"
 

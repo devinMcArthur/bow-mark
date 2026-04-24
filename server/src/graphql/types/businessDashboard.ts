@@ -71,6 +71,9 @@ export class DashboardOverviewReport {
   @Field(() => Float, { nullable: true })
   avgNetMarginPercent?: number;
 
+  @Field(() => Float, { nullable: true })
+  overallNetMarginPercent?: number;
+
   @Field(() => Float)
   totalTonnes!: number;
 
@@ -167,6 +170,9 @@ export class DashboardFinancialReport {
 
   @Field(() => Float, { nullable: true })
   avgNetMarginPercent?: number;
+
+  @Field(() => Float, { nullable: true })
+  overallNetMarginPercent?: number;
 
   @Field(() => [DashboardFinancialItem])
   jobsites!: DashboardFinancialItem[];

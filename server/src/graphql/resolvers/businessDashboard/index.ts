@@ -177,6 +177,8 @@ export default class BusinessDashboardResolver {
         ? margined.reduce((s, j) => s + (j.netMarginPercent ?? 0), 0) /
           margined.length
         : undefined;
+    const overallNetMarginPercent =
+      totalRevenue > 0 ? (totalNetIncome / totalRevenue) * 100 : undefined;
 
     // Prior year totals for YoY
     const priorRevenue = priorRevenueRows.reduce(
@@ -208,6 +210,7 @@ export default class BusinessDashboardResolver {
       totalRevenue,
       totalNetIncome,
       avgNetMarginPercent,
+      overallNetMarginPercent,
       totalTonnes,
       avgTonnesPerHour,
       revenueChangePercent: pctChange(totalRevenue, priorRevenue),
@@ -342,6 +345,8 @@ export default class BusinessDashboardResolver {
         margins.length > 0
           ? margins.reduce((s, m) => s + m, 0) / margins.length
           : undefined,
+      overallNetMarginPercent:
+        totalRevenue > 0 ? (totalNetIncome / totalRevenue) * 100 : undefined,
       jobsites: items,
     };
   }
