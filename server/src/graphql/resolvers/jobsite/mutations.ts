@@ -53,6 +53,9 @@ export class JobsiteCreateData {
 export class JobsiteUpdateData {
   @Field({ nullable: false })
   public name!: string;
+
+  @Field(() => String, { nullable: true })
+  public description?: string | null;
 }
 
 @InputType()

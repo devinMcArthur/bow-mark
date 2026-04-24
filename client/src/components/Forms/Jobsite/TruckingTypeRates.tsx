@@ -2,19 +2,17 @@ import {
   Box,
   Button,
   Flex,
-  Grid,
-  GridItem,
   IconButton,
+  Input,
+  Text,
 } from "@chakra-ui/react";
 import React from "react";
-import { FiPlus, FiTrash } from "react-icons/fi";
+import { FiPlus, FiTrash2 } from "react-icons/fi";
 import {
   TruckingRateSnippetFragment,
   TruckingRateTypes,
   TruckingTypeRateSnippetFragment,
 } from "../../../generated/graphql";
-import FormContainer from "../../Common/FormContainer";
-import TextField from "../../Common/forms/TextField";
 import TruckingRates from "../../Common/forms/TruckingRates";
 
 interface ITruckingTypeRates {
@@ -26,16 +24,17 @@ interface ITruckingTypeRates {
   allowDeletion?: boolean;
 }
 
+/**
+ * Outer editor: one block per trucking type (Tandem, Truck and Pup,
+ * etc.). Title sits on top, rate schedule below — reads as a stack per
+ * vehicle type instead of competing title/rates columns side-by-side.
+ */
 const TruckingTypeRates = ({
   truckingRates,
   onChange,
   isLoading,
   allowDeletion = false,
 }: ITruckingTypeRates) => {
-  /**
-   * ----- Variables -----
-   */
-
   const truckingRatesCopy: Omit<
     TruckingTypeRateSnippetFragment,
     "__typename"
@@ -43,17 +42,11 @@ const TruckingTypeRates = ({
     const copy: TruckingTypeRateSnippetFragment[] = JSON.parse(
       JSON.stringify(truckingRates)
     );
-
     for (let i = 0; i < copy.length; i++) {
       if (copy[i].__typename) delete copy[i].__typename;
     }
-
     return copy;
   }, [truckingRates]);
-
-  /**
-   * ----- Functions -----
-   */
 
   const addRate = React.useCallback(() => {
     truckingRatesCopy.push({
@@ -66,7 +59,6 @@ const TruckingTypeRates = ({
         },
       ],
     });
-
     if (onChange) onChange(truckingRatesCopy);
   }, [truckingRatesCopy, onChange]);
 
@@ -81,7 +73,6 @@ const TruckingTypeRates = ({
   const setTitle = React.useCallback(
     (value: string, index: number) => {
       truckingRatesCopy[index].title = value;
-
       if (onChange) onChange(truckingRatesCopy);
     },
     [truckingRatesCopy, onChange]
@@ -93,78 +84,80 @@ const TruckingTypeRates = ({
       index: number
     ) => {
       truckingRatesCopy[index].rates = value;
-
       if (onChange) onChange(truckingRatesCopy);
     },
     [truckingRatesCopy, onChange]
   );
-
-  /**
-   * ----- Use-effects and other logic -----
-   */
 
   React.useEffect(() => {
     if (onChange) onChange(truckingRatesCopy);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /**
-   * ----- Rendering -----
-   */
-
   return (
-    <Box>
+    <Flex direction="column" gap={4}>
       {truckingRates.map((rate, index) => (
-        <FormContainer
+        <Box
           key={index}
-          justifyContent="space-between"
-          display="flex"
-          flexDir="row"
+          borderWidth="1px"
+          borderColor="gray.200"
+          borderRadius="md"
+          p={3}
         >
-          <Grid
-            templateColumns="repeat(6, 1fr)"
-            gap={2}
-            w={allowDeletion ? "95%" : "100%"}
-          >
-            <GridItem colSpan={[6, 6, 6, 6, 2]}>
-              <TextField
+          {/* Title row — full-width, clearly belongs to the section. */}
+          <Flex align="flex-end" gap={2} mb={3}>
+            <Box flex={1}>
+              <Text
+                fontSize="xs"
+                fontWeight="semibold"
+                color="gray.500"
+                textTransform="uppercase"
+                letterSpacing="wide"
+                mb={1}
+              >
+                Title
+              </Text>
+              <Input
+                size="sm"
                 value={rate.title}
-                label="Title"
                 isDisabled={isLoading}
                 onChange={(e) => setTitle(e.target.value, index)}
+                placeholder="e.g. Tandem, Truck and Pup"
               />
-            </GridItem>
-            <GridItem colSpan={[6, 6, 6, 6, 4]}>
-              <TruckingRates
-                rates={rate.rates}
-                isLoading={isLoading}
-                onChange={(rates) => setRates(rates, index)}
-                label="Rates"
+            </Box>
+            {allowDeletion && (
+              <IconButton
+                aria-label="Remove type"
+                icon={<FiTrash2 />}
+                size="sm"
+                variant="ghost"
+                color="gray.500"
+                onClick={() => removeRate(index)}
               />
-            </GridItem>
-          </Grid>
-          {allowDeletion && (
-            <IconButton
-              m="auto"
-              aria-label="remove"
-              icon={<FiTrash />}
-              backgroundColor="transparent"
-              onClick={() => removeRate(index)}
-            />
-          )}
-        </FormContainer>
+            )}
+          </Flex>
+
+          {/* Rates grid lives below the title — stacked per section. */}
+          <TruckingRates
+            rates={rate.rates}
+            isLoading={isLoading}
+            onChange={(rates) => setRates(rates, index)}
+          />
+        </Box>
       ))}
-      <Flex justifyContent="end">
+
+      <Flex justifyContent="flex-start">
         <Button
-          mt={2}
+          size="sm"
+          variant="outline"
           isLoading={isLoading}
           leftIcon={<FiPlus />}
           onClick={addRate}
         >
-          New
+          Add trucking type
         </Button>
       </Flex>
-    </Box>
+    </Flex>
   );
 };
 

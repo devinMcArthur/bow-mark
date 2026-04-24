@@ -2,7 +2,6 @@ import { DailyReportDocument, DailyReportModel } from "@models";
 import { IDailyReportCreate } from "@typescript/dailyReport";
 import { timezoneStartOfDayinUTC } from "@utils/time";
 import { eventfulMutation } from "@lib/eventfulMutation";
-import { createEntityRoot } from "@lib/fileTree/createEntityRoot";
 
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
@@ -38,11 +37,10 @@ const document = async (
       { session }
     );
     const dailyReport = created[0] as DailyReportDocument;
-    await createEntityRoot({
-      namespace: "/daily-reports",
-      entityId: dailyReport._id,
-      session,
-    });
+    // No entity-root provisioning here: the per-entity document folder
+    // is created lazily the first time a file is actually posted (see
+    // `ensureEntityRoot` mutation). Keeps the file tree free of empty
+    // folders for the many daily reports that never have attachments.
     return { result: dailyReport._id, event: null };
   });
 

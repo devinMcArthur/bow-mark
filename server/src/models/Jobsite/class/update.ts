@@ -22,6 +22,11 @@ import dayjs from "dayjs";
 
 const document = async (jobsite: JobsiteDocument, data: IJobsiteUpdate) => {
   jobsite.name = data.name;
+  // `description` is optional — treat explicit null / empty string as
+  // "clear it", leave untouched when not provided.
+  if (data.description !== undefined) {
+    jobsite.description = data.description ?? undefined;
+  }
 };
 
 const addMaterial = async (

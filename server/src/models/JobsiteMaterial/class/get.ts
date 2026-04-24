@@ -127,18 +127,37 @@ const completedQuantity = async (
   jobsiteMaterial: JobsiteMaterialDocument
 ): Promise<YearlyQuantity> => {
   const materialShipments = await jobsiteMaterial.getMaterialShipments();
+  if (materialShipments.length === 0) return {};
+
+  // Batch the daily-report date lookups into one query instead of one
+  // per shipment. Each material shipment only needs the parent report's
+  // year to bucket the quantity, so we project just `_id` + `date`.
+  // Jobsite pages often render 15+ materials concurrently, so the
+  // serial per-shipment roundtrip used to fan out to 100s of tiny
+  // queries on page load.
+  const dailyReportIds = Array.from(
+    new Set(
+      materialShipments
+        .map((s) => s.dailyReport?.toString())
+        .filter((id): id is string => !!id)
+    )
+  );
+  const dailyReports = await DailyReport.find(
+    { _id: { $in: dailyReportIds } },
+    { date: 1 }
+  ).lean();
+  const dateById = new Map<string, Date>(
+    dailyReports.map((r) => [r._id.toString(), r.date])
+  );
 
   const quantityPerYear: YearlyQuantity = {};
-
-  for (let i = 0; i < materialShipments.length; i++) {
-    const dailyReport = await materialShipments[i].getDailyReport();
-    if (dailyReport) {
-      const dailyReportYear = new Date(dailyReport.date).getFullYear();
-      if (!quantityPerYear[dailyReportYear])
-        quantityPerYear[dailyReportYear] = 0;
-
-      quantityPerYear[dailyReportYear] += materialShipments[i].quantity;
-    }
+  for (const shipment of materialShipments) {
+    const date = shipment.dailyReport
+      ? dateById.get(shipment.dailyReport.toString())
+      : undefined;
+    if (!date) continue;
+    const year = new Date(date).getFullYear();
+    quantityPerYear[year] = (quantityPerYear[year] ?? 0) + shipment.quantity;
   }
 
   return quantityPerYear;
@@ -161,26 +180,36 @@ const invoiceMonthRate = async (
   if (!jobsiteMaterial.invoices || jobsiteMaterial.invoices.length === 0)
     return 0;
 
-  const monthsDailyReports = await DailyReport.find({
-    date: {
-      $gte: dayjs(dayInMonth).startOf("month").toDate(),
-      $lt: dayjs(dayInMonth).endOf("month").toDate(),
+  const monthsDailyReports = await DailyReport.find(
+    {
+      date: {
+        $gte: dayjs(dayInMonth).startOf("month").toDate(),
+        $lt: dayjs(dayInMonth).endOf("month").toDate(),
+      },
     },
-  });
+    { materialShipment: 1 }
+  ).lean();
 
+  // Collect every shipment id referenced by the month's daily reports
+  // and resolve the quantity total in a single MaterialShipment query,
+  // scoped to this jobsiteMaterial. Prior loop issued one shipment
+  // query per daily report — with a full month of reports that added up
+  // on large jobsites during end-of-month report builds.
+  const shipmentIds = monthsDailyReports.flatMap(
+    (r) => r.materialShipment ?? []
+  );
   let quantity = 0;
-  for (let i = 0; i < monthsDailyReports.length; i++) {
-    const reportShipments = await monthsDailyReports[i].getMaterialShipments();
-
-    for (let j = 0; j < reportShipments.length; j++) {
-      if (
-        reportShipments[j].noJobsiteMaterial === false &&
-        reportShipments[j].jobsiteMaterial?.toString() ===
-          jobsiteMaterial._id.toString()
-      ) {
-        quantity += reportShipments[j].quantity;
-      }
-    }
+  if (shipmentIds.length > 0) {
+    const shipments = await MaterialShipment.find(
+      {
+        _id: { $in: shipmentIds },
+        jobsiteMaterial: jobsiteMaterial._id,
+        noJobsiteMaterial: false,
+        archivedAt: null,
+      },
+      { quantity: 1 }
+    ).lean();
+    for (const s of shipments) quantity += s.quantity;
   }
 
   let cost = 0;

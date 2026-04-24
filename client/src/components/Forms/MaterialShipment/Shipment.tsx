@@ -1,6 +1,6 @@
-import { Box, Flex, IconButton, SimpleGrid } from "@chakra-ui/react";
+import { Box, Flex, IconButton, SimpleGrid, Text } from "@chakra-ui/react";
 import React from "react";
-import { FiX } from "react-icons/fi";
+import { FiTrash2 } from "react-icons/fi";
 import {
   JobsiteMaterialCostType,
   JobsiteMaterialForDailyReportSnippetFragment,
@@ -62,10 +62,6 @@ const MaterialShipmentShipmentForm = ({
   onChange,
   remove,
 }: IMaterialShipmentShipmentForm) => {
-  /**
-   * ----- Variables -----
-   */
-
   const shipmentCopy: MaterialShipmentShipmentData = React.useMemo(() => {
     return JSON.parse(JSON.stringify(shipment));
   }, [shipment]);
@@ -81,25 +77,16 @@ const MaterialShipmentShipmentForm = ({
           return false;
         return true;
       })
-      .map((jobsiteMaterial) => {
-        return {
-          title: jobsiteMaterialName(jobsiteMaterial),
-          value: jobsiteMaterial._id,
-        };
-      });
+      .map((jobsiteMaterial) => ({
+        title: jobsiteMaterialName(jobsiteMaterial),
+        value: jobsiteMaterial._id,
+      }));
   }, [deliveredMaterial, index, jobsiteMaterials]);
-
-  /**
-   * ----- Functions -----
-   */
 
   const updateJobsiteMaterial = React.useCallback(
     (jobsiteMaterialId: string) => {
-      if (isEmpty(jobsiteMaterialId)) shipmentCopy.noJobsiteMaterial = true;
-      else shipmentCopy.noJobsiteMaterial = false;
-
+      shipmentCopy.noJobsiteMaterial = isEmpty(jobsiteMaterialId);
       shipmentCopy.jobsiteMaterialId = jobsiteMaterialId;
-
       onChange(shipmentCopy);
     },
     [shipmentCopy, onChange]
@@ -108,7 +95,6 @@ const MaterialShipmentShipmentForm = ({
   const updateQuantity = React.useCallback(
     (value: number) => {
       shipmentCopy.quantity = value;
-
       onChange(shipmentCopy);
     },
     [shipmentCopy, onChange]
@@ -117,7 +103,6 @@ const MaterialShipmentShipmentForm = ({
   const updateUnit = React.useCallback(
     (value: string) => {
       shipmentCopy.unit = value;
-
       onChange(shipmentCopy);
     },
     [onChange, shipmentCopy]
@@ -126,7 +111,6 @@ const MaterialShipmentShipmentForm = ({
   const updateShipmentType = React.useCallback(
     (value: string) => {
       shipmentCopy.shipmentType = value;
-
       onChange(shipmentCopy);
     },
     [onChange, shipmentCopy]
@@ -135,7 +119,6 @@ const MaterialShipmentShipmentForm = ({
   const updateSupplier = React.useCallback(
     (value: string) => {
       shipmentCopy.supplier = value;
-
       onChange(shipmentCopy);
     },
     [onChange, shipmentCopy]
@@ -144,7 +127,6 @@ const MaterialShipmentShipmentForm = ({
   const updateStartTime = React.useCallback(
     (value: string) => {
       shipmentCopy.startTime = convertHourToDate(value, dailyReportDate);
-
       onChange(shipmentCopy);
     },
     [dailyReportDate, onChange, shipmentCopy]
@@ -153,17 +135,11 @@ const MaterialShipmentShipmentForm = ({
   const updateEndTime = React.useCallback(
     (value: string) => {
       shipmentCopy.endTime = convertHourToDate(value, dailyReportDate);
-
       onChange(shipmentCopy);
     },
     [dailyReportDate, onChange, shipmentCopy]
   );
 
-  /**
-   * ----- Use-effects and other logic ------
-   */
-
-  // Handle deliveredMaterial changing
   React.useEffect(() => {
     if (deliveredMaterial && index > 0) {
       updateJobsiteMaterial(deliveredMaterial._id);
@@ -173,41 +149,91 @@ const MaterialShipmentShipmentForm = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deliveredMaterial, index]);
 
-  /**
-   * ----- Rendering -----
-   */
-
   return (
-    <Box backgroundColor="gray.300" borderRadius={4} p={2} m={2}>
-      {canDelete && (
-        <Flex justifyContent="end">
+    <Box
+      borderWidth="1px"
+      borderColor="gray.200"
+      borderRadius="md"
+      bg="gray.50"
+      p={3}
+    >
+      <Flex justify="space-between" align="center" mb={2}>
+        <Text fontSize="xs" color="gray.500">
+          Shipment {index + 1}
+        </Text>
+        {canDelete && (
           <IconButton
-            p={0}
-            icon={<FiX />}
-            aria-label="remove"
-            onClick={() => remove()}
-            backgroundColor="transparent"
+            aria-label="Remove shipment"
+            icon={<FiTrash2 />}
+            size="sm"
+            variant="ghost"
+            color="gray.500"
+            onClick={remove}
             isLoading={isLoading}
           />
-        </Flex>
-      )}
-      {/* SHIPMENT */}
-      {shipment.noJobsiteMaterial ? (
-        // NO JOBSITE MATERIAL
-        <>
-          <Select
-            name="jobsiteMaterialId"
-            options={jobsiteMaterialOptions}
-            placeholder="Material not listed"
-            label="Material"
-            isDisabled={isLoading || (!!deliveredMaterial && index > 0)}
-            value={shipment.jobsiteMaterialId || undefined}
-            errorMessage={errors?.jobsiteMaterialId}
-            onChange={(e) => {
-              updateJobsiteMaterial(e.target.value);
-            }}
-          />
-          <SimpleGrid spacing={2} columns={[1, 1, 2]}>
+        )}
+      </Flex>
+
+      <Flex direction="column" gap={3}>
+        {shipment.noJobsiteMaterial ? (
+          <>
+            <Select
+              name="jobsiteMaterialId"
+              options={jobsiteMaterialOptions}
+              placeholder="Material not listed"
+              label="Material"
+              isDisabled={isLoading || (!!deliveredMaterial && index > 0)}
+              value={shipment.jobsiteMaterialId || undefined}
+              errorMessage={errors?.jobsiteMaterialId}
+              onChange={(e) => updateJobsiteMaterial(e.target.value)}
+            />
+            <SimpleGrid columns={[1, 2]} spacing={3}>
+              <NumberForm
+                step={10}
+                stepper
+                label="Quantity"
+                isDisabled={isLoading}
+                value={shipment.quantity}
+                errorMessage={errors?.quantity}
+                onChange={(e) => updateQuantity(parseFloat(e))}
+              />
+              <Unit
+                label="Units"
+                value={shipment.unit || undefined}
+                onChange={(e) => updateUnit(e.target.value)}
+                errorMessage={errors?.unit}
+              />
+            </SimpleGrid>
+            <SimpleGrid columns={[1, 2]} spacing={3}>
+              <MaterialSearch
+                label="Received Material"
+                isDisabled={isLoading}
+                errorMessage={errors?.shipmentType}
+                materialSelected={(material) =>
+                  updateShipmentType(material.name)
+                }
+              />
+              <CompanySearch
+                label="Supplier"
+                isDisabled={isLoading}
+                errorMessage={errors?.supplier}
+                companySelected={(company) => updateSupplier(company.name)}
+              />
+            </SimpleGrid>
+          </>
+        ) : (
+          <>
+            <Select
+              name="jobsiteMaterialId"
+              options={jobsiteMaterialOptions}
+              placeholder="Material not listed"
+              label="Material"
+              isDisabled={isLoading || (!!deliveredMaterial && index > 0)}
+              value={shipment.jobsiteMaterialId || undefined}
+              errorMessage={errors?.jobsiteMaterialId}
+              onChange={(e) => updateJobsiteMaterial(e.target.value)}
+            />
+            {afterMaterial}
             <NumberForm
               step={10}
               stepper
@@ -217,80 +243,32 @@ const MaterialShipmentShipmentForm = ({
               errorMessage={errors?.quantity}
               onChange={(e) => updateQuantity(parseFloat(e))}
             />
-            <Unit
-              label="Units"
-              value={shipment.unit || undefined}
-              onChange={(e) => updateUnit(e.target.value)}
-              errorMessage={errors?.unit}
-            />
-          </SimpleGrid>
-          <SimpleGrid spacing={2} columns={[1, 1, 2]}>
-            <MaterialSearch
-              label="Received Material"
-              isDisabled={isLoading}
-              errorMessage={errors?.shipmentType}
-              materialSelected={(material) => updateShipmentType(material.name)}
-            />
-            <CompanySearch
-              label="Supplier"
-              isDisabled={isLoading}
-              errorMessage={errors?.supplier}
-              companySelected={(company) => updateSupplier(company.name)}
-            />
-          </SimpleGrid>
-        </>
-      ) : (
-        // JOBSITE MATERIAL
-        <>
-          <Select
-            name="jobsiteMaterialId"
-            options={jobsiteMaterialOptions}
-            placeholder="Material not listed"
-            label="Material"
-            isDisabled={isLoading || (!!deliveredMaterial && index > 0)}
-            value={shipment.jobsiteMaterialId || undefined}
-            errorMessage={errors?.jobsiteMaterialId}
-            onChange={(e) => {
-              updateJobsiteMaterial(e.target.value);
-            }}
-          />
-          {afterMaterial}
-          <NumberForm
-            step={10}
-            stepper
-            label="Quantity"
-            isDisabled={isLoading}
-            value={shipment.quantity}
-            errorMessage={errors?.quantity}
-            onChange={(e) => updateQuantity(parseFloat(e))}
-          />
-        </>
-      )}
+          </>
+        )}
 
-      {/* showStartEndTime: undefined = legacy (optional), true = required, false = hidden */}
-      {showStartEndTime !== false && (
-        <SimpleGrid spacing={2} columns={[1, 1, 2]}>
-          <TextField
-            label={showStartEndTime ? "Start Time" : "Start Time (optional)"}
-            isDisabled={isLoading}
-            value={shipment.startTime}
-            bgColor="white"
-            type="time"
-            onChange={(e) => updateStartTime(e.target.value)}
-            errorMessage={errors?.startTime}
-          />
-          <TextField
-            label={showStartEndTime ? "End Time" : "End Time (optional)"}
-            isDisabled={isLoading}
-            value={shipment.endTime}
-            bgColor="white"
-            type="time"
-            onChange={(e) => updateEndTime(e.target.value)}
-            errorMessage={errors?.endTime}
-          />
-        </SimpleGrid>
-      )}
-      {/* END SHIPMENT */}
+        {showStartEndTime !== false && (
+          <SimpleGrid columns={2} spacing={3}>
+            <TextField
+              label={showStartEndTime ? "Start Time" : "Start Time (optional)"}
+              isDisabled={isLoading}
+              value={shipment.startTime}
+              bgColor="white"
+              type="time"
+              onChange={(e) => updateStartTime(e.target.value)}
+              errorMessage={errors?.startTime}
+            />
+            <TextField
+              label={showStartEndTime ? "End Time" : "End Time (optional)"}
+              isDisabled={isLoading}
+              value={shipment.endTime}
+              bgColor="white"
+              type="time"
+              onChange={(e) => updateEndTime(e.target.value)}
+              errorMessage={errors?.endTime}
+            />
+          </SimpleGrid>
+        )}
+      </Flex>
     </Box>
   );
 };

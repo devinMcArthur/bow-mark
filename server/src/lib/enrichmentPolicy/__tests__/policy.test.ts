@@ -36,7 +36,7 @@ async function makeFileNode(parentId: mongoose.Types.ObjectId, name: string, doc
     documentId,
     version: 0,
     sortKey: "0000",
-    aiManaged: false,
+    systemManaged: false,
     isReservedRoot: false,
   });
 }

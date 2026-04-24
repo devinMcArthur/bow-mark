@@ -14,6 +14,13 @@ export interface ResolvedDocument {
   enrichmentStatus?: "pending" | "processing" | "ready" | "partial" | "failed" | "orphaned";
   enrichmentSummary?: unknown;
   enrichmentPageIndex?: Array<{ page: number; summary: string }>;
+  /**
+   * Folder path relative to the surface scope's root, e.g. "/Specs" for a
+   * file under `/tenders/<id>/Specs/foo.pdf`, or "/" for a file at the
+   * scope root. Only populated for new-shape documents (FileNode-backed);
+   * legacy enrichedfiles don't have folder structure so this stays "/".
+   */
+  folderPath: string;
   source: "legacy-enrichedfile" | "new-document";
 }
 

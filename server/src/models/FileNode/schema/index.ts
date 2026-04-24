@@ -34,15 +34,22 @@ export class FileNodeSchema {
   @prop({ trim: true })
   public description?: string;
 
+  /**
+   * When true, the FileBrowser blocks user-initiated rename, move, or
+   * trash on this node. Used for structural folders the system owns —
+   * AI-curated tender categories, invoice subfolders, any future layout
+   * we want to keep intact. (Originally named `aiManaged`; broadened and
+   * renamed since the flag now covers more than AI-authored folders.)
+   */
   @Field()
   @prop({ required: true, default: false })
-  public aiManaged!: boolean;
+  public systemManaged!: boolean;
 
   @Field()
   @prop({ required: true, default: "0000" })
   public sortKey!: string;
 
-  @Field({ nullable: true })
+  @Field(() => UserRoles, { nullable: true })
   @prop({ type: () => Number })
   public minRole?: UserRoles;
 

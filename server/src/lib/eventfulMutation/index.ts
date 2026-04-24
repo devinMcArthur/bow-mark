@@ -91,11 +91,19 @@ function buildEventDoc(
   input: DomainEventInput,
   ctx: ReturnType<typeof getRequestContext>
 ) {
+  // actorId / actorKind default from the ambient RequestContext when the
+  // caller didn't set them explicitly. This is what makes "who did this?"
+  // populate automatically for every mutation, since the Apollo context fn
+  // enriches the ALS frame with user info from the JWT.
+  const ctxUserId = ctx?.userId;
+  const resolvedActorId =
+    input.actorId ??
+    (ctxUserId ? new mongoose.Types.ObjectId(ctxUserId) : undefined);
   return {
     type: input.type,
     schemaVersion: input.schemaVersion ?? 1,
-    actorKind: input.actorKind,
-    actorId: input.actorId,
+    actorKind: input.actorKind ?? ctx?.actorKind ?? "user",
+    actorId: resolvedActorId,
     onBehalfOf: input.onBehalfOf,
     entityType: input.entityType,
     entityId: input.entityId,

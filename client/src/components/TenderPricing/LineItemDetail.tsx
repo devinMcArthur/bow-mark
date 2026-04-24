@@ -22,7 +22,7 @@ import { useRouter } from "next/router";
 import { useApolloClient } from "@apollo/client";
 import { useSystem } from "../../contexts/System";
 import { TenderPricingRow } from "./types";
-import { TenderFileItem } from "../Tender/types";
+import { TenderDocumentItem } from "../Tender/types";
 import { computeRow, formatCurrency, formatMarkup } from "./compute";
 import { LineItemStatus, LINE_ITEM_STATUSES, STATUS_LABELS, STATUS_COLORS } from "./statusConstants";
 import type { RateEntry } from "./calculators/types";
@@ -141,7 +141,7 @@ interface LineItemDetailProps {
   tenderId: string;
   onUpdate: (rowId: string, data: Record<string, unknown>) => void;
   onClose: () => void;
-  tenderFiles?: TenderFileItem[];
+  tenderDocuments?: TenderDocumentItem[];
   activeDocFile?: string;
   activeDocPage?: number;
   onDocRefAdd?: (rowId: string, enrichedFileId: string, page: number, description?: string) => Promise<void>;
@@ -157,7 +157,7 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
   tenderId,
   onUpdate,
   onClose,
-  tenderFiles,
+  tenderDocuments,
   activeDocFile,
   activeDocPage,
   onDocRefAdd,
@@ -1083,8 +1083,14 @@ const LineItemDetail: React.FC<LineItemDetailProps> = ({
             ) : (
               <Flex direction="column" gap={2}>
                 {(row.docRefs ?? []).map((ref) => {
-                  const file = tenderFiles?.find((f) => f._id === ref.enrichedFileId);
-                  const fileName = file?.file.description ?? ref.enrichedFileId.slice(-6);
+                  // Doc-refs store the Document id in the legacy-named
+                  // `enrichedFileId` field (values are unchanged — only the
+                  // field name is stale). Match against `documentId`, not
+                  // `_id` (which is now the FileNode id, not the Document).
+                  const file = tenderDocuments?.find(
+                    (f) => f.documentId === ref.enrichedFileId
+                  );
+                  const fileName = file?.name ?? ref.enrichedFileId.slice(-6);
                   return (
                     <Box
                       key={ref._id}

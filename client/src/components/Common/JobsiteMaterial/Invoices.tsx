@@ -2,105 +2,132 @@ import {
   Box,
   Button,
   Center,
+  Drawer,
+  DrawerBody,
+  DrawerCloseButton,
+  DrawerContent,
+  DrawerHeader,
+  DrawerOverlay,
   Flex,
-  Heading,
-  IconButton,
+  Text,
 } from "@chakra-ui/react";
 import React from "react";
-import { FiPlus, FiX } from "react-icons/fi";
-import { InvoiceCardSnippetFragment, JobsiteMaterialCardSnippetFragment } from "../../../generated/graphql";
+import { FiPlus } from "react-icons/fi";
+import {
+  InvoiceCardSnippetFragment,
+  JobsiteMaterialCardSnippetFragment,
+} from "../../../generated/graphql";
 import JobsiteMaterialInvoiceAddForm from "../../Forms/JobsiteMaterial/InvoiceAdd";
-import FormContainer from "../FormContainer";
 import Permission from "../Permission";
 import InvoiceCardForJobsiteMaterial from "./InvoiceCard";
 import dayjs from "dayjs";
 
 interface IJobsiteMaterialInvoices {
   jobsiteMaterial: JobsiteMaterialCardSnippetFragment;
-  invoices: InvoiceCardSnippetFragment[]
+  invoices: InvoiceCardSnippetFragment[];
+  /** Parent jobsite id. Threaded through for file-attachment routing. */
+  jobsiteId?: string;
   showPreviousYears?: boolean;
 }
 
 const JobsiteMaterialInvoices = ({
   jobsiteMaterial,
   invoices: propInvoices,
+  jobsiteId,
   showPreviousYears,
 }: IJobsiteMaterialInvoices) => {
-  /**
-   * ----- Hook Initialization -----
-   */
-
   const [addForm, setAddForm] = React.useState(false);
-
-  /**
-   * ----- Variables -----
-   */
 
   const sortedInvoices = React.useMemo(() => {
     let invoices = propInvoices;
-
     if (invoices && !showPreviousYears) {
-      invoices = invoices?.filter((a) => {
-        return dayjs(a.date).isSame(dayjs(), "year");
-      });
+      invoices = invoices?.filter((a) =>
+        dayjs(a.date).isSame(dayjs(), "year")
+      );
     }
-
-    return invoices?.slice().sort((a, b) => {
-      return a.company.name.localeCompare(b.company.name);
-    });
+    return invoices?.slice().sort((a, b) =>
+      a.company.name.localeCompare(b.company.name)
+    );
   }, [propInvoices, showPreviousYears]);
 
-  /**
-   * ----- Rendering -----
-   */
+  const count = sortedInvoices?.length ?? 0;
 
   return (
-    <Box w="100%">
-      <Permission>
-        {addForm ? (
-          <FormContainer>
-            <Flex justifyContent="space-between">
-              <Heading ml={1} my="auto" size="md">
-                Add Invoice
-              </Heading>
-              <IconButton
-                icon={<FiX />}
-                aria-label="exit"
-                onClick={() => setAddForm(false)}
-                size="sm"
-                backgroundColor="transparent"
-              />
-            </Flex>
-            <JobsiteMaterialInvoiceAddForm
-              jobsiteMaterial={jobsiteMaterial}
-              onSuccess={() => setAddForm(false)}
-            />
-          </FormContainer>
-        ) : (
-          <Center my={2}>
-            <Button
-              leftIcon={<FiPlus />}
-              border="1px solid"
-              borderColor="gray.800"
-              variant="outline"
-              onClick={() => setAddForm(true)}
-            >
-              Add Invoice
-            </Button>
-          </Center>
-        )}
-      </Permission>
+    <Box w="100%" mt={3}>
+      {/* Header row: count label on the left, Add button on the right.
+          Matches the Sub-Contractors / Revenue card header pattern so
+          the Add affordance doesn't float alone in the middle. */}
+      <Flex
+        align="center"
+        justify="space-between"
+        mb={2}
+        pb={2}
+        borderBottomWidth="1px"
+        borderColor="gray.200"
+      >
+        <Text
+          fontSize="xs"
+          fontWeight="semibold"
+          color="gray.500"
+          textTransform="uppercase"
+          letterSpacing="wide"
+        >
+          Invoices ({count})
+        </Text>
+        <Permission>
+          <Button
+            size="xs"
+            variant="outline"
+            leftIcon={<FiPlus />}
+            onClick={() => setAddForm(true)}
+          >
+            Add
+          </Button>
+        </Permission>
+      </Flex>
 
-      <Flex flexDir="column" maxH="25vh" overflowY="scroll">
-        {sortedInvoices &&
-          sortedInvoices.map((invoice) => (
+      {count === 0 ? (
+        <Center
+          py={4}
+          fontSize="sm"
+          color="gray.500"
+          bg="gray.50"
+          borderRadius="md"
+        >
+          No invoices yet
+        </Center>
+      ) : (
+        <Flex flexDir="column" gap={1} maxH="30vh" overflowY="auto">
+          {sortedInvoices!.map((invoice) => (
             <InvoiceCardForJobsiteMaterial
               invoice={invoice}
               jobsiteMaterialId={jobsiteMaterial._id}
+              jobsiteId={jobsiteId}
               key={invoice._id}
             />
           ))}
-      </Flex>
+        </Flex>
+      )}
+
+      <Drawer
+        isOpen={addForm}
+        onClose={() => setAddForm(false)}
+        placement="right"
+        size="md"
+      >
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerHeader>Add Material Invoice(s)</DrawerHeader>
+          <DrawerBody pb={6}>
+            <JobsiteMaterialInvoiceAddForm
+              jobsiteMaterial={jobsiteMaterial}
+              jobsiteId={jobsiteId}
+              onSuccess={() => setAddForm(false)}
+            />
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
     </Box>
   );
 };

@@ -31,8 +31,8 @@ const PDF_PAGE_LIMIT = 90;
 // Do not replace with a plain System.findOne() without preserving that population.
 //
 // Loads the document set for whichever chat is calling:
-//   - Tender-scoped chat  → tender.files + system spec files
-//   - Jobsite-scoped chat → allowed jobsite.enrichedFiles (minRole filtered) + system spec files
+//   - Tender-scoped chat  → tender.documents + system spec files
+//   - Jobsite-scoped chat → jobsite docs (minRole filtered) + system spec files
 //
 // For jobsite context, the per-file `minRole` gate is applied here — a foreman
 // (role = User) will never receive files whose minRole is ProjectManager or higher,
@@ -45,8 +45,12 @@ async function loadChatFiles(ctx: {
 }): Promise<any[]> {
   if (ctx.tenderId) {
     const [tenderFiles, specFiles] = await Promise.all([
-      resolveDocumentsForContext({ scope: "tender", entityId: new mongoose.Types.ObjectId(ctx.tenderId) }),
-      resolveDocumentsForContext({ scope: "system" }),
+      resolveDocumentsForContext({
+        scope: "tender",
+        entityId: new mongoose.Types.ObjectId(ctx.tenderId),
+        userRole: ctx.role,
+      }),
+      resolveDocumentsForContext({ scope: "system", userRole: ctx.role }),
     ]);
     return [...tenderFiles, ...specFiles];
   }
@@ -54,7 +58,7 @@ async function loadChatFiles(ctx: {
   if (ctx.jobsiteId) {
     const [jobsiteFiles, specFiles] = await Promise.all([
       resolveDocumentsForContext({ scope: "jobsite", entityId: new mongoose.Types.ObjectId(ctx.jobsiteId), userRole: ctx.role }),
-      resolveDocumentsForContext({ scope: "system" }),
+      resolveDocumentsForContext({ scope: "system", userRole: ctx.role }),
     ]);
     return [...jobsiteFiles, ...specFiles];
   }

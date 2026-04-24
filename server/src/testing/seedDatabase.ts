@@ -72,6 +72,13 @@ const seedDatabase = async () => {
   // Create documents
 
   await System.validateSystem();
+  // Populate laborTypes so employee work dropdowns have selectable options in
+  // E2E tests — validateSystem() seeds the singleton with an empty array.
+  const system = await System.getSystem();
+  if (system && system.laborTypes.length === 0) {
+    await system.updateLaborTypes(["General labor", "Operator", "Foreman"]);
+    await system.save();
+  }
 
   const jobsites = await createJobsites();
 

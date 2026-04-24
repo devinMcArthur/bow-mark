@@ -36,6 +36,8 @@ export async function moveNodeCore(
   if (!node) throw new Error("Node not found");
   if (node.deletedAt) throw new Error("Cannot move a trashed node");
   if (node.isReservedRoot) throw new Error("Cannot move a reserved-root node");
+  if (node.systemManaged)
+    throw new Error("Cannot move a system-managed folder");
 
   const dest = await FileNode.findById(destinationParentId).session(session).lean();
   if (!dest) throw new Error("Destination parent not found");

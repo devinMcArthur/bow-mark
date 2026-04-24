@@ -1,7 +1,6 @@
 import { TenderDocument, TenderModel } from "@models";
 import { ITenderCreate } from "@typescript/tender";
 import { eventfulMutation } from "@lib/eventfulMutation";
-import { createEntityRoot } from "@lib/fileTree/createEntityRoot";
 
 const document = async (
   Tender: TenderModel,
@@ -22,7 +21,8 @@ const document = async (
       { session }
     );
     const tender = created[0] as TenderDocument;
-    await createEntityRoot({ namespace: "/tenders", entityId: tender._id, session });
+    // Per-entity document folder is provisioned lazily when the first
+    // file is uploaded — see the `ensureEntityRoot` mutation.
     return { result: tender._id, event: null };
   });
 

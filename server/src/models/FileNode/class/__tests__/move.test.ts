@@ -41,7 +41,7 @@ describe("moveNodeCore", () => {
     const t2Root = await FileNode.findOne({ parentId: tendersNs!._id, name: t2.toString() });
     const folder = await FileNode.create({
       type: "folder", name: "F", normalizedName: normalizeNodeName("F"),
-      parentId: t1Root!._id, aiManaged: false, sortKey: "5000", isReservedRoot: false, version: 0,
+      parentId: t1Root!._id, systemManaged: false, sortKey: "5000", isReservedRoot: false, version: 0,
     });
 
     const { updated } = await withSession((session) =>
@@ -58,11 +58,11 @@ describe("moveNodeCore", () => {
 
     const parent = await FileNode.create({
       type: "folder", name: "P", normalizedName: normalizeNodeName("P"),
-      parentId: tRoot!._id, aiManaged: false, sortKey: "5000", isReservedRoot: false, version: 0,
+      parentId: tRoot!._id, systemManaged: false, sortKey: "5000", isReservedRoot: false, version: 0,
     });
     const child = await FileNode.create({
       type: "folder", name: "C", normalizedName: normalizeNodeName("C"),
-      parentId: parent._id, aiManaged: false, sortKey: "5000", isReservedRoot: false, version: 0,
+      parentId: parent._id, systemManaged: false, sortKey: "5000", isReservedRoot: false, version: 0,
     });
 
     await expect(
@@ -79,7 +79,7 @@ describe("moveNodeCore", () => {
     const tRoot = await FileNode.findOne({ parentId: tendersNs!._id, name: t.toString() });
     const n = await FileNode.create({
       type: "folder", name: "N", normalizedName: normalizeNodeName("N"),
-      parentId: tRoot!._id, aiManaged: false, sortKey: "5000", isReservedRoot: false, version: 0,
+      parentId: tRoot!._id, systemManaged: false, sortKey: "5000", isReservedRoot: false, version: 0,
     });
     await expect(
       withSession((session) =>
@@ -111,11 +111,11 @@ describe("moveNodeCore", () => {
     const t2Root = await FileNode.findOne({ parentId: tendersNs!._id, name: t2.toString() });
     await FileNode.create({
       type: "folder", name: "Drawings", normalizedName: normalizeNodeName("Drawings"),
-      parentId: t2Root!._id, aiManaged: false, sortKey: "5000", isReservedRoot: false, version: 0,
+      parentId: t2Root!._id, systemManaged: false, sortKey: "5000", isReservedRoot: false, version: 0,
     });
     const orig = await FileNode.create({
       type: "folder", name: "Drawings", normalizedName: normalizeNodeName("Drawings"),
-      parentId: t1Root!._id, aiManaged: false, sortKey: "5000", isReservedRoot: false, version: 0,
+      parentId: t1Root!._id, systemManaged: false, sortKey: "5000", isReservedRoot: false, version: 0,
     });
     await expect(
       withSession((session) =>
@@ -134,7 +134,7 @@ describe("moveNodeCore", () => {
     const t2Root = await FileNode.findOne({ parentId: tendersNs!._id, name: t2.toString() });
     const n = await FileNode.create({
       type: "folder", name: "X", normalizedName: normalizeNodeName("X"),
-      parentId: t1Root!._id, aiManaged: false, sortKey: "5000", isReservedRoot: false, version: 0,
+      parentId: t1Root!._id, systemManaged: false, sortKey: "5000", isReservedRoot: false, version: 0,
     });
 
     await expect(
@@ -159,11 +159,11 @@ describe("moveNodeCore", () => {
 
     const folder = await FileNode.create({
       type: "folder", name: "Sub", normalizedName: normalizeNodeName("Sub"),
-      parentId: t1Root!._id, aiManaged: false, sortKey: "5000", isReservedRoot: false, version: 0,
+      parentId: t1Root!._id, systemManaged: false, sortKey: "5000", isReservedRoot: false, version: 0,
     });
     await FileNode.create({
       type: "file", name: "a.pdf", normalizedName: normalizeNodeName("a.pdf"),
-      parentId: folder._id, documentId: docId, aiManaged: false, sortKey: "0000", isReservedRoot: false, version: 0,
+      parentId: folder._id, documentId: docId, systemManaged: false, sortKey: "0000", isReservedRoot: false, version: 0,
     });
 
     const { affectedDocumentIds } = await withSession((session) =>
@@ -186,7 +186,7 @@ describe("reevaluateEnrichmentAfterMove", () => {
     await DocumentModel.create({ _id: docId, currentFileId: fileObj._id, enrichmentLocked: false });
     await FileNode.create({
       type: "file", name: "r.pdf", normalizedName: normalizeNodeName("r.pdf"),
-      parentId: tRoot!._id, documentId: docId, aiManaged: false, sortKey: "0000", isReservedRoot: false, version: 0,
+      parentId: tRoot!._id, documentId: docId, systemManaged: false, sortKey: "0000", isReservedRoot: false, version: 0,
     });
 
     const published: string[] = [];
@@ -207,7 +207,7 @@ describe("reevaluateEnrichmentAfterMove", () => {
     await DocumentModel.create({ _id: docId, currentFileId: fileObj._id, enrichmentLocked: false });
     await FileNode.create({
       type: "file", name: "s.pdf", normalizedName: normalizeNodeName("s.pdf"),
-      parentId: tRoot!._id, documentId: docId, aiManaged: false, sortKey: "0000", isReservedRoot: false, version: 0,
+      parentId: tRoot!._id, documentId: docId, systemManaged: false, sortKey: "0000", isReservedRoot: false, version: 0,
     });
     await Enrichment.create({ documentId: docId, fileId: fileObj._id, status: "ready", attempts: 1, processingVersion: 1 });
 

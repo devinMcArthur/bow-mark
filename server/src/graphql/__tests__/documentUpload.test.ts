@@ -189,7 +189,7 @@ describe("uploadDocument", () => {
       name: "Trashed",
       normalizedName: normalizeNodeName("Trashed"),
       parentId: tenderRoot!._id,
-      aiManaged: false,
+      systemManaged: false,
       sortKey: "5000",
       isReservedRoot: false,
       version: 0,

@@ -3,16 +3,19 @@ import {
   Box,
   Button,
   Center,
+  Checkbox,
   Flex,
-  FormLabel,
   IconButton,
+  NumberInput,
+  NumberInputField,
   Select,
   SimpleGrid,
   Text,
   useToast,
 } from "@chakra-ui/react";
 import React from "react";
-import { FiEdit, FiPlus, FiTrash } from "react-icons/fi";
+import { Controller } from "react-hook-form";
+import { FiEdit, FiPlus, FiTrash2 } from "react-icons/fi";
 
 import { useJobsiteMaterialCreateForm } from "../../../forms/jobsiteMaterial";
 import {
@@ -22,9 +25,23 @@ import {
   useJobsiteAddMaterialMutation,
 } from "../../../generated/graphql";
 import InfoTooltip from "../../Common/Info";
-import SubmitButton from "../../Common/forms/SubmitButton";
-import FormContainer from "../../Common/FormContainer";
+import MaterialSearch from "../../Search/MaterialSearch";
+import CompanySearch from "../../Search/CompanySearch";
+import Units from "../../Common/forms/Unit";
 import { emptyDraft, ScenarioDraft, ScenarioForm } from "./ScenariosList";
+
+const formatThousands = (val: string | number | undefined): string => {
+  if (val === undefined || val === null || val === "") return "";
+  const stripped =
+    typeof val === "string" ? val.replace(/,/g, "") : String(val);
+  if (stripped === "" || stripped === "-") return stripped;
+  const [whole, fraction] = stripped.split(".");
+  const n = parseInt(whole, 10);
+  if (Number.isNaN(n)) return stripped;
+  const formattedWhole = n.toLocaleString("en-US");
+  return fraction !== undefined ? `${formattedWhole}.${fraction}` : formattedWhole;
+};
+const parseThousands = (val: string): string => val.replace(/,/g, "");
 
 type CreateCostMode = "rateScenario" | "invoice";
 
@@ -34,34 +51,48 @@ interface IJobsiteMaterialCreate {
   truckingRates?: { title: string }[];
 }
 
+/** Compact uppercase label shared across jobsite-page forms. */
+const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <Text
+    as="label"
+    display="block"
+    fontSize="xs"
+    fontWeight="semibold"
+    color="gray.500"
+    textTransform="uppercase"
+    letterSpacing="wide"
+    mb={1}
+  >
+    {children}
+  </Text>
+);
+
+const FieldError: React.FC<{ message?: string }> = ({ message }) =>
+  message ? (
+    <Text fontSize="xs" color="red.500" mt={1}>
+      {message}
+    </Text>
+  ) : null;
+
 const JobsiteMaterialCreate = ({
   jobsiteId,
   onSuccess,
   truckingRates,
 }: IJobsiteMaterialCreate) => {
-  /**
-   * ----- Hook Initialization -----
-   */
-
   const toast = useToast();
-
-  const { FormComponents, setValue } = useJobsiteMaterialCreateForm();
-
+  const { handleSubmit, control, setValue } = useJobsiteMaterialCreateForm();
   const [create, { loading }] = useJobsiteAddMaterialMutation();
 
-  const [costMode, setCostMode] = React.useState<CreateCostMode>("rateScenario");
+  const [costMode, setCostMode] =
+    React.useState<CreateCostMode>("rateScenario");
   const [scenarios, setScenarios] = React.useState<ScenarioDraft[]>([]);
   const [addingScenario, setAddingScenario] = React.useState(false);
   const [newDraft, setNewDraft] = React.useState<ScenarioDraft>(emptyDraft());
   const [editingIdx, setEditingIdx] = React.useState<number | null>(null);
   const [editDraft, setEditDraft] = React.useState<ScenarioDraft>(emptyDraft());
 
-  /**
-   * ----- Use-effects and other logic -----
-   */
-
   // Keep the form's internal costType in sync so validation passes and
-  // FormComponents.Delivered shows/hides correctly for invoice mode.
+  // the Delivered field shows/hides correctly for invoice mode.
   React.useEffect(() => {
     setValue(
       "costType",
@@ -70,10 +101,6 @@ const JobsiteMaterialCreate = ({
         : JobsiteMaterialCostType.Rate
     );
   }, [costMode, setValue]);
-
-  /**
-   * ----- Functions -----
-   */
 
   const handleAddScenario = React.useCallback(() => {
     setScenarios((prev) => [...prev, newDraft]);
@@ -95,13 +122,19 @@ const JobsiteMaterialCreate = ({
     setScenarios((prev) => prev.filter((_, i) => i !== idx));
   }, []);
 
-  const handleSubmit = React.useCallback(
+  const onSubmit = React.useCallback(
     async (data: JobsiteMaterialCreateData) => {
       try {
         if (costMode === "rateScenario") {
           const invalid = scenarios.find((s) => s.delivered && !s.label);
           if (invalid) {
-            toast({ status: "error", title: "Missing trucking type", description: "A delivered scenario must have a trucking type selected.", isClosable: true });
+            toast({
+              status: "error",
+              title: "Missing trucking type",
+              description:
+                "A delivered scenario must have a trucking type selected.",
+              isClosable: true,
+            });
             return;
           }
         }
@@ -139,11 +172,11 @@ const JobsiteMaterialCreate = ({
             isClosable: true,
           });
         }
-      } catch (e: any) {
+      } catch (e) {
         toast({
           status: "error",
           title: "Error",
-          description: e.message,
+          description: e instanceof Error ? e.message : "Unknown error",
           isClosable: true,
         });
       }
@@ -151,27 +184,91 @@ const JobsiteMaterialCreate = ({
     [costMode, create, jobsiteId, onSuccess, scenarios, toast]
   );
 
-  /**
-   * ----- Rendering -----
-   */
-
   return (
-    <>
-      <FormComponents.Form submitHandler={handleSubmit}>
-        <SimpleGrid spacing={2} columns={[1, 1, 2]}>
-          <FormComponents.Material isLoading={loading} />
-          <FormComponents.Supplier isLoading={loading} />
-        </SimpleGrid>
-        <SimpleGrid spacing={2} columns={[1, 1, 2]}>
-          <FormComponents.Quantity isLoading={loading} />
-          <FormComponents.Unit isLoading={loading} />
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <Flex direction="column" gap={3}>
+        {/* Material + Supplier */}
+        <SimpleGrid columns={[1, 1, 2]} spacing={3}>
+          <Controller
+            control={control}
+            name="materialId"
+            render={({ field, fieldState }) => (
+              <Box>
+                <FieldLabel>Material</FieldLabel>
+                <MaterialSearch
+                  {...field}
+                  isDisabled={loading}
+                  materialSelected={(material) =>
+                    setValue("materialId", material._id)
+                  }
+                />
+                <FieldError message={fieldState.error?.message} />
+              </Box>
+            )}
+          />
+          <Controller
+            control={control}
+            name="supplierId"
+            render={({ field, fieldState }) => (
+              <Box>
+                <FieldLabel>Supplier</FieldLabel>
+                <CompanySearch
+                  {...field}
+                  isDisabled={loading}
+                  companySelected={(company) =>
+                    setValue("supplierId", company._id)
+                  }
+                />
+                <FieldError message={fieldState.error?.message} />
+              </Box>
+            )}
+          />
         </SimpleGrid>
 
-        {/* Costing mode selector */}
-        <Box mt={2}>
-          <FormLabel mb={1} fontSize="sm">
-            Costing Type
-          </FormLabel>
+        {/* Quantity + Unit */}
+        <SimpleGrid columns={[1, 1, 2]} spacing={3}>
+          <Controller
+            control={control}
+            name="quantity"
+            render={({ field, fieldState }) => (
+              <Box>
+                <FieldLabel>Quantity</FieldLabel>
+                <NumberInput
+                  size="sm"
+                  value={field.value?.toString() ?? ""}
+                  isDisabled={loading}
+                  isInvalid={!!fieldState.error}
+                  format={formatThousands}
+                  parse={parseThousands}
+                  onChange={(valueAsString) => field.onChange(valueAsString)}
+                  w="100%"
+                >
+                  <NumberInputField />
+                </NumberInput>
+                <FieldError message={fieldState.error?.message} />
+              </Box>
+            )}
+          />
+          <Controller
+            control={control}
+            name="unit"
+            render={({ field, fieldState }) => (
+              <Box>
+                <FieldLabel>Unit</FieldLabel>
+                <Units
+                  size="sm"
+                  {...field}
+                  isDisabled={loading}
+                  errorMessage={fieldState.error?.message}
+                />
+              </Box>
+            )}
+          />
+        </SimpleGrid>
+
+        {/* Costing mode */}
+        <Box>
+          <FieldLabel>Costing Type</FieldLabel>
           <Select
             size="sm"
             value={costMode}
@@ -183,103 +280,143 @@ const JobsiteMaterialCreate = ({
           </Select>
         </Box>
 
-        {/* Invoice mode */}
+        {/* Invoice mode meta */}
         {costMode === "invoice" && (
           <>
-            <FormComponents.Delivered isLoading={loading} />
-            <InfoTooltip
-              mx={1}
-              description="If delivered, it will be assumed that trucking is included in the invoice and it will not be reported separately."
-            />
-            <Center mt={2}>
-              <Text fontWeight="bold" color="gray.600">
-                Invoices can be added after creation
-              </Text>
+            <Flex align="center" gap={2}>
+              <Controller
+                control={control}
+                name="delivered"
+                render={({ field }) => (
+                  <Checkbox
+                    isChecked={!!field.value}
+                    onChange={(e) => field.onChange(e.target.checked)}
+                    isDisabled={loading}
+                  >
+                    Delivered
+                  </Checkbox>
+                )}
+              />
+              <InfoTooltip description="If delivered, it will be assumed that trucking is included in the invoice and it will not be reported separately." />
+            </Flex>
+            <Center
+              py={3}
+              bg="gray.50"
+              borderRadius="md"
+              fontSize="sm"
+              color="gray.600"
+            >
+              Invoices can be added after creation
             </Center>
           </>
         )}
 
-        <SubmitButton isLoading={loading} />
-      </FormComponents.Form>
-
-      {/* Rate Scenarios mode — outside the form to prevent focus loss on re-render */}
-      {costMode === "rateScenario" && (
-        <Box mt={2}>
-          {scenarios.map((scenario, idx) =>
-            editingIdx === idx ? (
-              <ScenarioForm
-                key={idx}
-                draft={editDraft}
-                onChange={setEditDraft}
-                onSave={handleSaveEdit}
-                onCancel={() => setEditingIdx(null)}
-                isLoading={false}
-                truckingRates={truckingRates}
-              />
-            ) : (
-              <FormContainer key={idx} border="1px solid" borderColor="gray.300" p={2} mt={1}>
-                <Flex justifyContent="space-between" alignItems="center">
-                  <Flex alignItems="center" gap={2}>
-                    <Text fontWeight="semibold">{scenario.label}</Text>
-                    {scenario.delivered && (
-                      <Badge colorScheme="green">Delivered</Badge>
+        {/* Rate Scenarios — rendered inside the form so save triggers include
+            the scenario list. Kept above the submit button. */}
+        {costMode === "rateScenario" && (
+          <Box>
+            <FieldLabel>Rate Scenarios</FieldLabel>
+            <Flex direction="column" gap={2}>
+              {scenarios.map((scenario, idx) =>
+                editingIdx === idx ? (
+                  <ScenarioForm
+                    key={idx}
+                    draft={editDraft}
+                    onChange={setEditDraft}
+                    onSave={handleSaveEdit}
+                    onCancel={() => setEditingIdx(null)}
+                    isLoading={false}
+                    truckingRates={truckingRates}
+                  />
+                ) : (
+                  <Box
+                    key={idx}
+                    borderWidth="1px"
+                    borderColor="gray.200"
+                    borderRadius="md"
+                    p={3}
+                  >
+                    <Flex justifyContent="space-between" alignItems="center">
+                      <Flex alignItems="center" gap={2}>
+                        <Text fontWeight="semibold">{scenario.label}</Text>
+                        {scenario.delivered && (
+                          <Badge colorScheme="green" variant="subtle">
+                            Delivered
+                          </Badge>
+                        )}
+                      </Flex>
+                      <Flex gap={1}>
+                        <IconButton
+                          size="xs"
+                          aria-label="edit scenario"
+                          icon={<FiEdit />}
+                          variant="ghost"
+                          onClick={() => {
+                            setEditDraft(scenario);
+                            setEditingIdx(idx);
+                          }}
+                        />
+                        <IconButton
+                          size="xs"
+                          aria-label="remove scenario"
+                          icon={<FiTrash2 />}
+                          variant="ghost"
+                          color="gray.500"
+                          onClick={() => handleRemoveScenario(idx)}
+                        />
+                      </Flex>
+                    </Flex>
+                    {scenario.rates.length > 0 && (
+                      <Text fontSize="xs" color="gray.500" mt={1}>
+                        {scenario.rates.length} rate
+                        {scenario.rates.length > 1 ? "s" : ""} · latest $
+                        {scenario.rates[scenario.rates.length - 1]?.rate}/t
+                      </Text>
                     )}
-                  </Flex>
-                  <Flex gap={1}>
-                    <IconButton
-                      size="sm"
-                      aria-label="edit scenario"
-                      icon={<FiEdit />}
-                      backgroundColor="transparent"
-                      onClick={() => {
-                        setEditDraft(scenario);
-                        setEditingIdx(idx);
-                      }}
-                    />
-                    <IconButton
-                      size="sm"
-                      aria-label="remove scenario"
-                      icon={<FiTrash />}
-                      backgroundColor="transparent"
-                      onClick={() => handleRemoveScenario(idx)}
-                    />
-                  </Flex>
-                </Flex>
-                {scenario.rates.length > 0 && (
-                  <Text fontSize="sm" color="gray.600" mt={1}>
-                    {scenario.rates.length} rate{scenario.rates.length > 1 ? "s" : ""} · latest ${scenario.rates[scenario.rates.length - 1]?.rate}/t
-                  </Text>
-                )}
-              </FormContainer>
-            )
-          )}
+                  </Box>
+                )
+              )}
 
-          {addingScenario ? (
-            <ScenarioForm
-              draft={newDraft}
-              onChange={setNewDraft}
-              onSave={handleAddScenario}
-              onCancel={() => {
-                setAddingScenario(false);
-                setNewDraft(emptyDraft());
-              }}
-              isLoading={false}
-              truckingRates={truckingRates}
-            />
-          ) : (
-            <Flex justifyContent="flex-end" mt={2}>
-              <Button
-                size="sm"
-                leftIcon={<FiPlus />}
-                onClick={() => setAddingScenario(true)}
-              >
-                Add Scenario
-              </Button>
+              {addingScenario ? (
+                <ScenarioForm
+                  draft={newDraft}
+                  onChange={setNewDraft}
+                  onSave={handleAddScenario}
+                  onCancel={() => {
+                    setAddingScenario(false);
+                    setNewDraft(emptyDraft());
+                  }}
+                  isLoading={false}
+                  truckingRates={truckingRates}
+                />
+              ) : (
+                <Flex justifyContent="flex-start">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    leftIcon={<FiPlus />}
+                    onClick={() => setAddingScenario(true)}
+                  >
+                    Add scenario
+                  </Button>
+                </Flex>
+              )}
             </Flex>
-          )}
-        </Box>
-      )}
-    </>
+          </Box>
+        )}
+
+        <Flex justify="flex-end" mt={2}>
+          <Button
+            type="submit"
+            colorScheme="blue"
+            size="sm"
+            isLoading={loading}
+          >
+            Create material
+          </Button>
+        </Flex>
+      </Flex>
+    </form>
   );
 };
 

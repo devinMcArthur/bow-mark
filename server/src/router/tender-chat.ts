@@ -1,5 +1,5 @@
 import { Router } from "express";
-import mongoose, { Types } from "mongoose";
+import mongoose from "mongoose";
 import Anthropic from "@anthropic-ai/sdk";
 import { Tender, User } from "@models";
 import { isDocument } from "@typegoose/typegoose";
@@ -34,13 +34,11 @@ router.post("/message", requireAuth, async (req, res) => {
   }
 
   // ── Load context data ──────────────────────────────────────────────────────
-  const [tender, user, tenderFiles, specFiles] = await Promise.all([
+  const [tender, user] = await Promise.all([
     Tender.findById(tenderId)
       .populate({ path: "notes.savedBy", select: "name" })
       .lean(),
     User.findById(req.userId).populate("employee"),
-    resolveDocumentsForContext({ scope: "tender", entityId: new Types.ObjectId(tenderId) }),
-    resolveDocumentsForContext({ scope: "system" }),
   ]);
 
   if (!tender) {
@@ -53,6 +51,18 @@ router.post("/message", requireAuth, async (req, res) => {
     res.status(403).json({ error: "Forbidden: PM or Admin role required" });
     return;
   }
+
+  // Resolve documents with role filtering applied (hides files whose
+  // minRole exceeds the viewer's role, if any were set on the tender side).
+  const userRole = user.role ?? UserRoles.User;
+  const [tenderFiles, specFiles] = await Promise.all([
+    resolveDocumentsForContext({
+      scope: "tender",
+      entityId: new mongoose.Types.ObjectId(tenderId),
+      userRole,
+    }),
+    resolveDocumentsForContext({ scope: "system", userRole }),
+  ]);
 
   const employee = isDocument(user?.employee) ? user!.employee : null;
   const userContext = [
@@ -157,11 +167,15 @@ Do NOT rely on general construction knowledge to fill gaps. If the documents don
 
 **Self-check before responding.** Before you state where something is located on a drawing or what a spec says, verify: did I actually call read_document and load that specific page? If the answer is no, you are about to hallucinate. Stop, and either load the page first or tell the user you haven't been able to find it.
 
+**Folder context.** Files are organized into folders (e.g. /Specs, /Drawings, /Addendums) — each entry in the document list shows its folder with "in /FolderName". Treat folder placement as a signal about how the user has categorized the file, not as ground truth. If the filename or contents clearly conflict with the folder (e.g. addendum-3.pdf sitting at the root, or a drawing filed under /Specs), trust the filename and contents over the folder. Folder hints are most useful when the filename alone is ambiguous — an /Addendums folder, for example, is a strong signal that files inside it are addendums even if the filenames are generic.
+
 **Clarify before assuming.** Construction documents often contain multiple instances of similar things — two crossings, two structures, two phases, two contract items with similar names. If a question could apply to more than one thing, ask which one the user means before loading a document.
 
 **Loading documents — two steps.** For documents that have a page index, call list_document_pages first to see the page-by-page breakdown, then call read_document with only the specific pages you need. This is much cheaper and faster than loading large page ranges blindly. Only skip list_document_pages if the document has no page index (the navigation hint will say so).
 
 **Citations.** When you reference a specific fact, requirement, section, or drawing from a document you have read, include a page link in this format: **[[Document Type, p.X]](URL#page=X)**. Only cite pages you have actually read. If you are not certain of the exact page, note it as approximate: **[[Spec, p.~12]](URL#page=12)**.
+
+**Naming files.** Whenever you name any file in prose — answering "do you have X?", listing files, describing what's attached — render the filename as a markdown link to its document URL. Use the filename text inside the brackets and the exact URL given in the Tender Documents section, e.g. **[[tender-spec-2026.pdf]](URL)**. NEVER output a raw "File ID: xxx" or ObjectId in the answer; users expect clickable file references, not identifiers.
 
 **Drawings.** If a document is a drawing, describe what you see as part of your answer.
 

@@ -600,3 +600,22 @@ FileNode.schema.pre("save", function (next) {
   (this as unknown as { updatedAt: Date }).updatedAt = new Date();
   next();
 });
+
+/**
+ * ----- DailyReportEntry -----
+ */
+
+import { DailyReportEntrySchema as DailyReportEntryClass } from "./DailyReportEntry/schema";
+
+export type DailyReportEntryDocument = DocumentType<DailyReportEntryClass>;
+
+export type DailyReportEntryModel = ReturnModelType<typeof DailyReportEntryClass>;
+
+export const DailyReportEntry = getModelForClass(DailyReportEntryClass, {
+  schemaOptions: { collection: "dailyreportentries", timestamps: false },
+});
+
+DailyReportEntry.schema.pre("save", function (next) {
+  (this as unknown as { updatedAt: Date }).updatedAt = new Date();
+  next();
+});

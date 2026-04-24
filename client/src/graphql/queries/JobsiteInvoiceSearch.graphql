@@ -1,0 +1,15 @@
+query JobsiteInvoiceSearch($jobsiteId: ID!, $query: String!) {
+  jobsiteInvoiceSearch(jobsiteId: $jobsiteId, query: $query) {
+    kind
+    invoice {
+      ...InvoiceCardSnippet
+    }
+    jobsiteMaterial {
+      _id
+      material {
+        _id
+        name
+      }
+    }
+  }
+}

@@ -3,6 +3,13 @@ import { EnrichedFileSchema } from "../../../models/EnrichedFile/schema";
 import { Id } from "@typescript/models";
 import { Arg, Authorized, ID, Query, Resolver } from "type-graphql";
 
+/**
+ * @deprecated Surfaces only the `enrichedFile(id)` query, which exists
+ * solely as a legacy-id fallback inside the client's ChatDrawer (when
+ * the new `document(id)` query returns null). Once we're confident no
+ * legacy-only IDs are still in chat citations, this whole resolver +
+ * the `EnrichedFile` model can retire.
+ */
 @Resolver(() => EnrichedFileSchema)
 export default class EnrichedFileResolver {
   /**
@@ -11,7 +18,7 @@ export default class EnrichedFileResolver {
    * filename without a follow-up query.
    *
    * Auth: any authenticated user. The actual file content endpoint
-   * (`/api/enriched-files/:id`) only validates the JWT — it does not
+   * (`/api/documents/:id`) only validates the JWT — it does not
    * enforce per-file ACLs — so this query matches that posture.
    */
   @Authorized()

@@ -7,7 +7,7 @@ import {
   JobsiteMonthReport,
 } from "@models";
 import { Id } from "@typescript/models";
-import { Field, InputType } from "type-graphql";
+import { Field, ID, InputType } from "type-graphql";
 
 @InputType()
 export class InvoiceData {
@@ -31,6 +31,15 @@ export class InvoiceData {
 
   @Field({ nullable: false })
   public accrual!: boolean;
+
+  /**
+   * Optional reference to a Document already uploaded via the generic
+   * upload pipeline — expected to live under `/jobsites/<id>/Invoices/
+   * {Subcontractor|Revenue}/` so file-tree browsing surfaces the
+   * attachment alongside other jobsite documents.
+   */
+  @Field(() => ID, { nullable: true })
+  public documentId?: string;
 }
 
 const updateForJobsite = async (

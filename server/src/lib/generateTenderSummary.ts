@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { Types } from "mongoose";
+import mongoose from "mongoose";
 import { Tender } from "@models";
 import { resolveDocumentsForContext } from "./fileDocuments/resolveDocumentsForContext";
 
@@ -61,7 +61,7 @@ export async function generateTenderSummary(
   const anthropic = anthropicClient ?? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const [tender, resolved] = await Promise.all([
     Tender.findById(tenderId).lean(),
-    resolveDocumentsForContext({ scope: "tender", entityId: new Types.ObjectId(tenderId) }),
+    resolveDocumentsForContext({ scope: "tender", entityId: new mongoose.Types.ObjectId(tenderId) }),
   ]);
 
   if (!tender) {

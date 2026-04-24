@@ -1,78 +1,114 @@
 import React from "react";
-import { Box, Flex, IconButton } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  Drawer,
+  DrawerBody,
+  DrawerCloseButton,
+  DrawerContent,
+  DrawerHeader,
+  DrawerOverlay,
+  IconButton,
+} from "@chakra-ui/react";
 import {
   InvoiceCardSnippetFragment,
   JobsiteFullDocument,
   useInvoiceRemoveMutation,
 } from "../../../../../generated/graphql";
-import { FiEdit, FiTrash, FiX } from "react-icons/fi";
+import { FiEdit, FiTrash } from "react-icons/fi";
 import InvoiceUpdateForJobsite from "../../../../Forms/Invoice/InvoiceUpdateForJobsite";
 import Permission from "../../../../Common/Permission";
-import FormContainer from "../../../../Common/FormContainer";
 import InvoiceCardContent from "../../../../Common/Invoice/CardContent";
 
 interface IInvoiceCardForJobsite {
   invoice: InvoiceCardSnippetFragment;
   jobsiteId: string;
+  /**
+   * Whether this card lives under the expense list or the revenue list.
+   * Propagated to the update form so replacement files land in the
+   * correct `/jobsites/<id>/Invoices/{Subcontractor|Revenue}/` folder.
+   */
+  invoiceKind?: "subcontractor" | "revenue";
 }
 
 const InvoiceCardForJobsite = ({
   invoice,
   jobsiteId,
+  invoiceKind,
 }: IInvoiceCardForJobsite) => {
-  /**
-   * ----- Hook Initialization -----
-   */
-
-  const [edit, setEdit] = React.useState(false);
-
-  const [remove, { loading }] = useInvoiceRemoveMutation({
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [remove, { loading: removing }] = useInvoiceRemoveMutation({
     refetchQueries: [JobsiteFullDocument],
   });
 
-  /**
-   * ----- Rendering -----
-   */
-
   return (
     <Box p={2} w="100%" border="1px solid lightgray">
-      <Flex flexDir="row" justifyContent="space-between">
-        <InvoiceCardContent invoice={invoice} />
-        <Permission>
-          <Flex flexDir="row" justifyContent="end">
-            {edit && (
-              <IconButton
-                aria-label="Remove"
-                backgroundColor="transparent"
-                icon={<FiTrash />}
-                isLoading={loading}
-                onClick={async () => {
-                  if (window.confirm("Are you sure you want to delete this?")) {
-                    await remove({
-                      variables: {
-                        id: invoice._id,
-                      },
-                    });
-                    setEdit(false);
-                  }
-                }}
-              />
-            )}
+      <InvoiceCardContent
+        invoice={invoice}
+        rightActions={
+          <Permission>
             <IconButton
-              backgroundColor="transparent"
-              isLoading={loading}
-              aria-label="edit"
-              icon={edit ? <FiX /> : <FiEdit />}
-              onClick={() => setEdit(!edit)}
+              aria-label="Edit invoice"
+              icon={<FiEdit />}
+              size="sm"
+              variant="ghost"
+              onClick={() => setEditOpen(true)}
             />
-          </Flex>
-        </Permission>
-      </Flex>
-      {edit && (
-        <FormContainer>
-          <InvoiceUpdateForJobsite invoice={invoice} jobsiteId={jobsiteId} />
-        </FormContainer>
-      )}
+          </Permission>
+        }
+      />
+
+      {/* Edit drawer — slides in from the right. List stays visible
+          behind the overlay so the user keeps their place. Destructive
+          delete lives at the bottom, clearly separated from the form. */}
+      <Drawer
+        isOpen={editOpen}
+        onClose={() => setEditOpen(false)}
+        placement="right"
+        size="md"
+      >
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerHeader>
+            Edit Invoice{" "}
+            <Box as="span" color="gray.500" fontWeight="normal" fontSize="sm">
+              · {invoice.company.name} #{invoice.invoiceNumber}
+            </Box>
+          </DrawerHeader>
+          <DrawerBody pb={6}>
+            <InvoiceUpdateForJobsite
+              invoice={invoice}
+              jobsiteId={jobsiteId}
+              invoiceKind={invoiceKind}
+              onSuccess={() => setEditOpen(false)}
+            />
+            <Permission>
+              <Box mt={8} pt={4} borderTopWidth="1px" borderColor="gray.200">
+                <Button
+                  colorScheme="red"
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<FiTrash />}
+                  isLoading={removing}
+                  onClick={async () => {
+                    if (
+                      window.confirm(
+                        "Are you sure you want to delete this invoice?"
+                      )
+                    ) {
+                      await remove({ variables: { id: invoice._id } });
+                      setEditOpen(false);
+                    }
+                  }}
+                >
+                  Delete invoice
+                </Button>
+              </Box>
+            </Permission>
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
     </Box>
   );
 };

@@ -51,7 +51,8 @@ export default class EntityPresenceResolver {
   }
 
   @Subscription(() => [PresenceViewerGql], {
-    subscribe: ({ args }) => subscribePresence(args.entityType, args.entityId),
+    subscribe: (_root, args: { entityType: string; entityId: string }) =>
+      subscribePresence(args.entityType, args.entityId),
   })
   entityPresence(
     @Arg("entityType") _entityType: string,

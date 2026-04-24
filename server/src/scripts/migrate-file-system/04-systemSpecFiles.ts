@@ -73,7 +73,7 @@ export async function migrateSystemSpecFiles(
               normalizedName: normalizeNodeName(name),
               parentId: specsRoot._id,
               documentId: enrichedFileId,
-              aiManaged: false,
+              systemManaged: false,
               sortKey: "0000",
               isReservedRoot: false,
               version: 0,

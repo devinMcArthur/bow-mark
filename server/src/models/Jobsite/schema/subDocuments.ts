@@ -71,6 +71,11 @@ export class JobsiteContractClass {
 
 export type JobsiteFileObjectDocument = DocumentType<JobsiteFileObjectClass>;
 
+/**
+ * @deprecated Subdocument shape for the deprecated
+ * `Jobsite.enrichedFiles[]` array. Both retire together once the
+ * legacy data is no longer needed for verification.
+ */
 @ObjectType()
 export class JobsiteEnrichedFileClass {
   @Field(() => ID, { nullable: true })

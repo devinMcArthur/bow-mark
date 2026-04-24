@@ -42,6 +42,16 @@ export class EnrichedFileSummaryProgressClass {
   @Field() public updatedAt!: Date;
 }
 
+/**
+ * @deprecated Replaced by the `Document` + `Enrichment` + `FileNode`
+ * trio of the unified file system. The model is kept read-only for
+ * the ChatDrawer's legacy-id fallback (some old chat citations may
+ * still reference an EnrichedFile._id that doesn't yet have a
+ * Document mirror — though every migration script back-fills these,
+ * so the fallback should rarely fire in practice). Plan for removal:
+ * once the EnrichedFileResolver is retired we can drop this collection
+ * entirely.
+ */
 @ObjectType()
 export class EnrichedFileSchema {
   @Field(() => ID) public _id!: Types.ObjectId;

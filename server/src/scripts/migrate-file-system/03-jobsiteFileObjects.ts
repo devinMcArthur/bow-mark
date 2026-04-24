@@ -40,6 +40,16 @@ export async function migrateJobsiteFileObjects(
   for await (const jobsite of cursor) {
     report.scanned += 1;
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const entries = (((jobsite as any).fileObjects ?? []) as Array<{
+        _id: mongoose.Types.ObjectId;
+        file: mongoose.Types.ObjectId;
+        minRole: string;
+      }>);
+      // No files → no root. Lazy-provisioning handles post-migration
+      // uploads via `ensureEntityRoot` from the client.
+      if (entries.length === 0) continue;
+
       if (!opts.dryRun) {
         await createEntityRoot({
           namespace: "/jobsites",
@@ -52,12 +62,7 @@ export async function migrateJobsiteFileObjects(
         });
         if (!entityRoot) continue;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        for (const entry of ((jobsite as any).fileObjects ?? []) as Array<{
-          _id: mongoose.Types.ObjectId;
-          file: mongoose.Types.ObjectId;
-          minRole: string;
-        }>) {
+        for (const entry of entries) {
           if (!entry._id || !entry.file) {
             report.skipped += 1;
             continue;
@@ -95,7 +100,7 @@ export async function migrateJobsiteFileObjects(
                 normalizedName: normalizeNodeName(name),
                 parentId: entityRoot._id,
                 documentId: entry._id,
-                aiManaged: false,
+                systemManaged: false,
                 sortKey: "0000",
                 isReservedRoot: false,
                 version: 0,

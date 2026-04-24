@@ -39,6 +39,16 @@ export async function migrateJobsiteEnrichedFiles(
   for await (const jobsite of cursor) {
     report.scanned += 1;
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const entries = (((jobsite as any).enrichedFiles ?? []) as Array<{
+        enrichedFile: mongoose.Types.ObjectId;
+        minRole: string;
+      }>);
+      // Skip jobsites with nothing to migrate — no files means no root
+      // should exist. Roots are lazy (client calls `ensureEntityRoot` on
+      // first upload), so leaving the jobsite un-rooted is correct.
+      if (entries.length === 0) continue;
+
       if (!opts.dryRun) {
         await createEntityRoot({
           namespace: "/jobsites",
@@ -51,11 +61,7 @@ export async function migrateJobsiteEnrichedFiles(
         });
         if (!entityRoot) continue;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        for (const entry of ((jobsite as any).enrichedFiles ?? []) as Array<{
-          enrichedFile: mongoose.Types.ObjectId;
-          minRole: string;
-        }>) {
+        for (const entry of entries) {
           const enrichedFileId = entry.enrichedFile;
           const minRole = entry.minRole;
           const doc = await DocumentModel.findById(enrichedFileId).lean();
@@ -73,7 +79,7 @@ export async function migrateJobsiteEnrichedFiles(
                 normalizedName: normalizeNodeName(name),
                 parentId: entityRoot._id,
                 documentId: enrichedFileId,
-                aiManaged: false,
+                systemManaged: false,
                 sortKey: "0000",
                 isReservedRoot: false,
                 version: 0,

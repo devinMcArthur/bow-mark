@@ -14,7 +14,13 @@ import { resolveDocumentsForContext } from "@lib/fileDocuments/resolveDocumentsF
 import FileNodeResolver from "@graphql/resolvers/fileNode";
 import FileNodeMutationResolver from "@graphql/resolvers/fileNode/mutations";
 import DocumentUploadResolver from "@graphql/resolvers/document";
+import { UserRoles } from "@typescript/user";
 import * as publisher from "../rabbitmq/publisher";
+
+// Mock GraphQL context used by query resolvers that take @Ctx() — role
+// gating is out of scope for this file, so we impersonate a Developer.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ctx: any = { user: { role: UserRoles.Developer } };
 
 // Stub storage so the mutation doesn't try to hit real DO Spaces.
 // (The vitest config also aliases @utils/fileStorage to a no-op mock globally.)
@@ -149,7 +155,7 @@ describe("fileSystem end-to-end: tender upload → enrichment → move → trash
     );
 
     // ── Step 4: Assert FileNode visible in children + adapter returns doc. ────
-    const children = await queryResolver.fileNodeChildren(tenderRoot!._id.toString());
+    const children = await queryResolver.fileNodeChildren(tenderRoot!._id.toString(), ctx);
     expect(children.map((c) => c.name)).toContain("spec.pdf");
 
     const resolved = await resolveDocumentsForContext({ scope: "tender", entityId: tenderId });
@@ -185,7 +191,7 @@ describe("fileSystem end-to-end: tender upload → enrichment → move → trash
     // ── Step 6: Trash the FileNode — disappears from children. ────────────────
     const trashed = await mutationResolver.trashNode(moved._id.toString(), moved.version);
     expect(trashed.deletedAt).toBeTruthy();
-    const drawingsChildren = await queryResolver.fileNodeChildren(drawings._id.toString());
+    const drawingsChildren = await queryResolver.fileNodeChildren(drawings._id.toString(), ctx);
     expect(drawingsChildren.map((c) => c.name)).not.toContain("spec.pdf");
 
     // Adapter should no longer surface the doc (the only placement was trashed).
@@ -195,7 +201,7 @@ describe("fileSystem end-to-end: tender upload → enrichment → move → trash
     // ── Step 7: Restore — reappears. ──────────────────────────────────────────
     const restored = await mutationResolver.restoreNode(trashed._id.toString(), trashed.version);
     expect(restored.deletedAt).toBeFalsy();
-    const drawingsChildrenAfter = await queryResolver.fileNodeChildren(drawings._id.toString());
+    const drawingsChildrenAfter = await queryResolver.fileNodeChildren(drawings._id.toString(), ctx);
     expect(drawingsChildrenAfter.map((c) => c.name)).toContain("spec.pdf");
     const resolvedAfterRestore = await resolveDocumentsForContext({ scope: "tender", entityId: tenderId });
     expect(resolvedAfterRestore.find((r) => r.documentId.toString() === documentId.toString())).toBeDefined();

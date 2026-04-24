@@ -4,9 +4,15 @@ import { FileNode } from "@models";
 import { bootstrapRoots } from "@lib/fileTree/bootstrapRoots";
 import { createEntityRoot } from "@lib/fileTree/createEntityRoot";
 import { normalizeNodeName } from "@lib/fileTree/reservedRoots";
+import { UserRoles } from "@typescript/user";
 import FileNodeResolver from "@graphql/resolvers/fileNode";
 
 let resolver: FileNodeResolver;
+
+// Minimal GraphQL context for tests — role gating is orthogonal to these
+// tests, so we impersonate a Developer (highest role) to pass every gate.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ctx: any = { user: { role: UserRoles.Developer } };
 
 beforeAll(async () => {
   await prepareDatabase();
@@ -21,7 +27,7 @@ afterAll(async () => {
 describe("FileNodeResolver.fileNode", () => {
   it("returns the node when it exists", async () => {
     const root = await FileNode.findOne({ parentId: null, name: "/" });
-    const node = await resolver.fileNode(root!._id.toString());
+    const node = await resolver.fileNode(root!._id.toString(), ctx);
     expect(node).not.toBeNull();
     expect(node!.name).toBe("/");
   });
@@ -32,18 +38,18 @@ describe("FileNodeResolver.fileNode", () => {
       name: "temp",
       normalizedName: normalizeNodeName("temp"),
       parentId: null,
-      aiManaged: false,
+      systemManaged: false,
       sortKey: "0000",
       isReservedRoot: false,
       version: 0,
       deletedAt: new Date(),
     });
-    const node = await resolver.fileNode(trashed._id.toString());
+    const node = await resolver.fileNode(trashed._id.toString(), ctx);
     expect(node).toBeNull();
   });
 
   it("returns null for invalid ObjectId", async () => {
-    const node = await resolver.fileNode("not-an-id");
+    const node = await resolver.fileNode("not-an-id", ctx);
     expect(node).toBeNull();
   });
 });
@@ -51,7 +57,7 @@ describe("FileNodeResolver.fileNode", () => {
 describe("FileNodeResolver.fileNodeChildren", () => {
   it("lists root children (reserved namespaces)", async () => {
     const root = await FileNode.findOne({ parentId: null, name: "/" });
-    const children = await resolver.fileNodeChildren(root!._id.toString());
+    const children = await resolver.fileNodeChildren(root!._id.toString(), ctx);
     // Reserved namespaces: system, tenders, jobsites, daily-reports
     const names = children.map((c) => c.name).sort();
     expect(names).toEqual(["daily-reports", "jobsites", "system", "tenders"]);
@@ -64,7 +70,7 @@ describe("FileNodeResolver.fileNodeChildren", () => {
       name: "live-child",
       normalizedName: normalizeNodeName("live-child"),
       parentId: root!._id,
-      aiManaged: false,
+      systemManaged: false,
       sortKey: "5000",
       isReservedRoot: false,
       version: 0,
@@ -74,13 +80,13 @@ describe("FileNodeResolver.fileNodeChildren", () => {
       name: "dead-child",
       normalizedName: normalizeNodeName("dead-child"),
       parentId: root!._id,
-      aiManaged: false,
+      systemManaged: false,
       sortKey: "5001",
       isReservedRoot: false,
       version: 0,
       deletedAt: new Date(),
     });
-    const children = await resolver.fileNodeChildren(root!._id.toString());
+    const children = await resolver.fileNodeChildren(root!._id.toString(), ctx);
     const names = children.map((c) => c.name);
     expect(names).toContain("live-child");
     expect(names).not.toContain("dead-child");
@@ -106,17 +112,17 @@ describe("FileNodeResolver.fileNodeChildren", () => {
       name: "Drawings",
       normalizedName: normalizeNodeName("Drawings"),
       parentId: tenderRoot!._id,
-      aiManaged: true,
+      systemManaged: true,
       sortKey: "0000",
       isReservedRoot: false,
       version: 0,
     });
-    const children = await resolver.fileNodeChildren(tenderRoot!._id.toString());
+    const children = await resolver.fileNodeChildren(tenderRoot!._id.toString(), ctx);
     expect(children.map((c) => c.name)).toContain("Drawings");
   });
 
   it("returns [] for invalid ObjectId", async () => {
-    const children = await resolver.fileNodeChildren("not-an-id");
+    const children = await resolver.fileNodeChildren("not-an-id", ctx);
     expect(children).toEqual([]);
   });
 });

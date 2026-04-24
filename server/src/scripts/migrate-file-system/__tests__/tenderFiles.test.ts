@@ -50,7 +50,7 @@ describe("migrateTenderFiles", () => {
     const folders = await FileNode.find({ parentId: tenderRoot!._id, type: "folder" }).lean();
     expect(folders.map((f) => f.name).sort()).toEqual(["Drawings", "Specifications"]);
     for (const f of folders) {
-      expect(f.aiManaged).toBe(true);
+      expect(f.systemManaged).toBe(true);
     }
 
     const drawings = folders.find((f) => f.name === "Drawings")!;
@@ -83,7 +83,7 @@ describe("migrateTenderFiles", () => {
     const tenderRoot = await FileNode.findOne({ parentId: tendersNs!._id, name: tender._id.toString() });
     const uncat = await FileNode.findOne({ parentId: tenderRoot!._id, name: "Uncategorized", type: "folder" });
     expect(uncat).not.toBeNull();
-    expect(uncat?.aiManaged).toBe(true);
+    expect(uncat?.systemManaged).toBe(true);
 
     const placement = await FileNode.findOne({ parentId: uncat!._id, documentId: ef1._id }).lean();
     expect(placement).not.toBeNull();

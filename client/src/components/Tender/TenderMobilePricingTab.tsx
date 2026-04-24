@@ -23,7 +23,7 @@ import ClientOnly from "../Common/ClientOnly";
 import LineItemDetail from "../TenderPricing/LineItemDetail";
 import PricingBoard from "../TenderPricing/PricingBoard";
 import { TenderPricingSheet, TenderPricingRow, TenderPricingRowType } from "../TenderPricing/types";
-import { TenderFileItem } from "./types";
+import { TenderDocumentItem } from "./types";
 import { localStorageTokenKey } from "../../contexts/Auth";
 
 import { computeRow, computeSheetTotal, formatCurrency } from "../TenderPricing/compute";
@@ -39,7 +39,7 @@ function buildFileUrl(fileId: string, stream = false): string {
   if (token) params.set("token", token);
   if (stream) params.set("stream", "1");
   const qs = params.toString();
-  return `/api/enriched-files/${fileId}${qs ? `?${qs}` : ""}`;
+  return `/api/documents/${fileId}${qs ? `?${qs}` : ""}`;
 }
 
 // ─── GQL ──────────────────────────────────────────────────────────────────────
@@ -101,7 +101,7 @@ interface TenderMobilePricingTabProps {
   sheet: TenderPricingSheet;
   tenderId: string;
   onSheetUpdate: (sheet: TenderPricingSheet) => void;
-  tenderFiles: TenderFileItem[];
+  tenderDocuments: TenderDocumentItem[];
 }
 
 // ─── Row list item ────────────────────────────────────────────────────────────
@@ -186,7 +186,7 @@ const TenderMobilePricingTab: React.FC<TenderMobilePricingTabProps> = ({
   sheet,
   tenderId,
   onSheetUpdate,
-  tenderFiles,
+  tenderDocuments,
 }) => {
   const [viewMode, setViewMode] = useState<"list" | "board">("list");
   const [selectedRow, setSelectedRow] = useState<TenderPricingRow | null>(null);
@@ -339,7 +339,7 @@ const TenderMobilePricingTab: React.FC<TenderMobilePricingTabProps> = ({
             tenderId={tenderId}
             onUpdate={onSheetUpdate}
             onUpdateRow={handleUpdateRow}
-            tenderFiles={tenderFiles}
+            tenderDocuments={tenderDocuments}
           />
         </Box>
       ) : (
@@ -379,10 +379,10 @@ const TenderMobilePricingTab: React.FC<TenderMobilePricingTabProps> = ({
                 tenderId={tenderId}
                 onUpdate={handleUpdateRow}
                 onClose={() => setSelectedRow(null)}
-                tenderFiles={tenderFiles}
+                tenderDocuments={tenderDocuments}
                 onDocRefClick={(enrichedFileId, page) => {
-                  const file = tenderFiles.find((f) => f._id === enrichedFileId);
-                  setViewingFile({ fileId: enrichedFileId, fileName: file?.file.description ?? "File", page });
+                  const file = tenderDocuments.find((f) => f.documentId === enrichedFileId);
+                  setViewingFile({ fileId: enrichedFileId, fileName: file?.name ?? "File", page });
                 }}
               />
             )}

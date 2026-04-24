@@ -1,7 +1,6 @@
 import { JobsiteDocument, JobsiteModel, System } from "@models";
 import { IJobsiteCreate } from "@typescript/jobsite";
 import { eventfulMutation } from "@lib/eventfulMutation";
-import { createEntityRoot } from "@lib/fileTree/createEntityRoot";
 
 const document = async (
   Jobsite: JobsiteModel,
@@ -20,7 +19,8 @@ const document = async (
     await jobsite.setTruckingRatesToDefault(system);
 
     await jobsite.save({ session });
-    await createEntityRoot({ namespace: "/jobsites", entityId: jobsite._id, session });
+    // Per-entity document folder is provisioned lazily when the first
+    // file is uploaded — see the `ensureEntityRoot` mutation.
 
     return { result: jobsite._id, event: null };
   });

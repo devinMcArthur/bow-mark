@@ -31,7 +31,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { TenderPricingSheet as TPricingSheet, TenderPricingRowType } from "./types";
-import { TenderFileItem } from "../Tender/types";
+import { TenderDocumentItem } from "../Tender/types";
 import { computeSheetTotal, formatCurrency } from "./compute";
 import { SortableRow } from "./PricingRow";
 import ScheduleList from "./ScheduleList";
@@ -175,7 +175,7 @@ interface PricingSheetProps {
   sheet: TPricingSheet;
   tenderId: string;
   onUpdate: (updated: TPricingSheet) => void;
-  tenderFiles?: TenderFileItem[];
+  tenderDocuments?: TenderDocumentItem[];
   activeDocFile?: string;
   activeDocPage?: number;
   onDocRefClick?: (enrichedFileId: string, page: number) => void;
@@ -183,7 +183,7 @@ interface PricingSheetProps {
   onViewModeChange?: (mode: "list" | "board") => void;
 }
 
-const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, tenderFiles, activeDocFile, activeDocPage, onDocRefClick, viewMode, onViewModeChange }) => {
+const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, tenderDocuments, activeDocFile, activeDocPage, onDocRefClick, viewMode, onViewModeChange }) => {
   const [markupDraft, setMarkupDraft] = useState(String(sheet.defaultMarkupPct));
   const [editingMarkup, setEditingMarkup] = useState(false);
 
@@ -503,7 +503,7 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, 
           tenderId={tenderId}
           onUpdate={onUpdate}
           onUpdateRow={handleUpdateRow}
-          tenderFiles={tenderFiles}
+          tenderDocuments={tenderDocuments}
         />
       ) : isDetailOpen ? (
         /* ── Split pane: schedule list + detail panel ─────────────────── */
@@ -533,7 +533,7 @@ const PricingSheet: React.FC<PricingSheetProps> = ({ sheet, tenderId, onUpdate, 
               tenderId={tenderId}
               onUpdate={handleUpdateRow}
               onClose={() => setSelectedRowId(null)}
-              tenderFiles={tenderFiles}
+              tenderDocuments={tenderDocuments}
               activeDocFile={activeDocFile}
               activeDocPage={activeDocPage}
               onDocRefAdd={handleDocRefAdd}

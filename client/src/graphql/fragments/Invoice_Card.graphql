@@ -9,4 +9,5 @@ fragment InvoiceCardSnippet on InvoiceClass {
   description
   internal
   accrual
+  documentId
 }

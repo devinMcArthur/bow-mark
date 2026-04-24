@@ -22,7 +22,11 @@ async function* subscribeDomainEvents(
 @Resolver()
 export default class DomainEventResolver {
   @Subscription(() => DomainEventGql, {
-    subscribe: ({ args }) =>
+    // Subscribe handler args are (root, args, context, info) — the first
+    // positional param is the root value (undefined for subscriptions),
+    // not the payload. Destructuring { args } off root yielded a crash
+    // at WS connect.
+    subscribe: (_root, args: { entityType: string; entityId: string }) =>
       subscribeDomainEvents(args.entityType, args.entityId),
   })
   domainEvent(

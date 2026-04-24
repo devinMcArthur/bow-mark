@@ -22,12 +22,20 @@ export function buildFileEntry(f: ResolvedDocument, serverBase: string, token: s
           .join("\n")}`
       : "";
 
-  const filename = f.originalFilename;
+  const filename = f.originalFilename ?? "Untitled";
+  const docType = summary?.documentType || "Unknown";
+  const url = `${serverBase}/api/documents/${f.documentId.toString()}`;
+  // Header leads with the filename (what Claude should refer to when
+  // talking about this file). The URL is given directly below with a
+  // citation template so Claude sees the exact markdown to emit — avoids
+  // falling back to raw "File ID: xxx" prose when it can't cite a page.
+  // folderPath ("/" means scope root) is shown when non-root so the bot
+  // can use it as a soft signal about how the user has organized things.
+  const folderHint =
+    f.folderPath && f.folderPath !== "/" ? ` · in ${f.folderPath}` : "";
   return [
-    `**File ID: ${f.documentId}**`,
-    filename ? `Filename: ${filename}` : null,
-    `Type: ${summary?.documentType || "Unknown"}`,
-    `URL: ${serverBase}/api/enriched-files/${f.documentId.toString()}`,
+    `**${filename}** (${docType})${folderHint}`,
+    `Link: [[${filename}]](${url}) · Page cite: [[${docType}, p.N]](${url}#page=N)`,
     summary
       ? `Overview: ${summary.overview}\nKey Topics: ${(summary.keyTopics as string[]).join(", ")}${navigationHint}`
       : "Summary: not yet available",

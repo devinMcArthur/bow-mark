@@ -19,7 +19,7 @@ export default class MyDocument extends Document {
               __html: `
 (function () {
   try {
-    var PWA_VERSION = "2026-04-15-standalone-fix";
+    var PWA_VERSION = "2026-04-23-ios-safe-area";
     if (localStorage.getItem("pwaVersion") === PWA_VERSION) return;
     localStorage.setItem("pwaVersion", PWA_VERSION);
     var didWork = false;

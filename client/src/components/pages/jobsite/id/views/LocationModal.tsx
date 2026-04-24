@@ -1,8 +1,6 @@
 import {
   Box,
   Button,
-  Flex,
-  Icon,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -10,16 +8,14 @@ import {
   ModalFooter,
   ModalHeader,
   ModalOverlay,
-  SimpleGrid,
   useToast,
 } from "@chakra-ui/react";
 import React from "react";
 import {
-  JobsiteFullSnippetFragment, useJobsiteUpdateLocationMutation,
+  JobsiteFullSnippetFragment,
+  useJobsiteUpdateLocationMutation,
 } from "../../../../../generated/graphql";
 import MapForm from "../../../../Common/Map/MapForm";
-import MapDisplay from "../../../../Common/Map/MapDisplay";
-import { FiEdit } from "react-icons/fi";
 
 interface IJobsiteLocationModal {
   jobsite: JobsiteFullSnippetFragment;
@@ -27,133 +23,103 @@ interface IJobsiteLocationModal {
   onClose: () => void;
 }
 
+/**
+ * Edit-only location modal. Drop-pin / search → Save persists lat/lng.
+ * "View" mode is gone — when the user just wants to see the location,
+ * they take the "Get directions" link straight to Google Maps from the
+ * jobsite hero.
+ */
 const JobsiteLocationModal = ({
   jobsite,
   isOpen,
   onClose,
 }: IJobsiteLocationModal) => {
-  /**
-   * ----- Hook Initialization -----
-   */
-
-  const [edit, setEdit] = React.useState(!jobsite.location);
-
-  const [location, setLocation] = React.useState<google.maps.LatLngLiteral | undefined>(jobsite.location ? {
-    lat: jobsite.location.latitude,
-    lng: jobsite.location.longitude,
-  } : undefined);
-
+  const toast = useToast();
   const [update, { loading }] = useJobsiteUpdateLocationMutation();
 
-  const toast = useToast();
+  // Local draft state — initialized from the persisted location each
+  // time the modal opens. Reset on close so a discarded edit doesn't
+  // leak into the next open.
+  const [draft, setDraft] = React.useState<google.maps.LatLngLiteral | undefined>(
+    jobsite.location
+      ? { lat: jobsite.location.latitude, lng: jobsite.location.longitude }
+      : undefined
+  );
+  React.useEffect(() => {
+    if (isOpen) {
+      setDraft(
+        jobsite.location
+          ? { lat: jobsite.location.latitude, lng: jobsite.location.longitude }
+          : undefined
+      );
+    }
+  }, [isOpen, jobsite.location]);
 
-  /**
-   * ----- Variables -----
-   */
-
-  const showEdit = React.useMemo(() => {
-    return !!jobsite.location;
-  }, [jobsite]);
-
-  /**
-   * ----- Functions -----
-   */
-
-  const handleUpdate = async () => {
+  const handleSave = async () => {
+    if (!draft) return;
     try {
-      if (!location) return;
-
       const res = await update({
         variables: {
           id: jobsite._id,
-          data: {
-            latitude: location.lat,
-            longitude: location.lng,
-          }
+          data: { latitude: draft.lat, longitude: draft.lng },
         },
       });
-
       if (res.data?.jobsiteLocation) {
-        setEdit(false);
+        onClose();
       } else {
         toast({
           status: "error",
-          title: "Error",
-          description: "Something went wrong, please try again",
+          title: "Couldn't save location",
+          description: "Please try again.",
           isClosable: true,
         });
       }
-    } catch (e: any) {
+    } catch (e) {
       toast({
         status: "error",
-        title: "Error",
-        description: e.message,
+        title: "Couldn't save location",
+        description: e instanceof Error ? e.message : "Unknown error",
         isClosable: true,
       });
     }
   };
 
-  /**
-   * ----- Render -----
-   */
+  const hasChanges =
+    !!draft &&
+    (jobsite.location?.latitude !== draft.lat ||
+      jobsite.location?.longitude !== draft.lng);
 
   return (
-    <div>
-      <Modal isOpen={isOpen} onClose={() => onClose()} size="xl">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalCloseButton />
-          <ModalHeader>
-            <Flex flexDir="row" alignItems="center">
-              Jobsite Location
-              <Icon
-                as={FiEdit}
-                aria-label="Edit"
-                boxSize="16px"
-                ml={2}
-                onClick={() => setEdit(!edit)}
-                display={showEdit ? "block" : "none"}
-                cursor={"pointer"}
-              />
-            </Flex>
-          </ModalHeader>
-          <ModalBody>
-            <Box width="100%" height="60rem">
-              {edit ? (
-                <MapForm value={location} onPositionChange={(value) => setLocation(value)} />
-              ) : (
-                <MapDisplay value={location} placeName={jobsite.name} />
-              )}
-            </Box>
-          </ModalBody>
-          <ModalFooter>
-            <SimpleGrid columns={2} spacing={2}>
-              <Button
-                onClick={() => onClose()}
-                colorScheme="gray"
-                variant="outline"
-                size="md"
-              >
-                Close
-              </Button>
-              <Button
-                onClick={() => {
-                  handleUpdate();
-                }}
-                colorScheme="blue"
-                loadingText="Submitting"
-                variant="solid"
-                size="md"
-                mr={2}
-                disabled={loading || !edit}
-              >
-                Submit
-              </Button>
-            </SimpleGrid>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    </div>
+    <Modal isOpen={isOpen} onClose={onClose} size="xl">
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>
+          {jobsite.location ? "Edit jobsite location" : "Set jobsite location"}
+        </ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+          <Box width="100%" h="50vh" minH="320px">
+            <MapForm
+              value={draft}
+              onPositionChange={(value) => setDraft(value)}
+            />
+          </Box>
+        </ModalBody>
+        <ModalFooter gap={2}>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            colorScheme="blue"
+            onClick={handleSave}
+            isLoading={loading}
+            isDisabled={!draft || !hasChanges}
+          >
+            Save
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   );
 };
 

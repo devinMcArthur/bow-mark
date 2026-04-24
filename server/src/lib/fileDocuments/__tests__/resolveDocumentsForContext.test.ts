@@ -78,7 +78,7 @@ describe("resolveDocumentsForContext", () => {
       documentId: doc._id,
       version: 0,
       sortKey: "0000",
-      aiManaged: false,
+      systemManaged: false,
       isReservedRoot: false,
     });
 
@@ -163,7 +163,7 @@ describe("resolveDocumentsForContext", () => {
         minRole: UserRoles.User,
         version: 0,
         sortKey: "0000",
-        aiManaged: false,
+        systemManaged: false,
         isReservedRoot: false,
       });
 
@@ -184,7 +184,7 @@ describe("resolveDocumentsForContext", () => {
         minRole: UserRoles.ProjectManager,
         version: 0,
         sortKey: "0001",
-        aiManaged: false,
+        systemManaged: false,
         isReservedRoot: false,
       });
 

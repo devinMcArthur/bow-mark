@@ -52,9 +52,9 @@ interface Props {
 }
 
 function isStale(jobSummary: TenderJobSummary, tender: TenderDetail): boolean {
-  const readyFileIds = tender.files
-    .filter((f) => f.summaryStatus === "ready")
-    .map((f) => f._id);
+  const readyFileIds = tender.documents
+    .filter((f) => f.enrichment?.status === "ready")
+    .map((f) => f.documentId);
   const noteIds = tender.notes.map((n) => n._id);
   const currentIds = new Set([...readyFileIds, ...noteIds]);
   const generatedFromSet = new Set(jobSummary.generatedFrom);

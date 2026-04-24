@@ -69,7 +69,7 @@ const JobsiteDailyReportsClientContent = ({
               backgroundColor="gray.300"
               p={4}
             >
-              <DailyReportClientContent id={dailyReport._id} />
+              <DailyReportClientContent id={dailyReport._id} inline />
             </Box>
           ))}
           {networkStatus !== 7 && (

@@ -60,7 +60,7 @@ export async function createEntityRoot(
         normalizedName: normalizeNodeName(name),
         parentId,
         isReservedRoot: true,
-        aiManaged: false,
+        systemManaged: false,
         sortKey: "0000",
         version: 0,
       },

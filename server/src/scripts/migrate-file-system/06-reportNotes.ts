@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import {
+  DailyReport,
   ReportNote,
   File,
   FileNode,
@@ -27,7 +28,7 @@ async function placeFile(
         normalizedName: normalizeNodeName(name),
         parentId,
         documentId,
-        aiManaged: false,
+        systemManaged: false,
         sortKey: "0000",
         isReservedRoot: false,
         version: 0,
@@ -47,6 +48,13 @@ async function placeFile(
  * Legacy ReportNote.files[] (direct File refs) becomes Documents + FileNode
  * placements under /daily-reports/<dailyReportId>/. No Enrichment is created.
  * Documents are keyed by File._id for stable idempotency.
+ *
+ * Iteration direction: we walk `DailyReport.find({ reportNote: { $exists } })`
+ * and follow the forward `dailyReport.reportNote` ref to the ReportNote.
+ * Earlier versions iterated `ReportNote.find()` and tried the back-ref
+ * `reportNote.dailyReport`, but that field was only populated on a
+ * subset of notes — forward iteration sidesteps the sparse back-ref
+ * entirely and catches every pair that actually wires up.
  */
 export async function migrateReportNotes(
   opts: MigrationOptions
@@ -67,33 +75,37 @@ export async function migrateReportNotes(
   if (!dailyReportsNs)
     throw new Error("daily-reports namespace not bootstrapped");
 
-  const cursor = ReportNote.find().cursor();
-  for await (const note of cursor) {
+  const cursor = DailyReport.find({
+    reportNote: { $exists: true, $ne: null },
+  }).cursor();
+  for await (const dailyReport of cursor) {
     report.scanned += 1;
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const noteAny = note as any;
-      const dailyReportId = noteAny.dailyReport as mongoose.Types.ObjectId | undefined;
-      if (!dailyReportId) {
-        report.errors.push({
-          enrichedFileId: note._id.toString(),
-          message: "ReportNote has no dailyReport ref — skipping",
-        });
-        continue;
-      }
+      const dailyReportAny = dailyReport as any;
+      const reportNoteId = dailyReportAny.reportNote as
+        | mongoose.Types.ObjectId
+        | undefined;
+      if (!reportNoteId) continue;
 
-      const fileIds = ((noteAny.files ?? []) as mongoose.Types.ObjectId[]).filter(Boolean);
+      const note = await ReportNote.findById(reportNoteId).lean();
+      if (!note) continue;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const fileIds = (((note as any).files ?? []) as mongoose.Types.ObjectId[]).filter(
+        Boolean
+      );
       if (fileIds.length === 0) continue;
 
       if (!opts.dryRun) {
         await createEntityRoot({
           namespace: "/daily-reports",
-          entityId: dailyReportId,
+          entityId: dailyReport._id,
         });
 
         const entityRoot = await FileNode.findOne({
           parentId: dailyReportsNs._id,
-          name: dailyReportId.toString(),
+          name: dailyReport._id.toString(),
         });
         if (!entityRoot) continue;
 
@@ -125,7 +137,7 @@ export async function migrateReportNotes(
           if (outcome !== "placed") {
             report.errors.push({
               enrichedFileId: file._id.toString(),
-              message: `name collision under daily-report ${dailyReportId.toString()}`,
+              message: `name collision under daily-report ${dailyReport._id.toString()}`,
             });
           }
         }
@@ -133,7 +145,7 @@ export async function migrateReportNotes(
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       report.errors.push({
-        enrichedFileId: note._id.toString(),
+        enrichedFileId: dailyReport._id.toString(),
         message: msg,
       });
     }

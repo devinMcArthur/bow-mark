@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Router } from "express";
-import mongoose, { Types } from "mongoose";
+import mongoose from "mongoose";
 import { Jobsite, User } from "@models";
 import { isDocument } from "@typegoose/typegoose";
 import { streamConversation, ToolExecutionResult } from "../lib/streamConversation";
@@ -58,8 +58,8 @@ router.post("/message", requireAuth, async (req, res) => {
   // Default to UserRoles.User (least privilege) when role is unknown
   const userRole = user?.role ?? UserRoles.User;
   const [jobsiteFiles, specFiles] = await Promise.all([
-    resolveDocumentsForContext({ scope: "jobsite", entityId: new Types.ObjectId(jobsiteId), userRole }),
-    resolveDocumentsForContext({ scope: "system" }),
+    resolveDocumentsForContext({ scope: "jobsite", entityId: new mongoose.Types.ObjectId(jobsiteId), userRole }),
+    resolveDocumentsForContext({ scope: "system", userRole }),
   ]);
 
   const serverBase = process.env.API_BASE_URL || `${req.protocol}://${req.get("host")}`;
@@ -129,6 +129,7 @@ ${decompositionBlock}
 - For questions about specifications, contracts, or compliance: use document tools.
 - For questions about financial performance, productivity, crew hours, material costs, or comparisons: use analytics tools.
 - **Loading documents — two steps.** For documents with a page index, call list_document_pages first to see the page-by-page breakdown, then call read_document with only the specific pages you need. Only skip list_document_pages if the document has no page index.
+- **Folder context.** Files are organized into folders — each entry in the document list shows its folder with "in /FolderName". Treat folder placement as a signal about how the user has categorized the file, not as ground truth. Trust filename and contents over folder when they conflict. Folder hints are most useful when the filename alone is ambiguous.
 - **Clarify before assuming.** If a question could apply to more than one thing, ask which one the user means before loading a document.
 - **Cross-references.** When you read a page that references another drawing, document, or standard, note it explicitly. Follow it automatically if it directly answers the question.
 - **Completeness.** Before giving your final answer, confirm you have addressed all parts of the question.
@@ -141,7 +142,8 @@ ${decompositionBlock}
   - Jobsite: [Name](/jobsite/{mongo_id})
   - Daily report: [date](/daily-report/{mongo_id})
   - Employee: [Name](/employee/{mongo_id})
-- Citations for document quotes: **[[Document Type, p.X]](URL#page=X)**`;
+- Citations for document quotes: **[[Document Type, p.X]](URL#page=X)**
+- Whenever you name any file in prose, render the filename as a markdown link to its URL (e.g. **[[photo.jpg]](URL)**) — never raw file IDs`;
 
   // ── Connect to MCP server with jobsite binding ────────────────────────────
   // The MCP server's read_document / list_document_pages tools now handle

@@ -12,6 +12,17 @@ import {
 import { UserRoles } from "@typescript/user";
 import type { ResolveContext, ResolvedDocument } from "./types";
 
+// Normalize any role value (number or string form) to its numeric weight so
+// legacy string-valued role data can't produce NaN in comparisons.
+function roleWeight(role: unknown): number {
+  if (typeof role === "number" && Number.isFinite(role)) return role;
+  if (typeof role === "string") {
+    const weight = (UserRoles as unknown as Record<string, number>)[role];
+    if (typeof weight === "number") return weight;
+  }
+  return 0;
+}
+
 /**
  * Resolve documents for a given surface scope, transparently reading from
  * the new FileNode tree if present and falling back to the legacy
@@ -55,8 +66,10 @@ async function readNewShape(ctx: ResolveContext): Promise<ResolvedDocument[]> {
     scopedRootId = specs._id;
   }
 
-  // Walk all descendants via $graphLookup; keep only file-type non-deleted nodes.
-  const descendants = await FileNode.aggregate([
+  // Walk all descendants via $graphLookup. We pull folders AND files (no
+  // type filter) so we can rebuild each file's path relative to the scoped
+  // root by walking parentId up the tree.
+  const allDescendants = await FileNode.aggregate([
     { $match: { _id: scopedRootId } },
     {
       $graphLookup: {
@@ -69,18 +82,56 @@ async function readNewShape(ctx: ResolveContext): Promise<ResolvedDocument[]> {
     },
     { $unwind: "$descendants" },
     { $replaceRoot: { newRoot: "$descendants" } },
-    { $match: { type: "file", deletedAt: null, documentId: { $exists: true } } },
+    { $match: { deletedAt: null } },
   ]);
 
-  if (descendants.length === 0) return [];
+  if (allDescendants.length === 0) return [];
 
-  // Role-based filtering for jobsite scope: keep only nodes where minRole is
-  // unset (public) or minRole <= userRole (user has sufficient access).
+  // Build a parent-lookup map for path reconstruction. Include the scoped
+  // root so files at the top level resolve to "/". We intentionally don't
+  // emit the scoped root's own name in the path (callers know they're
+  // scoped to a tender/jobsite — its name is just an ObjectId anyway).
+  const nodeById = new Map<string, { parentId?: string; name: string }>();
+  for (const n of allDescendants) {
+    nodeById.set(n._id.toString(), {
+      parentId: n.parentId ? n.parentId.toString() : undefined,
+      name: n.name,
+    });
+  }
+
+  const scopedRootIdStr = scopedRootId.toString();
+  function folderPathFor(fileNode: { parentId?: Types.ObjectId }): string {
+    if (!fileNode.parentId) return "/";
+    const segments: string[] = [];
+    let currentId: string | undefined = fileNode.parentId.toString();
+    // Walk up until we hit the scoped root; accumulate folder names.
+    while (currentId && currentId !== scopedRootIdStr) {
+      const entry = nodeById.get(currentId);
+      if (!entry) break; // safety: detached node, shouldn't happen
+      segments.unshift(entry.name);
+      currentId = entry.parentId;
+    }
+    return segments.length === 0 ? "/" : `/${segments.join("/")}`;
+  }
+
+  const descendants = allDescendants.filter(
+    (n) => n.type === "file" && n.documentId
+  );
+
+  // Role-based filtering: keep only nodes where minRole is unset (public)
+  // or minRole <= userRole. Applied across all surface scopes (tender,
+  // jobsite, system) whenever userRole is known. When userRole is
+  // undefined (internal callers that don't care about access control,
+  // e.g. summary generators running under system context), everything
+  // passes through. Both sides normalized to numeric weights.
   const filteredDescendants =
-    ctx.scope === "jobsite" && ctx.userRole !== undefined
-      ? descendants.filter(
-          (n) => n.minRole == null || n.minRole <= ctx.userRole!
-        )
+    ctx.userRole !== undefined
+      ? (() => {
+          const viewerWeight = roleWeight(ctx.userRole);
+          return descendants.filter(
+            (n) => n.minRole == null || roleWeight(n.minRole) <= viewerWeight
+          );
+        })()
       : descendants;
 
   if (filteredDescendants.length === 0) return [];
@@ -95,9 +146,16 @@ async function readNewShape(ctx: ResolveContext): Promise<ResolvedDocument[]> {
   const fileMap = new Map(files.map((f) => [f._id.toString(), f]));
   const enrichMap = new Map(enrichments.map((e) => [e.documentId!.toString(), e]));
 
+  // Index the filtered descendants by documentId for quick folderPath lookup.
+  const nodeByDocId = new Map<string, (typeof filteredDescendants)[number]>();
+  for (const n of filteredDescendants) {
+    nodeByDocId.set(n.documentId.toString(), n);
+  }
+
   return documents.map((d) => {
     const f = fileMap.get((d.currentFileId as Types.ObjectId).toString());
     const e = enrichMap.get(d._id.toString());
+    const node = nodeByDocId.get(d._id.toString());
     return {
       documentId: d._id,
       fileId: d.currentFileId as Types.ObjectId,
@@ -107,6 +165,7 @@ async function readNewShape(ctx: ResolveContext): Promise<ResolvedDocument[]> {
       enrichmentStatus: e?.status,
       enrichmentSummary: e?.summary,
       enrichmentPageIndex: e?.pageIndex as Array<{ page: number; summary: string }> | undefined,
+      folderPath: node ? folderPathFor(node) : "/",
       source: "new-document" as const,
     };
   });
@@ -153,6 +212,7 @@ async function readOldShape(ctx: ResolveContext): Promise<ResolvedDocument[]> {
     enrichmentStatus: ef.summaryStatus,
     enrichmentSummary: ef.summary,
     enrichmentPageIndex: ef.pageIndex,
+    folderPath: "/",
     source: "legacy-enrichedfile" as const,
   }));
 }

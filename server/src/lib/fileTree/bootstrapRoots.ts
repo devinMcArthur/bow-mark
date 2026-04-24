@@ -30,7 +30,7 @@ export async function bootstrapRoots(): Promise<void> {
       normalizedName: "/",
       parentId: null,
       isReservedRoot: true,
-      aiManaged: false,
+      systemManaged: false,
       sortKey: "0000",
       version: 0,
     });
@@ -56,7 +56,7 @@ export async function bootstrapRoots(): Promise<void> {
         normalizedName: normalizeNodeName(def.name),
         parentId,
         isReservedRoot: true,
-        aiManaged: false,
+        systemManaged: false,
         sortKey: "0000",
         version: 0,
       });

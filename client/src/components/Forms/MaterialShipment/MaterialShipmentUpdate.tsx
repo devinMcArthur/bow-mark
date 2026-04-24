@@ -1,4 +1,4 @@
-import { SimpleGrid, useToast } from "@chakra-ui/react";
+import { Box, Button, Flex, SimpleGrid, useToast } from "@chakra-ui/react";
 import React from "react";
 import { useMaterialShipmentUpdateForm } from "../../../forms/materialShipment";
 import {
@@ -12,7 +12,6 @@ import {
 import convertHourToDate from "../../../utils/convertHourToDate";
 import isEmpty from "../../../utils/isEmpty";
 import { ISelect } from "../../Common/forms/Select";
-import SubmitButton from "../../Common/forms/SubmitButton";
 
 interface IMaterialShipmentUpdate {
   materialShipment: MaterialShipmentCardSnippetFragment;
@@ -161,46 +160,57 @@ const MaterialShipmentUpdate = ({
    */
 
   return (
-    <FormComponents.Form submitHandler={handleSubmit}>
-      {noJobsiteMaterial ? (
-        <>
-          <FormComponents.JobsiteMaterial
-            jobsiteMaterials={dailyReport.jobsite.materials}
-            isLoading={loading}
-          />
+    <Box bg="orange.50" p={1} borderRadius="md" my={2}>
+      <FormComponents.Form submitHandler={handleSubmit}>
+        <Flex direction="column" gap={3}>
+          {noJobsiteMaterial ? (
+            <>
+              <FormComponents.JobsiteMaterial
+                jobsiteMaterials={dailyReport.jobsite.materials}
+                isLoading={loading}
+              />
+              <SimpleGrid spacing={2} columns={[1, 1, 2]}>
+                <FormComponents.Quantity isLoading={loading} />
+                <FormComponents.Unit isLoading={loading} />
+              </SimpleGrid>
+              <SimpleGrid spacing={2} columns={[1, 1, 2]}>
+                <FormComponents.ShipmentType isLoading={loading} />
+                <FormComponents.Supplier isLoading={loading} />
+              </SimpleGrid>
+            </>
+          ) : (
+            <SimpleGrid spacing={2} columns={[1, 1, 2]}>
+              <FormComponents.JobsiteMaterial
+                jobsiteMaterials={dailyReport.jobsite.materials}
+                isLoading={loading}
+              />
+              <FormComponents.Quantity isLoading={loading} />
+            </SimpleGrid>
+          )}
           <SimpleGrid spacing={2} columns={[1, 1, 2]}>
-            <FormComponents.Quantity isLoading={loading} />
-            <FormComponents.Unit isLoading={loading} />
+            <FormComponents.StartTime isLoading={loading} />
+            <FormComponents.EndTime isLoading={loading} />
           </SimpleGrid>
-          <SimpleGrid spacing={2} columns={[1, 1, 2]}>
-            <FormComponents.ShipmentType isLoading={loading} />
-            <FormComponents.Supplier isLoading={loading} />
+          <SimpleGrid spacing={2} columns={[1, 1, 3]}>
+            <FormComponents.VehicleSource isLoading={loading} />
+            <FormComponents.VehicleType
+              isLoading={loading}
+              isDelivered={!!deliveredMaterial}
+              options={vehicleTypeOptions}
+            />
+            <FormComponents.VehicleCode isLoading={loading} />
           </SimpleGrid>
-        </>
-      ) : (
-        <SimpleGrid spacing={2} columns={[1, 1, 2]}>
-          <FormComponents.JobsiteMaterial
-            jobsiteMaterials={dailyReport.jobsite.materials}
+          <Button
+            type="submit"
+            w="100%"
+            colorScheme="blue"
             isLoading={loading}
-          />
-          <FormComponents.Quantity isLoading={loading} />
-        </SimpleGrid>
-      )}
-      <SimpleGrid spacing={2} columns={[1, 1, 2]}>
-        <FormComponents.StartTime isLoading={loading} />
-        <FormComponents.EndTime isLoading={loading} />
-      </SimpleGrid>
-      <SimpleGrid spacing={2} columns={[1, 1, 3]} p={4}>
-        <FormComponents.VehicleSource isLoading={loading} />
-        <FormComponents.VehicleType
-          isLoading={loading}
-          isDelivered={!!deliveredMaterial}
-          options={vehicleTypeOptions}
-        />
-        <FormComponents.VehicleCode isLoading={loading} />
-      </SimpleGrid>
-      <SubmitButton isLoading={loading} />
-    </FormComponents.Form>
+          >
+            Save changes
+          </Button>
+        </Flex>
+      </FormComponents.Form>
+    </Box>
   );
 };
 

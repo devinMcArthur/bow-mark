@@ -27,11 +27,9 @@ import {
 } from "@models";
 import mutations, {
   DailyReportCreateData,
-  DailyReportNoteUpdateData,
   DailyReportUpdateData,
 } from "./mutations";
 import { SearchOptions } from "@graphql/types/query";
-import { FileCreateData } from "../file/mutations";
 import { DailyReportListOptionData } from "./queries";
 import { FilterQuery } from "mongoose";
 import { Id } from "@typescript/models";
@@ -97,6 +95,37 @@ export default class DailyReportResolver {
   @FieldResolver(() => [VehicleClass])
   async temporaryVehicles(@Root() dailyReport: DailyReportDocument) {
     return dailyReport.getTemporaryVehicles();
+  }
+
+  /**
+   * ----- Summary counts -----
+   * Cheap counts of the DailyReport's direct ref arrays. No DB hit —
+   * the root document already carries the arrays. Surfaced on the
+   * daily-report card so the summary strip can be rendered without a
+   * per-card fetch of the underlying collections.
+   */
+
+  @FieldResolver(() => Number)
+  employeeWorkCount(@Root() dailyReport: DailyReportDocument): number {
+    return dailyReport.employeeWork?.length ?? 0;
+  }
+
+  @FieldResolver(() => Number)
+  vehicleWorkCount(@Root() dailyReport: DailyReportDocument): number {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (dailyReport as any).vehicleWork?.length ?? 0;
+  }
+
+  @FieldResolver(() => Number)
+  materialShipmentCount(@Root() dailyReport: DailyReportDocument): number {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (dailyReport as any).materialShipment?.length ?? 0;
+  }
+
+  @FieldResolver(() => Number)
+  productionCount(@Root() dailyReport: DailyReportDocument): number {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (dailyReport as any).production?.length ?? 0;
   }
 
   /**
@@ -191,15 +220,6 @@ export default class DailyReportResolver {
     return mutations.update(id, data);
   }
 
-  @Authorized()
-  @Mutation(() => DailyReportClass)
-  async dailyReportNoteUpdate(
-    @Arg("id") id: string,
-    @Arg("data") data: DailyReportNoteUpdateData
-  ) {
-    return mutations.updateNote(id, data);
-  }
-
   @Authorized(["ADMIN"])
   @Mutation(() => DailyReportClass)
   async dailyReportJobCostApprovalUpdate(
@@ -234,15 +254,6 @@ export default class DailyReportResolver {
     @Arg("vehicleId") vehicleId: string
   ) {
     return mutations.addTemporaryVehicle(id, vehicleId);
-  }
-
-  @Authorized()
-  @Mutation(() => DailyReportClass)
-  async dailyReportAddNoteFile(
-    @Arg("id") id: string,
-    @Arg("data") data: FileCreateData
-  ) {
-    return mutations.addNoteFile(id, data);
   }
 
   @Authorized(["ADMIN"])

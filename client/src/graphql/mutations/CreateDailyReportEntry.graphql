@@ -1,0 +1,14 @@
+mutation CreateDailyReportEntry($data: DailyReportEntryCreateData!) {
+  createDailyReportEntry(data: $data) {
+    _id
+    text
+    documentIds
+    isIssue
+    createdAt
+    updatedAt
+    createdByUser {
+      _id
+      name
+    }
+  }
+}
