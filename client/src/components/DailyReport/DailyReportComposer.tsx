@@ -88,7 +88,6 @@ const DailyReportComposer: React.FC<DailyReportComposerProps> = ({
 
   const [uploadDocument] = useMutation<
     { uploadDocument: { _id: string; documentId: string | null } },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     { input: { parentFileNodeId: string; fileUpload: File; displayName?: string } }
   >(UPLOAD_DOCUMENT);
   const [ensureEntityRoot] = useEnsureEntityRootMutation();
@@ -320,7 +319,6 @@ const DailyReportComposer: React.FC<DailyReportComposerProps> = ({
           ref={cameraInputRef}
           type="file"
           accept="image/*"
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           {...({ capture: "environment" } as any)}
           style={{ display: "none" }}
           onChange={onFilesSelected}

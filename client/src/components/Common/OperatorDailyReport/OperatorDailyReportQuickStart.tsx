@@ -149,7 +149,7 @@ const OperatorDailyReportQuickStart: React.FC<
                 onClick={() => goToInspection(mostRecent.vehicle._id)}
                 w={{ base: "100%", sm: "auto" }}
               >
-                Start today's inspection
+                Start today&apos;s inspection
               </Button>
             </Stack>
           </Flex>

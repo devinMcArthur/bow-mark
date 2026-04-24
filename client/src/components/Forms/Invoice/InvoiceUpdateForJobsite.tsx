@@ -91,7 +91,6 @@ const InvoiceUpdateForJobsite = ({
       isLoading={loading}
       jobsiteId={invoiceKind ? jobsiteId : undefined}
       invoiceKind={invoiceKind}
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       initialDocumentId={(invoice as any).documentId ?? null}
     />
   );
