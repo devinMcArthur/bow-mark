@@ -12,7 +12,6 @@ const createJobsites = async (): Promise<SeededJobsites> => {
   const jobsite_1 = new Jobsite({
     _id: _ids.jobsites.jobsite_1._id,
     name: "Jobsite 1",
-    location_url: "https://goo.gl/maps/cG7UFkMup7siY89F6",
     description: "First Job",
     jobcode: "2022-1",
     active: true,

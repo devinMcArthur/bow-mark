@@ -49,6 +49,35 @@ export interface TenderFileItem {
   };
 }
 
+/**
+ * The new shape — FileNode-derived, returned by tender.documents.
+ * Replaces TenderFileItem for the pricing sheet + doc-ref flows.
+ * - `_id` is the FileNode id (internal; callers rarely need it directly).
+ * - `documentId` is the stable Document id — the value historically
+ *    stored as docRefs[].enrichedFileId. Use it for URLs and for doc-ref
+ *    lookups.
+ * - `name` replaces the old `file.description` display name.
+ * - `mimetype` replaces `file.mimetype`.
+ * - `enrichment` nests the pipeline state that was flattened on
+ *    TenderFileItem (summaryStatus, summary, pageCount, …).
+ */
+export interface TenderDocumentEnrichment {
+  status: string;
+  summaryError?: string | null;
+  summary?: TenderFileSummary | null;
+  summaryProgress?: TenderFileSummaryProgress | null;
+  pageCount?: number | null;
+  processingStartedAt?: string | null;
+}
+
+export interface TenderDocumentItem {
+  _id: string;
+  documentId: string;
+  name: string;
+  mimetype?: string | null;
+  enrichment?: TenderDocumentEnrichment | null;
+}
+
 export interface TenderJobsite {
   _id: string;
   name: string;
@@ -85,7 +114,13 @@ export interface TenderDetail {
   jobcode: string;
   status: string;
   description?: string | null;
+  /**
+   * @deprecated Legacy EnrichedFile-shaped list. Still populated server-side
+   * (tender.files stored field) but new code should read from `documents`,
+   * which is derived from the FileNode tree and includes net-new uploads.
+   */
   files: TenderFileItem[];
+  documents: TenderDocumentItem[];
   fileCategories?: TenderFileCategory[] | null;
   notes: TenderNote[];
   summaryGenerating: boolean;

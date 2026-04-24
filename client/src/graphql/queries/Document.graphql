@@ -1,0 +1,11 @@
+query Document($id: ID!) {
+  document(id: $id) {
+    _id
+    currentFile {
+      _id
+      mimetype
+      originalFilename
+      description
+    }
+  }
+}

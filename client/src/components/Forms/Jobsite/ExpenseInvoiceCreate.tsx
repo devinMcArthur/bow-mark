@@ -3,55 +3,67 @@ import { useToast } from "@chakra-ui/react";
 import {
   InvoiceData,
   useJobsiteAddExpenseInvoiceMutation,
+  JobsiteFullDocument,
 } from "../../../generated/graphql";
-import InvoiceForm from "../Invoice/Form";
+import InvoiceBulkForm from "../Invoice/BulkForm";
 
 interface IJobsiteExpenseInvoiceCreate {
   jobsiteId: string;
   onSuccess?: () => void;
 }
 
+/**
+ * Create one OR many subcontractor invoices at once. Shared header +
+ * repeating line items via `InvoiceBulkForm`. Fires one create mutation
+ * per row in parallel; uses allSettled so a single bad row doesn't tank
+ * the others — we toast-summarise at the end.
+ */
 const JobsiteExpenseInvoiceCreate = ({
   jobsiteId,
   onSuccess,
 }: IJobsiteExpenseInvoiceCreate) => {
-  /**
-   * ----- Hook Initialization -----
-   */
-
   const toast = useToast();
 
-  const [create, { loading }] = useJobsiteAddExpenseInvoiceMutation();
-
-  /**
-   * ----- Functions -----
-   */
+  const [create, { loading }] = useJobsiteAddExpenseInvoiceMutation({
+    refetchQueries: [JobsiteFullDocument],
+  });
 
   const handleSubmit = React.useCallback(
-    async (data: InvoiceData) => {
-      try {
-        const res = await create({
-          variables: {
-            jobsiteId,
-            data,
-          },
-        });
+    async (rows: InvoiceData[]) => {
+      const results = await Promise.allSettled(
+        rows.map((data) => create({ variables: { jobsiteId, data } }))
+      );
+      const succeeded = results.filter((r) => r.status === "fulfilled").length;
+      const failed = results.length - succeeded;
 
-        if (res.data?.jobsiteAddExpenseInvoice) {
-          if (onSuccess) onSuccess();
-        } else {
-          toast({
-            status: "error",
-            title: "Error",
-            description: "Something went wrong, please try again",
-            isClosable: true,
-          });
-        }
-      } catch (e: any) {
+      if (failed === 0) {
+        toast({
+          status: "success",
+          title:
+            rows.length === 1
+              ? "Invoice added"
+              : `${succeeded} invoices added`,
+          isClosable: true,
+        });
+        if (onSuccess) onSuccess();
+      } else if (succeeded === 0) {
+        const firstErr = results.find(
+          (r): r is PromiseRejectedResult => r.status === "rejected"
+        );
         toast({
           status: "error",
-          title: "Error",
-          description: e.message,
+          title: "Could not add invoices",
+          description:
+            firstErr?.reason instanceof Error
+              ? firstErr.reason.message
+              : "Unknown error",
+          isClosable: true,
+        });
+      } else {
+        toast({
+          status: "warning",
+          title: `${succeeded} added, ${failed} failed`,
+          description: "Re-submit the failed rows after fixing them.",
           isClosable: true,
         });
       }
@@ -59,11 +71,14 @@ const JobsiteExpenseInvoiceCreate = ({
     [create, jobsiteId, onSuccess, toast]
   );
 
-  /**
-   * ----- Rendering -----
-   */
-
-  return <InvoiceForm submitHandler={handleSubmit} isLoading={loading} />;
+  return (
+    <InvoiceBulkForm
+      submitHandler={handleSubmit}
+      isLoading={loading}
+      jobsiteId={jobsiteId}
+      invoiceKind="subcontractor"
+    />
+  );
 };
 
 export default JobsiteExpenseInvoiceCreate;

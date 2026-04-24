@@ -1,4 +1,5 @@
 import {
+  FileNode,
   InvoiceDocument,
   Jobsite,
   JobsiteDocument,
@@ -131,6 +132,18 @@ const document = async (invoice: InvoiceDocument) => {
       await jobsiteYearReport.save();
       await jobsiteYearReport.requestBuild();
     }
+  }
+
+  // Trash the linked invoice file (if any). Uses soft-delete via the
+  // FileNode's deletedAt timestamp so it stays recoverable from the
+  // Trash view for a while. Document + File records stay intact.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const documentId = (invoice as any).documentId;
+  if (documentId) {
+    await FileNode.updateMany(
+      { documentId, deletedAt: null },
+      { $set: { deletedAt: new Date() } }
+    );
   }
 
   await invoice.remove();

@@ -10,7 +10,7 @@ import {
   TenderPricingRow,
   TenderPricingRowType,
 } from "./types";
-import { TenderFileItem } from "../Tender/types";
+import { TenderDocumentItem } from "../Tender/types";
 import { computeRow, formatCurrency } from "./compute";
 import {
   LineItemStatus,
@@ -28,7 +28,7 @@ interface PricingBoardProps {
   tenderId: string;
   onUpdate: (updated: TenderPricingSheet) => void;
   onUpdateRow: (rowId: string, data: Record<string, unknown>) => Promise<void>;
-  tenderFiles?: TenderFileItem[];
+  tenderDocuments?: TenderDocumentItem[];
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -162,7 +162,7 @@ const PricingBoard: React.FC<PricingBoardProps> = ({
   tenderId,
   onUpdate,
   onUpdateRow,
-  tenderFiles,
+  tenderDocuments,
 }) => {
   const [selectedRow, setSelectedRow] = useState<TenderPricingRow | null>(null);
   const [scheduleFilter, setScheduleFilter] = useState<string>("all");
@@ -266,7 +266,7 @@ const PricingBoard: React.FC<PricingBoardProps> = ({
         tenderId={tenderId}
         onClose={() => setSelectedRow(null)}
         onUpdateRow={onUpdateRow}
-        tenderFiles={tenderFiles}
+        tenderDocuments={tenderDocuments}
       />
     </Flex>
   );

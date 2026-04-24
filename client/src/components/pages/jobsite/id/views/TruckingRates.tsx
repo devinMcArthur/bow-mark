@@ -1,4 +1,4 @@
-import { Center, Flex, Heading, IconButton } from "@chakra-ui/react";
+import { Box, Center, Flex, Heading, IconButton } from "@chakra-ui/react";
 import React from "react";
 import { FiEdit, FiX } from "react-icons/fi";
 import { JobsiteTruckingRatesSnippetFragment } from "../../../../../generated/graphql";
@@ -12,24 +12,61 @@ interface ITruckingRates {
   jobsite: JobsiteTruckingRatesSnippetFragment;
   displayJobsiteName?: boolean;
   defaultCollapsed?: boolean;
+  /**
+   * When true, skip the outer Card/Heading chrome — useful when
+   * rendering inside a Modal or Drawer that already provides its
+   * own container and title.
+   */
+  bare?: boolean;
 }
 
 const TruckingRates = ({
   jobsite,
   displayJobsiteName = false,
   defaultCollapsed = true,
+  bare = false,
 }: ITruckingRates) => {
-  /**
-   * ----- Hook Initialization -----
-   */
-
   const [editForm, setEditForm] = React.useState(false);
-
   const [collapsed, setCollapsed] = React.useState(defaultCollapsed);
 
-  /**
-   * ----- Rendering -----
-   */
+  const body = (
+    <>
+      {editForm && (
+        <JobsiteTruckingRates
+          jobsite={jobsite}
+          onSuccess={() => setEditForm(false)}
+        />
+      )}
+      {jobsite.truckingRates.length > 0 ? (
+        !collapsed && (
+          <TruckingTypeRatesTable truckingRates={jobsite.truckingRates} />
+        )
+      ) : (
+        <Center>Rates not set</Center>
+      )}
+    </>
+  );
+
+  if (bare) {
+    return (
+      <Box>
+        {/* Bare: the container (modal/drawer) owns the title, so we
+            only surface the edit affordance inline. */}
+        <Flex justify="flex-end" mb={2}>
+          <Permission>
+            <IconButton
+              icon={editForm ? <FiX /> : <FiEdit />}
+              aria-label={editForm ? "Cancel edit" : "Edit trucking rates"}
+              size="sm"
+              variant="ghost"
+              onClick={() => setEditForm(!editForm)}
+            />
+          </Permission>
+        </Flex>
+        {body}
+      </Box>
+    );
+  }
 
   return (
     <Card h="fit-content">
@@ -55,19 +92,7 @@ const TruckingRates = ({
           />
         </Permission>
       </Flex>
-      {editForm && (
-        <JobsiteTruckingRates
-          jobsite={jobsite}
-          onSuccess={() => setEditForm(false)}
-        />
-      )}
-      {jobsite.truckingRates.length > 0 ? (
-        !collapsed && (
-          <TruckingTypeRatesTable truckingRates={jobsite.truckingRates} />
-        )
-      ) : (
-        <Center>Rates not set</Center>
-      )}
+      {body}
     </Card>
   );
 };

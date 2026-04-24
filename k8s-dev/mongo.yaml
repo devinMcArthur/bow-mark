@@ -15,6 +15,58 @@ spec:
         app: mongo
     spec:
       containers:
+      # Sidecar that waits for mongod to be reachable and idempotently
+      # promotes the single-member replica set to PRIMARY. Handles all
+      # three cold-start cases without k8s postStart-hook timing
+      # fragility:
+      #   1. Fresh data dir           → rs.status throws → rs.initiate
+      #   2. Container restart, stuck → rs.reconfig({force:true}) re-elects
+      #   3. Already PRIMARY          → no-op, sleep forever
+      # Lives alongside the mongo container so it survives pod lifetime
+      # and can also re-run on mongod container restart without needing
+      # external triggers.
+      - name: replset-init
+        image: mongo:7
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -eu
+          until mongosh --quiet --host mongo:27017 --eval 'db.runCommand({ping: 1})' > /dev/null 2>&1; do
+            echo "waiting for mongod..."
+            sleep 2
+          done
+          echo "mongod reachable; ensuring replica set..."
+          mongosh --quiet --host mongo:27017 --eval '
+            try {
+              var s = rs.status();
+              var me = s.members && s.members[0];
+              if (!me || me.stateStr !== "PRIMARY") {
+                print("reconfig: current state " + (me && me.stateStr));
+                rs.reconfig(
+                  { _id: "rs0", members: [{ _id: 0, host: "mongo:27017" }] },
+                  { force: true }
+                );
+              } else {
+                print("already PRIMARY");
+              }
+            } catch (e) {
+              print("initiate: " + e.message);
+              rs.initiate({ _id: "rs0", members: [{ _id: 0, host: "mongo:27017" }] });
+            }
+          '
+          echo "replset-init done, sleeping"
+          # Hold the sidecar open. If mongo restarts (container crash,
+          # oom kill), kubelet restarts this sidecar too and the init
+          # loop runs again — which is exactly what we want.
+          sleep infinity
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "10m"
+          limits:
+            memory: "384Mi"
+            cpu: "200m"
       - name: mongo
         image: mongo:7
         ports:
@@ -23,17 +75,20 @@ spec:
         - name: MONGO_INITDB_DATABASE
           value: "bow_mark_dev"
         args:
-        - "--wiredTigerCacheSizeGB=0.25"
+        - "--wiredTigerCacheSizeGB=0.5"
+        - "--replSet"
+        - "rs0"
+        - "--bind_ip_all"
         volumeMounts:
         - name: mongo-data
           mountPath: /data/db
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "100m"
+            memory: "1Gi"
+            cpu: "250m"
           limits:
-            memory: "512Mi"
-            cpu: "500m"
+            memory: "2Gi"
+            cpu: "1"
         readinessProbe:
           tcpSocket:
             port: 27017

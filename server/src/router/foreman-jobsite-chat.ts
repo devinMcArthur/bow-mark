@@ -1,7 +1,7 @@
 import { Router } from "express";
 import mongoose from "mongoose";
 import Anthropic from "@anthropic-ai/sdk";
-import { Jobsite, User, System, EnrichedFile } from "@models";
+import { Jobsite, User } from "@models";
 import { isDocument } from "@typegoose/typegoose";
 import { streamConversation, ToolExecutionResult } from "../lib/streamConversation";
 import { buildFileIndex } from "../lib/buildFileIndex";
@@ -9,6 +9,7 @@ import { UserRoles } from "../typescript/user";
 import { requireAuth } from "../lib/authMiddleware";
 import { connectMcp } from "../lib/mcpClient";
 import { adaptMcpContent, deriveSummary } from "../lib/mcpContentAdapter";
+import { resolveDocumentsForContext } from "../lib/fileDocuments/resolveDocumentsForContext";
 
 // Foremen get the narrowest possible tool surface: document reading only.
 // The MCP server exposes many other tools (tender pricing, analytics,
@@ -36,9 +37,8 @@ router.post("/message", requireAuth, async (req, res) => {
   }
 
   // ── Load context ──────────────────────────────────────────────────────────
-  const [jobsite, systemDoc, user] = await Promise.all([
+  const [jobsite, user] = await Promise.all([
     Jobsite.findById(jobsiteId).lean(),
-    System.getSystem(),
     User.findById(req.userId).populate("employee"),
   ]);
 
@@ -57,13 +57,10 @@ router.post("/message", requireAuth, async (req, res) => {
 
   // Foreman chat: respect per-file minRole access
   const userRole = user?.role ?? UserRoles.User;
-  const allEntries = ((jobsite?.enrichedFiles ?? []) as any[]);
-  const allowedEntries = allEntries.filter(
-    (entry: any) => (entry.minRole ?? UserRoles.ProjectManager) <= userRole
-  );
-  const allowedEnrichedFileIds = allowedEntries.map((e: any) => e.enrichedFile);
-  const jobsiteFiles = await EnrichedFile.find({ _id: { $in: allowedEnrichedFileIds } }).populate("file").lean();
-  const specFiles = ((systemDoc?.specFiles ?? []) as any[]);
+  const [jobsiteFiles, specFiles] = await Promise.all([
+    resolveDocumentsForContext({ scope: "jobsite", entityId: new mongoose.Types.ObjectId(jobsiteId), userRole }),
+    resolveDocumentsForContext({ scope: "system", userRole }),
+  ]);
 
   const serverBase = process.env.API_BASE_URL || `${req.protocol}://${req.get("host")}`;
   const { fileIndex, specFileIndex, pendingNotice } = buildFileIndex(
@@ -127,9 +124,11 @@ ${decompositionBlock}
 - Respond in the same language the user writes in. Workers may write in Spanish, French, or other languages — always reply in their language.
 - Focus on practical, actionable information: what needs to be done, safety requirements, material specs for the current work.
 - **Loading documents — two steps.** For documents with a page index, call list_document_pages first to see the page-by-page breakdown, then call read_document with only the specific pages you need. Only skip list_document_pages if the document has no page index.
+- **Folder context.** Files are organized into folders — each entry in the document list shows its folder with "in /FolderName". The folder is a hint about what the file is, but trust the filename and contents over the folder if they don't match.
 - Load ONE document at a time. Never call read_document more than once per response.
 - There is a strict 90-page limit per conversation turn.
 - **Citations.** When you reference a specific fact, requirement, or drawing from a document, include a clickable page link in this format: **[[Document Type, p.X]](URL#page=X)**. Use the URL from the document list above. Only cite pages you have actually read. Tapping the link opens the document at that page.
+- **Naming files.** Whenever you name a file in prose — answering "do you have X?", listing files, describing what's attached — render the filename as a markdown link to its document URL, e.g. **[[photo-1234.jpg]](URL)**. Never output raw file IDs.
 - **Cross-references.** If a page references another drawing or standard, note it so the worker knows where else to look.
 - **Completeness.** Before answering, confirm you have addressed all parts of the question.
 - Keep answers short and focused. Workers are in the field.`;

@@ -6,7 +6,7 @@ import {
   DrawerOverlay,
 } from "@chakra-ui/react";
 import { TenderPricingRow, TenderPricingSheet } from "./types";
-import { TenderFileItem } from "../Tender/types";
+import { TenderDocumentItem } from "../Tender/types";
 import LineItemDetail from "./LineItemDetail";
 
 interface PricingBoardDrawerProps {
@@ -15,7 +15,7 @@ interface PricingBoardDrawerProps {
   tenderId: string;
   onClose: () => void;
   onUpdateRow: (rowId: string, data: Record<string, unknown>) => Promise<void>;
-  tenderFiles?: TenderFileItem[];
+  tenderDocuments?: TenderDocumentItem[];
 }
 
 const PricingBoardDrawer: React.FC<PricingBoardDrawerProps> = ({
@@ -24,7 +24,7 @@ const PricingBoardDrawer: React.FC<PricingBoardDrawerProps> = ({
   tenderId,
   onClose,
   onUpdateRow,
-  tenderFiles,
+  tenderDocuments,
 }) => {
   return (
     <Drawer isOpen={!!row} onClose={onClose} placement="bottom">
@@ -38,7 +38,7 @@ const PricingBoardDrawer: React.FC<PricingBoardDrawerProps> = ({
             tenderId={tenderId}
             onUpdate={onUpdateRow}
             onClose={onClose}
-            tenderFiles={tenderFiles}
+            tenderDocuments={tenderDocuments}
           />
         )}
       </DrawerContent>

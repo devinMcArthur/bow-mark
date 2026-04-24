@@ -18,7 +18,6 @@ import { FiEdit, FiTrash, FiX } from "react-icons/fi";
 import MaterialShipmentUpdate from "../../Forms/MaterialShipment/MaterialShipmentUpdate";
 import Warning from "../Warning";
 import Permission from "../Permission";
-import FormContainer from "../FormContainer";
 import dayjs from "dayjs";
 import hourString from "../../../utils/hourString";
 import formatNumber from "../../../utils/formatNumber";
@@ -76,9 +75,9 @@ const MaterialShipmentCard = ({
     ) {
       return (
         <Text>
-          <Text as="span" fontWeight="bold">
+          <b>
             {materialShipment.supplier} {materialShipment.shipmentType}
-          </Text>
+          </b>
           {" - "}
           {materialShipment.quantity} {materialShipment.unit} {hours}
         </Text>
@@ -86,11 +85,11 @@ const MaterialShipmentCard = ({
     } else {
       return (
         <Text>
-          <Text as="span" fontWeight="bold">
+          <b>
             {materialShipment.jobsiteMaterial
               ? jobsiteMaterialName(materialShipment.jobsiteMaterial)
               : "Unknown"}
-          </Text>
+          </b>
           {" - "}
           {materialShipment.quantity} {materialShipment.jobsiteMaterial?.unit}{" "}
           {hours}
@@ -133,13 +132,11 @@ const MaterialShipmentCard = ({
         </HStack>
       </Flex>
       {edit && (
-        <FormContainer>
-          <MaterialShipmentUpdate
-            materialShipment={materialShipment}
-            dailyReport={dailyReport}
-            onSuccess={() => setEdit(false)}
-          />
-        </FormContainer>
+        <MaterialShipmentUpdate
+          materialShipment={materialShipment}
+          dailyReport={dailyReport}
+          onSuccess={() => setEdit(false)}
+        />
       )}
     </Box>
   );

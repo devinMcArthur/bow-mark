@@ -10,12 +10,19 @@ import InvoiceForm from "./Form";
 interface IInvoiceUpdateForJobsiteMaterial {
   invoice: InvoiceCardSnippetFragment;
   jobsiteMaterialId: string;
+  /**
+   * Parent jobsite id. Threaded down so replacement files land in
+   * `/jobsites/<id>/Invoices/MaterialInvoices/` — optional because some
+   * callers (e.g. historical pages) don't have it in scope.
+   */
+  jobsiteId?: string;
   onSuccess?: () => void;
 }
 
 const InvoiceUpdateForJobsiteMaterial = ({
   invoice,
   jobsiteMaterialId,
+  jobsiteId,
   onSuccess,
 }: IInvoiceUpdateForJobsiteMaterial) => {
   /**
@@ -81,6 +88,10 @@ const InvoiceUpdateForJobsiteMaterial = ({
       }}
       submitHandler={handleSubmit}
       isLoading={loading}
+      jobsiteId={jobsiteId}
+      invoiceKind={jobsiteId ? "material" : undefined}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      initialDocumentId={(invoice as any).documentId ?? null}
     />
   );
 };

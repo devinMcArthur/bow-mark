@@ -3,23 +3,20 @@ import { SearchOptions } from "@graphql/types/query";
 import {
   CrewClass,
   DailyReportClass,
-  EnrichedFileClass,
   InvoiceClass,
   Jobsite,
   JobsiteClass,
   JobsiteDayReportClass,
   JobsiteDocument,
-  JobsiteEnrichedFileClass,
   JobsiteMaterialClass,
   JobsiteMonthReportClass,
   JobsiteYearReportClass,
   MaterialShipmentClass,
-  File,
-  EnrichedFile,
+  FileNode,
 } from "@models";
+import { FileNodeSchema } from "../../../models/FileNode/schema";
+import { roleWeight } from "../fileNode";
 import { UserRoles } from "@typescript/user";
-import { publishEnrichedFileCreated } from "../../../rabbitmq/publisher";
-import { isDocument } from "@typegoose/typegoose";
 import { IContext, ListOptionData } from "@typescript/graphql";
 import { Id } from "@typescript/models";
 import dayjs from "dayjs";
@@ -135,28 +132,62 @@ export default class JobsiteResolver {
     return jobsite.getYearReports();
   }
 
-  @FieldResolver(() => [JobsiteEnrichedFileClass])
-  async enrichedFiles(
+  /**
+   * Flat list of every file placed under this jobsite's FileNode tree,
+   * regardless of sub-folder. Parallel to tender.documents — the new
+   * unified file system's replacement for the legacy enrichedFiles
+   * array. Filters by per-node minRole against the viewer's role, so
+   * foremen (User) don't see files admins have restricted to PM+ even
+   * if they know the tree exists.
+   */
+  @FieldResolver(() => [FileNodeSchema])
+  async documents(
     @Root() jobsite: JobsiteDocument,
     @Ctx() context: IContext
-  ) {
-    const userRole = context.user?.role ?? UserRoles.User;
-    const allEntries = (jobsite.enrichedFiles as JobsiteEnrichedFileClass[]).filter(
-      (entry) => entry.enrichedFile != null
+  ): Promise<FileNodeSchema[]> {
+    const jobsitesNs = await FileNode.findOne({
+      name: "jobsites",
+      isReservedRoot: true,
+      parentId: { $ne: null },
+    }).lean();
+    if (!jobsitesNs) return [];
+    const entityRoot = await FileNode.findOne({
+      parentId: jobsitesNs._id,
+      name: jobsite._id.toString(),
+      isReservedRoot: true,
+    }).lean();
+    if (!entityRoot) return [];
+
+    const docs = await FileNode.aggregate([
+      { $match: { _id: entityRoot._id } },
+      {
+        $graphLookup: {
+          from: "filenodes",
+          startWith: "$_id",
+          connectFromField: "_id",
+          connectToField: "parentId",
+          as: "desc",
+        },
+      },
+      { $unwind: "$desc" },
+      {
+        $match: {
+          "desc.type": "file",
+          "desc.deletedAt": null,
+          "desc.documentId": { $exists: true },
+        },
+      },
+      { $replaceRoot: { newRoot: "$desc" } },
+      { $sort: { sortKey: 1, name: 1 } },
+    ]);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const viewerRole = (context.user as any)?.role ?? UserRoles.User;
+    const viewerWeight = roleWeight(viewerRole);
+    return (docs as FileNodeSchema[]).filter(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (n) => (n as any).minRole == null || roleWeight((n as any).minRole) <= viewerWeight
     );
-    const allowedEntries = allEntries.filter(
-      (entry) => (entry.minRole ?? UserRoles.ProjectManager) <= userRole
-    );
-    const enrichedFileIds = allowedEntries.map((e) => e.enrichedFile);
-    const files = await EnrichedFile.find({ _id: { $in: enrichedFileIds } }).populate("file");
-    const fileMap = new Map(files.map((f) => [f._id.toString(), f]));
-    return allowedEntries
-      .map((entry) => ({
-        _id: entry._id,
-        minRole: entry.minRole,
-        enrichedFile: fileMap.get(entry.enrichedFile!.toString()),
-      }))
-      .filter((e) => e.enrichedFile != null);
   }
 
   /**
@@ -330,90 +361,4 @@ export default class JobsiteResolver {
     return mutations.unarchive(id);
   }
 
-  // ── EnrichedFiles ────────────────────────────────────────────────────────
-
-  @Authorized(["ADMIN", "PM"])
-  @Mutation(() => JobsiteClass)
-  async jobsiteAddEnrichedFile(
-    @Arg("id", () => ID) id: Id,
-    @Arg("fileId", () => ID) fileId: Id,
-    @Arg("minRole", () => UserRoles, { defaultValue: UserRoles.ProjectManager }) minRole: UserRoles
-  ) {
-    const jobsite = await Jobsite.getById(id, { throwError: true });
-    const file = await File.getById(fileId, { throwError: true });
-
-    const enrichedFile = await EnrichedFile.createDocument(file!._id.toString());
-    await enrichedFile.save();
-    // Strip any stale legacy entries (old plain-ObjectId format) before saving
-    jobsite!.enrichedFiles = (jobsite!.enrichedFiles as any[]).filter(
-      (e: any) => e.enrichedFile != null
-    ) as any;
-    (jobsite!.enrichedFiles as any[]).push({ enrichedFile: enrichedFile._id, minRole });
-    await jobsite!.save();
-
-    await publishEnrichedFileCreated(enrichedFile._id.toString(), file!._id.toString());
-
-    return Jobsite.getById(id);
-  }
-
-  @Authorized(["ADMIN", "PM"])
-  @Mutation(() => JobsiteClass)
-  async jobsiteRemoveEnrichedFile(
-    @Arg("id", () => ID) id: Id,
-    @Arg("fileObjectId", () => ID) fileObjectId: Id
-  ) {
-    const jobsite = await Jobsite.getById(id, { throwError: true });
-    jobsite!.enrichedFiles = (jobsite!.enrichedFiles as any[]).filter(
-      (entry: any) => entry.enrichedFile.toString() !== fileObjectId.toString()
-    ) as any;
-    await jobsite!.save();
-
-    await EnrichedFile.findByIdAndDelete(fileObjectId);
-
-    return jobsite;
-  }
-
-  @Authorized(["ADMIN", "PM"])
-  @Mutation(() => JobsiteClass)
-  async jobsiteRetryEnrichedFile(
-    @Arg("id", () => ID) id: Id,
-    @Arg("fileObjectId", () => ID) fileObjectId: Id
-  ) {
-    const enrichedFile = await EnrichedFile.findById(fileObjectId);
-    if (!enrichedFile) throw new Error("File not found");
-    if (!enrichedFile.file) throw new Error("EnrichedFile has no file ref");
-
-    await EnrichedFile.findByIdAndUpdate(fileObjectId, {
-      $set: { summaryStatus: "pending" },
-      $unset: { summaryError: "" },
-    });
-
-    const fileId = isDocument(enrichedFile.file)
-      ? enrichedFile.file._id.toString()
-      : enrichedFile.file.toString();
-
-    const published = await publishEnrichedFileCreated(fileObjectId.toString(), fileId);
-    if (!published) {
-      throw new Error("Failed to queue file for processing — please try again");
-    }
-
-    return Jobsite.getById(id);
-  }
-
-  @Authorized(["ADMIN", "PM"])
-  @Mutation(() => JobsiteClass)
-  async jobsiteUpdateEnrichedFileRole(
-    @Arg("id", () => ID) id: Id,
-    @Arg("fileObjectId", () => ID) fileObjectId: Id,
-    @Arg("minRole", () => UserRoles) minRole: UserRoles
-  ) {
-    const jobsite = await Jobsite.getById(id, { throwError: true });
-    const entry = (jobsite!.enrichedFiles as any[]).find(
-      (e: any) => e.enrichedFile.toString() === fileObjectId.toString()
-    );
-    if (!entry) throw new Error("File not found on jobsite");
-    entry.minRole = minRole;
-    await jobsite!.save();
-    return Jobsite.getById(id);
-  }
 }

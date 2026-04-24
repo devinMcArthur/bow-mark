@@ -1,18 +1,38 @@
 import { TenderDocument, TenderModel } from "@models";
 import { ITenderCreate } from "@typescript/tender";
+import { eventfulMutation } from "@lib/eventfulMutation";
 
 const document = async (
   Tender: TenderModel,
   data: ITenderCreate
 ): Promise<TenderDocument> => {
-  return new Tender({
-    name: data.name,
-    jobcode: data.jobcode,
-    description: data.description,
-    createdBy: data.createdBy,
-    status: "bidding",
-    files: [],
+  const createdId = await eventfulMutation(async (session) => {
+    const created = await Tender.insertMany(
+      [
+        {
+          name: data.name,
+          jobcode: data.jobcode,
+          description: data.description,
+          createdBy: data.createdBy,
+          status: "bidding",
+          files: [],
+        },
+      ],
+      { session }
+    );
+    const tender = created[0] as TenderDocument;
+    // Per-entity document folder is provisioned lazily when the first
+    // file is uploaded — see the `ensureEntityRoot` mutation.
+    return { result: tender._id, event: null };
   });
+
+  // Re-fetch outside the transaction so caller can .save() without hitting
+  // "Use of expired sessions is not permitted".
+  const fresh = await Tender.findById(createdId);
+  if (!fresh) {
+    throw new Error("Tender.createDocument: document disappeared after create transaction");
+  }
+  return fresh;
 };
 
 export default { document };

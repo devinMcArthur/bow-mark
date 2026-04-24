@@ -7,9 +7,17 @@ fragment DailyReportCardSnippet on DailyReportClass {
     _id
     name
     jobcode
+    location {
+      latitude
+      longitude
+    }
   }
   crew {
     _id
     name
   }
+  employeeWorkCount
+  vehicleWorkCount
+  materialShipmentCount
+  productionCount
 }

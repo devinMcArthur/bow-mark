@@ -2,7 +2,10 @@ export * from "./EnrichedFile";
 export * from "./Company";
 export * from "./Crew";
 export * from "./CrewKind";
+export * from "./Document";
 export * from "./DailyReport";
+export * from "./FileNode";
+export * from "./Enrichment";
 export * from "./Employee";
 export * from "./EmployeeWork";
 export * from "./File";
@@ -459,6 +462,7 @@ export const VehicleWork = getModelForClass(VehicleWorkClass, {
 });
 
 export * from "./Conversation";
+export * from "./DomainEvent";
 export * from "./PublicDocument";
 
 /**
@@ -501,4 +505,117 @@ export type TenderReviewModel = ReturnModelType<typeof TenderReviewClass>;
 
 export const TenderReview = getModelForClass(TenderReviewClass, {
   schemaOptions: { collection: "tenderreviews" },
+});
+
+/**
+ * ----- Domain Event -----
+ */
+
+import { DomainEventSchema as DomainEventClass } from "./DomainEvent/schema";
+
+export type DomainEventDocument = DocumentType<DomainEventClass>;
+
+export type DomainEventModel = ReturnModelType<typeof DomainEventClass>;
+
+export const DomainEvent = getModelForClass(DomainEventClass, {
+  schemaOptions: {
+    collection: "domainevents",
+    versionKey: false,
+    timestamps: false,
+  },
+});
+
+DomainEvent.schema.index({ entityType: 1, entityId: 1, at: -1 });
+DomainEvent.schema.index({ "relatedEntities.entityId": 1, at: -1 });
+DomainEvent.schema.index({ actorId: 1, at: -1 });
+DomainEvent.schema.index({ sessionId: 1, at: 1 });
+DomainEvent.schema.index({ type: 1, at: -1 });
+DomainEvent.schema.index({ at: -1 });
+DomainEvent.schema.index({ idempotencyKey: 1 }, { sparse: true, unique: true });
+
+/**
+ * ----- Document -----
+ */
+
+import { DocumentSchema as DocumentClass } from "./Document/schema";
+
+export type DocumentDocument = DocumentType<DocumentClass>;
+
+export type DocumentModel = ReturnModelType<typeof DocumentClass>;
+
+export const Document = getModelForClass(DocumentClass, {
+  schemaOptions: { collection: "documents", timestamps: false },
+});
+
+Document.schema.pre("save", function (next) {
+  (this as unknown as { updatedAt: Date }).updatedAt = new Date();
+  next();
+});
+
+/**
+ * ----- Enrichment -----
+ */
+
+import { EnrichmentSchema as EnrichmentClass } from "./Enrichment/schema";
+
+export type EnrichmentDocument = DocumentType<EnrichmentClass>;
+
+export type EnrichmentModel = ReturnModelType<typeof EnrichmentClass>;
+
+export const Enrichment = getModelForClass(EnrichmentClass, {
+  schemaOptions: { collection: "enrichments", timestamps: true },
+});
+
+Enrichment.schema.index({ documentId: 1 }, { unique: true });
+Enrichment.schema.index({ status: 1, queuedAt: 1 });
+
+/**
+ * ----- FileNode -----
+ */
+
+import { FileNodeSchema as FileNodeClass } from "./FileNode/schema";
+
+export type FileNodeDocument = DocumentType<FileNodeClass>;
+
+export type FileNodeModel = ReturnModelType<typeof FileNodeClass>;
+
+export const FileNode = getModelForClass(FileNodeClass, {
+  schemaOptions: { collection: "filenodes", timestamps: false },
+});
+
+FileNode.schema.index(
+  { parentId: 1, normalizedName: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { deletedAt: null },
+  }
+);
+
+FileNode.schema.index({ parentId: 1 });
+FileNode.schema.index({ parentId: 1, type: 1, deletedAt: 1 });
+FileNode.schema.index({ documentId: 1 }, { sparse: true });
+FileNode.schema.index({ deletedAt: 1 }, { sparse: true });
+
+FileNode.schema.pre("save", function (next) {
+  (this as unknown as { updatedAt: Date }).updatedAt = new Date();
+  next();
+});
+
+/**
+ * ----- DailyReportEntry -----
+ */
+
+import { DailyReportEntrySchema as DailyReportEntryClass } from "./DailyReportEntry/schema";
+
+export type DailyReportEntryDocument = DocumentType<DailyReportEntryClass>;
+
+export type DailyReportEntryModel = ReturnModelType<typeof DailyReportEntryClass>;
+
+export const DailyReportEntry = getModelForClass(DailyReportEntryClass, {
+  schemaOptions: { collection: "dailyreportentries", timestamps: false },
+});
+
+DailyReportEntry.schema.pre("save", function (next) {
+  (this as unknown as { updatedAt: Date }).updatedAt = new Date();
+  next();
 });

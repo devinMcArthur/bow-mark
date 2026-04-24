@@ -65,46 +65,11 @@ describe("Report Note Resolver", () => {
         });
       });
 
-      describe("success", () => {
-        test("should successfully remove file from report note", async () => {
-          expect.assertions(6);
-
-          const token = await vitestLogin(
-            app,
-            documents.users.base_foreman_1_user.email
-          );
-
-          expect(
-            documents.reportNotes.jobsite_1_base_1_1_note_1.files.length
-          ).toBe(1);
-
-          const res = await request(app)
-            .post("/graphql")
-            .send({
-              query: removeFileMutation,
-              variables: {
-                id: documents.reportNotes.jobsite_1_base_1_1_note_1._id,
-                fileId: documents.files.jobsite_1_base_1_1_file_1._id,
-              },
-            })
-            .set("Authorization", token);
-
-          expect(res.status).toBe(200);
-
-          expect(res.body.data.reportNoteRemoveFile).toBeDefined();
-          const reportNote = res.body.data.reportNoteRemoveFile;
-
-          expect(reportNote.files.length).toBe(0);
-
-          const fetched = await ReportNote.getById(reportNote._id);
-          expect(fetched?.files.length).toBe(0);
-
-          const nonExistantFile = await File.getById(
-            documents.files.jobsite_1_base_1_1_file_1._id
-          );
-          expect(nonExistantFile).toBeNull();
-        });
-      });
+      // The legacy `reportNoteRemoveFile` success test was removed along
+      // with the mutation itself — file removal now flows through the
+      // unified file system (FileNode trash/restore). The authorization
+      // test above still exercises the "mutation not available to anon"
+      // edge — the GraphQL validator rejects unknown selections.
     });
   });
 });

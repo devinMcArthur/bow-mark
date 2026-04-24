@@ -11,6 +11,7 @@ export interface IInvoiceCreate {
   description?: string;
   internal: boolean;
   accrual: boolean;
+  documentId?: string;
 }
 
 export interface IInvoiceUpdate {
@@ -21,6 +22,7 @@ export interface IInvoiceUpdate {
   description?: string;
   internal: boolean;
   accrual: boolean;
+  documentId?: string | null;
 }
 
 @ObjectType()

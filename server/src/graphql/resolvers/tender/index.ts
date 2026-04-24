@@ -7,7 +7,11 @@ import {
   JobsiteClass,
   Jobsite,
   EnrichedFile,
+  FileNode,
 } from "@models";
+import { FileNodeSchema } from "../../../models/FileNode/schema";
+import { roleWeight } from "../fileNode";
+import { UserRoles } from "@typescript/user";
 import { IContext } from "@typescript/graphql";
 import { Id } from "@typescript/models";
 import {
@@ -33,6 +37,68 @@ export default class TenderResolver {
   async jobsite(@Root() tender: TenderDocument) {
     if (!tender.jobsite) return null;
     return Jobsite.getById(tender.jobsite.toString());
+  }
+
+  /**
+   * Flat list of every file placed under this tender's FileNode tree,
+   * regardless of sub-folder. Replaces the legacy `tender.files` array as
+   * the source of truth — derived from the FileNode tree so newly
+   * uploaded files appear automatically. The `files` field stays around
+   * for now for the pricing-sheet docRef display path, which will migrate
+   * to `documents` in a follow-up sweep.
+   */
+  @FieldResolver(() => [FileNodeSchema])
+  async documents(
+    @Root() tender: TenderDocument,
+    @Ctx() ctx: IContext
+  ): Promise<FileNodeSchema[]> {
+    // Find the tender's per-entity reserved root: /tenders/<id>.
+    const tendersNs = await FileNode.findOne({
+      name: "tenders",
+      isReservedRoot: true,
+      parentId: { $ne: null },
+    }).lean();
+    if (!tendersNs) return [];
+    const entityRoot = await FileNode.findOne({
+      parentId: tendersNs._id,
+      name: tender._id.toString(),
+      isReservedRoot: true,
+    }).lean();
+    if (!entityRoot) return [];
+
+    const docs = await FileNode.aggregate([
+      { $match: { _id: entityRoot._id } },
+      {
+        $graphLookup: {
+          from: "filenodes",
+          startWith: "$_id",
+          connectFromField: "_id",
+          connectToField: "parentId",
+          as: "desc",
+        },
+      },
+      { $unwind: "$desc" },
+      {
+        $match: {
+          "desc.type": "file",
+          "desc.deletedAt": null,
+          "desc.documentId": { $exists: true },
+        },
+      },
+      { $replaceRoot: { newRoot: "$desc" } },
+      { $sort: { sortKey: 1, name: 1 } },
+    ]);
+
+    // Per-file access: drop rows whose minRole exceeds the viewer's. The
+    // tender page itself is PM/Admin-gated, but a PM shouldn't see files
+    // explicitly marked Admin-only.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const viewerRole = (ctx.user as any)?.role ?? UserRoles.User;
+    const viewerWeight = roleWeight(viewerRole);
+    return (docs as FileNodeSchema[]).filter(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (n) => (n as any).minRole == null || roleWeight((n as any).minRole) <= viewerWeight
+    );
   }
 
   @Authorized(["ADMIN", "PM"])

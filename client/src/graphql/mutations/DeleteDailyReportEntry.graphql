@@ -1,0 +1,3 @@
+mutation DeleteDailyReportEntry($id: ID!) {
+  deleteDailyReportEntry(id: $id)
+}

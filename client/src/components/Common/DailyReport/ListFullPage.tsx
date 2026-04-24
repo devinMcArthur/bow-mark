@@ -22,6 +22,7 @@ import Breadcrumbs from "../Breadcrumbs";
 import InfiniteScroll from "../InfiniteScroll";
 import Loading from "../Loading";
 import DailyReportCard from "./DailyReportCard";
+import DailyReportQuickStart from "./DailyReportQuickStart";
 import { useApolloClient } from "@apollo/client";
 
 interface IDailyReportFullPageList {
@@ -132,10 +133,15 @@ const DailyReportFullPageList = ({
    * ----- Rendering -----
    */
 
+  const isForeman = user?.role === UserRoles.User;
+
   const content = (() => {
     if (data?.dailyReports) {
       return (
         <Box>
+          {isForeman && (
+            <DailyReportQuickStart dailyReports={data.dailyReports} />
+          )}
           <Flex flexDir="row" justifyContent="space-between">
             <Box>
               {hideBreadcrumbs ? null : (
@@ -149,45 +155,47 @@ const DailyReportFullPageList = ({
                 />
               )}
             </Box>
-            <Menu>
-              <MenuButton
-                disabled={loading}
-                as={Button}
-                rightIcon={<FaChevronDown />}
-              >
-                Filters
-              </MenuButton>
-              <MenuList>
-                <MenuItem
-                  display="flex"
-                  justifyContent="space-between"
-                  onClick={() =>
-                    handleFilterChange(DailyReportListFilter.NoCostApproval)
-                  }
+            {!isForeman && (
+              <Menu>
+                <MenuButton
+                  disabled={loading}
+                  as={Button}
+                  rightIcon={<FaChevronDown />}
                 >
-                  Not approved{" "}
-                  {filters.includes(DailyReportListFilter.NoCostApproval) ? (
-                    <FiCheck />
-                  ) : (
-                    ""
-                  )}
-                </MenuItem>
-                <MenuItem
-                  display="flex"
-                  justifyContent="space-between"
-                  onClick={() =>
-                    handleFilterChange(DailyReportListFilter.NoPayroll)
-                  }
-                >
-                  No payroll{" "}
-                  {filters.includes(DailyReportListFilter.NoPayroll) ? (
-                    <FiCheck />
-                  ) : (
-                    ""
-                  )}
-                </MenuItem>
-              </MenuList>
-            </Menu>
+                  Filters
+                </MenuButton>
+                <MenuList>
+                  <MenuItem
+                    display="flex"
+                    justifyContent="space-between"
+                    onClick={() =>
+                      handleFilterChange(DailyReportListFilter.NoCostApproval)
+                    }
+                  >
+                    Not approved{" "}
+                    {filters.includes(DailyReportListFilter.NoCostApproval) ? (
+                      <FiCheck />
+                    ) : (
+                      ""
+                    )}
+                  </MenuItem>
+                  <MenuItem
+                    display="flex"
+                    justifyContent="space-between"
+                    onClick={() =>
+                      handleFilterChange(DailyReportListFilter.NoPayroll)
+                    }
+                  >
+                    No payroll{" "}
+                    {filters.includes(DailyReportListFilter.NoPayroll) ? (
+                      <FiCheck />
+                    ) : (
+                      ""
+                    )}
+                  </MenuItem>
+                </MenuList>
+              </Menu>
+            )}
           </Flex>
           <Flex flexDir="column" alignContent="center" id="pages-flex">
             {data.dailyReports.map((dailyReport) => {

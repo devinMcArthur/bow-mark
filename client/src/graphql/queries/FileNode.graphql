@@ -1,0 +1,40 @@
+fragment FileNodeCardSnippet on FileNodeSchema {
+  _id
+  type
+  name
+  normalizedName
+  parentId
+  documentId
+  systemManaged
+  sortKey
+  minRole
+  isReservedRoot
+  deletedAt
+  version
+  createdAt
+  updatedAt
+}
+
+query FileNodeRoot {
+  fileNodeRoot {
+    ...FileNodeCardSnippet
+  }
+}
+
+query FileNode($id: ID!) {
+  fileNode(id: $id) {
+    ...FileNodeCardSnippet
+  }
+}
+
+query FileNodeChildren($parentId: ID!) {
+  fileNodeChildren(parentId: $parentId) {
+    ...FileNodeCardSnippet
+  }
+}
+
+query FileNodeBreadcrumbs($id: ID!) {
+  fileNodeBreadcrumbs(id: $id) {
+    ...FileNodeCardSnippet
+  }
+}

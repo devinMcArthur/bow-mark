@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { InvoiceDocument, InvoiceModel } from "@models";
 import { IInvoiceCreate } from "@typescript/invoice";
 
@@ -39,6 +40,9 @@ const document = async (
     description: data.description,
     internal: data.internal,
     accrual: data.accrual,
+    documentId: data.documentId
+      ? new mongoose.Types.ObjectId(data.documentId)
+      : undefined,
   });
 
   return invoice;

@@ -1,1 +1,1 @@
-{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"8c3898be4bc642a2bd7e8e548cbd9124","collectionName":"vehicleworks","type":"collection"}
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"fc6278c7c4824daba28c51f05691fb58","collectionName":"vehicleworks","type":"collection"}

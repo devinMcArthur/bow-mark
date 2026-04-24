@@ -12,6 +12,7 @@
 import mongoose from "mongoose";
 import { getChannel, setupTopology, RABBITMQ_CONFIG, ROUTING_KEYS } from ".";
 import type { ActionType } from "./config";
+import { Document as DocumentModel, Enrichment } from "@models";
 
 /**
  * Message payload structure
@@ -187,23 +188,45 @@ export const publishEnrichedFileCreated = async (
           `[RabbitMQ] Published enriched_file.created: ${enrichedFileId}${retry > 0 ? ` (retry ${retry})` : ""}`
         );
 
-        // Stamp queuedAt AFTER successful publish — not before. If the
-        // stamp were before, a failed publish leaves a fresh queuedAt that
-        // makes the watchdog think the file is legitimately queued when it
-        // actually has no queue message.
+        // Upsert Enrichment + stamp queuedAt AFTER successful publish — not
+        // before. If the stamp were before, a failed publish leaves a fresh
+        // queuedAt that makes the watchdog think the file is legitimately
+        // queued when it actually has no queue message.
         try {
-          const db = mongoose.connection.db;
-          if (db) {
-            await db
-              .collection("enrichedfiles")
-              .updateOne(
-                { _id: new mongoose.Types.ObjectId(enrichedFileId) },
-                { $set: { queuedAt: new Date() } }
-              );
-          }
+          const documentId = new mongoose.Types.ObjectId(enrichedFileId);
+          const fileObjectId = new mongoose.Types.ObjectId(fileId);
+          // Upsert Document so Enrichment.documentId has a real target. _id preserved.
+          await DocumentModel.updateOne(
+            { _id: documentId },
+            {
+              $setOnInsert: {
+                _id: documentId,
+                currentFileId: fileObjectId,
+                enrichmentLocked: false,
+                createdAt: new Date(),
+              },
+              $set: { updatedAt: new Date() },
+            },
+            { upsert: true }
+          );
+          // Upsert Enrichment + stamp queuedAt.
+          await Enrichment.updateOne(
+            { documentId },
+            {
+              $setOnInsert: {
+                documentId,
+                fileId: fileObjectId,
+                status: "pending",
+                attempts: 0,
+                processingVersion: 1,
+              },
+              $set: { queuedAt: new Date() },
+            },
+            { upsert: true }
+          );
         } catch (stampErr) {
           console.warn(
-            `[RabbitMQ] Failed to stamp queuedAt on ${enrichedFileId}:`,
+            `[RabbitMQ] Failed to upsert/stamp Enrichment on ${enrichedFileId}:`,
             stampErr
           );
         }

@@ -8,7 +8,11 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import ChatPage from "./ChatPage";
-import { UserRoles, useEnrichedFileLazyQuery } from "../../generated/graphql";
+import {
+  UserRoles,
+  useDocumentLazyQuery,
+  useEnrichedFileLazyQuery,
+} from "../../generated/graphql";
 import { navbarHeight } from "../../constants/styles";
 import DocumentViewerModal, {
   DocumentViewerFile,
@@ -59,6 +63,7 @@ const ChatDrawer = ({
   // has access to, including ones outside the parent's known context.
   const [docViewerFile, setDocViewerFile] =
     React.useState<DocumentViewerFile | null>(null);
+  const [fetchDocument] = useDocumentLazyQuery({ fetchPolicy: "cache-first" });
   const [fetchEnrichedFile] = useEnrichedFileLazyQuery({
     fetchPolicy: "cache-first",
   });
@@ -70,8 +75,31 @@ const ChatDrawer = ({
       setDocViewerFile({ enrichedFileId, page });
 
       try {
-        const result = await fetchEnrichedFile({ variables: { id: enrichedFileId } });
-        const ef = result.data?.enrichedFile;
+        // Primary lookup: Document (new unified file system). Migrated files
+        // preserve their legacy `_id`, so this resolves both new uploads and
+        // files that existed before the cutover.
+        const docResult = await fetchDocument({
+          variables: { id: enrichedFileId },
+        });
+        const doc = docResult.data?.document;
+        if (doc?.currentFile) {
+          const cf = doc.currentFile;
+          setDocViewerFile({
+            enrichedFileId,
+            fileName:
+              cf.originalFilename ?? cf.description ?? undefined,
+            mimetype: cf.mimetype,
+            page,
+          });
+          return;
+        }
+
+        // Fallback: legacy EnrichedFile lookup (for any old links that
+        // predate the migration and still carry an EnrichedFile-only id).
+        const efResult = await fetchEnrichedFile({
+          variables: { id: enrichedFileId },
+        });
+        const ef = efResult.data?.enrichedFile;
         if (!ef) {
           setDocViewerFile(null);
           toast({
@@ -100,7 +128,7 @@ const ChatDrawer = ({
         });
       }
     },
-    [fetchEnrichedFile, toast],
+    [fetchDocument, fetchEnrichedFile, toast],
   );
 
   // Parent-supplied handler wins if present; otherwise use the built-in.
@@ -148,7 +176,7 @@ const ChatDrawer = ({
         right={0}
         top={navbarHeight}
         h={`calc(100vh - ${navbarHeight})`}
-        w={isDesktop ? "50vw" : "100vw"}
+        w={isDesktop ? "min(1000px, 65vw)" : "100vw"}
         zIndex={5}
         bg="white"
         display="flex"

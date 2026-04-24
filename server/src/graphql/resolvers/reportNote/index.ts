@@ -4,15 +4,7 @@ import {
   ReportNoteClass,
   ReportNoteDocument,
 } from "@models";
-import {
-  Arg,
-  Authorized,
-  FieldResolver,
-  Mutation,
-  Resolver,
-  Root,
-} from "type-graphql";
-import mutations from "./mutations";
+import { FieldResolver, Resolver, Root } from "type-graphql";
 
 @Resolver(() => ReportNoteClass)
 export default class ReportNoteResolver {
@@ -30,16 +22,4 @@ export default class ReportNoteResolver {
     return reportNote.getDailyReport();
   }
 
-  /**
-   * ----- Mutations -----
-   */
-
-  @Authorized()
-  @Mutation(() => ReportNoteClass)
-  async reportNoteRemoveFile(
-    @Arg("reportNoteId") id: string,
-    @Arg("fileId") fileId: string
-  ) {
-    return mutations.removeFile(id, fileId);
-  }
 }

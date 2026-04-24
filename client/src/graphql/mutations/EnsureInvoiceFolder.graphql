@@ -1,0 +1,5 @@
+mutation EnsureInvoiceFolder($jobsiteId: ID!, $kind: String!) {
+  ensureInvoiceFolder(jobsiteId: $jobsiteId, kind: $kind) {
+    _id
+  }
+}

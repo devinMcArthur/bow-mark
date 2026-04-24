@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { PDFDocument } from "pdf-lib";
-import { EnrichedFile, Tender } from "@models";
+import { Enrichment, Document as DocumentModel, File, Tender } from "@models";
 import { getFile } from "@utils/fileStorage";
 import type { EnrichedFileSummaryMessage } from "../../rabbitmq/publisher";
 import {
@@ -14,6 +14,7 @@ import {
 import { publishEnrichedFileCreated } from "../../rabbitmq/publisher";
 import { scheduleTenderSummary } from "../../lib/generateTenderSummary";
 import { scheduleCategorization } from "../../lib/categorizeTenderFiles";
+import mongoose from "mongoose";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -24,7 +25,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 export const HANDLER_OWNERSHIP_WINDOW_MS = 90 * 60_000;
 
 /**
- * Atomic ownership claim. Transitions an EnrichedFile to "processing"
+ * Atomic ownership claim. Transitions an Enrichment to "processing"
  * only if it is currently in a claimable state:
  *   - pending                                 (first delivery)
  *   - partial                                 (resume pageIndex build)
@@ -36,16 +37,16 @@ export const HANDLER_OWNERSHIP_WINDOW_MS = 90 * 60_000;
  * exercise the claim logic directly without running the full handler.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function claimEnrichedFile(enrichedFileId: string): Promise<any> {
+export async function claimEnrichment(documentIdStr: string): Promise<any> {
   const claimCutoff = new Date(Date.now() - HANDLER_OWNERSHIP_WINDOW_MS);
-  return EnrichedFile.findOneAndUpdate(
+  return Enrichment.findOneAndUpdate(
     {
-      _id: enrichedFileId,
+      documentId: new mongoose.Types.ObjectId(documentIdStr),
       $or: [
-        { summaryStatus: "pending" },
-        { summaryStatus: "partial" },
+        { status: "pending" },
+        { status: "partial" },
         {
-          summaryStatus: "processing",
+          status: "processing",
           $or: [
             { processingStartedAt: { $lt: claimCutoff } },
             { processingStartedAt: { $exists: false } },
@@ -55,10 +56,10 @@ export async function claimEnrichedFile(enrichedFileId: string): Promise<any> {
     },
     {
       $set: {
-        summaryStatus: "processing",
+        status: "processing",
         processingStartedAt: new Date(),
       },
-      $inc: { summaryAttempts: 1, processingVersion: 1 },
+      $inc: { attempts: 1, processingVersion: 1 },
       $unset: { summaryError: "" },
     },
     { new: true }
@@ -97,18 +98,24 @@ export function isStorageNotFoundError(err: unknown): boolean {
 }
 
 async function markOrphaned(
-  enrichedFileId: string,
+  documentIdStr: string,
   reason: string
 ): Promise<void> {
-  await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
-    $set: { summaryStatus: "orphaned", summaryError: reason },
-    $unset: { processingStartedAt: "", summaryProgress: "" },
-  });
+  await Enrichment.updateOne(
+    { documentId: new mongoose.Types.ObjectId(documentIdStr) },
+    {
+      $set: { status: "orphaned", summaryError: reason },
+      $unset: { processingStartedAt: "", summaryProgress: "" },
+    }
+  );
 }
 
 export const enrichedFileSummaryHandler = {
   async handle(message: EnrichedFileSummaryMessage): Promise<void> {
     const { enrichedFileId, fileId, attempt = 0 } = message;
+    // enrichedFileId === documentId (invariant from B11-B16 migration)
+    const documentId = new mongoose.Types.ObjectId(enrichedFileId);
+
     console.log(
       `[EnrichedFileSummary] Processing file ${fileId} (enrichedFile ${enrichedFileId}, attempt ${attempt})`
     );
@@ -116,19 +123,19 @@ export const enrichedFileSummaryHandler = {
     // Atomic ownership claim. processingVersion is incremented on every
     // successful claim; all subsequent writes in this handler run must
     // match this version or they no-op, so a zombie handler can't clobber
-    // newer state. See claimEnrichedFile for the full predicate.
-    const claimed = await claimEnrichedFile(enrichedFileId);
+    // newer state. See claimEnrichment for the full predicate.
+    const claimed = await claimEnrichment(enrichedFileId);
 
     if (!claimed) {
-      const current = await EnrichedFile.findById(enrichedFileId).lean();
+      const current = await Enrichment.findOne({ documentId }).lean();
       if (!current) {
         console.warn(
-          `[EnrichedFileSummary] File ${enrichedFileId} not found — skipping`
+          `[EnrichedFileSummary] Enrichment for ${enrichedFileId} not found — skipping`
         );
         return;
       }
       console.log(
-        `[EnrichedFileSummary] File ${enrichedFileId} not claimable (status=${current.summaryStatus}) — skipping duplicate delivery`
+        `[EnrichedFileSummary] File ${enrichedFileId} not claimable (status=${current.status}) — skipping duplicate delivery`
       );
       return;
     }
@@ -137,6 +144,19 @@ export const enrichedFileSummaryHandler = {
     // Already-indexed pages from a prior claim — used as resume seed so a
     // restart doesn't re-pay the Claude tokens we already spent.
     const existingPageIndex = (claimed.pageIndex ?? []) as PageIndexEntry[];
+
+    // Resolve the original filename for the summarizer hint.
+    // Document.currentFileId points to the File record with originalFilename.
+    let originalFilename: string | null = null;
+    try {
+      const doc = await DocumentModel.findById(enrichedFileId).lean();
+      if (doc) {
+        const fileDoc = await File.findById(doc.currentFileId).lean();
+        originalFilename = (fileDoc as any)?.originalFilename ?? (fileDoc as any)?.description ?? null;
+      }
+    } catch {
+      // Best-effort — a missing hint doesn't break summarization
+    }
 
     try {
       // Fetch the source file. Missing storage → orphaned (terminal).
@@ -373,9 +393,9 @@ export const enrichedFileSummaryHandler = {
           resumeFrom: existingPageIndex,
           checkpointEveryPages: 5,
           onCheckpoint: async ({ pageIndex: pi, current, total }) => {
-            await EnrichedFile.findOneAndUpdate(
+            await Enrichment.findOneAndUpdate(
               {
-                _id: enrichedFileId,
+                documentId,
                 processingVersion: claimedVersion,
               },
               {
@@ -397,8 +417,8 @@ export const enrichedFileSummaryHandler = {
         // Brief phase transition so the UI shows "Synthesizing" while
         // the final Claude call runs. current=0/total=1 renders as an
         // indeterminate bar in the progress component.
-        await EnrichedFile.findOneAndUpdate(
-          { _id: enrichedFileId, processingVersion: claimedVersion },
+        await Enrichment.findOneAndUpdate(
+          { documentId, processingVersion: claimedVersion },
           {
             $set: {
               summaryProgress: {
@@ -468,8 +488,7 @@ export const enrichedFileSummaryHandler = {
           summary = await synthesizeSummaryFromPageIndex(
             anthropic,
             pageIndex,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (claimed as any).file?.description ?? null
+            originalFilename
           );
         }
       }
@@ -478,12 +497,12 @@ export const enrichedFileSummaryHandler = {
       // All paths converge here. pageIndex is set for PDFs, undefined for
       // spreadsheets/images. Guarded by processingVersion so a zombie
       // handler can't stomp on newer state.
-      await EnrichedFile.findOneAndUpdate(
-        { _id: enrichedFileId, processingVersion: claimedVersion },
+      await Enrichment.findOneAndUpdate(
+        { documentId, processingVersion: claimedVersion },
         {
           $set: {
             summary,
-            summaryStatus: "ready",
+            status: "ready",
             ...(pageCount !== undefined ? { pageCount } : {}),
             ...(pageIndex !== undefined ? { pageIndex } : {}),
           },
@@ -517,11 +536,11 @@ export const enrichedFileSummaryHandler = {
           scheduleCategorization(tenderIdStr);
 
           const fileIds = ((tender as any).files as any[]).map((f: any) =>
-            f._id ? f._id.toString() : f.toString()
+            f._id ? new mongoose.Types.ObjectId(f._id.toString()) : new mongoose.Types.ObjectId(f.toString())
           );
-          const pendingCount = await EnrichedFile.countDocuments({
-            _id: { $in: fileIds },
-            summaryStatus: {
+          const pendingCount = await Enrichment.countDocuments({
+            documentId: { $in: fileIds },
+            status: {
               $in: ["pending", "processing", "partial"],
             },
           });
@@ -552,14 +571,17 @@ export const enrichedFileSummaryHandler = {
         // already in "pending" with no processingStartedAt — the watchdog
         // will pick it up on its next pass. Clearing summaryProgress too
         // so the UI doesn't show stale progress during the backoff.
-        await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
-          $set: { summaryStatus: "pending" },
-          $unset: {
-            processingStartedAt: "",
-            summaryError: "",
-            summaryProgress: "",
-          },
-        });
+        await Enrichment.updateOne(
+          { documentId },
+          {
+            $set: { status: "pending" },
+            $unset: {
+              processingStartedAt: "",
+              summaryError: "",
+              summaryProgress: "",
+            },
+          }
+        );
         await new Promise((resolve) => setTimeout(resolve, delayMs));
         const published = await publishEnrichedFileCreated(
           enrichedFileId,
@@ -583,15 +605,18 @@ export const enrichedFileSummaryHandler = {
       // from a prior checkpoint), mark as "partial" so the watchdog's
       // retry can resume from where we left off. Otherwise transient
       // failure — mark "failed" and let the normal retry flow take over.
-      const current = await EnrichedFile.findById(enrichedFileId).lean();
+      const current = await Enrichment.findOne({ documentId }).lean();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const persistedPages = ((current as any)?.pageIndex ?? []) as PageIndexEntry[];
       const status = persistedPages.length > 0 ? "partial" : "failed";
 
-      await EnrichedFile.findByIdAndUpdate(enrichedFileId, {
-        $set: { summaryStatus: status, summaryError },
-        $unset: { processingStartedAt: "", summaryProgress: "" },
-      });
+      await Enrichment.updateOne(
+        { documentId },
+        {
+          $set: { status, summaryError },
+          $unset: { processingStartedAt: "", summaryProgress: "" },
+        }
+      );
       throw error;
     }
   },

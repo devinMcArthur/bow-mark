@@ -5,7 +5,7 @@ import { useRouter } from "next/router";
 import { FiSearch, FiX } from "react-icons/fi";
 import { useMediaQuery } from "@chakra-ui/media-query";
 
-import { navbarHeight } from "../../constants/styles";
+import { navbarHeight, navbarContentHeight } from "../../constants/styles";
 import useMounted from "../../hooks/useMounted";
 import NavbarAccount from "./views/Account";
 import NavbarSearch from "./views/Search";
@@ -25,6 +25,13 @@ const Navbar = () => {
     <Box
       position="fixed"
       height={navbarHeight}
+      // Push the interactive row below the iOS status bar when the PWA
+      // is running edge-to-edge. Resolves to 0 on other platforms.
+      pt="env(safe-area-inset-top)"
+      // Also pad the sides — on iPhone landscape the notch + rounded
+      // corners eat into the top horizontal edges.
+      pl="env(safe-area-inset-left)"
+      pr="env(safe-area-inset-right)"
       width="100%"
       zIndex="998"
       bg="#334155"
@@ -32,7 +39,12 @@ const Navbar = () => {
       borderColor="rgba(229,62,62,0.4)"
       boxShadow="0 1px 4px rgba(0,0,0,0.3)"
     >
-      <Flex align="center" justify="space-between" h="100%" px={4}>
+      <Flex
+        align="center"
+        justify="space-between"
+        h={navbarContentHeight}
+        px={4}
+      >
 
         {/* Mobile search — full-width overlay */}
         {!showDesktop && mobileSearchOpen ? (

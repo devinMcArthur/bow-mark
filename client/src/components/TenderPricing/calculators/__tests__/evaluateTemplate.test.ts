@@ -149,7 +149,7 @@ describe("evaluateTemplate — tables", () => {
   it("computes {tableId}RatePerHr as sum of qty * ratePerHour", () => {
     const result = evaluateTemplate(
       tmpl({
-        tableDefs: [{ id: "crew", label: "Crew" }],
+        tableDefs: [{ id: "crew", label: "Crew", rowLabel: "Role" }],
         formulaSteps: [{ id: "crewCost", formula: "crewRatePerHr * quantity" }],
         breakdownDefs: [
           { id: "bd1", label: "Labour", items: [{ stepId: "crewCost", label: "Crew" }] },
@@ -177,6 +177,7 @@ describe("evaluateTemplate — tables", () => {
           {
             id: "crew",
             label: "Crew",
+            rowLabel: "Role",
             defaultRows: [
               { id: "r1", name: "Operator", qty: 1, ratePerHour: 100 },
             ],

@@ -10,12 +10,19 @@ import InvoiceForm from "./Form";
 interface IInvoiceUpdateForJobsite {
   invoice: InvoiceCardSnippetFragment;
   jobsiteId: string;
+  /**
+   * Which list the invoice is attached under. Threaded through to the
+   * file attachment widget so replacement files end up in the right
+   * `/jobsites/<id>/Invoices/<kind>/` folder.
+   */
+  invoiceKind?: "subcontractor" | "revenue";
   onSuccess?: () => void;
 }
 
 const InvoiceUpdateForJobsite = ({
   invoice,
   jobsiteId,
+  invoiceKind,
   onSuccess,
 }: IInvoiceUpdateForJobsite) => {
   /**
@@ -82,6 +89,10 @@ const InvoiceUpdateForJobsite = ({
       }}
       submitHandler={handleSubmit}
       isLoading={loading}
+      jobsiteId={invoiceKind ? jobsiteId : undefined}
+      invoiceKind={invoiceKind}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      initialDocumentId={(invoice as any).documentId ?? null}
     />
   );
 };

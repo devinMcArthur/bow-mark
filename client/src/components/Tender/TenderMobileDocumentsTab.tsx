@@ -12,7 +12,7 @@ import {
 import { FiChevronLeft, FiDownload } from "react-icons/fi";
 import dynamic from "next/dynamic";
 import ClientOnly from "../Common/ClientOnly";
-import { TenderFileItem } from "./types";
+import { TenderDocumentItem } from "./types";
 import { localStorageTokenKey } from "../../contexts/Auth";
 import { EnrichedFileProgress } from "../Common/EnrichedFileProgress";
 
@@ -29,21 +29,22 @@ function buildFileUrl(fileId: string, stream = false): string {
   if (token) params.set("token", token);
   if (stream) params.set("stream", "1");
   const qs = params.toString();
-  return `/api/enriched-files/${fileId}${qs ? `?${qs}` : ""}`;
+  return `/api/documents/${fileId}${qs ? `?${qs}` : ""}`;
 }
 
 // ─── File list item ───────────────────────────────────────────────────────────
 
 interface FileListItemProps {
-  file: TenderFileItem;
-  onSelect: (file: TenderFileItem) => void;
+  file: TenderDocumentItem;
+  onSelect: (file: TenderDocumentItem) => void;
 }
 
 const FileListItem: React.FC<FileListItemProps> = ({ file, onSelect }) => {
-  const isProcessing =
-    file.summaryStatus === "processing" || file.summaryStatus === "partial";
-  const isPending = file.summaryStatus === "pending";
-  const isOrphaned = file.summaryStatus === "orphaned";
+  const status = file.enrichment?.status ?? "pending";
+  const isProcessing = status === "processing" || status === "partial";
+  const isPending = status === "pending";
+  const isOrphaned = status === "orphaned";
+  const docType = file.enrichment?.summary?.documentType;
   return (
     <Flex
       px={4}
@@ -57,13 +58,13 @@ const FileListItem: React.FC<FileListItemProps> = ({ file, onSelect }) => {
     >
       <Box flex={1} minW={0}>
         <Flex align="center" mb={1} flexWrap="wrap">
-          {file.documentType && (
+          {docType && (
             <Badge fontSize="xs" colorScheme="blue" flexShrink={0} mr={2}>
-              {file.documentType}
+              {docType}
             </Badge>
           )}
           <Text fontSize="sm" color="gray.800" isTruncated>
-            {file.file.description || "Untitled"}
+            {file.name || "Untitled"}
           </Text>
         </Flex>
         {isOrphaned ? (
@@ -79,14 +80,14 @@ const FileListItem: React.FC<FileListItemProps> = ({ file, onSelect }) => {
           </Flex>
         ) : isProcessing ? (
           <EnrichedFileProgress
-            status={file.summaryStatus}
-            progress={file.summaryProgress}
-            processingStartedAt={file.processingStartedAt}
+            status={status}
+            progress={file.enrichment?.summaryProgress ?? null}
+            processingStartedAt={file.enrichment?.processingStartedAt ?? null}
             compact
           />
-        ) : file.summary?.overview ? (
+        ) : file.enrichment?.summary?.overview ? (
           <Text fontSize="xs" color="gray.500" noOfLines={2}>
-            {file.summary.overview}
+            {file.enrichment.summary.overview}
           </Text>
         ) : null}
       </Box>
@@ -97,20 +98,24 @@ const FileListItem: React.FC<FileListItemProps> = ({ file, onSelect }) => {
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface TenderMobileDocumentsTabProps {
-  files: TenderFileItem[];
+  documents: TenderDocumentItem[];
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const TenderMobileDocumentsTab: React.FC<TenderMobileDocumentsTabProps> = ({ files }) => {
-  const [selectedFile, setSelectedFile] = useState<TenderFileItem | null>(null);
+const TenderMobileDocumentsTab: React.FC<TenderMobileDocumentsTabProps> = ({
+  documents,
+}) => {
+  const [selectedFile, setSelectedFile] = useState<TenderDocumentItem | null>(
+    null
+  );
 
   if (selectedFile) {
     const isPdf =
-      selectedFile.file.mimetype === "application/pdf" ||
-      selectedFile.file.description?.toLowerCase().endsWith(".pdf");
-    const fileUrl = buildFileUrl(selectedFile._id);
-    const pdfStreamUrl = buildFileUrl(selectedFile._id, true);
+      selectedFile.mimetype === "application/pdf" ||
+      selectedFile.name?.toLowerCase().endsWith(".pdf");
+    const fileUrl = buildFileUrl(selectedFile.documentId);
+    const pdfStreamUrl = buildFileUrl(selectedFile.documentId, true);
 
     return (
       <Flex direction="column" h="100%">
@@ -133,7 +138,7 @@ const TenderMobileDocumentsTab: React.FC<TenderMobileDocumentsTabProps> = ({ fil
             mr={1}
           />
           <Text fontSize="sm" color="gray.700" isTruncated flex={1}>
-            {selectedFile.file.description || "File"}
+            {selectedFile.name || "File"}
           </Text>
           <IconButton
             aria-label="Download"
@@ -150,7 +155,7 @@ const TenderMobileDocumentsTab: React.FC<TenderMobileDocumentsTabProps> = ({ fil
             <ClientOnly>
               <PdfViewer
                 url={pdfStreamUrl}
-                fileName={selectedFile.file.description ?? undefined}
+                fileName={selectedFile.name}
               />
             </ClientOnly>
           ) : (
@@ -170,12 +175,12 @@ const TenderMobileDocumentsTab: React.FC<TenderMobileDocumentsTabProps> = ({ fil
 
   return (
     <Box h="100%" overflowY="auto">
-      {files.length === 0 ? (
+      {documents.length === 0 ? (
         <Flex h="100%" align="center" justify="center">
           <Text fontSize="sm" color="gray.400">No documents attached.</Text>
         </Flex>
       ) : (
-        files.map((file) => (
+        documents.map((file) => (
           <FileListItem key={file._id} file={file} onSelect={setSelectedFile} />
         ))
       )}

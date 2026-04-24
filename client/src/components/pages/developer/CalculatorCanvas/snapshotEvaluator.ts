@@ -174,7 +174,7 @@ export function snapshotFromTemplate(template: CanvasDocument): RateBuildupSnaps
     if (c.type === "percentage")
       controllers[c.id] = typeof c.defaultValue === "number" ? c.defaultValue : 0;
     else if (c.type === "toggle")
-      controllers[c.id] = typeof c.defaultValue === "boolean" ? c.defaultValue : false;
+      controllers[c.id] = c.defaultValue === true || c.defaultValue === 1 ? true : false;
     else if (c.type === "selector" || c.type === "singleSelect")
       controllers[c.id] = c.defaultSelected ?? [];
   }

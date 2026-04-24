@@ -68,7 +68,7 @@ const Home = () => {
       OperatorDailyReports: {
         tab: (
           <Tab onDoubleClick={() => router.push("/operator-daily-reports")}>
-            Operator Daily Reports
+            Operator Reports
           </Tab>
         ),
         panel: <OperatorDailyReportFullPageList hideBreadcrumbs />,

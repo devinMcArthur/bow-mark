@@ -87,6 +87,7 @@ const update = async (
   return dailyReport;
 };
 
+/** @deprecated Replaced by `createDailyReportEntry` / `updateDailyReportEntry`. No GraphQL surface still calls this; kept until JobsiteMonth/Year aggregations + Excel/PDF exports stop reading `DailyReport.reportNote`. */
 const updateNote = async (
   id: string,
   data: DailyReportNoteUpdateData
@@ -198,6 +199,7 @@ const addTemporaryVehicle = async (
   return dailyReport;
 };
 
+/** @deprecated Replaced by photo attachment flow on `DailyReportEntry` (composer uploads via `uploadDocument`). No GraphQL surface still calls this; kept for the same reasons as `updateNote` above. */
 const addNoteFile = async (
   id: Id,
   data: FileCreateData

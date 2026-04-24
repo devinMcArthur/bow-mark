@@ -1,11 +1,16 @@
 import React from "react";
 
 import { Box, Center, Flex } from "@chakra-ui/react";
-import { useOperatorDailyReportsLazyQuery } from "../../../generated/graphql";
+import {
+  useOperatorDailyReportsLazyQuery,
+  UserRoles,
+} from "../../../generated/graphql";
+import { useAuth } from "../../../contexts/Auth";
 import Breadcrumbs from "../Breadcrumbs";
 import InfiniteScroll from "../InfiniteScroll";
 import Loading from "../Loading";
 import OperatorDailyReportCard from "./OperatorDailyReportCard";
+import OperatorDailyReportQuickStart from "./OperatorDailyReportQuickStart";
 
 interface IOperatorDailyReportFullPageList {
   hideBreadcrumbs?: boolean;
@@ -52,6 +57,12 @@ const OperatorDailyReportFullPageList = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const {
+    state: { user },
+  } = useAuth();
+
+  const isOperator = user?.role === UserRoles.User;
+
   /**
    * --- Rendering ---
    */
@@ -60,6 +71,11 @@ const OperatorDailyReportFullPageList = ({
     if (data?.operatorDailyReports) {
       return (
         <Box>
+          {isOperator && (
+            <OperatorDailyReportQuickStart
+              operatorDailyReports={data.operatorDailyReports}
+            />
+          )}
           <Flex flexDir="row" justifyContent="space-between">
             <Box>
               {hideBreadcrumbs ? null : (
@@ -94,7 +110,7 @@ const OperatorDailyReportFullPageList = ({
     } else {
       return <Loading />;
     }
-  }, [data?.operatorDailyReports, hideBreadcrumbs, loading]);
+  }, [data?.operatorDailyReports, hideBreadcrumbs, isOperator, loading]);
 
   return (
     <InfiniteScroll

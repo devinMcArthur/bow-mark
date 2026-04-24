@@ -1,6 +1,7 @@
 fragment JobsiteForDailyReportSnippet on JobsiteClass {
   _id
   name
+  jobcode
   materials {
     ...JobsiteMaterialForDailyReportSnippet
   }
@@ -10,32 +11,11 @@ fragment JobsiteForDailyReportSnippet on JobsiteClass {
   fileObjects {
     ...JobsiteFileObjectPreloadSnippet
   }
-  enrichedFiles {
+  documents {
     _id
-    minRole
-    enrichedFile {
-      _id
-      documentType
-      summaryStatus
-      summaryError
-      pageCount
-      processingStartedAt
-      summaryProgress {
-        phase
-        current
-        total
-        updatedAt
-      }
-      summary {
-        overview
-        documentType
-        keyTopics
-      }
-      file {
-        _id
-        mimetype
-        description
-      }
-    }
+  }
+  location {
+    latitude
+    longitude
   }
 }

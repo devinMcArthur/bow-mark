@@ -3,6 +3,7 @@ import * as React from "react";
 import { createUploadLink } from "apollo-upload-client";
 import {
   ApolloClient,
+  ApolloLink,
   InMemoryCache,
   ApolloProvider,
   split,
@@ -13,6 +14,7 @@ import { setContext } from "@apollo/client/link/context";
 import { localStorageTokenKey } from "../../contexts/Auth";
 import useStorage from "../../hooks/useStorage";
 import { getMainDefinition } from "@apollo/client/utilities";
+import { setTraceparent, getTraceparent } from "../../lib/traceparent";
 
 export default function MyApolloProvider({
   children,
@@ -40,14 +42,28 @@ export default function MyApolloProvider({
     : null;
 
   const authLink = setContext((_, { headers }) => {
+    const tp = getTraceparent();
     return {
       headers: {
         ...headers,
         authorization:
           localStorage.getItem(localStorageTokenKey) || token || "",
+        ...(tp ? { traceparent: tp } : {}),
       },
     };
   });
+
+  // Capture inbound `traceparent` response headers so the next request
+  // can continue the trace. Paired with setTraceparent/getTraceparent.
+  const traceparentCaptureLink = new ApolloLink((operation, forward) =>
+    forward(operation).map((response) => {
+      const ctx = operation.getContext();
+      const responseHeaders = ctx.response?.headers as Headers | undefined;
+      const incoming = responseHeaders?.get?.("traceparent");
+      if (incoming) setTraceparent(incoming);
+      return response;
+    })
+  );
 
   const splitLink = typeof window !== "undefined"
     ? split(
@@ -60,7 +76,7 @@ export default function MyApolloProvider({
         },
         wsLink!,
         // @ts-expect-error - type imcompatibilities between `apollo-upload-client` and `@apollo/client`
-        authLink.concat(httpLink)
+        traceparentCaptureLink.concat(authLink).concat(httpLink)
       )
     : httpLink;
 

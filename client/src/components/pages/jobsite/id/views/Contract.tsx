@@ -1,6 +1,12 @@
 import {
   Box,
   Button,
+  Drawer,
+  DrawerBody,
+  DrawerCloseButton,
+  DrawerContent,
+  DrawerHeader,
+  DrawerOverlay,
   Flex,
   Heading,
   IconButton,
@@ -12,7 +18,7 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import React from "react";
-import { FiEdit, FiPlus, FiX } from "react-icons/fi";
+import { FiEdit, FiPlus } from "react-icons/fi";
 
 import {
   JobsiteContractData,
@@ -21,7 +27,6 @@ import {
 } from "../../../../../generated/graphql";
 import formatNumber from "../../../../../utils/formatNumber";
 import Card from "../../../../Common/Card";
-import FormContainer from "../../../../Common/FormContainer";
 import Permission from "../../../../Common/Permission";
 import JobsiteContractForm from "../../../../Forms/Jobsite/Contract";
 
@@ -109,41 +114,33 @@ const JobsiteContract = ({ jobsite }: IJobsiteContract) => {
         </SimpleGrid>
       );
     } else {
-      if (!showForm) {
-        return (
-          <Permission>
-            <Button
-              mx="auto"
-              w="72"
-              rightIcon={<FiPlus />}
-              onClick={() => setShowForm(!showForm)}
-            >
-              Add Contract Details
-            </Button>
-          </Permission>
-        );
-      } else {
-        return null;
-      }
+      return (
+        <Permission>
+          <Button
+            mx="auto"
+            w="72"
+            rightIcon={<FiPlus />}
+            onClick={() => setShowForm(true)}
+          >
+            Add Contract Details
+          </Button>
+        </Permission>
+      );
     }
-  }, [jobsite.contract, showForm]);
+  }, [jobsite.contract]);
 
   const rightButton = React.useMemo(() => {
     if (!jobsite.contract) return null;
-    let icon = <FiEdit />;
-    if (showForm) icon = <FiX />;
 
     return (
       <IconButton
-        icon={icon}
-        aria-label="add"
+        icon={<FiEdit />}
+        aria-label="Edit contract"
         backgroundColor="transparent"
-        onClick={() => {
-          setShowForm(!showForm);
-        }}
+        onClick={() => setShowForm(true)}
       />
     );
-  }, [jobsite.contract, showForm]);
+  }, [jobsite.contract]);
 
   const progress = React.useMemo(() => {
     if (jobsite.contract) {
@@ -187,29 +184,42 @@ const JobsiteContract = ({ jobsite }: IJobsiteContract) => {
   }, [jobsite.contract]);
 
   return (
-    <Card h="fit-content">
+    <Card variant="flat" h="fit-content">
       <Flex flexDirection="row" justifyContent="space-between">
         <Heading my="auto" ml={2} size="md" w="100%">
           Contract
         </Heading>
         <Permission>{rightButton}</Permission>
       </Flex>
-      {showForm ? (
-        <FormContainer>
-          <JobsiteContractForm
-            submitHandler={handleSubmit}
-            formOptions={{
-              defaultValues: {
-                bidValue: jobsite.contract?.bidValue,
-                expectedProfit: jobsite.contract?.expectedProfit,
-              },
-            }}
-            isLoading={loading}
-          />
-        </FormContainer>
-      ) : null}
       {content}
       {progress}
+
+      <Drawer
+        isOpen={showForm}
+        onClose={() => setShowForm(false)}
+        placement="right"
+        size="md"
+      >
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerHeader>
+            {jobsite.contract ? "Edit Contract" : "Add Contract Details"}
+          </DrawerHeader>
+          <DrawerBody pb={6}>
+            <JobsiteContractForm
+              submitHandler={handleSubmit}
+              formOptions={{
+                defaultValues: {
+                  bidValue: jobsite.contract?.bidValue,
+                  expectedProfit: jobsite.contract?.expectedProfit,
+                },
+              }}
+              isLoading={loading}
+            />
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
     </Card>
   );
 };

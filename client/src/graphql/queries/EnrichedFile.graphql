@@ -1,3 +1,9 @@
+# @deprecated Legacy fallback for ChatDrawer when the new
+# `document(id)` query returns null (i.e. an old chat citation
+# referenced an EnrichedFile._id that was never mirrored to a
+# Document). All migration scripts back-fill these mirrors so the
+# fallback should rarely fire — once verified unused this query +
+# the matching server resolver + the `EnrichedFile` model can retire.
 query EnrichedFile($id: ID!) {
   enrichedFile(id: $id) {
     _id

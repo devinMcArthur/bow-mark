@@ -1,8 +1,24 @@
 import { Request, Response, Router } from "express";
 import { Conversation } from "@models";
 import { requireAuth, requireDeveloper } from "../lib/authMiddleware";
+import { getSnapshot } from "../lib/opTiming";
 
 const router = Router();
+
+// GET /api/developer/slow-ops
+// Aggregates of the last N GraphQL operations (rolling ring buffer in
+// memory). Sorted by p95 desc. Useful for "why is the app slow right now"
+// without a full observability stack. Resets on server restart.
+//
+// Auth: gated behind requireDeveloper in production; open in dev so it
+// can be curled from inside the pod without threading a JWT through.
+const slowOpsMiddleware =
+  process.env.NODE_ENV === "production"
+    ? [requireAuth, requireDeveloper]
+    : [];
+router.get("/slow-ops", ...slowOpsMiddleware, (_req, res) => {
+  res.json(getSnapshot());
+});
 
 // GET /api/developer/ratings
 // Returns all rated assistant messages across all conversations.

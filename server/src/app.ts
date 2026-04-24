@@ -16,12 +16,14 @@ import tenderChatRouter from "./router/tender-chat";
 import foremanJobsiteChatRouter from "./router/foreman-jobsite-chat";
 import pmJobsiteChatRouter from "./router/pm-jobsite-chat";
 import tenderConversationsRouter from "./router/tender-conversations";
-import enrichedFilesRouter from "./router/enriched-files";
+import documentsRouter from "./router/documents";
 import publicDocumentsRouter from "./router/public-documents";
 import developerRouter from "./router/developer";
 
 import { IContext } from "@typescript/graphql";
 
+import DocumentUploadResolver from "@graphql/resolvers/document";
+import DailyReportEntryResolver from "@graphql/resolvers/dailyReportEntry";
 import BusinessDashboardResolver from "@graphql/resolvers/businessDashboard";
 import CompanyResolver, {
   CompanyMaterialReportResolver,
@@ -34,10 +36,14 @@ import CrewResolver, {
 } from "@graphql/resolvers/crew";
 import CrewKindResolver from "@graphql/resolvers/crewKind";
 import DailyReportResolver from "@graphql/resolvers/dailyReport";
+import DomainEventResolver from "@graphql/resolvers/domainEvent";
+import EntityPresenceResolver from "@graphql/resolvers/entityPresence";
 import EmployeeResolver from "@graphql/resolvers/employee";
 import EmployeeReportResolver from "@graphql/resolvers/employeeReport";
 import EmployeeWorkResolver from "@graphql/resolvers/employeeWork";
 import EnrichedFileResolver from "@graphql/resolvers/enrichedFile";
+import FileNodeResolver from "@graphql/resolvers/fileNode";
+import FileNodeMutationResolver from "@graphql/resolvers/fileNode/mutations";
 import FileResolver from "@graphql/resolvers/file";
 import InvoiceResolver from "@graphql/resolvers/invoice";
 import InvoiceReportResolver from "@graphql/resolvers/invoiceReport";
@@ -83,9 +89,16 @@ import { logger } from "@logger";
 import { User, UserDocument, Conversation } from "@models";
 import pubsub from "@pubsub";
 import authChecker from "@utils/authChecker";
+import { requestContextMiddleware } from "@middleware/requestContext";
+import { getRequestContext } from "@lib/requestContext";
+import { opTimingPlugin } from "@lib/opTiming";
 
 const createApp = async () => {
   const app = express();
+
+  // Must come first: stamps trace context on every request so downstream
+  // middleware, resolvers, and mutations can emit correlated events.
+  app.use(requestContextMiddleware);
 
   app.use(cors());
 
@@ -94,6 +107,7 @@ const createApp = async () => {
   const { typeDefs, resolvers } = await buildTypeDefsAndResolvers({
     resolvers: [
       BusinessDashboardResolver,
+      DocumentUploadResolver,
       CompanyResolver,
       CompanyMaterialReportResolver,
       CompanyMaterialReportJobDayResolver,
@@ -103,10 +117,15 @@ const createApp = async () => {
       CrewLocationDayResolver,
       CrewLocationResolver,
       DailyReportResolver,
+      DailyReportEntryResolver,
+      DomainEventResolver,
+      EntityPresenceResolver,
       EmployeeResolver,
       EmployeeReportResolver,
       EmployeeWorkResolver,
       EnrichedFileResolver,
+      FileNodeResolver,
+      FileNodeMutationResolver,
       FileResolver,
       InvoiceResolver,
       InvoiceReportResolver,
@@ -190,6 +209,25 @@ const createApp = async () => {
         user = await User.getById((decoded as jwt.JwtPayload)?.userId);
       }
 
+      // Enrich the ALS RequestContext with userId + sessionId so GraphQL
+      // resolvers downstream see them when emitting DomainEvents.
+      // Must mutate the existing scope's object — opening a new scope via
+      // runWithContext(enriched, fn) only enriches for the duration of fn;
+      // once it returns, subsequent resolvers revert to the unenriched
+      // scope. Mutation is safe because each request has its own ALS frame.
+      const existing = getRequestContext();
+      if (existing) {
+        const decoded =
+          token && process.env.JWT_SECRET
+            ? (jwt.decode(token) as jwt.JwtPayload | null)
+            : null;
+        if (user?._id) existing.userId = user._id.toString();
+        if (user) existing.actorKind = "user";
+        if (decoded && typeof decoded.sessionId === "string") {
+          existing.sessionId = decoded.sessionId;
+        }
+      }
+
       return {
         user,
         req,
@@ -198,6 +236,7 @@ const createApp = async () => {
     },
     plugins: [
       ApolloServerPluginDrainHttpServer({ httpServer }),
+      opTimingPlugin,
       {
         async serverWillStart() {
           return {
@@ -243,7 +282,16 @@ const createApp = async () => {
   app.use("/api/foreman-jobsite-chat", foremanJobsiteChatRouter);
   app.use("/api/pm-jobsite-chat", pmJobsiteChatRouter);
   app.use("/api/tender-conversations", tenderConversationsRouter);
-  app.use("/api/enriched-files", enrichedFilesRouter);
+  app.use("/api/documents", documentsRouter);
+  // Legacy alias — historical chat messages and citations reference the old
+  // path. Forwards to the canonical /api/documents/:id preserving every
+  // query param. Safe to keep indefinitely; the actual handler is unchanged.
+  app.get("/api/enriched-files/:id", (req, res) => {
+    const qs = req.originalUrl.includes("?")
+      ? req.originalUrl.slice(req.originalUrl.indexOf("?"))
+      : "";
+    res.redirect(307, `/api/documents/${req.params.id}${qs}`);
+  });
   app.use("/api/developer", developerRouter);
 
   // Sparse index for developer ratings query — non-blocking, safe to re-run

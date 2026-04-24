@@ -5,7 +5,6 @@ import ClientOnly from "../../components/Common/ClientOnly";
 import Container from "../../components/Common/Container";
 import JobsiteClientContent from "../../components/pages/jobsite/id/ClientContent";
 import { PageJobsiteSsrComp, ssrJobsiteSsr } from "../../generated/page";
-import jobsiteName from "../../utils/jobsiteName";
 
 const Jobsite: PageJobsiteSsrComp = ({ data }) => {
   const jobsite = data?.jobsite!;
@@ -19,7 +18,7 @@ const Jobsite: PageJobsiteSsrComp = ({ data }) => {
             link: "/jobsites",
           },
           {
-            title: jobsiteName(jobsite.name, jobsite.jobcode),
+            title: jobsite.jobcode || jobsite.name,
             isCurrentPage: true,
           },
         ]}

@@ -1,5 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
+import mongoose from "mongoose";
 import { Tender } from "@models";
+import { resolveDocumentsForContext } from "./fileDocuments/resolveDocumentsForContext";
 
 // Debounce: cancel any pending auto-trigger for the same tender before firing a new one.
 // Prevents a burst of note saves from firing N concurrent Sonnet calls.
@@ -57,18 +59,17 @@ export async function generateTenderSummary(
   anthropicClient?: Pick<Anthropic, "messages">
 ): Promise<void> {
   const anthropic = anthropicClient ?? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const tender = await Tender.findById(tenderId)
-    .populate({ path: "files" })
-    .lean();
+  const [tender, resolved] = await Promise.all([
+    Tender.findById(tenderId).lean(),
+    resolveDocumentsForContext({ scope: "tender", entityId: new mongoose.Types.ObjectId(tenderId) }),
+  ]);
 
   if (!tender) {
     console.warn(`[generateTenderSummary] Tender ${tenderId} not found`);
     return;
   }
 
-  const enrichedFiles = ((tender.files as any[]) ?? []).filter(
-    (f: any) => f.summaryStatus === "ready"
-  );
+  const enrichedFiles = resolved.filter((f) => f.enrichmentStatus === "ready");
 
   const notes = ((tender as any).notes ?? []) as Array<{
     _id: any;
@@ -78,9 +79,11 @@ export async function generateTenderSummary(
 
   // Build text-only context — no PDF loads
   const fileContext = enrichedFiles
-    .map((f: any) => {
-      const summary = f.summary as any;
-      const pageIndex = f.pageIndex as
+    .map((f) => {
+      // Cast enrichmentSummary to any to read into the known summary shape:
+      // { overview, documentType, keyTopics, chunks? }
+      const summary = f.enrichmentSummary as any;
+      const pageIndex = f.enrichmentPageIndex as
         | Array<{ page: number; summary: string }>
         | undefined;
       const lines = [
@@ -141,7 +144,7 @@ ${SUMMARY_PROMPT}`;
     }
 
     const generatedFrom = [
-      ...enrichedFiles.map((f: any) => f._id.toString()),
+      ...enrichedFiles.map((f) => f.documentId.toString()),
       ...notes.map((n: any) => n._id.toString()),
     ];
 

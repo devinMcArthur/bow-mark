@@ -3,8 +3,9 @@ import { useToast } from "@chakra-ui/react";
 import {
   InvoiceData,
   useJobsiteAddRevenueInvoiceMutation,
+  JobsiteFullDocument,
 } from "../../../generated/graphql";
-import InvoiceForm from "../Invoice/Form";
+import InvoiceBulkForm from "../Invoice/BulkForm";
 
 interface IJobsiteRevenueInvoiceCreate {
   jobsiteId: string;
@@ -15,43 +16,46 @@ const JobsiteRevenueInvoiceCreate = ({
   jobsiteId,
   onSuccess,
 }: IJobsiteRevenueInvoiceCreate) => {
-  /**
-   * ----- Hook Initialization -----
-   */
-
   const toast = useToast();
 
-  const [create, { loading }] = useJobsiteAddRevenueInvoiceMutation();
-
-  /**
-   * ----- Functions -----
-   */
+  const [create, { loading }] = useJobsiteAddRevenueInvoiceMutation({
+    refetchQueries: [JobsiteFullDocument],
+  });
 
   const handleSubmit = React.useCallback(
-    async (data: InvoiceData) => {
-      try {
-        const res = await create({
-          variables: {
-            jobsiteId,
-            data,
-          },
-        });
+    async (rows: InvoiceData[]) => {
+      const results = await Promise.allSettled(
+        rows.map((data) => create({ variables: { jobsiteId, data } }))
+      );
+      const succeeded = results.filter((r) => r.status === "fulfilled").length;
+      const failed = results.length - succeeded;
 
-        if (res.data?.jobsiteAddRevenueInvoice) {
-          if (onSuccess) onSuccess();
-        } else {
-          toast({
-            status: "error",
-            title: "Error",
-            description: "Something went wrong, please try again",
-            isClosable: true,
-          });
-        }
-      } catch (e: any) {
+      if (failed === 0) {
+        toast({
+          status: "success",
+          title:
+            rows.length === 1 ? "Invoice added" : `${succeeded} invoices added`,
+          isClosable: true,
+        });
+        if (onSuccess) onSuccess();
+      } else if (succeeded === 0) {
+        const firstErr = results.find(
+          (r): r is PromiseRejectedResult => r.status === "rejected"
+        );
         toast({
           status: "error",
-          title: "Error",
-          description: e.message,
+          title: "Could not add invoices",
+          description:
+            firstErr?.reason instanceof Error
+              ? firstErr.reason.message
+              : "Unknown error",
+          isClosable: true,
+        });
+      } else {
+        toast({
+          status: "warning",
+          title: `${succeeded} added, ${failed} failed`,
+          description: "Re-submit the failed rows after fixing them.",
           isClosable: true,
         });
       }
@@ -59,11 +63,14 @@ const JobsiteRevenueInvoiceCreate = ({
     [create, jobsiteId, onSuccess, toast]
   );
 
-  /**
-   * ----- Rendering -----
-   */
-
-  return <InvoiceForm isLoading={loading} submitHandler={handleSubmit} />;
+  return (
+    <InvoiceBulkForm
+      submitHandler={handleSubmit}
+      isLoading={loading}
+      jobsiteId={jobsiteId}
+      invoiceKind="revenue"
+    />
+  );
 };
 
 export default JobsiteRevenueInvoiceCreate;

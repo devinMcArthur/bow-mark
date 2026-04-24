@@ -8,7 +8,7 @@ import SystemFluidTypes from "../../../Common/System/FluidTypes";
 import SystemLaborTypes from "../../../Common/System/LaborTypes";
 import SystemMaterialShipmentVehicleTypeDefaults from "../../../Common/System/MaterialShipmentVehicleTypeDefaults";
 import SystemUnits from "../../../Common/System/Units";
-import SystemSpecFiles from "../../../Common/System/SpecFiles";
+import SystemSpecLibrary from "../../../Common/System/SpecLibrary";
 
 const SystemSettings = () => {
   /**
@@ -37,7 +37,7 @@ const SystemSettings = () => {
           />
           <SystemCompanyVehicleTypeDefaults system={system} />
           <SystemCosting system={system} />
-          <SystemSpecFiles system={system} />
+          <SystemSpecLibrary />
         </Box>
       );
     } else return <Loading />;

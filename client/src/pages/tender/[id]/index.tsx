@@ -4,6 +4,7 @@ import {
   Button,
   Divider,
   Flex,
+  Icon,
   IconButton,
   Spinner,
   Text,
@@ -13,7 +14,22 @@ import { gql, useQuery, useMutation } from "@apollo/client";
 import * as Apollo from "@apollo/client";
 import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
-import { FiChevronLeft, FiDownload, FiMaximize2, FiMessageSquare, FiMinimize2, FiX } from "react-icons/fi";
+import {
+  FiAlignLeft,
+  FiBarChart2,
+  FiBriefcase,
+  FiCheckSquare,
+  FiChevronLeft,
+  FiChevronsLeft,
+  FiChevronsRight,
+  FiDownload,
+  FiEdit3,
+  FiFolder,
+  FiMaximize2,
+  FiMessageSquare,
+  FiMinimize2,
+  FiX,
+} from "react-icons/fi";
 import Permission from "../../../components/Common/Permission";
 import Breadcrumbs from "../../../components/Common/Breadcrumbs";
 import ClientOnly from "../../../components/Common/ClientOnly";
@@ -23,10 +39,13 @@ import TenderDemandTab from "../../../components/TenderPricing/TenderDemandTab";
 import TenderOverview from "../../../components/Tender/TenderOverview";
 import TenderSummaryTab from "../../../components/Tender/TenderSummaryTab";
 import TenderNotesTab from "../../../components/Tender/TenderNotesTab";
-import TenderDocuments from "../../../components/Tender/TenderDocuments";
+import EntityFileBrowser from "../../../components/FileBrowser/EntityFileBrowser";
+import DocumentViewerModal, {
+  DocumentViewerFile,
+} from "../../../components/Common/DocumentViewerModal";
 import TenderReviewTab from "../../../components/Tender/TenderReviewTab";
 import { TenderPricingSheet } from "../../../components/TenderPricing/types";
-import { TenderDetail, TenderFileItem } from "../../../components/Tender/types";
+import { TenderDetail } from "../../../components/Tender/types";
 import { UserRoles } from "../../../generated/graphql";
 import { navbarHeight } from "../../../constants/styles";
 import { localStorageTokenKey, useAuth } from "../../../contexts/Auth";
@@ -118,6 +137,29 @@ const TENDER_QUERY = gql`
           description
         }
       }
+      documents {
+        _id
+        documentId
+        name
+        mimetype
+        enrichment {
+          status
+          summaryError
+          pageCount
+          processingStartedAt
+          summaryProgress {
+            phase
+            current
+            total
+            updatedAt
+          }
+          summary {
+            overview
+            documentType
+            keyTopics
+          }
+        }
+      }
       fileCategories {
         _id
         name
@@ -197,7 +239,12 @@ const TENDER_SUGGESTIONS = [
 // ─── Panel tab types ──────────────────────────────────────────────────────────
 
 type RightTab = "job" | "documents" | "notes" | "summary" | "demand" | "review";
-type PanelState = "open" | "hidden" | "fullscreen";
+// Panel states:
+// - "open"       : rail + content + resize handle (default working state)
+// - "collapsed"  : rail only (tab icons visible; content + handle hidden).
+//                  Clicking a tab icon expands back to "open" on that tab.
+// - "fullscreen" : panel fills the viewport, pricing hidden.
+type PanelState = "open" | "collapsed" | "fullscreen";
 
 // ─── File URL helper ──────────────────────────────────────────────────────────
 
@@ -210,25 +257,42 @@ function buildFileUrl(fileId: string, stream = false): string {
   if (token) params.set("token", token);
   if (stream) params.set("stream", "1");
   const qs = params.toString();
-  return `${apiBase}/api/enriched-files/${fileId}${qs ? `?${qs}` : ""}`;
+  return `${apiBase}/api/documents/${fileId}${qs ? `?${qs}` : ""}`;
 }
 
 // ─── Inline file viewer (PDF or fallback) ─────────────────────────────────────
 
+// FileViewer operates directly on Document id + display metadata rather
+// than the legacy EnrichedFile-shaped TenderFileItem. This lets it open
+// files uploaded via the new FileBrowser (which generate fresh
+// Document._ids) without needing a lookup into Tender.files.
+export interface OpenFileView {
+  documentId: string;
+  fileName?: string;
+  mimetype?: string;
+}
+
 interface FileViewerProps {
-  file: TenderFileItem;
+  file: OpenFileView;
   onBack: () => void;
   initialPage?: number;
   onPageChange?: (page: number) => void;
+  onExpand?: () => void;
 }
 
-const FileViewer: React.FC<FileViewerProps> = ({ file, onBack, initialPage, onPageChange }) => {
+const FileViewer: React.FC<FileViewerProps> = ({
+  file,
+  onBack,
+  initialPage,
+  onPageChange,
+  onExpand,
+}) => {
   const isPdf =
-    file.file.mimetype === "application/pdf" ||
-    file.file.description?.toLowerCase().endsWith(".pdf");
+    file.mimetype === "application/pdf" ||
+    file.fileName?.toLowerCase().endsWith(".pdf");
 
-  const fileUrl = buildFileUrl(file._id);
-  const pdfStreamUrl = buildFileUrl(file._id, true);
+  const fileUrl = buildFileUrl(file.documentId);
+  const pdfStreamUrl = buildFileUrl(file.documentId, true);
 
   return (
     <Flex direction="column" h="100%" overflow="hidden">
@@ -251,8 +315,19 @@ const FileViewer: React.FC<FileViewerProps> = ({ file, onBack, initialPage, onPa
           onClick={onBack}
         />
         <Text fontSize="xs" color="gray.600" isTruncated flex={1}>
-          {file.file.description || "File"}
+          {file.fileName || "File"}
         </Text>
+        {onExpand && (
+          <Tooltip label="Open in full-size viewer">
+            <IconButton
+              aria-label="Open in modal"
+              icon={<FiMaximize2 size={13} />}
+              size="xs"
+              variant="ghost"
+              onClick={onExpand}
+            />
+          </Tooltip>
+        )}
         <Tooltip label="Open in new tab">
           <IconButton
             aria-label="Open in new tab"
@@ -269,7 +344,7 @@ const FileViewer: React.FC<FileViewerProps> = ({ file, onBack, initialPage, onPa
           <ClientOnly>
             <PdfViewer
               url={pdfStreamUrl}
-              fileName={file.file.description ?? undefined}
+              fileName={file.fileName}
               initialPage={initialPage}
               onPageChange={onPageChange}
             />
@@ -314,8 +389,11 @@ const TenderDetailPage = () => {
   const [chatOpen, setChatOpen] = useState(false);
   const [initialConversationId, setInitialConversationId] = useState<string | undefined>(undefined);
   const [panelWidthPx, setPanelWidthPx] = useState<number | null>(null);
-  const [selectedFile, setSelectedFile] = useState<TenderFileItem | null>(null);
+  const [selectedFile, setSelectedFile] = useState<OpenFileView | null>(null);
   const [selectedFilePage, setSelectedFilePage] = useState<number>(1);
+  // Doc-ref citations from the pricing sheet open the shared
+  // DocumentViewerModal directly — independent of the FileBrowser.
+  const [viewerFile, setViewerFile] = useState<DocumentViewerFile | null>(null);
   const isDraggingPanel = useRef(false);
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -342,7 +420,10 @@ const TenderDetailPage = () => {
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       if (!isDraggingPanel.current) return;
-      const newWidth = window.innerWidth - e.clientX;
+      // Panel lives on the LEFT side now, so width grows as the cursor
+      // moves right. (Used to be window.innerWidth - e.clientX when the
+      // panel was on the right.)
+      const newWidth = e.clientX;
       const min = window.innerWidth * 0.25;
       const max = window.innerWidth * 0.5;
       setPanelWidthPx(Math.round(Math.max(min, Math.min(max, newWidth))));
@@ -385,18 +466,16 @@ const TenderDetailPage = () => {
   // because the watchdog will retry to complete page indexing — polling
   // keeps the UI live so the user sees recovery happen.
   useEffect(() => {
-    const hasNonTerminal = tender?.files.some(
-      (f) =>
-        f.summaryStatus === "pending" ||
-        f.summaryStatus === "processing" ||
-        f.summaryStatus === "partial"
-    );
+    const hasNonTerminal = tender?.documents.some((f) => {
+      const s = f.enrichment?.status;
+      return s === "pending" || s === "processing" || s === "partial";
+    });
     if (hasNonTerminal || tender?.summaryGenerating) {
       startPolling(3000);
     } else {
       stopPolling();
     }
-  }, [tender?.files, tender?.summaryGenerating, startPolling, stopPolling]);
+  }, [tender?.documents, tender?.summaryGenerating, startPolling, stopPolling]);
 
   const [createSheet] = useMutation(CREATE_SHEET);
 
@@ -421,8 +500,8 @@ const TenderDetailPage = () => {
     setPanelState((s) => (s === "fullscreen" ? "open" : "fullscreen"));
   }, []);
 
-  const hidePanel = useCallback(() => setPanelState("hidden"), []);
-  const showPanel = useCallback(() => setPanelState("open"), []);
+  const collapsePanel = useCallback(() => setPanelState("collapsed"), []);
+  const expandPanel = useCallback(() => setPanelState("open"), []);
 
   const handleChatClose = useCallback(() => {
     setChatOpen(false);
@@ -440,12 +519,15 @@ const TenderDetailPage = () => {
     }
   }, [setDocUrlParams]);
 
-  const handleOpenFile = useCallback((file: TenderFileItem, page = 1) => {
-    setSelectedFile(file);
-    setSelectedFilePage(page);
-    setRightTab("documents");
-    setDocUrlParams(file._id, page);
-  }, [setDocUrlParams]);
+  const handleOpenFile = useCallback(
+    (file: OpenFileView, page = 1) => {
+      setSelectedFile(file);
+      setSelectedFilePage(page);
+      setRightTab("documents");
+      setDocUrlParams(file.documentId, page);
+    },
+    [setDocUrlParams]
+  );
 
   const handleCloseFile = useCallback(() => {
     setSelectedFile(null);
@@ -455,14 +537,19 @@ const TenderDetailPage = () => {
 
   const handlePageChange = useCallback((page: number) => {
     setSelectedFilePage(page);
-    setDocUrlParams(selectedFile?._id ?? null, page);
+    setDocUrlParams(selectedFile?.documentId ?? null, page);
   }, [selectedFile, setDocUrlParams]);
 
-  const handleDocRefClick = useCallback((enrichedFileId: string, page: number) => {
-    const file = tender?.files.find((f) => f._id === enrichedFileId);
-    if (!file) return;
-    handleOpenFile(file, page);
-  }, [tender?.files, handleOpenFile]);
+  const handleDocRefClick = useCallback(
+    (enrichedFileId: string, page: number) => {
+      // Citations open the shared modal directly. Name/mimetype are
+      // optional — the modal falls back to "Document" / PDF default
+      // for display. A small enhancement (not done yet): have the modal
+      // fetch the missing metadata by documentId from the server.
+      setViewerFile({ enrichedFileId, page });
+    },
+    []
+  );
 
   const panelWidth =
     panelState === "fullscreen"
@@ -471,21 +558,33 @@ const TenderDetailPage = () => {
       ? `${panelWidthPx}px`
       : "33vw";
   const showLeft = panelState !== "fullscreen";
-  const showRight = panelState !== "hidden";
+  // Rail is always rendered (even when "collapsed") — only the content
+  // area and resize handle hide on collapse.
+  const showRight = true;
+  const contentOpen = panelState === "open" || panelState === "fullscreen";
 
-  const TABS: { key: RightTab; label: string }[] = [
-    { key: "job", label: "Job" },
+  const TABS: {
+    key: RightTab;
+    label: string;
+    icon: React.ComponentType;
+    badge?: number;
+  }[] = [
+    { key: "job", label: "Job", icon: FiBriefcase },
     {
       key: "documents",
-      label: `Documents${tender && tender.files.length > 0 ? ` (${tender.files.length})` : ""}`,
+      label: "Documents",
+      icon: FiFolder,
+      badge: tender?.documents.length ?? 0,
     },
     {
       key: "notes",
-      label: `Notes${tender && tender.notes.length > 0 ? ` (${tender.notes.length})` : ""}`,
+      label: "Notes",
+      icon: FiEdit3,
+      badge: tender?.notes.length ?? 0,
     },
-    { key: "summary", label: "Summary" },
-    { key: "demand", label: "Demand" },
-    { key: "review", label: "Review" },
+    { key: "summary", label: "Summary", icon: FiAlignLeft },
+    { key: "demand", label: "Demand", icon: FiBarChart2 },
+    { key: "review", label: "Review", icon: FiCheckSquare },
   ];
 
   return (
@@ -530,60 +629,29 @@ const TenderDetailPage = () => {
             ]}
           />
           <Box flex={1} />
-          {panelState === "hidden" && (
-            <Button size="xs" variant="outline" onClick={showPanel}>
-              Show Panel
-            </Button>
-          )}
         </Flex>
 
         {/* ── Main split ────────────────────────────────────────────────────── */}
         <Flex flex={1} overflow="hidden">
-          {/* Left: Pricing sheet */}
-          {showLeft && (
-            <Box
-              flex={1}
-              minW={0}
-              overflow="hidden"
-              p={4}
-              borderRight={panelState === "open" ? "1px solid" : undefined}
-              borderColor="gray.200"
-              display="flex"
-              flexDir="column"
-            >
-              {!initialized ? (
-                <Spinner />
-              ) : sheet ? (
-                <PricingSheet
-                  sheet={sheet}
-                  tenderId={tenderId}
-                  onUpdate={setSheet}
-                  tenderFiles={tender?.files ?? []}
-                  activeDocFile={selectedFile?._id}
-                  activeDocPage={selectedFilePage}
-                  onDocRefClick={handleDocRefClick}
-                  viewMode={pricingViewMode}
-                  onViewModeChange={setPricingViewMode}
-                />
-              ) : (
-                <Text color="gray.500">Unable to load pricing sheet.</Text>
-              )}
-            </Box>
-          )}
-
-          {/* Right: Panel */}
+          {/* Left: Panel (with activity-bar rail on its own left edge — i.e.
+              the screen edge). Moved from right to left so the rail anchors
+              against the viewport rather than floating mid-screen. */}
           {showRight && (
             <Flex
               direction="column"
-              w={panelWidth}
+              w={contentOpen ? panelWidth : "40px"}
               flexShrink={0}
               overflow="hidden"
               position="relative"
+              transition="width 0.15s ease"
             >
-              {/* Drag handle */}
-              <Box
+              {/* Drag handle — on the panel's RIGHT edge, between panel
+                  content and pricing. Hidden while collapsed since there's
+                  no content to size. */}
+              {contentOpen && (
+                <Box
                 position="absolute"
-                left={0}
+                right={0}
                 top={0}
                 bottom={0}
                 w="5px"
@@ -595,63 +663,113 @@ const TenderDetailPage = () => {
                   e.preventDefault();
                   isDraggingPanel.current = true;
                 }}
-              />
+                />
+              )}
 
-              {/* Tab bar */}
-              <Flex
-                h="44px"
-                align="center"
-                borderBottom="1px solid"
-                borderColor="gray.200"
-                bg="gray.50"
-                px={2}
-                gap={1}
-                flexShrink={0}
-              >
-                {TABS.map((tab) => (
-                  <Button
-                    key={tab.key}
-                    size="sm"
-                    variant={rightTab === tab.key ? "solid" : "ghost"}
-                    colorScheme={rightTab === tab.key ? "blue" : "gray"}
-                    onClick={() => handleTabChange(tab.key)}
-                    px={3}
-                  >
-                    {tab.label}
-                  </Button>
-                ))}
-                <Box flex={1} />
-                <Tooltip
-                  label={panelState === "fullscreen" ? "Exit fullscreen" : "Fullscreen"}
-                  placement="bottom"
+              {/* Body: vertical tab rail + tab content. Rail holds both
+                  navigation (top) and panel chrome (bottom) — VS Code
+                  activity-bar pattern, no separate top strip needed. */}
+              <Flex flex={1} overflow="hidden">
+                {/* Vertical tab rail */}
+                <Flex
+                  direction="column"
+                  w="40px"
+                  flexShrink={0}
+                  bg="gray.50"
+                  borderRight="1px solid"
+                  borderColor="gray.200"
+                  py={2}
+                  gap={2}
+                  align="center"
                 >
-                  <IconButton
-                    aria-label="Toggle fullscreen"
-                    icon={
-                      panelState === "fullscreen" ? (
-                        <FiMinimize2 size={14} />
-                      ) : (
-                        <FiMaximize2 size={14} />
-                      )
-                    }
-                    size="sm"
-                    variant="ghost"
-                    onClick={toggleFullscreen}
-                  />
-                </Tooltip>
-                <Tooltip label="Hide panel" placement="bottom">
-                  <IconButton
-                    aria-label="Hide panel"
-                    icon={<FiX size={14} />}
-                    size="sm"
-                    variant="ghost"
-                    onClick={hidePanel}
-                  />
-                </Tooltip>
-              </Flex>
+                  {TABS.map((tab) => {
+                    const active = rightTab === tab.key;
+                    return (
+                      <Tooltip key={tab.key} label={tab.label} placement="right">
+                        <Box position="relative">
+                          <IconButton
+                            aria-label={tab.label}
+                            icon={<Icon as={tab.icon} boxSize={4} />}
+                            variant={active && contentOpen ? "solid" : "ghost"}
+                            colorScheme={active && contentOpen ? "blue" : "gray"}
+                            size="sm"
+                            onClick={() => {
+                              handleTabChange(tab.key);
+                              // Auto-expand when the panel is collapsed so
+                              // clicking any tab icon re-opens the content.
+                              if (panelState === "collapsed") expandPanel();
+                            }}
+                          />
+                          {tab.badge != null && tab.badge > 0 && (
+                            <Box
+                              position="absolute"
+                              top="-2px"
+                              right="-2px"
+                              minW="14px"
+                              h="14px"
+                              px="3px"
+                              borderRadius="full"
+                              bg="blue.500"
+                              color="white"
+                              fontSize="9px"
+                              fontWeight="bold"
+                              lineHeight="14px"
+                              textAlign="center"
+                              pointerEvents="none"
+                              border="1.5px solid"
+                              borderColor="gray.50"
+                            >
+                              {tab.badge}
+                            </Box>
+                          )}
+                        </Box>
+                      </Tooltip>
+                    );
+                  })}
+                  <Box flex={1} />
+                  {/* Panel chrome — fullscreen + hide live at the bottom of
+                      the rail, separated from the nav icons by the flex
+                      spacer. Matches VS Code activity-bar convention. */}
+                  <Tooltip
+                    label={panelState === "fullscreen" ? "Exit fullscreen" : "Fullscreen"}
+                    placement="right"
+                  >
+                    <IconButton
+                      aria-label="Toggle fullscreen"
+                      icon={
+                        panelState === "fullscreen" ? (
+                          <FiMinimize2 size={14} />
+                        ) : (
+                          <FiMaximize2 size={14} />
+                        )
+                      }
+                      size="sm"
+                      variant="ghost"
+                      onClick={toggleFullscreen}
+                    />
+                  </Tooltip>
+                  <Tooltip
+                    label={contentOpen ? "Collapse panel" : "Expand panel"}
+                    placement="right"
+                  >
+                    <IconButton
+                      aria-label={contentOpen ? "Collapse panel" : "Expand panel"}
+                      icon={
+                        contentOpen ? (
+                          <FiChevronsLeft size={14} />
+                        ) : (
+                          <FiChevronsRight size={14} />
+                        )
+                      }
+                      size="sm"
+                      variant="ghost"
+                      onClick={contentOpen ? collapsePanel : expandPanel}
+                    />
+                  </Tooltip>
+                </Flex>
 
-              {/* Tab content */}
-              <Box flex={1} overflow="hidden">
+                {/* Tab content */}
+                <Box flex={1} overflow="hidden">
                 {/* ── Job tab ──────────────────────────────────────────────── */}
                 {rightTab === "job" && tender && (
                   <Box h="100%" overflowY="auto" px={5} py={3}>
@@ -675,26 +793,45 @@ const TenderDetailPage = () => {
 
                 {/* ── Documents tab ────────────────────────────────────────── */}
                 {rightTab === "documents" && (
-                  <>
+                  <Box h="100%" overflow="hidden">
                     {selectedFile ? (
+                      // File is opened in-place (via FileBrowser click OR
+                      // via an older code path) — render the rich FileViewer
+                      // since that's where doc-ref creation against pricing
+                      // rows happens.
                       <FileViewer
                         file={selectedFile}
                         onBack={handleCloseFile}
                         initialPage={selectedFilePage}
                         onPageChange={handlePageChange}
-                      />
-                    ) : tender ? (
-                      <TenderDocuments
-                        tender={tender}
-                        onUpdated={() => refetchTender()}
-                        onFileSelect={(file) => handleOpenFile(file, 1)}
+                        onExpand={() =>
+                          setViewerFile({
+                            enrichedFileId: selectedFile.documentId,
+                            fileName: selectedFile.fileName,
+                            mimetype: selectedFile.mimetype,
+                            page: selectedFilePage,
+                          })
+                        }
                       />
                     ) : (
-                      <Flex h="100%" align="center" justify="center">
-                        <Spinner />
-                      </Flex>
+                      <EntityFileBrowser
+                        namespace="tenders"
+                        entityId={tenderId}
+                        rootLabel="Documents"
+                        onFileClick={(node) => {
+                          // FileViewer now speaks Document shape directly,
+                          // so both migrated and net-new uploads open the
+                          // same in-place viewer + ref-creation workflow.
+                          if (!node.documentId) return;
+                          handleOpenFile({
+                            documentId: node.documentId,
+                            fileName: node.name,
+                            mimetype: node.mimetype ?? undefined,
+                          });
+                        }}
+                      />
                     )}
-                  </>
+                  </Box>
                 )}
 
                 {/* ── Notes tab ────────────────────────────────────────────── */}
@@ -739,8 +876,42 @@ const TenderDetailPage = () => {
                     sheet={sheet}
                   />
                 )}
-              </Box>
+                </Box>
+              </Flex>
             </Flex>
+          )}
+
+          {/* Right: Pricing sheet (now the primary content — main work
+              lives to the right of the reference panel). */}
+          {showLeft && (
+            <Box
+              flex={1}
+              minW={0}
+              overflow="hidden"
+              p={4}
+              borderLeft={panelState === "open" ? "1px solid" : undefined}
+              borderColor="gray.200"
+              display="flex"
+              flexDir="column"
+            >
+              {!initialized ? (
+                <Spinner />
+              ) : sheet ? (
+                <PricingSheet
+                  sheet={sheet}
+                  tenderId={tenderId}
+                  onUpdate={setSheet}
+                  tenderDocuments={tender?.documents ?? []}
+                  activeDocFile={selectedFile?.documentId}
+                  activeDocPage={selectedFilePage}
+                  onDocRefClick={handleDocRefClick}
+                  viewMode={pricingViewMode}
+                  onViewModeChange={setPricingViewMode}
+                />
+              ) : (
+                <Text color="gray.500">Unable to load pricing sheet.</Text>
+              )}
+            </Box>
           )}
         </Flex>
 
@@ -760,6 +931,12 @@ const TenderDetailPage = () => {
             onClick={() => setChatOpen(true)}
           />
         )}
+
+        {/* ── Doc viewer modal — opened by pricing-sheet citation clicks. */}
+        <DocumentViewerModal
+          file={viewerFile}
+          onClose={() => setViewerFile(null)}
+        />
 
         {/* ── Chat drawer ────────────────────────────────────────────────── */}
         <ChatDrawer

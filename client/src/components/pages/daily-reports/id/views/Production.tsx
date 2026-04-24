@@ -1,14 +1,19 @@
 import React from "react";
 
-import { Center, Flex, Heading, IconButton } from "@chakra-ui/react";
+import {
+  Box,
+  Center,
+  Flex,
+  Heading,
+  IconButton,
+  Tooltip,
+} from "@chakra-ui/react";
 import { DailyReportFullSnippetFragment } from "../../../../../generated/graphql";
-import Card from "../../../../Common/Card";
 import { FiPlus, FiX } from "react-icons/fi";
 import ProductionCard from "./ProductionCard";
 import ProductionCreateForm from "./ProductionCreateForm";
 import ShowMore from "../../../../Common/ShowMore";
 import Permission from "../../../../Common/Permission";
-import FormContainer from "../../../../Common/FormContainer";
 
 interface IProduction {
   dailyReport: DailyReportFullSnippetFragment;
@@ -16,43 +21,50 @@ interface IProduction {
 }
 
 const Production = ({ dailyReport, editPermission }: IProduction) => {
-  /**
-   * ----- Hook Initialization -----
-   */
-
   const [addForm, setAddForm] = React.useState(false);
 
-  /**
-   * ----- Rendering -----
-   */
+  const productions = dailyReport.productions;
+  const hasProductions = productions.length > 0;
 
   return (
-    <Card h="fit-content">
-      <Flex flexDir="row" justifyContent="space-between">
-        <Heading my="auto" ml={2} size="md" w="100%">
-          Production ({dailyReport.productions.length || 0})
+    <Box
+      bg="white"
+      borderWidth="1px"
+      borderColor="gray.200"
+      borderRadius="md"
+      p={[3, 4, 5]}
+      h="fit-content"
+    >
+      <Flex justify="space-between" align="center" mb={3}>
+        <Heading size="md" color="green.700">
+          Production
         </Heading>
         <Permission otherCriteria={editPermission}>
-          <IconButton
-            icon={addForm ? <FiX /> : <FiPlus />}
-            aria-label="add"
-            backgroundColor="transparent"
-            onClick={() => setAddForm(!addForm)}
-          />
+          <Tooltip label={addForm ? "Cancel" : "Add production"}>
+            <IconButton
+              icon={addForm ? <FiX /> : <FiPlus />}
+              aria-label={addForm ? "cancel" : "add"}
+              size="sm"
+              variant="ghost"
+              onClick={() => setAddForm(!addForm)}
+            />
+          </Tooltip>
         </Permission>
       </Flex>
+
       {addForm && (
-        <FormContainer>
+        <Box mb={3}>
           <ProductionCreateForm
             dailyReport={dailyReport}
             closeForm={() => setAddForm(false)}
           />
-        </FormContainer>
+        </Box>
       )}
-      <Flex flexDir="column" w="100%" px={4} py={2}>
-        {dailyReport.productions.length > 0 ? (
+
+      <Flex flexDir="column" w="100%">
+        {hasProductions ? (
           <ShowMore
-            list={dailyReport.productions.map((production) => (
+            list={productions.map((production) => (
               <ProductionCard
                 production={production}
                 dailyReportDate={dailyReport.date}
@@ -62,10 +74,12 @@ const Production = ({ dailyReport, editPermission }: IProduction) => {
             ))}
           />
         ) : (
-          <Center>No Production</Center>
+          <Center py={4} color="gray.400" fontSize="sm">
+            No production logged
+          </Center>
         )}
       </Flex>
-    </Card>
+    </Box>
   );
 };
 

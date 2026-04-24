@@ -6,14 +6,61 @@ import {
   ModalHeader,
   ModalBody,
   ModalCloseButton,
-  Box,
   Button,
   Flex,
+  IconButton,
+  Spinner,
   Text,
+  Tooltip,
 } from "@chakra-ui/react";
-import { FiExternalLink } from "react-icons/fi";
+import { FiExternalLink, FiMaximize2, FiMinimize2 } from "react-icons/fi";
 import dynamic from "next/dynamic";
+import { gql, useQuery } from "@apollo/client";
 import { localStorageTokenKey } from "../../contexts/Auth";
+
+/**
+ * Fallback lookup when a caller opens the viewer with just an id and no
+ * mimetype. Also pulls size + originalFilename so the header can always
+ * surface them — callers rarely know size upfront.
+ */
+const DOCUMENT_VIEWER_META_QUERY = gql`
+  query DocumentViewerMeta($id: ID!) {
+    document(id: $id) {
+      _id
+      currentFile {
+        _id
+        mimetype
+        originalFilename
+        size
+      }
+    }
+  }
+`;
+
+/** Human-readable byte size (e.g. "124 KB", "2.3 MB"). */
+function formatFileSize(bytes?: number | null): string | null {
+  if (bytes == null || Number.isNaN(bytes)) return null;
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KB", "MB", "GB", "TB"];
+  let value = bytes / 1024;
+  let unitIdx = 0;
+  while (value >= 1024 && unitIdx < units.length - 1) {
+    value /= 1024;
+    unitIdx++;
+  }
+  return `${value.toFixed(value < 10 ? 1 : 0)} ${units[unitIdx]}`;
+}
+
+/** Friendly short label for a mimetype (e.g. "PDF", "PNG", "XLSX"). */
+function friendlyMimetype(mimetype?: string): string | null {
+  if (!mimetype) return null;
+  const tail = mimetype.split("/").pop() ?? mimetype;
+  // Strip common prefixes that aren't useful to a user ("vnd.ms-excel" → "excel").
+  return tail
+    .replace(/^vnd\.(openxmlformats-officedocument\.)?/, "")
+    .replace(/^(spreadsheetml|wordprocessingml|presentationml)\./, "")
+    .toUpperCase();
+}
 
 const PdfViewer = dynamic(
   () => import("../TenderPricing/PdfViewer"),
@@ -32,26 +79,28 @@ interface DocumentViewerModalProps {
   onClose: () => void;
 }
 
-function buildStreamUrl(fileId: string): string {
+function buildStreamUrl(fileId: string, fileName?: string): string {
   const token =
     typeof window !== "undefined" ? localStorage.getItem(localStorageTokenKey) : null;
   const params = new URLSearchParams();
   if (token) params.set("token", token);
   params.set("stream", "1");
-  return `/api/enriched-files/${fileId}?${params.toString()}`;
+  if (fileName) params.set("filename", fileName);
+  return `/api/documents/${fileId}?${params.toString()}`;
 }
 
-function buildDownloadUrl(fileId: string): string {
+function buildDownloadUrl(fileId: string, fileName?: string): string {
   const token =
     typeof window !== "undefined" ? localStorage.getItem(localStorageTokenKey) : null;
   const params = new URLSearchParams();
   if (token) params.set("token", token);
+  if (fileName) params.set("filename", fileName);
   const qs = params.toString();
-  return `/api/enriched-files/${fileId}${qs ? `?${qs}` : ""}`;
+  return `/api/documents/${fileId}${qs ? `?${qs}` : ""}`;
 }
 
 function isPdf(mimetype?: string): boolean {
-  return mimetype === "application/pdf" || mimetype === undefined;
+  return mimetype === "application/pdf";
 }
 
 function isImage(mimetype?: string): boolean {
@@ -59,31 +108,152 @@ function isImage(mimetype?: string): boolean {
 }
 
 const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({ file, onClose }) => {
+  const [fullscreen, setFullscreen] = React.useState(false);
+  // Reset fullscreen state when the modal's file changes (opens fresh /
+  // closes). Avoids carrying state across unrelated opens.
+  React.useEffect(() => {
+    if (!file) setFullscreen(false);
+  }, [file]);
+
+  // Always fetch so we can surface size + filename + mimetype in the
+  // header. Cached after the first lookup per documentId so it's cheap.
+  const lookupQuery = useQuery<{
+    document: {
+      _id: string;
+      currentFile: {
+        _id: string;
+        mimetype?: string | null;
+        originalFilename?: string | null;
+        size?: number | null;
+      } | null;
+    } | null;
+  }>(DOCUMENT_VIEWER_META_QUERY, {
+    variables: { id: file?.enrichedFileId ?? "" },
+    skip: !file,
+  });
+
   if (!file) return null;
 
-  const title = file.fileName ?? "Document";
+  const currentFile = lookupQuery.data?.document?.currentFile;
+  const resolvedMimetype =
+    file.mimetype ?? currentFile?.mimetype ?? undefined;
+  const originalFilename = currentFile?.originalFilename ?? undefined;
+  const resolvedSize = currentFile?.size ?? null;
+
+  // Title prefers the caller-provided label (usually something
+  // human-meaningful like "ACME Supply #12345"), falling back to the
+  // actual filename. When both are available and distinct, the filename
+  // surfaces in the metadata row below — see below.
+  const title = file.fileName ?? originalFilename ?? "Document";
+  const showFilenameInMeta =
+    !!originalFilename && originalFilename !== title;
+  // What to send to the stream/download endpoint as the Content-
+  // Disposition filename. Prefer the real originalFilename so the
+  // browser saves with a sensible name; fall back to the title.
+  const downloadFileName = originalFilename ?? file.fileName;
+  const sizeLabel = formatFileSize(resolvedSize);
+  const typeLabel = friendlyMimetype(resolvedMimetype);
+  const lookupPending =
+    !file.mimetype && lookupQuery.loading && !lookupQuery.data;
 
   return (
-    <Modal isOpen={!!file} onClose={onClose} size="6xl" isCentered>
+    <Modal
+      isOpen={!!file}
+      onClose={onClose}
+      size={fullscreen ? "full" : "6xl"}
+      isCentered={!fullscreen}
+    >
       <ModalOverlay bg="blackAlpha.700" />
-      <ModalContent h="85vh" maxH="85vh" display="flex" flexDir="column">
-        <ModalHeader fontSize="md" py={3} pr={12} borderBottom="1px solid" borderColor="gray.200">
-          {title}
-          {file.page && <Text as="span" color="gray.500" fontWeight="normal" ml={2}>p. {file.page}</Text>}
+      <ModalContent
+        h={fullscreen ? "100vh" : "85vh"}
+        maxH={fullscreen ? "100vh" : "85vh"}
+        m={fullscreen ? 0 : undefined}
+        borderRadius={fullscreen ? 0 : undefined}
+        display="flex"
+        flexDir="column"
+      >
+        <ModalHeader
+          fontSize="md"
+          py={3}
+          pr={20}
+          borderBottom="1px solid"
+          borderColor="gray.200"
+        >
+          <Text isTruncated lineHeight={1.2}>
+            {title}
+            {file.page && (
+              <Text
+                as="span"
+                color="gray.500"
+                fontWeight="normal"
+                ml={2}
+              >
+                p. {file.page}
+              </Text>
+            )}
+          </Text>
+          {/* Metadata row — filename (when distinct from the title),
+              type badge, and size. Muted so it doesn't compete with
+              the title above. */}
+          {(showFilenameInMeta || sizeLabel || typeLabel) && (
+            <Flex
+              gap={2}
+              mt={1}
+              align="center"
+              fontSize="xs"
+              fontWeight="normal"
+              color="gray.500"
+              flexWrap="wrap"
+            >
+              {typeLabel && (
+                <Text
+                  px={1.5}
+                  py={0.5}
+                  bg="gray.100"
+                  borderRadius="sm"
+                  letterSpacing="wide"
+                >
+                  {typeLabel}
+                </Text>
+              )}
+              {showFilenameInMeta && (
+                <Text isTruncated maxW="50ch" title={originalFilename}>
+                  {originalFilename}
+                </Text>
+              )}
+              {sizeLabel && <Text>{sizeLabel}</Text>}
+            </Flex>
+          )}
         </ModalHeader>
+        <Tooltip label={fullscreen ? "Exit full screen" : "Full screen"}>
+          <IconButton
+            aria-label={fullscreen ? "Exit full screen" : "Full screen"}
+            icon={fullscreen ? <FiMinimize2 size={14} /> : <FiMaximize2 size={14} />}
+            size="sm"
+            variant="ghost"
+            position="absolute"
+            top={2}
+            right={14}
+            onClick={() => setFullscreen((v) => !v)}
+          />
+        </Tooltip>
         <ModalCloseButton />
         <ModalBody flex={1} p={0} overflow="hidden">
-          {isPdf(file.mimetype) ? (
+          {lookupPending ? (
+            <Flex h="100%" align="center" justify="center">
+              <Spinner />
+            </Flex>
+          ) : isPdf(resolvedMimetype) ? (
             <PdfViewer
-              url={buildStreamUrl(file.enrichedFileId)}
+              url={buildStreamUrl(file.enrichedFileId, downloadFileName)}
               fileName={title}
               initialPage={file.page}
             />
-          ) : isImage(file.mimetype) ? (
+          ) : isImage(resolvedMimetype) ? (
             <Flex h="100%" align="center" justify="center" p={4} overflow="auto">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={buildDownloadUrl(file.enrichedFileId)}
+                src={buildDownloadUrl(file.enrichedFileId, downloadFileName)}
                 alt={title}
                 style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
               />
@@ -93,7 +263,7 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({ file, onClose
               <Text color="gray.500">Preview not available for this file type</Text>
               <Button
                 as="a"
-                href={buildDownloadUrl(file.enrichedFileId)}
+                href={buildDownloadUrl(file.enrichedFileId, downloadFileName)}
                 target="_blank"
                 rel="noopener noreferrer"
                 leftIcon={<FiExternalLink />}

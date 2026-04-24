@@ -1,4 +1,4 @@
-import { Heading, useMediaQuery } from "@chakra-ui/react";
+import { useMediaQuery } from "@chakra-ui/react";
 import { GetServerSideProps } from "next";
 import Breadcrumbs from "../../components/Common/Breadcrumbs";
 import ClientOnly from "../../components/Common/ClientOnly";
@@ -28,9 +28,8 @@ const DailyReport: PageDailyReportSsrComp = ({ data }) => {
           },
         ]}
       />
-      <Heading>{data?.dailyReport.crew.name}</Heading>
       <ClientOnly>
-        <DailyReportClientContent id={data?.dailyReport._id!} showFloatingChat />
+        <DailyReportClientContent id={data?.dailyReport._id!} />
       </ClientOnly>
     </Container>
   );

@@ -3,12 +3,18 @@ import { Box, BoxProps, Divider, Flex, useStyleConfig } from "@chakra-ui/react";
 
 export interface ICard extends BoxProps {
   size?: "md";
-  variant?: "full";
+  variant?: "full" | "flat";
   heading?: React.ReactNode;
 }
 
-const Card: React.FC<ICard> = ({ size, children, heading, ...props }) => {
-  const styles = useStyleConfig("Card", { size });
+const Card: React.FC<ICard> = ({
+  size,
+  variant,
+  children,
+  heading,
+  ...props
+}) => {
+  const styles = useStyleConfig("Card", { size, variant });
 
   return (
     <Box sx={styles} {...props}>

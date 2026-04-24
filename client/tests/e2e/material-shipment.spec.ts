@@ -154,7 +154,7 @@ test.describe("Delivered scenario submission", () => {
     await quantityInput.fill("5");
 
     // Submit
-    await page.getByRole("button", { name: "Submit" }).click();
+    await page.getByRole("button", { name: /save shipments/i }).click();
 
     // Success toast
     await expect(page.getByText("Successfully added material shipments")).toBeVisible({
@@ -174,7 +174,7 @@ test.describe("Delivered scenario submission", () => {
     // so we need an actual empty string to trigger the validation error.
     await page.getByLabel("Quantity").first().clear();
 
-    await page.getByRole("button", { name: "Submit" }).click();
+    await page.getByRole("button", { name: /save shipments/i }).click();
 
     await expect(page.getByText(/please provide a quantity/i)).toBeVisible();
   });
@@ -209,7 +209,7 @@ test.describe("Pickup scenario submission", () => {
     await page.getByLabel("Vehicle Code").fill("TEST-001");
 
     // Submit
-    await page.getByRole("button", { name: "Submit" }).click();
+    await page.getByRole("button", { name: /save shipments/i }).click();
 
     await expect(page.getByText("Successfully added material shipments")).toBeVisible({
       timeout: 10_000,
@@ -227,7 +227,7 @@ test.describe("Pickup scenario submission", () => {
     // Fill quantity but leave vehicle fields empty
     await page.getByLabel("Quantity").first().fill("10");
 
-    await page.getByRole("button", { name: "Submit" }).click();
+    await page.getByRole("button", { name: /save shipments/i }).click();
 
     await expect(
       page.getByText(/please provide a vehicle source/i)
@@ -237,6 +237,27 @@ test.describe("Pickup scenario submission", () => {
     ).toBeVisible();
     await expect(
       page.getByText(/please provide a vehicle code/i)
+    ).toBeVisible();
+  });
+});
+
+// ── Edit existing shipment ────────────────────────────────────────────────────
+
+test.describe("Material Shipments — edit form", () => {
+  test.beforeEach(async ({ page }) => {
+    await goDailyReport(page);
+  });
+
+  test("opens edit form with Save changes button", async ({ page }) => {
+    // Scope to the Material Shipments section card — avoids the
+    // page-header "Edit" button.
+    const section = page
+      .getByRole("heading", { name: /material shipments/i })
+      .locator("../..");
+    await section.getByRole("button", { name: "edit" }).first().click();
+
+    await expect(
+      page.getByRole("button", { name: /save changes/i })
     ).toBeVisible();
   });
 });

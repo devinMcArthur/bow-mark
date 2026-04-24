@@ -847,7 +847,7 @@ const ChatPage = ({
         )}
         <Flex
           direction="column"
-          w="240px"
+          w="200px"
           flexShrink={0}
           bg="white"
           borderRight="1px solid"
@@ -1077,7 +1077,7 @@ const ChatPage = ({
                         sendMessage(input);
                       }
                     }}
-                    placeholder="Ask about jobsite performance, revenue, productivity..."
+                    placeholder="Ask a question..."
                     size="md"
                     bg="gray.50"
                     border="1px solid"

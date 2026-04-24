@@ -66,22 +66,39 @@ const removeFile = (name: string) => {
   });
 };
 
-const getFileSignedUrl = async (name: string) => {
+interface SignedUrlOptions {
+  /** Filename to present to the browser's Save-As dialog. */
+  downloadFilename?: string;
+  /** "inline" (render in browser) or "attachment" (force download). Defaults to inline. */
+  disposition?: "inline" | "attachment";
+}
+
+const getFileSignedUrl = async (name: string, opts: SignedUrlOptions = {}) => {
   return new Promise((resolve, reject) => {
     if (!process.env.SPACES_NAME) reject(new Error("Must provide SPACES_NAME"));
 
-    client().getSignedUrl(
-      "getObject",
-      {
-        Bucket: process.env.SPACES_NAME || "",
-        Key: name,
-        Expires: 6000,
-      },
-      (err, data) => {
-        if (err) reject(err);
-        else resolve(data);
-      }
-    );
+    const params: AWS.S3.GetObjectRequest & {
+      Expires: number;
+      ResponseContentDisposition?: string;
+    } = {
+      Bucket: process.env.SPACES_NAME || "",
+      Key: name,
+      Expires: 6000,
+    };
+
+    if (opts.downloadFilename) {
+      // RFC 5987 escaping for non-ASCII chars. Also duplicate quotes.
+      const safe = opts.downloadFilename.replace(/"/g, "");
+      const encoded = encodeURIComponent(opts.downloadFilename);
+      const disposition = opts.disposition ?? "inline";
+      params.ResponseContentDisposition =
+        `${disposition}; filename="${safe}"; filename*=UTF-8''${encoded}`;
+    }
+
+    client().getSignedUrl("getObject", params, (err, data) => {
+      if (err) reject(err);
+      else resolve(data);
+    });
   });
 };
 
