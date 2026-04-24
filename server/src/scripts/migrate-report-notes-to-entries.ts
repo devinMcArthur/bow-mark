@@ -3,11 +3,19 @@ import "dotenv/config";
 import { DailyReport, DailyReportEntry, ReportNote } from "@models";
 
 /**
- * Turn existing ReportNote.note strings into DailyReportEntry rows so
- * the new journal timeline surfaces historical foreman notes without
- * losing any context. The source ReportNote.note field is intentionally
- * left untouched — this migration is additive. ReportNote.files were
- * already ported into the FileNode tree by migrate-file-system/06.
+ * Turn existing ReportNote rows into DailyReportEntry rows so the new
+ * journal timeline surfaces historical foreman notes and photos without
+ * losing any context. The source ReportNote fields are intentionally
+ * left untouched — this migration is additive.
+ *
+ * What gets migrated:
+ *   - ReportNote.note  → DailyReportEntry.text  (when non-empty)
+ *   - ReportNote.files → DailyReportEntry.documentIds  (File._id === Document._id,
+ *     per the Document upsert key used in migrate-file-system/06-reportNotes.ts)
+ *
+ * Notes with ONLY images (no text) still get a DailyReportEntry so that
+ * photos surface in the timeline regardless of whether a text note was
+ * written alongside them.
  *
  * We iterate DailyReports and follow their `reportNote` pointer rather
  * than the other way around: the back-reference from ReportNote to
@@ -16,7 +24,9 @@ import { DailyReport, DailyReportEntry, ReportNote } from "@models";
  * DailyReport → ReportNote is the canonical direction.
  *
  * Idempotency: the created entry reuses the ReportNote._id as its own
- * _id, so re-runs upsert instead of duplicating. Safe to run repeatedly.
+ * _id, so re-runs upsert instead of duplicating. If an entry already
+ * exists with empty documentIds but the source note had files, the entry
+ * is updated to link the documents. Safe to run repeatedly.
  *
  * Usage:
  *   ts-node src/scripts/migrate-report-notes-to-entries.ts [--dry-run]
@@ -25,9 +35,10 @@ import { DailyReport, DailyReportEntry, ReportNote } from "@models";
 interface MigrationReport {
   scannedDailyReports: number;
   entriesCreated: number;
+  entriesUpdated: number;
   entriesAlreadyExisted: number;
   skippedNoReportNote: number;
-  skippedEmptyText: number;
+  skippedNothingToMigrate: number;
   skippedMissingReportNote: number;
   errors: Array<{ dailyReportId: string; message: string }>;
 }
@@ -38,16 +49,14 @@ export async function migrateReportNotesToEntries(opts: {
   const report: MigrationReport = {
     scannedDailyReports: 0,
     entriesCreated: 0,
+    entriesUpdated: 0,
     entriesAlreadyExisted: 0,
     skippedNoReportNote: 0,
-    skippedEmptyText: 0,
+    skippedNothingToMigrate: 0,
     skippedMissingReportNote: 0,
     errors: [],
   };
 
-  // Stream DailyReports — the canonical side of the link. Only materialize
-  // the small subset of fields we need to keep the cursor cheap on large
-  // collections.
   const cursor = DailyReport.find(
     { reportNote: { $exists: true, $ne: null } },
     { _id: 1, reportNote: 1 }
@@ -65,42 +74,51 @@ export async function migrateReportNotesToEntries(opts: {
         continue;
       }
 
-      // Pull just `note` off the ReportNote — files are already in the
-      // FileNode tree thanks to migrate-file-system/06-reportNotes.
       const rn = await ReportNote.findById(reportNoteId, {
         _id: 1,
         note: 1,
+        files: 1,
       }).lean();
       if (!rn) {
-        // Dangling DailyReport.reportNote pointer — the ReportNote
-        // itself has been deleted. Counted but not migrated.
         report.skippedMissingReportNote += 1;
         continue;
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const text = ((rn as any).note as string | undefined)?.trim() ?? "";
-      if (text.length === 0) {
-        report.skippedEmptyText += 1;
+      // File._id === Document._id — 06-reportNotes upserts Documents keyed by file._id.
+      const documentIds = (
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ((rn as any).files ?? []) as mongoose.Types.ObjectId[]
+      ).filter(Boolean);
+
+      if (text.length === 0 && documentIds.length === 0) {
+        report.skippedNothingToMigrate += 1;
         continue;
       }
 
-      // Entry._id reuses ReportNote._id — gives us a deterministic,
-      // idempotent key. The two models live in separate collections so
-      // there's no ObjectId collision risk.
       const entryId = rn._id;
 
-      const existing = await DailyReportEntry.exists({ _id: entryId });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const existing = await DailyReportEntry.findById(entryId, { documentIds: 1 }).lean() as any;
       if (existing) {
-        report.entriesAlreadyExisted += 1;
+        const existingDocIds: mongoose.Types.ObjectId[] = existing.documentIds ?? [];
+        if (existingDocIds.length === 0 && documentIds.length > 0) {
+          // Entry was created by an earlier run that didn't link photos — patch it.
+          if (!opts.dryRun) {
+            await DailyReportEntry.updateOne(
+              { _id: entryId },
+              { $set: { documentIds } }
+            );
+          }
+          report.entriesUpdated += 1;
+        } else {
+          report.entriesAlreadyExisted += 1;
+        }
         continue;
       }
 
       if (!opts.dryRun) {
-        // ReportNote's createdAt isn't stored explicitly, but ObjectIds
-        // carry a timestamp in their first 4 bytes — use that as the
-        // entry's createdAt so the timeline orders migrated notes at
-        // roughly the moment they were originally saved.
         const createdAt = new Date(
           parseInt(entryId.toString().substring(0, 8), 16) * 1000
         );
@@ -108,11 +126,8 @@ export async function migrateReportNotesToEntries(opts: {
         await DailyReportEntry.create({
           _id: entryId,
           dailyReportId: dr._id,
-          text,
-          documentIds: [],
-          // createdBy intentionally omitted — no reliable author on the
-          // legacy ReportNote. UI renders these as "Unknown" which is
-          // honest about provenance.
+          ...(text.length > 0 ? { text } : {}),
+          documentIds,
           isIssue: false,
           createdAt,
           updatedAt: createdAt,
@@ -146,7 +161,6 @@ async function main() {
   await mongoose.disconnect();
 }
 
-// Only run when invoked directly, not when imported from a test.
 if (require.main === module) {
   main().catch((err) => {
     console.error(err);
