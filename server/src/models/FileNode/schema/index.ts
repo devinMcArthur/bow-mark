@@ -80,4 +80,10 @@ export class FileNodeSchema {
   @Field()
   @prop({ required: true, default: () => new Date() })
   public updatedAt!: Date;
+
+  // Operational: when this node was created by a migration script, the
+  // orchestrator stamps its run id here so ops can delete-by-run if
+  // rollback is needed. Not exposed via GraphQL (internal ops concern).
+  @prop({ required: false })
+  public migrationRunId?: string;
 }

@@ -44,6 +44,33 @@ export async function moveNodeCore(
   if (dest.deletedAt) throw new Error("Destination parent is trashed");
   if (dest.type !== "folder") throw new Error("Destination parent must be a folder");
 
+  // Reject destinations that would break placement invariants the rest of
+  // the system relies on:
+  //
+  //  - Namespace folders (/tenders, /jobsites, /daily-reports, /system)
+  //    are the direct children of the filesystem root. Entity files
+  //    belong under /<namespace>/<entityId>/, NOT the namespace itself,
+  //    so resolveDocumentsForContext can walk up to the reserved root
+  //    and attribute the document to its entity.
+  //
+  //  - systemManaged folders (e.g. /jobsites/<id>/Invoices/<kind>/) are
+  //    owned by the app — dropping arbitrary files into them pollutes a
+  //    structure that mutations like ensureInvoiceFolder assume is
+  //    pristine.
+  if (dest.isReservedRoot && dest.parentId) {
+    const destParent = await FileNode.findById(dest.parentId)
+      .session(session)
+      .lean();
+    if (destParent && destParent.parentId === null && destParent.name === "/") {
+      throw new Error(
+        "Cannot move directly into a namespace folder — move into a specific entity folder instead"
+      );
+    }
+  }
+  if (dest.systemManaged) {
+    throw new Error("Cannot move into a system-managed folder");
+  }
+
   // Cycle check: is destinationParentId inside the moved subtree?
   if (destinationParentId.toString() === nodeId.toString()) {
     throw new Error("Cannot move a node into itself");

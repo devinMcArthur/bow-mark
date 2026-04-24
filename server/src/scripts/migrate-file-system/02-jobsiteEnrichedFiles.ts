@@ -7,6 +7,7 @@ import {
 } from "@models";
 import { normalizeNodeName } from "@lib/fileTree/reservedRoots";
 import { createEntityRoot } from "@lib/fileTree/createEntityRoot";
+import { roleWeight } from "@graphql/resolvers/fileNode";
 import type { MigrationOptions, MigrationReport } from "./01-enrichedFiles";
 
 /**
@@ -63,7 +64,12 @@ export async function migrateJobsiteEnrichedFiles(
 
         for (const entry of entries) {
           const enrichedFileId = entry.enrichedFile;
-          const minRole = entry.minRole;
+          // Legacy rows mixed string ("ProjectManager") and numeric (2)
+          // minRole values. FileNode.minRole is numeric — normalize
+          // through roleWeight so the $setOnInsert writes a number either
+          // way, instead of CastError-skipping the whole jobsite.
+          const minRole =
+            entry.minRole == null ? undefined : roleWeight(entry.minRole);
           const doc = await DocumentModel.findById(enrichedFileId).lean();
           if (!doc) continue;
           const file = await File.findById(doc.currentFileId).lean();
@@ -85,6 +91,7 @@ export async function migrateJobsiteEnrichedFiles(
                 version: 0,
                 minRole,
                 createdAt: new Date(),
+                ...(opts.runId ? { migrationRunId: opts.runId } : {}),
               },
               $set: { updatedAt: new Date() },
             },

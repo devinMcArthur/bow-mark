@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Button, Stack } from "@chakra-ui/react";
 import { FiChevronDown, FiChevronUp } from "react-icons/fi";
-import { useDailyReportEntriesQuery } from "../../generated/graphql";
+import { UserRoles, useDailyReportEntriesQuery } from "../../generated/graphql";
 import { useAuth } from "../../contexts/Auth";
 import Loading from "../Common/Loading";
 import DailyReportComposer from "./DailyReportComposer";
@@ -47,8 +47,10 @@ const DailyReportTimeline: React.FC<DailyReportTimelineProps> = ({
   });
 
   const entries = data?.dailyReportEntries ?? [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const viewerRole = (user as any)?.role as number | undefined;
+  // UserRoles is a GraphQL string enum (Admin|Developer|ProjectManager|User).
+  // Pass through as-is; DailyReportEntryCard uses hasPermission() to gate
+  // on role weight.
+  const viewerRole = user?.role as UserRoles | undefined;
 
   const [showAll, setShowAll] = React.useState(false);
   const hiddenCount = Math.max(0, entries.length - DEFAULT_VISIBLE);

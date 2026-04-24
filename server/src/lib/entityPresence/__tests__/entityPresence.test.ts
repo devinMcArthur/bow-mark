@@ -73,4 +73,26 @@ describe("entityPresence", () => {
     expect(events).toEqual([]);
     unsub();
   });
+
+  it("subscribers see empty viewer list after TTL expiry without a listPresence call", () => {
+    // Regression for the "TTL never fires without a read" bug. Subscribers
+    // that only listen and never query should still see the transition to
+    // empty once all heartbeats have aged out.
+    const events: string[] = [];
+    const unsub = subscribeToPresence(
+      { entityType: "x", entityId: "y" },
+      (viewers) => events.push(viewers.map((v) => v.userId).join(",") || "(empty)")
+    );
+
+    heartbeat({ entityType: "x", entityId: "y", userId: "u1", activity: "viewing" });
+    expect(events).toEqual(["u1"]);
+
+    // Age past TTL + wait a sweep interval. No listPresence() call.
+    vi.advanceTimersByTime(PRESENCE_TTL_MS + 1);
+    // The sweeper runs on its own schedule — give it a tick.
+    vi.advanceTimersByTime(PRESENCE_TTL_MS);
+
+    expect(events.at(-1)).toBe("(empty)");
+    unsub();
+  });
 });

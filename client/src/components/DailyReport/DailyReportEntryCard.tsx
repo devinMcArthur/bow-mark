@@ -29,10 +29,12 @@ import {
 } from "react-icons/fi";
 import {
   DailyReportEntriesQuery,
+  UserRoles,
   useDeleteDailyReportEntryMutation,
   useUpdateDailyReportEntryMutation,
 } from "../../generated/graphql";
 import { localStorageTokenKey } from "../../contexts/Auth";
+import hasPermission from "../../utils/hasPermission";
 import DocumentViewerModal, {
   DocumentViewerFile,
 } from "../Common/DocumentViewerModal";
@@ -44,7 +46,7 @@ type Entry = DailyReportEntriesQuery["dailyReportEntries"][number];
 interface DailyReportEntryCardProps {
   entry: Entry;
   viewerUserId?: string;
-  viewerRole?: number;
+  viewerRole?: UserRoles;
 }
 
 function buildThumbUrl(documentId: string): string {
@@ -77,7 +79,9 @@ const DailyReportEntryCard: React.FC<DailyReportEntryCardProps> = ({
 
   const authorId = entry.createdByUser?._id;
   const isAuthor = !!authorId && !!viewerUserId && authorId === viewerUserId;
-  const isPmPlus = typeof viewerRole === "number" && viewerRole >= 2;
+  // UserRoles is a string enum — hasPermission compares role weights
+  // (Admin=3, PM=2, User=1, Developer=4). PM or higher can manage.
+  const isPmPlus = hasPermission(viewerRole, UserRoles.ProjectManager);
   const canManage = isAuthor || isPmPlus;
   // Edit is narrower than delete: only the author can rewrite their
   // own words/flag. PMs can still prune via Delete in the same menu.

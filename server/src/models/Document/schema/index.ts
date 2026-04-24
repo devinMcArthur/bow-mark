@@ -32,4 +32,9 @@ export class DocumentSchema {
   @Field()
   @prop({ required: true, default: () => new Date() })
   public updatedAt!: Date;
+
+  // Operational: stamped by migrate-file-system so rollback can
+  // delete-by-run if needed. Not exposed via GraphQL.
+  @prop({ required: false })
+  public migrationRunId?: string;
 }

@@ -19,7 +19,8 @@ interface TenderFileCategory {
 async function ensureFolder(
   parentId: mongoose.Types.ObjectId,
   name: string,
-  sortKey: string
+  sortKey: string,
+  runId?: string
 ): Promise<mongoose.Types.ObjectId> {
   const normalized = normalizeNodeName(name);
   await FileNode.updateOne(
@@ -35,6 +36,7 @@ async function ensureFolder(
         isReservedRoot: false,
         version: 0,
         createdAt: new Date(),
+        ...(runId ? { migrationRunId: runId } : {}),
       },
       $set: { updatedAt: new Date() },
     },
@@ -52,7 +54,8 @@ async function ensureFolder(
 async function placeFile(
   parentId: mongoose.Types.ObjectId,
   documentId: mongoose.Types.ObjectId,
-  baseName: string
+  baseName: string,
+  runId?: string
 ): Promise<"placed" | "skipped-collision"> {
   // Idempotent on {parentId, documentId}: if placement already exists, return early.
   const existing = await FileNode.findOne({ parentId, documentId });
@@ -71,6 +74,7 @@ async function placeFile(
         sortKey: "0000",
         isReservedRoot: false,
         version: 0,
+        ...(runId ? { migrationRunId: runId } : {}),
       });
       return "placed";
     } catch (err) {
@@ -152,7 +156,8 @@ export async function migrateTenderFiles(
           const folderId = await ensureFolder(
             entityRoot._id,
             cat.name,
-            String(cat.order).padStart(4, "0")
+            String(cat.order).padStart(4, "0"),
+            opts.runId
           );
           for (const fileId of cat.fileIds ?? []) {
             categorizedIds.add(fileId.toString());
@@ -161,7 +166,7 @@ export async function migrateTenderFiles(
             const file = await File.findById(doc.currentFileId).lean();
             if (!file) { report.skipped += 1; continue; }
             const baseName = file.originalFilename || file.description || "file";
-            const outcome = await placeFile(folderId, fileId, baseName);
+            const outcome = await placeFile(folderId, fileId, baseName, opts.runId);
             if (outcome === "placed") {
               report.documentsUpserted += 1;
               placementsThisTender += 1;
@@ -206,10 +211,11 @@ export async function migrateTenderFiles(
           const uncatFolderId = await ensureFolder(
             entityRoot._id,
             "Uncategorized",
-            "9999"
+            "9999",
+            opts.runId
           );
           for (const { fileId, baseName } of resolvedUncategorized) {
-            const outcome = await placeFile(uncatFolderId, fileId, baseName);
+            const outcome = await placeFile(uncatFolderId, fileId, baseName, opts.runId);
             if (outcome === "placed") {
               report.documentsUpserted += 1;
               placementsThisTender += 1;

@@ -88,6 +88,7 @@ export default class FileNodeMutationResolver {
    * so entities with no attached files never accumulate empty folders.
    * Safe to call repeatedly — `createEntityRoot` is a get-or-create.
    */
+  @Authorized()
   @Mutation(() => FileNodeSchema)
   async ensureEntityRoot(
     @Arg("namespace") namespace: string,
@@ -139,6 +140,7 @@ export default class FileNodeMutationResolver {
    * and type folders are `systemManaged: true`, so users can't
    * rename/move/trash them out from under the invoice record.
    */
+  @Authorized()
   @Mutation(() => FileNodeSchema)
   async ensureInvoiceFolder(
     @Arg("jobsiteId", () => ID) jobsiteId: string,
@@ -172,6 +174,7 @@ export default class FileNodeMutationResolver {
    * Emits one fileNode.created event per folder actually created (not
    * per existing one).
    */
+  @Authorized()
   @Mutation(() => FileNodeSchema)
   async ensureFolderPath(
     @Arg("rootId", () => ID) rootId: string,
@@ -284,6 +287,7 @@ export default class FileNodeMutationResolver {
     });
   }
 
+  @Authorized()
   @Mutation(() => FileNodeSchema)
   async createFolder(
     @Arg("parentId", () => ID) parentId: string,
@@ -340,6 +344,7 @@ export default class FileNodeMutationResolver {
     });
   }
 
+  @Authorized()
   @Mutation(() => FileNodeSchema)
   async renameNode(
     @Arg("id", () => ID) id: string,
@@ -461,6 +466,7 @@ export default class FileNodeMutationResolver {
     });
   }
 
+  @Authorized()
   @Mutation(() => FileNodeSchema)
   async trashNode(
     @Arg("id", () => ID) id: string,
@@ -579,6 +585,7 @@ export default class FileNodeMutationResolver {
     return result;
   }
 
+  @Authorized()
   @Mutation(() => FileNodeSchema)
   async moveNode(
     @Arg("id", () => ID) id: string,
@@ -642,6 +649,7 @@ export default class FileNodeMutationResolver {
     return updated as FileNodeSchema;
   }
 
+  @Authorized()
   @Mutation(() => FileNodeSchema)
   async restoreNode(
     @Arg("id", () => ID) id: string,
@@ -671,6 +679,16 @@ export default class FileNodeMutationResolver {
       cursorId = (anc.parentId as mongoose.Types.ObjectId) ?? null;
     }
 
+    // Collect documentIds that are about to come back to life — both the
+    // clicked node (if it's a file) and every descendant that was trashed
+    // in the SAME cascade (same deletedAt timestamp). We re-evaluate
+    // their Enrichment state post-commit so any doc that landed in
+    // "orphaned" when its last placement was trashed can transition back.
+    const affectedDocIds: mongoose.Types.ObjectId[] = [];
+    if (node.type === "file" && node.documentId) {
+      affectedDocIds.push(node.documentId as mongoose.Types.ObjectId);
+    }
+
     return eventfulMutation(async (session) => {
       // Sibling-uniqueness guard. The compound unique index is partial on
       // { deletedAt: null } — a trashed node is invisible to the index, so
@@ -696,6 +714,53 @@ export default class FileNodeMutationResolver {
         }
       }
 
+      // Cascade: everything trashed in the same sweep as this node.
+      // trashNode stamps a shared `deletedAt` across root + descendants,
+      // so matching on that timestamp scoped to this subtree restores
+      // exactly what went down together (and nothing trashed later in a
+      // separate operation).
+      if (node.type === "folder") {
+        const cascadeDescendants = await FileNode.aggregate([
+          { $match: { _id: new mongoose.Types.ObjectId(id) } },
+          {
+            $graphLookup: {
+              from: "filenodes",
+              startWith: "$_id",
+              connectFromField: "_id",
+              connectToField: "parentId",
+              as: "desc",
+            },
+          },
+          { $unwind: "$desc" },
+          { $match: { "desc.deletedAt": node.deletedAt } },
+          {
+            $project: {
+              _id: "$desc._id",
+              type: "$desc.type",
+              documentId: "$desc.documentId",
+            },
+          },
+        ]).session(session);
+        const cascadeIds = cascadeDescendants.map(
+          (d: { _id: mongoose.Types.ObjectId }) => d._id
+        );
+        for (const d of cascadeDescendants) {
+          if (d.type === "file" && d.documentId) {
+            affectedDocIds.push(d.documentId as mongoose.Types.ObjectId);
+          }
+        }
+        if (cascadeIds.length > 0) {
+          await FileNode.updateMany(
+            { _id: { $in: cascadeIds } },
+            {
+              $unset: { deletedAt: "", deletedBy: "" },
+              $set: { updatedAt: new Date() },
+            },
+            { session }
+          );
+        }
+      }
+
       const updated = await findOneAndUpdateVersioned(
         FileNode,
         { _id: new mongoose.Types.ObjectId(id) },
@@ -716,6 +781,21 @@ export default class FileNodeMutationResolver {
           : selfEvent,
         cascade: parentId ? [selfEvent] : undefined,
       };
+    }).then(async (result) => {
+      // Post-commit side effect — re-evaluate enrichment for every file
+      // that came back to life. Documents previously stamped "orphaned"
+      // (because their last placement was trashed) get a republished
+      // enrichment job here; the handler's claim predicate uses
+      // processingVersion to fence out stale writes from the prior run.
+      if (affectedDocIds.length > 0) {
+        await reevaluateEnrichmentAfterMove(
+          affectedDocIds,
+          async (docId, fileId) => {
+            await publishEnrichedFileCreated(docId, fileId);
+          }
+        );
+      }
+      return result;
     });
   }
 }

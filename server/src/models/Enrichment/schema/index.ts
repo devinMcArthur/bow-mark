@@ -96,4 +96,9 @@ export class EnrichmentSchema {
   @Field({ nullable: true })
   @prop({ trim: true })
   public documentType?: string;
+
+  // Operational: stamped by migrate-file-system so rollback can
+  // delete-by-run if needed. Not exposed via GraphQL.
+  @prop({ required: false })
+  public migrationRunId?: string;
 }

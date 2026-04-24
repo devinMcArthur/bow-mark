@@ -7,6 +7,7 @@ import {
 } from "@models";
 import { normalizeNodeName } from "@lib/fileTree/reservedRoots";
 import { createEntityRoot } from "@lib/fileTree/createEntityRoot";
+import { roleWeight } from "@graphql/resolvers/fileNode";
 import type { MigrationOptions, MigrationReport } from "./01-enrichedFiles";
 
 /**
@@ -83,6 +84,7 @@ export async function migrateJobsiteFileObjects(
                 currentFileId: file._id,
                 enrichmentLocked: false,
                 createdAt: new Date(),
+                ...(opts.runId ? { migrationRunId: opts.runId } : {}),
               },
               $set: { updatedAt: new Date() },
             },
@@ -91,6 +93,12 @@ export async function migrateJobsiteFileObjects(
           report.documentsUpserted += 1;
 
           const name = file.originalFilename || file.description || "file";
+          // Legacy Jobsite.fileObjects[].minRole was typed `string` (e.g.
+          // "ProjectManager"). FileNode.minRole is numeric — route through
+          // roleWeight so the placement writes an integer either way,
+          // instead of CastError-skipping the row.
+          const minRole =
+            entry.minRole == null ? undefined : roleWeight(entry.minRole);
           await FileNode.updateOne(
             { parentId: entityRoot._id, documentId: entry._id },
             {
@@ -104,8 +112,9 @@ export async function migrateJobsiteFileObjects(
                 sortKey: "0000",
                 isReservedRoot: false,
                 version: 0,
-                minRole: entry.minRole,
+                minRole,
                 createdAt: new Date(),
+                ...(opts.runId ? { migrationRunId: opts.runId } : {}),
               },
               $set: { updatedAt: new Date() },
             },

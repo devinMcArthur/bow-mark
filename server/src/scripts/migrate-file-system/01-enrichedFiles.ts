@@ -7,6 +7,9 @@ import {
 
 export interface MigrationOptions {
   dryRun: boolean;
+  /** Tag every new Document/Enrichment/FileNode row with this id so ops
+   *  can rollback a specific run via `deleteMany({ migrationRunId })`. */
+  runId?: string;
 }
 
 export interface MigrationReport {
@@ -73,6 +76,7 @@ export async function migrateEnrichedFiles(
               enrichmentLocked: false,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               createdAt: (ef as any).createdAt ?? new Date(),
+              ...(opts.runId ? { migrationRunId: opts.runId } : {}),
             },
             $set: {
               updatedAt: new Date(),
@@ -102,6 +106,7 @@ export async function migrateEnrichedFiles(
               summary: efAny.summary,
               documentType: efAny.documentType,
               summaryProgress: efAny.summaryProgress,
+              ...(opts.runId ? { migrationRunId: opts.runId } : {}),
             },
           },
           { upsert: true }

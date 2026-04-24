@@ -1,5 +1,6 @@
 import type { Types } from "mongoose";
 import { DomainEvent, DomainEventDocument } from "@models";
+import { createBoundedQueue } from "./boundedQueue";
 
 export interface WatchDomainEventsFilter {
   type?: string;
@@ -13,7 +14,17 @@ export interface WatchDomainEventsFilter {
 export interface WatchDomainEventsHandle {
   iterator: AsyncIterable<DomainEventDocument>;
   close: () => void;
+  /** Number of events dropped due to queue backpressure since the
+   *  watcher opened. Non-zero means a slow consumer missed updates
+   *  and should refetch to reconcile. */
+  droppedCount: () => number;
 }
+
+// Cap live-tail queue growth so a stalled subscriber can't OOM the pod.
+// Each entry holds a full Mongoose document (fullDocument: updateLookup),
+// so this is sized conservatively — 1000 x ~5KB doc ≈ 5MB ceiling per
+// watcher. Tuned by eyeball; raise if we need more headroom.
+const MAX_QUEUE_SIZE = 1000;
 
 /**
  * Tail new DomainEvents via MongoDB change streams, applying a server-side
@@ -56,8 +67,9 @@ export function watchDomainEvents(
   };
 
   // Mongoose 5 ChangeStream is EventEmitter-based, not AsyncIterable.
-  // Bridge to AsyncIterable via a queue + resolver.
-  const queue: DomainEventDocument[] = [];
+  // Bridge to AsyncIterable via a bounded queue + resolver. The bounded
+  // queue drops oldest on overflow — see boundedQueue.ts for rationale.
+  const queue = createBoundedQueue<DomainEventDocument>(MAX_QUEUE_SIZE);
   let resolveNext: ((v: IteratorResult<DomainEventDocument>) => void) | null = null;
 
   const pushResult = (value: IteratorResult<DomainEventDocument>) => {
@@ -88,13 +100,13 @@ export function watchDomainEvents(
     [Symbol.asyncIterator](): AsyncIterator<DomainEventDocument> {
       return {
         next(): Promise<IteratorResult<DomainEventDocument>> {
-          if (closed && queue.length === 0) {
+          if (closed && queue.size === 0) {
             return Promise.resolve({
               value: undefined as unknown as DomainEventDocument,
               done: true,
             });
           }
-          if (queue.length > 0) {
+          if (queue.size > 0) {
             return Promise.resolve({ value: queue.shift()!, done: false });
           }
           return new Promise((resolve) => {
@@ -112,5 +124,5 @@ export function watchDomainEvents(
     },
   };
 
-  return { iterator, close };
+  return { iterator, close, droppedCount: () => queue.droppedCount };
 }

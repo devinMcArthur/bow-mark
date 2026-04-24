@@ -78,6 +78,7 @@ export async function migrateSystemSpecFiles(
               isReservedRoot: false,
               version: 0,
               createdAt: new Date(),
+              ...(opts.runId ? { migrationRunId: opts.runId } : {}),
             },
             $set: { updatedAt: new Date() },
           },

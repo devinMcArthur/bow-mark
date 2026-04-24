@@ -97,16 +97,23 @@ const DailyReportComposer: React.FC<DailyReportComposerProps> = ({
     awaitRefetchQueries: true,
   });
 
-  // Revoke object URLs on unmount + when attachments change so we don't
-  // leak memory. Each preview URL is held only as long as the attachment
-  // stays in the composer.
+  // Revoke object URLs on unmount so we don't leak memory. The cleanup
+  // reads from a ref that's kept in sync on every render — using
+  // `attachments` directly would freeze at the first-render value
+  // (`[]`), meaning we'd revoke nothing on unmount when the user had
+  // queued files but navigated away.
+  const attachmentsRef = React.useRef(attachments);
+  React.useEffect(() => {
+    attachmentsRef.current = attachments;
+  }, [attachments]);
   React.useEffect(() => {
     return () => {
-      attachments.forEach((a) => URL.revokeObjectURL(a.previewUrl));
+      attachmentsRef.current.forEach((a) =>
+        URL.revokeObjectURL(a.previewUrl)
+      );
     };
     // Deliberately only on unmount — individual URLs are revoked in
     // removeAttachment when the user drops them from the list.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const pickFiles = () => fileInputRef.current?.click();

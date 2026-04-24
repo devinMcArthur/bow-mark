@@ -18,11 +18,18 @@ describe("migrateReportNotes", () => {
   it("creates Documents and placements under /daily-reports/<id>/ for ReportNote.files entries", async () => {
     const dailyReport = await DailyReport.findOne();
     const file = await File.create({ mimetype: "image/jpeg", originalFilename: "photo.jpg" });
-    await ReportNote.create({
+    const note = await ReportNote.create({
       note: "sample note",
       files: [file._id],
       dailyReport: dailyReport!._id,
     });
+    // Migration iterates DailyReport.find({ reportNote: { $exists } }) and
+    // follows the forward ref — the back-ref on ReportNote alone isn't
+    // enough to make the pair visible.
+    await DailyReport.updateOne(
+      { _id: dailyReport!._id },
+      { $set: { reportNote: note._id } }
+    );
 
     await migrateReportNotes({ dryRun: false });
 
@@ -46,11 +53,15 @@ describe("migrateReportNotes", () => {
   it("is idempotent", async () => {
     const dailyReport = await DailyReport.findOne();
     const file = await File.create({ mimetype: "image/png", originalFilename: "p.png" });
-    await ReportNote.create({
+    const note = await ReportNote.create({
       note: "another",
       files: [file._id],
       dailyReport: dailyReport!._id,
     });
+    await DailyReport.updateOne(
+      { _id: dailyReport!._id },
+      { $set: { reportNote: note._id } }
+    );
 
     await migrateReportNotes({ dryRun: false });
     await migrateReportNotes({ dryRun: false });

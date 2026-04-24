@@ -13,7 +13,8 @@ import type { MigrationOptions, MigrationReport } from "./01-enrichedFiles";
 async function placeFile(
   parentId: mongoose.Types.ObjectId,
   documentId: mongoose.Types.ObjectId,
-  baseName: string
+  baseName: string,
+  runId?: string
 ): Promise<"placed" | "skipped-collision"> {
   // Idempotent on {parentId, documentId}: if placement already exists, return early.
   const existing = await FileNode.findOne({ parentId, documentId });
@@ -32,6 +33,7 @@ async function placeFile(
         sortKey: "0000",
         isReservedRoot: false,
         version: 0,
+        ...(runId ? { migrationRunId: runId } : {}),
       });
       return "placed";
     } catch (err) {
@@ -125,6 +127,7 @@ export async function migrateReportNotes(
                 currentFileId: file._id,
                 enrichmentLocked: false,
                 createdAt: new Date(),
+                ...(opts.runId ? { migrationRunId: opts.runId } : {}),
               },
               $set: { updatedAt: new Date() },
             },
@@ -133,7 +136,12 @@ export async function migrateReportNotes(
           report.documentsUpserted += 1;
 
           const baseName = file.originalFilename || file.description || "file";
-          const outcome = await placeFile(entityRoot._id, file._id, baseName);
+          const outcome = await placeFile(
+            entityRoot._id,
+            file._id,
+            baseName,
+            opts.runId
+          );
           if (outcome !== "placed") {
             report.errors.push({
               enrichedFileId: file._id.toString(),

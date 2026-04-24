@@ -9,6 +9,7 @@ import {
   Root,
   Subscription,
 } from "type-graphql";
+import mongoose from "mongoose";
 import type { IContext } from "@typescript/graphql";
 import {
   heartbeat,
@@ -16,6 +17,18 @@ import {
   subscribeToPresence,
   type PresenceEntry,
 } from "@lib/entityPresence";
+
+// Mirrors domainEvent resolver — narrow allow-list of entity types that
+// can have a viewer list. Keeps probe surface small; per-entity read
+// ACL can follow up once we have a unified permission check.
+const ALLOWED_PRESENCE_ENTITY_TYPES = new Set([
+  "FileNode",
+  "Tender",
+  "Jobsite",
+  "DailyReport",
+  "Invoice",
+  "Company",
+]);
 
 @ObjectType("PresenceViewer")
 class PresenceViewerGql {
@@ -41,6 +54,8 @@ export default class EntityPresenceResolver {
   ): Promise<boolean> {
     if (!user) return false;
     if (activity !== "viewing" && activity !== "editing") return false;
+    if (!ALLOWED_PRESENCE_ENTITY_TYPES.has(entityType)) return false;
+    if (!mongoose.isValidObjectId(entityId)) return false;
     heartbeat({
       entityType,
       entityId,
@@ -50,6 +65,7 @@ export default class EntityPresenceResolver {
     return true;
   }
 
+  @Authorized()
   @Subscription(() => [PresenceViewerGql], {
     subscribe: (_root, args: { entityType: string; entityId: string }) =>
       subscribePresence(args.entityType, args.entityId),
@@ -71,6 +87,12 @@ async function* subscribePresence(
   entityType: string,
   entityId: string
 ): AsyncGenerator<PresenceEntry[]> {
+  if (!ALLOWED_PRESENCE_ENTITY_TYPES.has(entityType)) {
+    throw new Error(`entityType not subscribable: ${entityType}`);
+  }
+  if (!mongoose.isValidObjectId(entityId)) {
+    throw new Error("Invalid entityId");
+  }
   // Emit the current roster immediately so new subscribers don't have
   // to wait for the next heartbeat to see who's there.
   yield listPresence({ entityType, entityId });

@@ -1,6 +1,12 @@
 import { prop } from "@typegoose/typegoose";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { Field, ID, ObjectType } from "type-graphql";
+
+// Typegoose can't infer Mongoose types from TS-only `Types.ObjectId` — it
+// silently falls back to "Mixed", which disables string→ObjectId casting
+// and breaks populate. Declare the runtime type explicitly for every
+// ObjectId-valued field below.
+const ObjectIdType = mongoose.Schema.Types.ObjectId;
 
 @ObjectType()
 export class DomainEventPatchOpClass {
@@ -38,7 +44,7 @@ export class DomainEventRelatedEntityClass {
   public entityType!: string;
 
   @Field(() => ID)
-  @prop({ required: true })
+  @prop({ type: ObjectIdType, required: true })
   public entityId!: Types.ObjectId;
 
   @Field()
@@ -64,11 +70,11 @@ export class DomainEventSchema {
   public actorKind!: "user" | "ai" | "system";
 
   @Field(() => ID, { nullable: true })
-  @prop({ required: false })
+  @prop({ type: ObjectIdType, required: false })
   public actorId?: Types.ObjectId;
 
   @Field(() => ID, { nullable: true })
-  @prop({ required: false })
+  @prop({ type: ObjectIdType, required: false })
   public onBehalfOf?: Types.ObjectId;
 
   @Field()
@@ -76,7 +82,7 @@ export class DomainEventSchema {
   public entityType!: string;
 
   @Field(() => ID)
-  @prop({ required: true })
+  @prop({ type: ObjectIdType, required: true })
   public entityId!: Types.ObjectId;
 
   @Field(() => [DomainEventRelatedEntityClass], { nullable: true })
@@ -112,7 +118,7 @@ export class DomainEventSchema {
   public correlationId?: string;
 
   @Field(() => ID, { nullable: true })
-  @prop({ required: false })
+  @prop({ type: ObjectIdType, required: false })
   public causedByEventId?: Types.ObjectId;
 
   @Field({ nullable: true })

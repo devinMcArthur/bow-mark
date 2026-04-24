@@ -25,8 +25,15 @@ import { eventfulMutation } from "@lib/eventfulMutation";
 import { getRequestContext } from "@lib/requestContext";
 import { shouldEnrichNow } from "@lib/enrichmentPolicy";
 import { uploadFile } from "@utils/fileStorage";
-import getBuffer from "@utils/getBuffer";
+import getBuffer, { PayloadTooLargeError } from "@utils/getBuffer";
 import { publishEnrichedFileCreated } from "../../../rabbitmq/publisher";
+
+// Hard cap on a single uploadDocument payload. 250MB matches the
+// client-side pre-check (see MAX_FILE_BYTES in FileBrowser); keeping
+// them in sync avoids a user-hostile "looked fine in the browser, 500'd
+// on the server" experience. The client check is UX; this is the real
+// wall against burst / malicious / bugged callers that bypass the UI.
+const MAX_UPLOAD_BYTES = 250 * 1024 * 1024;
 
 // Suppress unused import warning — Enrichment is available for future use.
 void Enrichment;
@@ -88,8 +95,21 @@ export default class DocumentUploadResolver {
     }
 
     // Resolve the upload outside the transaction (stream consumption).
+    // Cap at MAX_UPLOAD_BYTES so a large or hostile upload can't OOM the
+    // pod — the helper destroys the stream and rejects the instant the
+    // observed byte count crosses the cap.
     const upload = await fileUpload;
-    const buffer = await getBuffer(upload.createReadStream());
+    let buffer: Buffer;
+    try {
+      buffer = await getBuffer(upload.createReadStream(), MAX_UPLOAD_BYTES);
+    } catch (err) {
+      if (err instanceof PayloadTooLargeError) {
+        throw new Error(
+          `File too large — maximum upload size is ${Math.floor(MAX_UPLOAD_BYTES / 1024 / 1024)}MB`
+        );
+      }
+      throw err;
+    }
     const mimetype = upload.mimetype;
     const originalFilename = upload.filename;
     const size = buffer.length;
