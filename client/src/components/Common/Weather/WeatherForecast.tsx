@@ -61,7 +61,6 @@ function cacheKey(lat: number, lng: number, days: number): string {
   return `${lat.toFixed(4)},${lng.toFixed(4)},${days}`;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function transform(rawDays: any[]): DayForecast[] {
   return rawDays.map((d) => {
     // Day forecast we care about for "are we paving today?" — daytimeForecast

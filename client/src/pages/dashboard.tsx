@@ -25,7 +25,16 @@ const Productivity = dynamic<{ startDate: string; endDate: string }>(
   { ssr: false }
 );
 
-const toDateInput = (d: Date) => d.toISOString().slice(0, 10);
+// Format a Date as a local-timezone YYYY-MM-DD string.
+// Using toISOString() would convert to UTC first, which shifts Jan 1 local
+// midnight to Dec 31 in any timezone west of UTC (e.g. all of North America),
+// causing "This Year" preset highlights to mismatch the displayed date pickers.
+const toDateInput = (d: Date): string => {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
 
 const THIS_YEAR = new Date().getFullYear();
 // Past years shown in the dropdown — grows as the app ages

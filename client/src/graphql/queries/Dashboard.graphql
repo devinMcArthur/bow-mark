@@ -3,6 +3,7 @@ query DashboardOverview($input: DashboardInput!) {
     totalRevenue
     totalNetIncome
     avgNetMarginPercent
+    overallNetMarginPercent
     totalTonnes
     avgTonnesPerHour
     revenueChangePercent
@@ -33,6 +34,7 @@ query DashboardFinancial($input: DashboardInput!) {
     totalDirectCost
     totalNetIncome
     avgNetMarginPercent
+    overallNetMarginPercent
     jobsites {
       jobsiteId
       jobsiteName

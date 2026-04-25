@@ -110,7 +110,6 @@ const InvoiceFileAttachment = React.forwardRef<
   const [ensureFolder] = useEnsureInvoiceFolderMutation();
   const [uploadDocument] = useMutation<
     { uploadDocument: { _id: string; documentId: string | null } },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     {
       input: {
         parentFileNodeId: string;

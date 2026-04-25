@@ -185,7 +185,7 @@ const DailyReportQuickStart: React.FC<DailyReportQuickStartProps> = ({
                 isLoading={creating}
                 w={{ base: "100%", sm: "auto" }}
               >
-                Start today's report
+                Start today&apos;s report
               </Button>
               {hasLocation && (
                 <ChakraLink

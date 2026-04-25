@@ -235,7 +235,6 @@ const JobsiteMaterialUpdate = ({
                       <JobsiteMaterialRatesForm
                         {...field}
                         rates={field.value}
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         errors={fieldState.error as any}
                         isLoading={loading}
                       />

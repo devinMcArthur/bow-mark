@@ -1101,7 +1101,6 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
           const result = await ensureFolderPath({
             variables: { rootId: targetParentId, segments: chain },
           });
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const leaf = (result.data as any)?.ensureFolderPath;
           if (leaf?._id) dirIds.set(key, leaf._id);
         }
@@ -1183,7 +1182,6 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
     // filename (placing files at the scope root).
     const entries = Array.from(fileList).map((f) => ({
       file: f,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       relativePath: ((f as any).webkitRelativePath as string) || f.name,
     }));
     await uploadEntries(entries);
@@ -1415,11 +1413,9 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
   if (crumbs.length === 0 && !rootId && rootLabel) {
     crumbs = [
       {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         _id: "__pending_root__" as any,
         name: rootLabel,
         type: "folder",
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any as FileNodeRow,
     ];
   }
@@ -1640,7 +1636,6 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
             type="file"
             style={{ display: "none" }}
             onChange={handleFolderSelected}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             {...({ webkitdirectory: "", directory: "" } as any)}
             multiple
           />
@@ -1887,7 +1882,7 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
                                 >
                                   Rename
                                 </MenuItem>
-                                {c.type === "file" && canSetMinRole && (
+                                {canSetMinRole && (
                                   <>
                                     <MenuDivider />
                                     <MenuOptionGroup
@@ -1996,7 +1991,7 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
                         >
                           Rename
                         </MenuItem>
-                        {rowContext.node.type === "file" && canSetMinRole && (
+                        {canSetMinRole && (
                           <>
                             <MenuDivider />
                             <MenuOptionGroup
@@ -2100,7 +2095,7 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
         <AlertDialogOverlay>
           <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              Trash "{pendingTrash?.name}"?
+              Trash &quot;{pendingTrash?.name}&quot;?
             </AlertDialogHeader>
             <AlertDialogBody>
               {pendingTrash?.type === "folder"

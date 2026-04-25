@@ -67,7 +67,6 @@ const DeveloperPage: React.FC = () => {
         </h3>
       </Box>
       <ClientOnly>
-        {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
         {/* @ts-ignore chakra tab union types */}
         <Tabs variant="enclosed" colorScheme="blue" index={tabIndex} onChange={handleTabChange}>
           <TabList>
