@@ -13,7 +13,7 @@ import {
   Text,
   Tooltip,
 } from "@chakra-ui/react";
-import { FiExternalLink, FiMaximize2, FiMinimize2 } from "react-icons/fi";
+import { FiDownload, FiExternalLink, FiMaximize2, FiMinimize2 } from "react-icons/fi";
 import dynamic from "next/dynamic";
 import { gql, useQuery } from "@apollo/client";
 import { localStorageTokenKey } from "../../contexts/Auth";
@@ -235,6 +235,20 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({ file, onClose
             top={2}
             right={14}
             onClick={() => setFullscreen((v) => !v)}
+          />
+        </Tooltip>
+        <Tooltip label="Download">
+          <IconButton
+            aria-label="Download"
+            icon={<FiDownload size={14} />}
+            size="sm"
+            variant="ghost"
+            position="absolute"
+            top={2}
+            right={26}
+            as="a"
+            href={buildDownloadUrl(file.enrichedFileId, downloadFileName)}
+            download={downloadFileName ?? true}
           />
         </Tooltip>
         <ModalCloseButton />
