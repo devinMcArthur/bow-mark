@@ -92,6 +92,7 @@ import authChecker from "@utils/authChecker";
 import { requestContextMiddleware } from "@middleware/requestContext";
 import { getRequestContext } from "@lib/requestContext";
 import { opTimingPlugin } from "@lib/opTiming";
+import { telemetryPlugin } from "@lib/telemetryPlugin";
 
 const createApp = async () => {
   const app = express();
@@ -237,6 +238,7 @@ const createApp = async () => {
     plugins: [
       ApolloServerPluginDrainHttpServer({ httpServer }),
       opTimingPlugin,
+      telemetryPlugin,
       {
         async serverWillStart() {
           return {

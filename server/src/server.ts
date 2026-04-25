@@ -16,6 +16,21 @@ import createApp from "./app";
 import { bindEventEmitters } from "@events";
 import { setupTopology } from "./rabbitmq";
 import { bootstrapRoots } from "@lib/fileTree/bootstrapRoots";
+import { recordError } from "@lib/telemetryDb";
+
+process.on("unhandledRejection", (reason) => {
+  const message =
+    reason instanceof Error ? reason.message : String(reason ?? "unknown");
+  recordError({ source: "unhandled", errorMessage: message }).catch(() => {});
+});
+
+process.on("uncaughtException", (err) => {
+  recordError({ source: "unhandled", errorMessage: err.message })
+    .catch(() => {})
+    .finally(() => process.exit(1));
+  // Fallback: exit after 2s if the DB write hangs
+  setTimeout(() => process.exit(1), 2000).unref();
+});
 
 let workerEnabled = true,
   apiEnabled = true;
