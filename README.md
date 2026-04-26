@@ -14,10 +14,10 @@ Docker Hub references with your own Docker Hub images.
 - `skaffold dev`
   - NOTE - if you have this error: `updates to statefulset spec for fields other than 'replicas', 'template', and 'updateStrategy' are forbidden`
   - run the command again - haven't found a better fix for this
-  - Meilisearch volume is stored at `/tml/data/meilisearch` in the minikube VM
+  - Meilisearch volume is stored at `/tmp/data/meilisearch` in the minikube VM
     - To remove this data:
       - SSH into the VM `minikube ssh`
-      - Delete the data `rm -rf /tml/data/meilisearch`
+      - Delete the data `rm -rf /tmp/data/meilisearch`
 
 # Production
 
