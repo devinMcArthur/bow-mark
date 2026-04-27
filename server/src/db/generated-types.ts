@@ -11,6 +11,18 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
 
 export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
 
+export type Json = JsonValue;
+
+export type JsonArray = JsonValue[];
+
+export type JsonObject = {
+  [x: string]: JsonValue | undefined;
+};
+
+export type JsonPrimitive = boolean | number | string | null;
+
+export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
+
 export type Numeric = ColumnType<string, number | string, number | string>;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
@@ -386,6 +398,39 @@ export interface SchemaMigrations {
   version: string;
 }
 
+export interface TelemetryConsumerEvents {
+  duration_ms: number | null;
+  error_message: string | null;
+  event_type: string;
+  id: Generated<Int8>;
+  metadata: Json | null;
+  occurred_at: Generated<Timestamp>;
+  status: string;
+}
+
+export interface TelemetryErrors {
+  error_code: string | null;
+  error_message: string;
+  id: Generated<Int8>;
+  metadata: Json | null;
+  occurred_at: Generated<Timestamp>;
+  operation: string | null;
+  source: string;
+  trace_id: string | null;
+  user_email: string | null;
+  user_id: string | null;
+  user_name: string | null;
+}
+
+export interface TelemetryOpTimings {
+  duration_ms: number;
+  id: Generated<Int8>;
+  operation_name: string;
+  recorded_at: Generated<Timestamp>;
+  status: string;
+  trace_id: string | null;
+}
+
 export interface DB {
   crew_hours_by_day: CrewHoursByDay;
   crew_max_hours: CrewMaxHours;
@@ -414,4 +459,7 @@ export interface DB {
   jobsite_issues_summary: JobsiteIssuesSummary;
   jobsite_report_issues: JobsiteReportIssues;
   schema_migrations: SchemaMigrations;
+  telemetry_consumer_events: TelemetryConsumerEvents;
+  telemetry_errors: TelemetryErrors;
+  telemetry_op_timings: TelemetryOpTimings;
 }

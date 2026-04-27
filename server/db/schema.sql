@@ -956,6 +956,134 @@ CREATE TABLE public.schema_migrations (
 
 
 --
+-- Name: telemetry_consumer_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.telemetry_consumer_events (
+    id bigint NOT NULL,
+    occurred_at timestamp with time zone DEFAULT now() NOT NULL,
+    event_type text NOT NULL,
+    status text NOT NULL,
+    duration_ms integer,
+    error_message text,
+    metadata jsonb,
+    CONSTRAINT telemetry_consumer_events_status_check CHECK ((status = ANY (ARRAY['ok'::text, 'error'::text, 'retry'::text])))
+);
+
+
+--
+-- Name: telemetry_consumer_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.telemetry_consumer_events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: telemetry_consumer_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.telemetry_consumer_events_id_seq OWNED BY public.telemetry_consumer_events.id;
+
+
+--
+-- Name: telemetry_errors; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.telemetry_errors (
+    id bigint NOT NULL,
+    occurred_at timestamp with time zone DEFAULT now() NOT NULL,
+    source text NOT NULL,
+    operation text,
+    error_message text NOT NULL,
+    error_code text,
+    trace_id text,
+    user_id text,
+    user_name text,
+    user_email text,
+    metadata jsonb
+);
+
+
+--
+-- Name: telemetry_errors_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.telemetry_errors_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: telemetry_errors_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.telemetry_errors_id_seq OWNED BY public.telemetry_errors.id;
+
+
+--
+-- Name: telemetry_op_timings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.telemetry_op_timings (
+    id bigint NOT NULL,
+    recorded_at timestamp with time zone DEFAULT now() NOT NULL,
+    operation_name text NOT NULL,
+    duration_ms integer NOT NULL,
+    status text NOT NULL,
+    trace_id text,
+    CONSTRAINT telemetry_op_timings_status_check CHECK ((status = ANY (ARRAY['ok'::text, 'error'::text])))
+);
+
+
+--
+-- Name: telemetry_op_timings_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.telemetry_op_timings_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: telemetry_op_timings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.telemetry_op_timings_id_seq OWNED BY public.telemetry_op_timings.id;
+
+
+--
+-- Name: telemetry_consumer_events id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.telemetry_consumer_events ALTER COLUMN id SET DEFAULT nextval('public.telemetry_consumer_events_id_seq'::regclass);
+
+
+--
+-- Name: telemetry_errors id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.telemetry_errors ALTER COLUMN id SET DEFAULT nextval('public.telemetry_errors_id_seq'::regclass);
+
+
+--
+-- Name: telemetry_op_timings id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.telemetry_op_timings ALTER COLUMN id SET DEFAULT nextval('public.telemetry_op_timings_id_seq'::regclass);
+
+
+--
 -- Name: dim_company dim_company_mongo_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1225,6 +1353,30 @@ ALTER TABLE ONLY public.fact_vehicle_work
 
 ALTER TABLE ONLY public.schema_migrations
     ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
+
+
+--
+-- Name: telemetry_consumer_events telemetry_consumer_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.telemetry_consumer_events
+    ADD CONSTRAINT telemetry_consumer_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: telemetry_errors telemetry_errors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.telemetry_errors
+    ADD CONSTRAINT telemetry_errors_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: telemetry_op_timings telemetry_op_timings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.telemetry_op_timings
+    ADD CONSTRAINT telemetry_op_timings_pkey PRIMARY KEY (id);
 
 
 --
@@ -1578,6 +1730,48 @@ CREATE INDEX idx_fact_vehicle_work_vehicle_date ON public.fact_vehicle_work USIN
 
 
 --
+-- Name: idx_telemetry_consumer_occurred; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_telemetry_consumer_occurred ON public.telemetry_consumer_events USING btree (occurred_at DESC);
+
+
+--
+-- Name: idx_telemetry_consumer_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_telemetry_consumer_status ON public.telemetry_consumer_events USING btree (status, occurred_at DESC);
+
+
+--
+-- Name: idx_telemetry_errors_occurred; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_telemetry_errors_occurred ON public.telemetry_errors USING btree (occurred_at DESC);
+
+
+--
+-- Name: idx_telemetry_errors_source; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_telemetry_errors_source ON public.telemetry_errors USING btree (source, occurred_at DESC);
+
+
+--
+-- Name: idx_telemetry_op_timings_op; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_telemetry_op_timings_op ON public.telemetry_op_timings USING btree (operation_name, recorded_at DESC);
+
+
+--
+-- Name: idx_telemetry_op_timings_recorded; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_telemetry_op_timings_recorded ON public.telemetry_op_timings USING btree (recorded_at DESC);
+
+
+--
 -- Name: dim_daily_report dim_daily_report_crew_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1848,4 +2042,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260128205200'),
     ('20260202120000'),
     ('20260203100000'),
-    ('20260325120000');
+    ('20260325120000'),
+    ('20260425120000');
