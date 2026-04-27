@@ -177,7 +177,7 @@ local_resource(
         echo "Waiting for MongoDB to accept connections..."
         for i in $(seq 1 30); do
             POD=$(kubectl get pods -l app=mongo -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
-            if [ -n "$POD" ] && kubectl exec "$POD" -- mongosh --eval "db.adminCommand('ping')" &>/dev/null; then
+            if [ -n "$POD" ] && kubectl exec "$POD" -c mongo -- mongosh --eval "db.adminCommand('ping')" &>/dev/null; then
                 echo "MongoDB is ready"
                 break
             fi
@@ -191,8 +191,8 @@ local_resource(
         fi
 
         # Check if paving database already has data (proxy for "already restored")
-        PAVING_COUNT=$(kubectl exec "$POD" -- mongosh paving --quiet --eval "db.getCollectionNames().length" 2>/dev/null || echo "0")
-        CONCRETE_COUNT=$(kubectl exec "$POD" -- mongosh concrete --quiet --eval "db.getCollectionNames().length" 2>/dev/null || echo "0")
+        PAVING_COUNT=$(kubectl exec "$POD" -c mongo -- mongosh paving --quiet --eval "db.getCollectionNames().length" 2>/dev/null || echo "0")
+        CONCRETE_COUNT=$(kubectl exec "$POD" -c mongo -- mongosh concrete --quiet --eval "db.getCollectionNames().length" 2>/dev/null || echo "0")
 
         if [ "$PAVING_COUNT" -gt 0 ] && [ "$CONCRETE_COUNT" -gt 0 ]; then
             echo "MongoDB already has data (paving: $PAVING_COUNT collections, concrete: $CONCRETE_COUNT collections)"
@@ -201,9 +201,9 @@ local_resource(
         fi
 
         echo "Restoring MongoDB from dump (both paving and concrete databases)..."
-        kubectl cp "$DUMP_DIR" "$POD:/tmp/mongodb-dump"
-        kubectl exec "$POD" -- mongorestore --drop /tmp/mongodb-dump
-        kubectl exec "$POD" -- rm -rf /tmp/mongodb-dump
+        kubectl cp "$DUMP_DIR" "$POD:/tmp/mongodb-dump" -c mongo
+        kubectl exec "$POD" -c mongo -- mongorestore --drop /tmp/mongodb-dump
+        kubectl exec "$POD" -c mongo -- rm -rf /tmp/mongodb-dump
         echo "MongoDB restore complete!"
     ''',
     resource_deps=['mongo'],
@@ -228,9 +228,9 @@ local_resource(
         fi
 
         echo "Force restoring MongoDB from dump (this will drop existing data)..."
-        kubectl cp "$DUMP_DIR" "$POD:/tmp/mongodb-dump"
-        kubectl exec "$POD" -- mongorestore --drop /tmp/mongodb-dump
-        kubectl exec "$POD" -- rm -rf /tmp/mongodb-dump
+        kubectl cp "$DUMP_DIR" "$POD:/tmp/mongodb-dump" -c mongo
+        kubectl exec "$POD" -c mongo -- mongorestore --drop /tmp/mongodb-dump
+        kubectl exec "$POD" -c mongo -- rm -rf /tmp/mongodb-dump
         echo "MongoDB restore complete!"
     ''',
     resource_deps=['mongo'],
