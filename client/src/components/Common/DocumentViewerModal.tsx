@@ -13,7 +13,7 @@ import {
   Text,
   Tooltip,
 } from "@chakra-ui/react";
-import { FiExternalLink, FiMaximize2, FiMinimize2 } from "react-icons/fi";
+import { FiDownload, FiExternalLink, FiMaximize2, FiMinimize2 } from "react-icons/fi";
 import dynamic from "next/dynamic";
 import { gql, useQuery } from "@apollo/client";
 import { localStorageTokenKey } from "../../contexts/Auth";
@@ -175,23 +175,37 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({ file, onClose
         <ModalHeader
           fontSize="md"
           py={3}
-          pr={20}
+          pr={14}
           borderBottom="1px solid"
           borderColor="gray.200"
         >
-          <Text isTruncated lineHeight={1.2}>
-            {title}
-            {file.page && (
-              <Text
-                as="span"
-                color="gray.500"
-                fontWeight="normal"
-                ml={2}
-              >
-                p. {file.page}
-              </Text>
-            )}
-          </Text>
+          <Flex align="center" gap={1}>
+            <Text isTruncated lineHeight={1.2}>
+              {title}
+              {file.page && (
+                <Text
+                  as="span"
+                  color="gray.500"
+                  fontWeight="normal"
+                  ml={2}
+                >
+                  p. {file.page}
+                </Text>
+              )}
+            </Text>
+            <Tooltip label="Download">
+              <IconButton
+                aria-label="Download"
+                icon={<FiDownload size={14} />}
+                size="xs"
+                variant="ghost"
+                flexShrink={0}
+                as="a"
+                href={buildDownloadUrl(file.enrichedFileId, downloadFileName)}
+                download={downloadFileName ?? true}
+              />
+            </Tooltip>
+          </Flex>
           {/* Metadata row — filename (when distinct from the title),
               type badge, and size. Muted so it doesn't compete with
               the title above. */}

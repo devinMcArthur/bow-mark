@@ -1882,7 +1882,7 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
                                 >
                                   Rename
                                 </MenuItem>
-                                {c.type === "file" && canSetMinRole && (
+                                {canSetMinRole && (
                                   <>
                                     <MenuDivider />
                                     <MenuOptionGroup
@@ -1991,7 +1991,7 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
                         >
                           Rename
                         </MenuItem>
-                        {rowContext.node.type === "file" && canSetMinRole && (
+                        {canSetMinRole && (
                           <>
                             <MenuDivider />
                             <MenuOptionGroup
