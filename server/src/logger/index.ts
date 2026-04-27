@@ -1,4 +1,5 @@
 import winston from "winston";
+import Transport from "winston-transport";
 import { recordError } from "@lib/telemetryDb";
 
 const consoleTransport = new winston.transports.Console({
@@ -9,7 +10,7 @@ const consoleTransport = new winston.transports.Console({
   ),
 });
 
-class TelemetryTransport extends winston.Transport {
+class TelemetryTransport extends Transport {
   constructor() {
     super({ level: "error" });
   }
