@@ -17,6 +17,11 @@ import {
 } from "@chakra-ui/react";
 import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { InvoiceData } from "../../../generated/graphql";
+import {
+  formatThousands,
+  parseThousands,
+  THOUSANDS_PATTERN,
+} from "../../../utils/numberFormat";
 import CompanySearch from "../../Search/CompanySearch";
 import InvoiceFileAttachment, {
   InvoiceFileAttachmentHandle,
@@ -80,18 +85,6 @@ const toISODateInput = (d: Date): string => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 
-const formatThousands = (val: string | number | undefined): string => {
-  if (val === undefined || val === null || val === "") return "";
-  const stripped =
-    typeof val === "string" ? val.replace(/,/g, "") : String(val);
-  if (stripped === "" || stripped === "-") return stripped;
-  const [whole, fraction] = stripped.split(".");
-  const n = parseInt(whole, 10);
-  if (Number.isNaN(n)) return stripped;
-  const formattedWhole = n.toLocaleString("en-US");
-  return fraction !== undefined ? `${formattedWhole}.${fraction}` : formattedWhole;
-};
-const parseThousands = (val: string): string => val.replace(/,/g, "");
 
 /** Shared compact label style used across the jobsite-page forms. */
 const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -324,6 +317,7 @@ const InvoiceBulkForm = ({
                     isDisabled={busy}
                     format={formatThousands}
                     parse={parseThousands}
+                    pattern={THOUSANDS_PATTERN}
                     onChange={(valueAsString) =>
                       updateLine(line.id, { cost: valueAsString })
                     }

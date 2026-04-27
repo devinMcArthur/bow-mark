@@ -28,20 +28,12 @@ import InfoTooltip from "../../Common/Info";
 import MaterialSearch from "../../Search/MaterialSearch";
 import CompanySearch from "../../Search/CompanySearch";
 import Units from "../../Common/forms/Unit";
+import {
+  formatThousands,
+  parseThousands,
+  THOUSANDS_PATTERN,
+} from "../../../utils/numberFormat";
 import { emptyDraft, ScenarioDraft, ScenarioForm } from "./ScenariosList";
-
-const formatThousands = (val: string | number | undefined): string => {
-  if (val === undefined || val === null || val === "") return "";
-  const stripped =
-    typeof val === "string" ? val.replace(/,/g, "") : String(val);
-  if (stripped === "" || stripped === "-") return stripped;
-  const [whole, fraction] = stripped.split(".");
-  const n = parseInt(whole, 10);
-  if (Number.isNaN(n)) return stripped;
-  const formattedWhole = n.toLocaleString("en-US");
-  return fraction !== undefined ? `${formattedWhole}.${fraction}` : formattedWhole;
-};
-const parseThousands = (val: string): string => val.replace(/,/g, "");
 
 type CreateCostMode = "rateScenario" | "invoice";
 
@@ -240,6 +232,7 @@ const JobsiteMaterialCreate = ({
                   isInvalid={!!fieldState.error}
                   format={formatThousands}
                   parse={parseThousands}
+                  pattern={THOUSANDS_PATTERN}
                   onChange={(valueAsString) => field.onChange(valueAsString)}
                   w="100%"
                 >

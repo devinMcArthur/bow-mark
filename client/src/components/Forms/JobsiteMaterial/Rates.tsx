@@ -15,6 +15,11 @@ import {
 import React from "react";
 import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { JobsiteMaterialRateSnippetFragment } from "../../../generated/graphql";
+import {
+  formatThousands,
+  parseThousands,
+  THOUSANDS_PATTERN,
+} from "../../../utils/numberFormat";
 
 export interface IJobsiteMaterialRateError {
   date?: { message?: string };
@@ -41,18 +46,6 @@ const toInputDate = (d: Date | string): string => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 };
 
-const formatThousands = (val: string | number | undefined): string => {
-  if (val === undefined || val === null || val === "") return "";
-  const stripped =
-    typeof val === "string" ? val.replace(/,/g, "") : String(val);
-  if (stripped === "" || stripped === "-") return stripped;
-  const [whole, fraction] = stripped.split(".");
-  const n = parseInt(whole, 10);
-  if (Number.isNaN(n)) return stripped;
-  const formattedWhole = n.toLocaleString("en-US");
-  return fraction !== undefined ? `${formattedWhole}.${fraction}` : formattedWhole;
-};
-const parseThousands = (val: string): string => val.replace(/,/g, "");
 
 /**
  * Compact inline-grid editor for material rate schedules. Column
@@ -166,6 +159,7 @@ const JobsiteMaterialRatesForm = ({
                       isInvalid={!!rateErr}
                       format={formatThousands}
                       parse={parseThousands}
+                      pattern={THOUSANDS_PATTERN}
                       onChange={(valueAsString) =>
                         setRate(valueAsString, index)
                       }
