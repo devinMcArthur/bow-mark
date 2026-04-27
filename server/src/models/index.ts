@@ -1,3 +1,4 @@
+export * from "./AgentApiKey";
 export * from "./EnrichedFile";
 export * from "./Company";
 export * from "./Crew";
@@ -37,6 +38,20 @@ import {
   DocumentType,
   ReturnModelType,
 } from "@typegoose/typegoose";
+
+/**
+ * ----- AgentApiKey -----
+ */
+
+import { AgentApiKeyClass } from "./AgentApiKey/class";
+
+export type AgentApiKeyDocument = DocumentType<AgentApiKeyClass>;
+
+export type AgentApiKeyModel = ReturnModelType<typeof AgentApiKeyClass>;
+
+export const AgentApiKey = getModelForClass(AgentApiKeyClass, {
+  schemaOptions: { collection: "agentapikeys", timestamps: true },
+});
 
 /**
  * ----- EnrichedFile -----
