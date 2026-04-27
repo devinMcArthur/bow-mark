@@ -22,6 +22,7 @@ import developerRouter from "./router/developer";
 
 import { IContext } from "@typescript/graphql";
 
+import AgentApiKeyResolver from "@graphql/resolvers/agentApiKey";
 import DocumentUploadResolver from "@graphql/resolvers/document";
 import DailyReportEntryResolver from "@graphql/resolvers/dailyReportEntry";
 import BusinessDashboardResolver from "@graphql/resolvers/businessDashboard";
@@ -107,6 +108,7 @@ const createApp = async () => {
 
   const { typeDefs, resolvers } = await buildTypeDefsAndResolvers({
     resolvers: [
+      AgentApiKeyResolver,
       BusinessDashboardResolver,
       DocumentUploadResolver,
       CompanyResolver,
