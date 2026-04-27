@@ -132,9 +132,31 @@ const DailyReportCard = ({ dailyReport, hideJobsite }: IDailyReportCard) => {
 
   // Card-wide click navigates to the daily report. Crew/jobsite links and
   // action buttons stop propagation so they keep their own targets.
-  const onCardClick = React.useCallback(() => {
-    router.push(reportHref);
-  }, [router, reportHref]);
+  // Modifier-clicks and middle-clicks open in a new tab to match the
+  // affordance users expect from real links — the card can't be a true
+  // anchor because the crew/jobsite TextLinks would nest inside it
+  // (invalid HTML, breaks in Firefox).
+  const onCardClick = React.useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (e.ctrlKey || e.metaKey || e.shiftKey) {
+        window.open(reportHref, "_blank", "noopener,noreferrer");
+        return;
+      }
+      router.push(reportHref);
+    },
+    [router, reportHref]
+  );
+
+  const onCardAuxClick = React.useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      // button 1 = middle mouse button.
+      if (e.button === 1) {
+        e.preventDefault();
+        window.open(reportHref, "_blank", "noopener,noreferrer");
+      }
+    },
+    [reportHref]
+  );
 
   // Keyboard affordance — Enter/Space on the card opens the report, matching
   // the visible cursor:pointer.
@@ -154,6 +176,7 @@ const DailyReportCard = ({ dailyReport, hideJobsite }: IDailyReportCard) => {
     <Card
       cursor="pointer"
       onClick={onCardClick}
+      onAuxClick={onCardAuxClick}
       onKeyDown={onCardKeyDown}
       role="link"
       tabIndex={0}
