@@ -1,9 +1,5 @@
 import https from "https";
-import { Kysely } from "kysely";
 import { db } from "../db";
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const anyDb = db as Kysely<any>;
 
 export const CRITICAL_OPERATIONS = new Set([
   "CreateDailyReport",
@@ -30,7 +26,7 @@ interface RecordErrorOpts {
 
 export async function recordError(opts: RecordErrorOpts): Promise<void> {
   try {
-    await anyDb
+    await db
       .insertInto("telemetry_errors")
       .values({
         source: opts.source,
@@ -58,7 +54,7 @@ interface RecordOpTimingOpts {
 
 export async function recordOpTiming(opts: RecordOpTimingOpts): Promise<void> {
   try {
-    await anyDb
+    await db
       .insertInto("telemetry_op_timings")
       .values({
         operation_name: opts.operationName,
@@ -84,7 +80,7 @@ export async function recordConsumerEvent(
   opts: RecordConsumerEventOpts
 ): Promise<void> {
   try {
-    await anyDb
+    await db
       .insertInto("telemetry_consumer_events")
       .values({
         event_type: opts.eventType,
