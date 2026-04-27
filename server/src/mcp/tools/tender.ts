@@ -70,7 +70,7 @@ async function loadChatFiles(ctx: {
 
 function requirePmRole(): void {
   const ctx = requireTenderContext();
-  if (ctx.role < UserRoles.ProjectManager) {
+  if (ctx.role === undefined || ctx.role < UserRoles.ProjectManager) {
     throw new Error("Forbidden: PM or Admin role required");
   }
 }
@@ -678,6 +678,9 @@ export function register(
     async ({ content }) => {
       requirePmRole();
       const ctx = requireTenderContext();
+      if (!ctx.userId) {
+        throw new Error("save_tender_note requires a user context");
+      }
 
       await (TenderModel as any).findByIdAndUpdate(ctx.tenderId, {
         $push: {
