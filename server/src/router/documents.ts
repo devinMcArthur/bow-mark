@@ -155,6 +155,16 @@ router.get("/:documentId", async (req, res) => {
     disposition: "inline",
   })) as string;
 
+  // ?signed=1 returns the signed URL as JSON instead of 302-redirecting.
+  // The client uses this when it needs to hand the URL to a third-party
+  // embed (e.g. Microsoft Office Online Viewer for xlsx/docx) — the
+  // viewer must be able to fetch the URL directly without our auth, and
+  // signed URLs are publicly fetchable for the duration of their TTL.
+  if (req.query.signed === "1") {
+    res.json({ url: signedUrl });
+    return;
+  }
+
   const page = req.query.page ? parseInt(req.query.page as string, 10) : null;
   const redirectUrl = page && !isNaN(page) ? `${signedUrl}#page=${page}` : signedUrl;
 
