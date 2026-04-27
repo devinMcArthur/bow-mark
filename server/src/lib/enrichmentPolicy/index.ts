@@ -9,6 +9,11 @@ import {
  * MIME allowlist. Must mirror (or extend) the existing
  * SupportedMimeTypes enum so we don't regress on anything the current
  * pipeline handles.
+ *
+ * Spreadsheets cover both modern .xlsx (OOXML) and legacy .xls (BIFF) —
+ * the consumer handler uses the `xlsx` library which reads both formats,
+ * so dropping .xls here would silently strand legacy uploads at the gate
+ * even though the handler is ready for them.
  */
 export const ENRICHABLE_MIMETYPES = new Set<string>([
   "application/pdf",
@@ -17,6 +22,7 @@ export const ENRICHABLE_MIMETYPES = new Set<string>([
   "image/webp",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
 ]);
 
 /**

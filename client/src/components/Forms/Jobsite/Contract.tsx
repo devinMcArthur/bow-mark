@@ -14,6 +14,11 @@ import { Controller, SubmitHandler, UseFormProps } from "react-hook-form";
 import { useJobsiteContractForm } from "../../../forms/jobsite";
 import { JobsiteContractData } from "../../../generated/graphql";
 import formatNumber from "../../../utils/formatNumber";
+import {
+  formatThousands,
+  parseThousands,
+  THOUSANDS_PATTERN,
+} from "../../../utils/numberFormat";
 
 interface IJobsiteContractForm {
   submitHandler: SubmitHandler<JobsiteContractData>;
@@ -21,24 +26,6 @@ interface IJobsiteContractForm {
   isLoading?: boolean;
 }
 
-/**
- * Format a numeric value with thousand separators for display.
- * Used by NumberInput's `format` prop so "12345.67" renders as
- * "12,345.67" while the underlying value stays numeric.
- */
-const formatThousands = (val: string | number | undefined): string => {
-  if (val === undefined || val === null || val === "") return "";
-  const stripped = typeof val === "string" ? val.replace(/,/g, "") : String(val);
-  if (stripped === "" || stripped === "-") return stripped;
-  const [whole, fraction] = stripped.split(".");
-  const n = parseInt(whole, 10);
-  if (Number.isNaN(n)) return stripped;
-  const formattedWhole = n.toLocaleString("en-US");
-  return fraction !== undefined ? `${formattedWhole}.${fraction}` : formattedWhole;
-};
-
-/** Strip formatting commas before the value gets back into form state. */
-const parseThousands = (val: string): string => val.replace(/,/g, "");
 
 /**
  * Label component matching the compact uppercase style used in the
@@ -99,6 +86,7 @@ const JobsiteContractForm = ({
                   isInvalid={!!fieldState.error}
                   format={formatThousands}
                   parse={parseThousands}
+                  pattern={THOUSANDS_PATTERN}
                   onChange={(valueAsString) => field.onChange(valueAsString)}
                   w="100%"
                 >
@@ -134,6 +122,7 @@ const JobsiteContractForm = ({
                   isInvalid={!!fieldState.error}
                   format={formatThousands}
                   parse={parseThousands}
+                  pattern={THOUSANDS_PATTERN}
                   onChange={(valueAsString) => field.onChange(valueAsString)}
                   w="100%"
                 >

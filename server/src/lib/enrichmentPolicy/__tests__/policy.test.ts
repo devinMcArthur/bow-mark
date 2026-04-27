@@ -94,6 +94,25 @@ describe("shouldEnrichNow", () => {
     expect(await shouldEnrichNow(doc._id)).toBe(false);
   });
 
+  it("returns true for legacy .xls (application/vnd.ms-excel) under /jobsites/", async () => {
+    // Regression lock: the policy gate previously included only the
+    // modern .xlsx mimetype, so .xls uploads were silently dropped from
+    // enrichment even though the consumer handler reads both formats
+    // via the xlsx library.
+    const jobsiteId = new mongoose.Types.ObjectId();
+    const jobsiteRoot = await perEntityRoot("/jobsites", jobsiteId);
+    const file = await File.create({
+      mimetype: "application/vnd.ms-excel",
+      originalFilename: "rates.xls",
+      storageKey: "s-xls",
+      size: 1,
+    });
+    const doc = await DocumentModel.create({ currentFileId: file._id });
+    await makeFileNode(jobsiteRoot!._id, "rates.xls", doc._id);
+
+    expect(await shouldEnrichNow(doc._id)).toBe(true);
+  });
+
   it("returns false when enrichmentLocked=true regardless of placement", async () => {
     const tenderId = new mongoose.Types.ObjectId();
     const tenderRoot = await perEntityRoot("/tenders", tenderId);

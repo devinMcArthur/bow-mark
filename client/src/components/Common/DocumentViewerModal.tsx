@@ -107,6 +107,47 @@ function isImage(mimetype?: string): boolean {
   return !!mimetype?.startsWith("image/");
 }
 
+const SPREADSHEET_MIMETYPES = new Set([
+  // .xlsx
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  // .xls
+  "application/vnd.ms-excel",
+]);
+
+function isSpreadsheet(mimetype?: string): boolean {
+  return !!mimetype && SPREADSHEET_MIMETYPES.has(mimetype);
+}
+
+const OFFICE_VIEWER_BASE = "https://view.officeapps.live.com/op/embed.aspx";
+
+/**
+ * Fetch the publicly-fetchable signed URL for a document and return the
+ * Microsoft Office Online Viewer embed URL pointing at it. The signed URL
+ * is short-lived (matches Spaces TTL); MS fetches the file from it on the
+ * fly, so files transit Microsoft's infrastructure on each view — accepted
+ * tradeoff for high-fidelity rendering of styled spreadsheets.
+ */
+async function fetchOfficeViewerEmbedUrl(
+  fileId: string,
+  fileName?: string
+): Promise<string> {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem(localStorageTokenKey)
+      : null;
+  const params = new URLSearchParams();
+  if (token) params.set("token", token);
+  params.set("signed", "1");
+  if (fileName) params.set("filename", fileName);
+  const res = await fetch(`/api/documents/${fileId}?${params.toString()}`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch signed URL: ${res.status}`);
+  }
+  const data = (await res.json()) as { url?: string };
+  if (!data.url) throw new Error("Signed URL missing in response");
+  return `${OFFICE_VIEWER_BASE}?src=${encodeURIComponent(data.url)}`;
+}
+
 const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({ file, onClose }) => {
   const [fullscreen, setFullscreen] = React.useState(false);
   // Reset fullscreen state when the modal's file changes (opens fresh /
@@ -131,6 +172,16 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({ file, onClose
     variables: { id: file?.enrichedFileId ?? "" },
     skip: !file,
   });
+
+  // Office Online viewer URL — fetched lazily when the file is recognised
+  // as a spreadsheet. Each open re-fetches so the underlying signed URL
+  // is fresh (the Spaces signature expires after ~100min).
+  const [officeEmbedUrl, setOfficeEmbedUrl] = React.useState<string | null>(
+    null
+  );
+  const [officeEmbedError, setOfficeEmbedError] = React.useState<string | null>(
+    null
+  );
 
   if (!file) return null;
 
@@ -272,6 +323,19 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({ file, onClose
                 style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
               />
             </Flex>
+          ) : isSpreadsheet(resolvedMimetype) ? (
+            <SpreadsheetEmbed
+              fileId={file.enrichedFileId}
+              fileName={downloadFileName}
+              embedUrl={officeEmbedUrl}
+              setEmbedUrl={setOfficeEmbedUrl}
+              error={officeEmbedError}
+              setError={setOfficeEmbedError}
+              fallbackHref={buildDownloadUrl(
+                file.enrichedFileId,
+                downloadFileName
+              )}
+            />
           ) : (
             <Flex h="100%" direction="column" align="center" justify="center" gap={4}>
               <Text color="gray.500">Preview not available for this file type</Text>
@@ -292,6 +356,88 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({ file, onClose
         </ModalBody>
       </ModalContent>
     </Modal>
+  );
+};
+
+interface SpreadsheetEmbedProps {
+  fileId: string;
+  fileName?: string;
+  embedUrl: string | null;
+  setEmbedUrl: (url: string | null) => void;
+  error: string | null;
+  setError: (msg: string | null) => void;
+  fallbackHref: string;
+}
+
+const SpreadsheetEmbed: React.FC<SpreadsheetEmbedProps> = ({
+  fileId,
+  fileName,
+  embedUrl,
+  setEmbedUrl,
+  error,
+  setError,
+  fallbackHref,
+}) => {
+  // Fetch a fresh signed URL each time the file changes. We deliberately
+  // avoid caching across opens — the Spaces signature expires, and getting
+  // a stale URL into Microsoft's hands wastes a page-load with the dreaded
+  // "We can't show this file right now" frame.
+  React.useEffect(() => {
+    let cancelled = false;
+    setEmbedUrl(null);
+    setError(null);
+    fetchOfficeViewerEmbedUrl(fileId, fileName)
+      .then((url) => {
+        if (!cancelled) setEmbedUrl(url);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "Unknown error");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fileId, fileName, setEmbedUrl, setError]);
+
+  if (error) {
+    return (
+      <Flex h="100%" direction="column" align="center" justify="center" gap={3}>
+        <Text color="red.500" fontSize="sm">
+          Couldn&apos;t load the embedded preview: {error}
+        </Text>
+        <Button
+          as="a"
+          href={fallbackHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          leftIcon={<FiExternalLink />}
+          size="sm"
+          variant="outline"
+        >
+          Download to view
+        </Button>
+      </Flex>
+    );
+  }
+
+  if (!embedUrl) {
+    return (
+      <Flex h="100%" align="center" justify="center">
+        <Spinner />
+      </Flex>
+    );
+  }
+
+  return (
+    <iframe
+      src={embedUrl}
+      title="Spreadsheet preview"
+      style={{ width: "100%", height: "100%", border: 0 }}
+      // The Office viewer needs scripts + same-origin cookies (its own,
+      // not ours). Sandbox would break it; leaving it off is fine because
+      // the iframe origin is Microsoft's, not ours.
+    />
   );
 };
 

@@ -18,6 +18,11 @@ import React from "react";
 import { Controller, SubmitHandler, UseFormProps } from "react-hook-form";
 import { useInvoiceForm } from "../../../forms/invoice";
 import { InvoiceData } from "../../../generated/graphql";
+import {
+  formatThousands,
+  parseThousands,
+  THOUSANDS_PATTERN,
+} from "../../../utils/numberFormat";
 import CompanySearch from "../../Search/CompanySearch";
 import InvoiceFileAttachment, {
   InvoiceFileAttachmentHandle,
@@ -41,22 +46,6 @@ interface IInvoiceForm {
   /** Existing Document id on the invoice being edited (update form). */
   initialDocumentId?: string | null;
 }
-
-/**
- * Format a number with thousand separators for display.
- * "12345.67" → "12,345.67". Paired with `parseThousands`.
- */
-const formatThousands = (val: string | number | undefined): string => {
-  if (val === undefined || val === null || val === "") return "";
-  const stripped = typeof val === "string" ? val.replace(/,/g, "") : String(val);
-  if (stripped === "" || stripped === "-") return stripped;
-  const [whole, fraction] = stripped.split(".");
-  const n = parseInt(whole, 10);
-  if (Number.isNaN(n)) return stripped;
-  const formattedWhole = n.toLocaleString("en-US");
-  return fraction !== undefined ? `${formattedWhole}.${fraction}` : formattedWhole;
-};
-const parseThousands = (val: string): string => val.replace(/,/g, "");
 
 const toInputDate = (d: Date | string | undefined): string => {
   if (!d) return "";
@@ -187,6 +176,7 @@ const InvoiceForm = ({
                     isInvalid={!!fieldState.error}
                     format={formatThousands}
                     parse={parseThousands}
+                    pattern={THOUSANDS_PATTERN}
                     onChange={(valueAsString) =>
                       field.onChange(valueAsString)
                     }
