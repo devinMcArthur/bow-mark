@@ -108,6 +108,43 @@ import { getApolloClient , ApolloClientContext} from '../withApollo';
 
 
 
+
+
+export async function getServerPageAgentApiKeys
+    (options: Omit<Apollo.QueryOptions<Types.AgentApiKeysQueryVariables>, 'query'>, ctx: ApolloClientContext ){
+        const apolloClient = getApolloClient(ctx);
+        
+        const data = await apolloClient.query<Types.AgentApiKeysQuery>({ ...options, query: Operations.AgentApiKeysDocument });
+        
+        const apolloState = apolloClient.cache.extract();
+
+        return {
+            props: {
+                apolloState: apolloState,
+                data: data?.data,
+                error: data?.error ?? data?.errors ?? null,
+            },
+        };
+      }
+export const useAgentApiKeys = (
+  optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.AgentApiKeysQuery, Types.AgentApiKeysQueryVariables>) => {
+  const router = useRouter();
+  const options = optionsFunc ? optionsFunc(router) : {};
+  return useQuery(Operations.AgentApiKeysDocument, options);
+};
+export type PageAgentApiKeysComp = React.FC<{data?: Types.AgentApiKeysQuery, error?: Apollo.ApolloError}>;
+export const withPageAgentApiKeys = (optionsFunc?: (router: NextRouter)=> QueryHookOptions<Types.AgentApiKeysQuery, Types.AgentApiKeysQueryVariables>) => (WrappedComponent:PageAgentApiKeysComp) : NextPage  => (props) => {
+                const router = useRouter()
+                const options = optionsFunc ? optionsFunc(router) : {};
+                const {data, error } = useQuery(Operations.AgentApiKeysDocument, options)    
+                return <WrappedComponent {...props} data={data} error={error} /> ;
+                   
+            }; 
+export const ssrAgentApiKeys = {
+      getServerPage: getServerPageAgentApiKeys,
+      withPage: withPageAgentApiKeys,
+      usePage: useAgentApiKeys,
+    }
 export async function getServerPageArchivedEmployees
     (options: Omit<Apollo.QueryOptions<Types.ArchivedEmployeesQueryVariables>, 'query'>, ctx: ApolloClientContext ){
         const apolloClient = getApolloClient(ctx);

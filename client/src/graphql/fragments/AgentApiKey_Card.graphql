@@ -1,0 +1,8 @@
+fragment AgentApiKeyCardSnippet on AgentApiKeyClass {
+  _id
+  name
+  keyPrefix
+  scope
+  lastUsedAt
+  revokedAt
+}

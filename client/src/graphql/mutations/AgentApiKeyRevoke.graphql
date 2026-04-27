@@ -1,0 +1,3 @@
+mutation AgentApiKeyRevoke($id: ID!) {
+  agentApiKeyRevoke(id: $id)
+}

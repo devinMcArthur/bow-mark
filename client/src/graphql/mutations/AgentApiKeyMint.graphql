@@ -1,0 +1,8 @@
+mutation AgentApiKeyMint($data: AgentApiKeyMintInput!) {
+  agentApiKeyMint(data: $data) {
+    rawKey
+    apiKey {
+      ...AgentApiKeyCardSnippet
+    }
+  }
+}

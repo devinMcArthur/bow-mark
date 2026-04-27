@@ -18,6 +18,27 @@ export type Scalars = {
   Upload: any;
 };
 
+export type AgentApiKeyClass = {
+  __typename?: 'AgentApiKeyClass';
+  _id: Scalars['ID'];
+  keyPrefix: Scalars['String'];
+  lastUsedAt?: Maybe<Scalars['DateTime']>;
+  name: Scalars['String'];
+  revokedAt?: Maybe<Scalars['DateTime']>;
+  scope: Scalars['String'];
+};
+
+export type AgentApiKeyMintInput = {
+  name: Scalars['String'];
+  scope: Scalars['String'];
+};
+
+export type AgentApiKeyMintPayload = {
+  __typename?: 'AgentApiKeyMintPayload';
+  apiKey: AgentApiKeyClass;
+  rawKey: Scalars['String'];
+};
+
 export type BenchmarkMaterial = {
   __typename?: 'BenchmarkMaterial';
   crewType?: Maybe<Scalars['String']>;
@@ -297,8 +318,8 @@ export type DashboardFinancialItem = {
 export type DashboardFinancialReport = {
   __typename?: 'DashboardFinancialReport';
   avgNetMarginPercent?: Maybe<Scalars['Float']>;
-  overallNetMarginPercent?: Maybe<Scalars['Float']>;
   jobsites: Array<DashboardFinancialItem>;
+  overallNetMarginPercent?: Maybe<Scalars['Float']>;
   totalDirectCost: Scalars['Float'];
   totalNetIncome: Scalars['Float'];
   totalRevenue: Scalars['Float'];
@@ -335,10 +356,10 @@ export type DashboardOverviewItem = {
 export type DashboardOverviewReport = {
   __typename?: 'DashboardOverviewReport';
   avgNetMarginPercent?: Maybe<Scalars['Float']>;
-  overallNetMarginPercent?: Maybe<Scalars['Float']>;
   avgTonnesPerHour?: Maybe<Scalars['Float']>;
   jobsites: Array<DashboardOverviewItem>;
   netIncomeChangePercent?: Maybe<Scalars['Float']>;
+  overallNetMarginPercent?: Maybe<Scalars['Float']>;
   priorAvgTonnesPerHour?: Maybe<Scalars['Float']>;
   priorNetIncome?: Maybe<Scalars['Float']>;
   priorRevenue?: Maybe<Scalars['Float']>;
@@ -1379,6 +1400,8 @@ export type MaterialUpdateData = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  agentApiKeyMint: AgentApiKeyMintPayload;
+  agentApiKeyRevoke: Scalars['Boolean'];
   companyArchive: CompanyClass;
   companyCreate: CompanyClass;
   createDailyReportEntry: DailyReportEntrySchema;
@@ -1515,6 +1538,16 @@ export type Mutation = {
   vehicleWorkCreate: Array<VehicleWorkClass>;
   vehicleWorkDelete: Scalars['String'];
   vehicleWorkUpdate: VehicleWorkClass;
+};
+
+
+export type MutationAgentApiKeyMintArgs = {
+  data: AgentApiKeyMintInput;
+};
+
+
+export type MutationAgentApiKeyRevokeArgs = {
+  id: Scalars['ID'];
 };
 
 
@@ -2461,6 +2494,7 @@ export type PublicDocumentUpdateData = {
 
 export type Query = {
   __typename?: 'Query';
+  agentApiKeys: Array<AgentApiKeyClass>;
   archivedEmployees: Array<EmployeeClass>;
   archivedVehicles: Array<VehicleClass>;
   companies: Array<CompanyClass>;
@@ -3766,6 +3800,8 @@ export type YearlyMaterialQuantity = {
   year: Scalars['Float'];
 };
 
+export type AgentApiKeyCardSnippetFragment = { __typename?: 'AgentApiKeyClass', _id: string, name: string, keyPrefix: string, scope: string, lastUsedAt?: any | null, revokedAt?: any | null };
+
 export type CompanyCardSnippetFragment = { __typename?: 'CompanyClass', _id: string, name: string };
 
 export type CompanyFullSnippetFragment = { __typename?: 'CompanyClass', materialReportYears: Array<number>, invoiceReportYears: Array<number>, _id: string, name: string };
@@ -3959,6 +3995,20 @@ export type VehicleFullSnippetFragment = { __typename?: 'VehicleClass', currentR
 export type VehicleSsrSnippetFragment = { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null };
 
 export type VehicleSearchSnippetFragment = { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string };
+
+export type AgentApiKeyMintMutationVariables = Exact<{
+  data: AgentApiKeyMintInput;
+}>;
+
+
+export type AgentApiKeyMintMutation = { __typename?: 'Mutation', agentApiKeyMint: { __typename?: 'AgentApiKeyMintPayload', rawKey: string, apiKey: { __typename?: 'AgentApiKeyClass', _id: string, name: string, keyPrefix: string, scope: string, lastUsedAt?: any | null, revokedAt?: any | null } } };
+
+export type AgentApiKeyRevokeMutationVariables = Exact<{
+  id: Scalars['ID'];
+}>;
+
+
+export type AgentApiKeyRevokeMutation = { __typename?: 'Mutation', agentApiKeyRevoke: boolean };
 
 export type CompanyArchiveMutationVariables = Exact<{
   id: Scalars['ID'];
@@ -4723,6 +4773,11 @@ export type VehicleWorkUpdateMutationVariables = Exact<{
 
 export type VehicleWorkUpdateMutation = { __typename?: 'Mutation', vehicleWorkUpdate: { __typename?: 'VehicleWorkClass', _id: string, hours: number, jobTitle?: string | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string } | null } };
 
+export type AgentApiKeysQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type AgentApiKeysQuery = { __typename?: 'Query', agentApiKeys: Array<{ __typename?: 'AgentApiKeyClass', _id: string, name: string, keyPrefix: string, scope: string, lastUsedAt?: any | null, revokedAt?: any | null }> };
+
 export type ArchivedEmployeesQueryVariables = Exact<{
   options?: InputMaybe<ListOptionData>;
 }>;
@@ -5378,6 +5433,16 @@ export type JobsiteYearReportSubSubscriptionVariables = Exact<{
 
 export type JobsiteYearReportSubSubscription = { __typename?: 'Subscription', jobsiteYearReportSub?: { __typename?: 'JobsiteYearReportClass', crewTypes: Array<CrewTypes>, excelDownloadUrl?: string | null, _id: string, startOfYear: any, dayReports: Array<{ __typename?: 'JobsiteDayReportClass', _id: string, date: any, crewTypes: Array<CrewTypes>, employees: Array<{ __typename?: 'EmployeeReportClass', _id: string, employee?: string | null, employeeWork: Array<string>, rate: number, hours: number, crewType: CrewTypes }>, vehicles: Array<{ __typename?: 'VehicleReportClass', _id: string, vehicle: string, vehicleWork: Array<string>, rate: number, hours: number, crewType: CrewTypes }>, materials: Array<{ __typename?: 'MaterialReportClass', _id: string, jobsiteMaterial?: string | null, deliveredRateId?: string | null, rate: number, quantity: number, crewType: CrewTypes }>, nonCostedMaterials: Array<{ __typename?: 'NonCostedMaterialReportClass', _id: string, materialName: string, supplierName: string, quantity: number, crewType: CrewTypes }>, trucking: Array<{ __typename?: 'TruckingReportClass', _id: string, truckingType: string, quantity: number, hours?: number | null, type: TruckingRateTypes, rate: number, crewType: CrewTypes }>, summary: { __typename?: 'OnSiteSummaryReportClass', employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number, crewTypeSummaries: Array<{ __typename?: 'CrewTypeOnSiteSummaryClass', crewType: CrewTypes, employeeHours: number, employeeCost: number, vehicleHours: number, vehicleCost: number, materialQuantity: number, materialCost: number, nonCostedMaterialQuantity: number, truckingQuantity: number, truckingHours: number, truckingCost: number }> } }>, expenseInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, documentId?: string | null, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, revenueInvoices: Array<{ __typename?: 'InvoiceReportClass', _id: string, value: number, internal: boolean, accrual: boolean, invoice: { __typename?: 'InvoiceClass', _id: string, date: any, invoiceNumber: string, cost: number, description?: string | null, internal: boolean, accrual: boolean, documentId?: string | null, company: { __typename?: 'CompanyClass', _id: string, name: string } } }>, summary: { __typename?: 'RangeSummaryReportClass', externalExpenseInvoiceValue: number, internalExpenseInvoiceValue: number, accrualExpenseInvoiceValue: number, externalRevenueInvoiceValue: number, internalRevenueInvoiceValue: number, accrualRevenueInvoiceValue: number }, issues: Array<{ __typename?: 'ReportIssueFullClass', _id: string, type: ReportIssueTypes, amount?: number | null, employee?: { __typename?: 'EmployeeClass', _id: string, name: string, jobTitle?: string | null, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, vehicle?: { __typename?: 'VehicleClass', _id: string, name: string, vehicleCode: string, vehicleType: string, archivedAt?: any | null, rates: Array<{ __typename?: 'RateClass', date: any, rate: number }> } | null, jobsiteMaterial?: { __typename?: 'JobsiteMaterialClass', _id: string, quantity: number, unit: string, costType: JobsiteMaterialCostType, costModel?: JobsiteMaterialCostModel | null, delivered?: boolean | null, canRemove: boolean, jobsite: { __typename?: 'JobsiteClass', _id: string }, material: { __typename?: 'MaterialClass', _id: string, name: string }, supplier: { __typename?: 'CompanyClass', _id: string, name: string }, completedQuantity: Array<{ __typename?: 'YearlyMaterialQuantity', year: number, quantity: number }>, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }>, deliveredRates: Array<{ __typename?: 'JobsiteMaterialDeliveredRateClass', _id?: string | null, title: string, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }>, scenarios?: Array<{ __typename?: 'RateScenarioClass', _id: string, label: string, delivered: boolean, rates: Array<{ __typename?: 'JobsiteMaterialRateClass', _id?: string | null, rate: number, date: any, estimated?: boolean | null }> }> | null } | null }>, reportNotes: Array<{ __typename?: 'ReportNoteClass', _id: string, note: string, dailyReport?: { __typename?: 'DailyReportClass', _id: string, date: any, jobCostApproved: boolean, payrollComplete: boolean, employeeWorkCount: number, vehicleWorkCount: number, materialShipmentCount: number, productionCount: number, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, location?: { __typename?: 'LocationClass', latitude: number, longitude: number } | null }, crew: { __typename?: 'CrewClass', _id: string, name: string } } | null, files: Array<{ __typename?: 'FileClass', _id: string, mimetype: string, description?: string | null, downloadUrl: string }> }>, update: { __typename?: 'UpdateClass', status: UpdateStatus, lastUpdatedAt?: any | null }, jobsite: { __typename?: 'JobsiteClass', _id: string, name: string, jobcode?: string | null, description?: string | null } } | null };
 
+export const AgentApiKeyCardSnippetFragmentDoc = gql`
+    fragment AgentApiKeyCardSnippet on AgentApiKeyClass {
+  _id
+  name
+  keyPrefix
+  scope
+  lastUsedAt
+  revokedAt
+}
+    `;
 export const CompanyCardSnippetFragmentDoc = gql`
     fragment CompanyCardSnippet on CompanyClass {
   _id
@@ -6870,6 +6935,73 @@ export const FileNodeCardSnippetFragmentDoc = gql`
   updatedAt
 }
     `;
+export const AgentApiKeyMintDocument = gql`
+    mutation AgentApiKeyMint($data: AgentApiKeyMintInput!) {
+  agentApiKeyMint(data: $data) {
+    rawKey
+    apiKey {
+      ...AgentApiKeyCardSnippet
+    }
+  }
+}
+    ${AgentApiKeyCardSnippetFragmentDoc}`;
+export type AgentApiKeyMintMutationFn = Apollo.MutationFunction<AgentApiKeyMintMutation, AgentApiKeyMintMutationVariables>;
+
+/**
+ * __useAgentApiKeyMintMutation__
+ *
+ * To run a mutation, you first call `useAgentApiKeyMintMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useAgentApiKeyMintMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [agentApiKeyMintMutation, { data, loading, error }] = useAgentApiKeyMintMutation({
+ *   variables: {
+ *      data: // value for 'data'
+ *   },
+ * });
+ */
+export function useAgentApiKeyMintMutation(baseOptions?: Apollo.MutationHookOptions<AgentApiKeyMintMutation, AgentApiKeyMintMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<AgentApiKeyMintMutation, AgentApiKeyMintMutationVariables>(AgentApiKeyMintDocument, options);
+      }
+export type AgentApiKeyMintMutationHookResult = ReturnType<typeof useAgentApiKeyMintMutation>;
+export type AgentApiKeyMintMutationResult = Apollo.MutationResult<AgentApiKeyMintMutation>;
+export type AgentApiKeyMintMutationOptions = Apollo.BaseMutationOptions<AgentApiKeyMintMutation, AgentApiKeyMintMutationVariables>;
+export const AgentApiKeyRevokeDocument = gql`
+    mutation AgentApiKeyRevoke($id: ID!) {
+  agentApiKeyRevoke(id: $id)
+}
+    `;
+export type AgentApiKeyRevokeMutationFn = Apollo.MutationFunction<AgentApiKeyRevokeMutation, AgentApiKeyRevokeMutationVariables>;
+
+/**
+ * __useAgentApiKeyRevokeMutation__
+ *
+ * To run a mutation, you first call `useAgentApiKeyRevokeMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useAgentApiKeyRevokeMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [agentApiKeyRevokeMutation, { data, loading, error }] = useAgentApiKeyRevokeMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useAgentApiKeyRevokeMutation(baseOptions?: Apollo.MutationHookOptions<AgentApiKeyRevokeMutation, AgentApiKeyRevokeMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<AgentApiKeyRevokeMutation, AgentApiKeyRevokeMutationVariables>(AgentApiKeyRevokeDocument, options);
+      }
+export type AgentApiKeyRevokeMutationHookResult = ReturnType<typeof useAgentApiKeyRevokeMutation>;
+export type AgentApiKeyRevokeMutationResult = Apollo.MutationResult<AgentApiKeyRevokeMutation>;
+export type AgentApiKeyRevokeMutationOptions = Apollo.BaseMutationOptions<AgentApiKeyRevokeMutation, AgentApiKeyRevokeMutationVariables>;
 export const CompanyArchiveDocument = gql`
     mutation CompanyArchive($id: ID!) {
   companyArchive(id: $id) {
@@ -10260,6 +10392,40 @@ export function useVehicleWorkUpdateMutation(baseOptions?: Apollo.MutationHookOp
 export type VehicleWorkUpdateMutationHookResult = ReturnType<typeof useVehicleWorkUpdateMutation>;
 export type VehicleWorkUpdateMutationResult = Apollo.MutationResult<VehicleWorkUpdateMutation>;
 export type VehicleWorkUpdateMutationOptions = Apollo.BaseMutationOptions<VehicleWorkUpdateMutation, VehicleWorkUpdateMutationVariables>;
+export const AgentApiKeysDocument = gql`
+    query AgentApiKeys {
+  agentApiKeys {
+    ...AgentApiKeyCardSnippet
+  }
+}
+    ${AgentApiKeyCardSnippetFragmentDoc}`;
+
+/**
+ * __useAgentApiKeysQuery__
+ *
+ * To run a query within a React component, call `useAgentApiKeysQuery` and pass it any options that fit your needs.
+ * When your component renders, `useAgentApiKeysQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useAgentApiKeysQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useAgentApiKeysQuery(baseOptions?: Apollo.QueryHookOptions<AgentApiKeysQuery, AgentApiKeysQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<AgentApiKeysQuery, AgentApiKeysQueryVariables>(AgentApiKeysDocument, options);
+      }
+export function useAgentApiKeysLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<AgentApiKeysQuery, AgentApiKeysQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<AgentApiKeysQuery, AgentApiKeysQueryVariables>(AgentApiKeysDocument, options);
+        }
+export type AgentApiKeysQueryHookResult = ReturnType<typeof useAgentApiKeysQuery>;
+export type AgentApiKeysLazyQueryHookResult = ReturnType<typeof useAgentApiKeysLazyQuery>;
+export type AgentApiKeysQueryResult = Apollo.QueryResult<AgentApiKeysQuery, AgentApiKeysQueryVariables>;
 export const ArchivedEmployeesDocument = gql`
     query ArchivedEmployees($options: ListOptionData) {
   archivedEmployees(options: $options) {

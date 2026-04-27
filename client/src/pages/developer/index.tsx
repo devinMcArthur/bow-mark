@@ -17,6 +17,7 @@ import { FiTool } from "react-icons/fi";
 import ClientOnly from "../../components/Common/ClientOnly";
 import Container from "../../components/Common/Container";
 import RatingsReview from "../../components/pages/developer/RatingsReview";
+import AgentApiKeys from "../../components/pages/developer/AgentApiKeys";
 import FileBrowser from "../../components/FileBrowser";
 import { useAuth } from "../../contexts/Auth";
 import { UserRoles } from "../../generated/graphql";
@@ -44,7 +45,7 @@ const DeveloperPage: React.FC = () => {
   const [tabIndex, setTabIndex] = useState(() => {
     if (typeof window === "undefined") return 0;
     const saved = parseInt(localStorage.getItem("developer:tab") ?? "0", 10);
-    return Number.isNaN(saved) || saved > 1 ? 0 : saved;
+    return Number.isNaN(saved) || saved > 2 ? 0 : saved;
   });
 
   const handleTabChange = React.useCallback((i: number) => {
@@ -72,6 +73,7 @@ const DeveloperPage: React.FC = () => {
           <TabList>
             <Tab>Ratings Review</Tab>
             <Tab>File Browser</Tab>
+            <Tab>Agent API Keys</Tab>
           </TabList>
           <TabPanels>
             <TabPanel px={0}>
@@ -95,6 +97,9 @@ const DeveloperPage: React.FC = () => {
                   compact={false}
                 />
               )}
+            </TabPanel>
+            <TabPanel px={0}>
+              <AgentApiKeys />
             </TabPanel>
           </TabPanels>
         </Tabs>
