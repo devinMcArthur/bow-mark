@@ -128,7 +128,11 @@ function registerInstrumented<TConfig, TArgs>(
 export function register(
   server: McpServer,
   sessionState: TenderToolsSessionState,
+  _scope: "read" | "readwrite" = "readwrite",
 ): void {
+  // _scope is plumbed in for the upcoming write-tool gating in Phase D.
+  // Kept as a parameter now (with a permissive default) so the call site
+  // in mcp-server.ts can compile and read tools stay unchanged.
   // ── search_tenders ───────────────────────────────────────────────────────
   // Cross-tender read tool — unlike the other tender tools, this one does
   // NOT use requireTenderContext() because its whole purpose is to find a
