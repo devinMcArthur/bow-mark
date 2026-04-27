@@ -1,9 +1,11 @@
 import { Types } from "mongoose";
+import { ObjectType } from "type-graphql";
 
 import { AgentApiKeyModel } from "@models";
 import { AgentApiKeySchema, AgentScope } from "../schema";
 import staticOps, { MintKeyArgs, MintKeyResult } from "./static";
 
+@ObjectType()
 export class AgentApiKeyClass extends AgentApiKeySchema {
   /**
    * Generate a fresh API key, store its bcrypt hash, and return the raw
