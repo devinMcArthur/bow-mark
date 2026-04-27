@@ -52,7 +52,15 @@ const DailyReportTimeline: React.FC<DailyReportTimelineProps> = ({
   // on role weight.
   const viewerRole = user?.role as UserRoles | undefined;
 
-  const [showAll, setShowAll] = React.useState(false);
+  // Default expanded on desktop, collapsed on mobile. Read matchMedia
+  // synchronously in the initializer so the desktop default doesn't
+  // flash collapsed-then-expanded on first paint. Resize after mount
+  // doesn't re-evaluate, so a user's manual toggle sticks.
+  const [showAll, setShowAll] = React.useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(min-width: 768px)").matches
+  );
   const hiddenCount = Math.max(0, entries.length - DEFAULT_VISIBLE);
   // slice(entries.length - 0) === slice(entries.length) === []
   // — avoids the slice(-0) gotcha where -0 gets coerced to 0 and the
